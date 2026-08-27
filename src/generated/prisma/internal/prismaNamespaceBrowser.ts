@@ -57,6 +57,12 @@ export const ModelName = {
   User: "User",
   Session: "Session",
   AuditLog: "AuditLog",
+  Patient: "Patient",
+  Serial: "Serial",
+  ClinicalAssessment: "ClinicalAssessment",
+  TreatmentSession: "TreatmentSession",
+  PatientPackage: "PatientPackage",
+  BillingRecord: "BillingRecord",
 } as const;
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
@@ -118,6 +124,172 @@ export const AuditLogScalarFieldEnum = {
 
 export type AuditLogScalarFieldEnum =
   (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum];
+
+export const PatientScalarFieldEnum = {
+  id: "id",
+  patientId: "patientId",
+  nationalId: "nationalId",
+  name: "name",
+  phone: "phone",
+  email: "email",
+  dateOfBirth: "dateOfBirth",
+  age: "age",
+  gender: "gender",
+  bloodGroup: "bloodGroup",
+  occupation: "occupation",
+  address: "address",
+  city: "city",
+  emergencyContactName: "emergencyContactName",
+  emergencyContactPhone: "emergencyContactPhone",
+  emergencyContactRelation: "emergencyContactRelation",
+  primaryCondition: "primaryCondition",
+  allergies: "allergies",
+  medicalHistory: "medicalHistory",
+  currentMedications: "currentMedications",
+  notes: "notes",
+  isActive: "isActive",
+  registeredById: "registeredById",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type PatientScalarFieldEnum =
+  (typeof PatientScalarFieldEnum)[keyof typeof PatientScalarFieldEnum];
+
+export const SerialScalarFieldEnum = {
+  id: "id",
+  serialNumber: "serialNumber",
+  serialCode: "serialCode",
+  date: "date",
+  timeSlot: "timeSlot",
+  hourlySlot: "hourlySlot",
+  gender: "gender",
+  status: "status",
+  type: "type",
+  priority: "priority",
+  roomNo: "roomNo",
+  toldTime: "toldTime",
+  scheduledTime: "scheduledTime",
+  inTime: "inTime",
+  latenessMinutes: "latenessMinutes",
+  punctualityStatus: "punctualityStatus",
+  queuePriorityScore: "queuePriorityScore",
+  therapyStartTime: "therapyStartTime",
+  outTime: "outTime",
+  restTime: "restTime",
+  assignedTreatmentPlan: "assignedTreatmentPlan",
+  isReport: "isReport",
+  notes: "notes",
+  fee: "fee",
+  paidAmount: "paidAmount",
+  isPackageCovered: "isPackageCovered",
+  paymentStatus: "paymentStatus",
+  paymentMethod: "paymentMethod",
+  patientId: "patientId",
+  doctorId: "doctorId",
+  handlerId: "handlerId",
+  createdById: "createdById",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type SerialScalarFieldEnum =
+  (typeof SerialScalarFieldEnum)[keyof typeof SerialScalarFieldEnum];
+
+export const ClinicalAssessmentScalarFieldEnum = {
+  id: "id",
+  date: "date",
+  patientId: "patientId",
+  doctorId: "doctorId",
+  painArea: "painArea",
+  side: "side",
+  duration: "duration",
+  painType: "painType",
+  vasScore: "vasScore",
+  painIncreasesWith: "painIncreasesWith",
+  painReducesWith: "painReducesWith",
+  hasInjury: "hasInjury",
+  hasSurgery: "hasSurgery",
+  postureAdviceGiven: "postureAdviceGiven",
+  previousTreatment: "previousTreatment",
+  difficultyIn: "difficultyIn",
+  rom: "rom",
+  hasMuscleSpasm: "hasMuscleSpasm",
+  hasTenderness: "hasTenderness",
+  hasSwelling: "hasSwelling",
+  diagnosis: "diagnosis",
+  prescribedModalities: "prescribedModalities",
+  exerciseExplained: "exerciseExplained",
+  homePostureAdvice: "homePostureAdvice",
+  postTreatmentVas: "postTreatmentVas",
+  improvement: "improvement",
+  clinicalNotes: "clinicalNotes",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type ClinicalAssessmentScalarFieldEnum =
+  (typeof ClinicalAssessmentScalarFieldEnum)[keyof typeof ClinicalAssessmentScalarFieldEnum];
+
+export const TreatmentSessionScalarFieldEnum = {
+  id: "id",
+  date: "date",
+  sessionNumber: "sessionNumber",
+  patientId: "patientId",
+  handlerId: "handlerId",
+  bloodPressure: "bloodPressure",
+  complaint: "complaint",
+  treatmentPlan: "treatmentPlan",
+  treatmentPerformed: "treatmentPerformed",
+  notes: "notes",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type TreatmentSessionScalarFieldEnum =
+  (typeof TreatmentSessionScalarFieldEnum)[keyof typeof TreatmentSessionScalarFieldEnum];
+
+export const PatientPackageScalarFieldEnum = {
+  id: "id",
+  packageName: "packageName",
+  totalDays: "totalDays",
+  totalAmount: "totalAmount",
+  paidAmount: "paidAmount",
+  dueAmount: "dueAmount",
+  startDate: "startDate",
+  endDate: "endDate",
+  status: "status",
+  notes: "notes",
+  patientId: "patientId",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type PatientPackageScalarFieldEnum =
+  (typeof PatientPackageScalarFieldEnum)[keyof typeof PatientPackageScalarFieldEnum];
+
+export const BillingRecordScalarFieldEnum = {
+  id: "id",
+  date: "date",
+  dayNumber: "dayNumber",
+  actualBill: "actualBill",
+  paidAmount: "paidAmount",
+  advanceAmount: "advanceAmount",
+  dueAmount: "dueAmount",
+  isPackageCovered: "isPackageCovered",
+  paymentMethod: "paymentMethod",
+  patientId: "patientId",
+  packageId: "packageId",
+  serialId: "serialId",
+  cashierId: "cashierId",
+  auditedById: "auditedById",
+  notes: "notes",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type BillingRecordScalarFieldEnum =
+  (typeof BillingRecordScalarFieldEnum)[keyof typeof BillingRecordScalarFieldEnum];
 
 export const SortOrder = {
   asc: "asc",

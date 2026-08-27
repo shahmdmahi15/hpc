@@ -16,13 +16,7 @@ import {
 import { SidebarBrandHeader } from "./sidebar-brand-header";
 import { SidebarUserFooter } from "./sidebar-user-footer";
 import { AdminOmniNav } from "./admin-omni-nav";
-import {
-  LayoutDashboard,
-  Calendar,
-  ClipboardList,
-  Stethoscope,
-  User,
-} from "lucide-react";
+import { LayoutDashboard, Tv, User } from "lucide-react";
 import { Role } from "@/generated/prisma/enums";
 
 interface ReceptionistSidebarProps {
@@ -37,22 +31,12 @@ export function ReceptionistSidebar({ user }: ReceptionistSidebarProps) {
   const pathname = usePathname();
 
   const navItems = [
-    { title: "Reception Desk", href: "/receptionist", icon: LayoutDashboard },
     {
-      title: "Patient Appointments",
-      href: "/receptionist#appointments",
-      icon: Calendar,
+      title: "Front Desk & Queue",
+      href: "/receptionist",
+      icon: LayoutDashboard,
     },
-    {
-      title: "Intake & Check-In",
-      href: "/receptionist#checkin",
-      icon: ClipboardList,
-    },
-    {
-      title: "Doctors On Duty",
-      href: "/receptionist#duty",
-      icon: Stethoscope,
-    },
+    { title: "Live Waiting Kiosk", href: "/", icon: Tv },
     { title: "My Profile", href: "/receptionist/profile", icon: User },
   ];
 
@@ -79,7 +63,7 @@ export function ReceptionistSidebar({ user }: ReceptionistSidebarProps) {
                       isActive={isActive}
                       tooltip={item.title}
                     >
-                      <Icon className="h-4 w-4 shrink-0 text-emerald-500" />
+                      <Icon className="h-4 w-4 shrink-0 text-primary" />
                       <span className="truncate">{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

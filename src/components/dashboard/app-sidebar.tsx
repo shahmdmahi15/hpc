@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Role } from "@/generated/prisma/enums";
 import { AdminSidebar } from "./sidebars/admin-sidebar";
 import { DoctorSidebar } from "./sidebars/doctor-sidebar";
@@ -16,6 +17,23 @@ export interface AppSidebarProps {
 }
 
 export function AppSidebar({ user }: AppSidebarProps) {
+  const pathname = usePathname();
+
+  // Match sidebar dynamically based on active route path
+  if (pathname.startsWith("/doctor")) {
+    return <DoctorSidebar user={user} />;
+  }
+  if (pathname.startsWith("/receptionist")) {
+    return <ReceptionistSidebar user={user} />;
+  }
+  if (pathname.startsWith("/handler")) {
+    return <HandlerSidebar user={user} />;
+  }
+  if (pathname.startsWith("/admin")) {
+    return <AdminSidebar user={user} />;
+  }
+
+  // Fallback to role-specific sidebar
   switch (user.role) {
     case Role.ADMIN:
       return <AdminSidebar user={user} />;

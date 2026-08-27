@@ -16,13 +16,7 @@ import {
 import { SidebarBrandHeader } from "./sidebar-brand-header";
 import { SidebarUserFooter } from "./sidebar-user-footer";
 import { AdminOmniNav } from "./admin-omni-nav";
-import {
-  LayoutDashboard,
-  Activity,
-  Users,
-  ClipboardList,
-  User,
-} from "lucide-react";
+import { Activity, Tv, User } from "lucide-react";
 import { Role } from "@/generated/prisma/enums";
 
 interface HandlerSidebarProps {
@@ -37,14 +31,8 @@ export function HandlerSidebar({ user }: HandlerSidebarProps) {
   const pathname = usePathname();
 
   const navItems = [
-    { title: "Care & Handler Hub", href: "/handler", icon: LayoutDashboard },
-    { title: "Rehab Sessions", href: "/handler#sessions", icon: Activity },
-    { title: "Patient Transport", href: "/handler#transport", icon: Users },
-    {
-      title: "Triage Assistance",
-      href: "/handler#triage",
-      icon: ClipboardList,
-    },
+    { title: "Therapy & Timing Hub", href: "/handler", icon: Activity },
+    { title: "Live Waiting Kiosk", href: "/", icon: Tv },
     { title: "My Profile", href: "/handler/profile", icon: User },
   ];
 
@@ -58,7 +46,7 @@ export function HandlerSidebar({ user }: HandlerSidebarProps) {
       <SidebarContent>
         {/* Handler Hub Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel>Therapy & Care Handler</SidebarGroupLabel>
+          <SidebarGroupLabel>Therapy &amp; Care Handler</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
@@ -71,7 +59,7 @@ export function HandlerSidebar({ user }: HandlerSidebarProps) {
                       isActive={isActive}
                       tooltip={item.title}
                     >
-                      <Icon className="h-4 w-4 shrink-0 text-amber-500" />
+                      <Icon className="h-4 w-4 shrink-0 text-primary" />
                       <span className="truncate">{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

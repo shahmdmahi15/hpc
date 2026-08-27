@@ -11,12 +11,23 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { Stethoscope, Headphones, UserCheck } from "lucide-react";
+import {
+  ShieldAlert,
+  Stethoscope,
+  Headphones,
+  UserCheck,
+  Tv,
+} from "lucide-react";
 
 export function AdminOmniNav() {
   const pathname = usePathname();
 
   const panels = [
+    {
+      title: "Admin Command Center",
+      href: "/admin",
+      icon: ShieldAlert,
+    },
     {
       title: "Doctor Clinical Panel",
       href: "/doctor",
@@ -32,6 +43,11 @@ export function AdminOmniNav() {
       href: "/handler",
       icon: UserCheck,
     },
+    {
+      title: "Live Waiting Room Kiosk",
+      href: "/",
+      icon: Tv,
+    },
   ];
 
   return (
@@ -42,7 +58,10 @@ export function AdminOmniNav() {
           {panels.map((panel) => {
             const Icon = panel.icon;
             const isActive =
-              pathname === panel.href || pathname.startsWith(`${panel.href}/`);
+              panel.href === "/"
+                ? pathname === "/"
+                : pathname === panel.href ||
+                  pathname.startsWith(`${panel.href}/`);
             return (
               <SidebarMenuItem key={panel.href}>
                 <SidebarMenuButton

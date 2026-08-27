@@ -28,6 +28,18 @@ export const AuditAction = {
   USER_SESSIONS_REVOKED: "USER_SESSIONS_REVOKED",
   PROFILE_UPDATE: "PROFILE_UPDATE",
   PASSWORD_UPDATE: "PASSWORD_UPDATE",
+  PATIENT_CREATE: "PATIENT_CREATE",
+  PATIENT_UPDATE: "PATIENT_UPDATE",
+  PATIENT_DELETE: "PATIENT_DELETE",
+  SERIAL_CREATE: "SERIAL_CREATE",
+  SERIAL_UPDATE: "SERIAL_UPDATE",
+  SERIAL_STATUS_CHANGE: "SERIAL_STATUS_CHANGE",
+  SERIAL_CANCEL: "SERIAL_CANCEL",
+  ASSESSMENT_CREATE: "ASSESSMENT_CREATE",
+  ASSESSMENT_UPDATE: "ASSESSMENT_UPDATE",
+  TREATMENT_SESSION_CREATE: "TREATMENT_SESSION_CREATE",
+  BILLING_CREATE: "BILLING_CREATE",
+  BILLING_AUDIT: "BILLING_AUDIT",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
@@ -38,3 +50,134 @@ export const AuditStatus = {
 } as const;
 
 export type AuditStatus = (typeof AuditStatus)[keyof typeof AuditStatus];
+
+export const Gender = {
+  MALE: "MALE",
+  FEMALE: "FEMALE",
+  OTHER: "OTHER",
+} as const;
+
+export type Gender = (typeof Gender)[keyof typeof Gender];
+
+export const BloodGroup = {
+  A_POSITIVE: "A_POSITIVE",
+  A_NEGATIVE: "A_NEGATIVE",
+  B_POSITIVE: "B_POSITIVE",
+  B_NEGATIVE: "B_NEGATIVE",
+  AB_POSITIVE: "AB_POSITIVE",
+  AB_NEGATIVE: "AB_NEGATIVE",
+  O_POSITIVE: "O_POSITIVE",
+  O_NEGATIVE: "O_NEGATIVE",
+  UNKNOWN: "UNKNOWN",
+} as const;
+
+export type BloodGroup = (typeof BloodGroup)[keyof typeof BloodGroup];
+
+export const SerialStatus = {
+  PENDING: "PENDING",
+  CHECKED_IN: "CHECKED_IN",
+  WAITING: "WAITING",
+  IN_CONSULTATION: "IN_CONSULTATION",
+  IN_THERAPY: "IN_THERAPY",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+
+export type SerialStatus = (typeof SerialStatus)[keyof typeof SerialStatus];
+
+export const VisitType = {
+  NEW_CONSULTATION: "NEW_CONSULTATION",
+  FOLLOW_UP: "FOLLOW_UP",
+  REPORT_REVIEW: "REPORT_REVIEW",
+  THERAPY_PROCEDURE: "THERAPY_PROCEDURE",
+  EMERGENCY: "EMERGENCY",
+} as const;
+
+export type VisitType = (typeof VisitType)[keyof typeof VisitType];
+
+export const Priority = {
+  REGULAR: "REGULAR",
+  URGENT: "URGENT",
+  EMERGENCY: "EMERGENCY",
+  VIP: "VIP",
+} as const;
+
+export type Priority = (typeof Priority)[keyof typeof Priority];
+
+export const PaymentStatus = {
+  UNPAID: "UNPAID",
+  PARTIALLY_PAID: "PARTIALLY_PAID",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+} as const;
+
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+
+export const PaymentMethod = {
+  CASH: "CASH",
+  CARD: "CARD",
+  MOBILE_BANKING: "MOBILE_BANKING",
+  INSURANCE: "INSURANCE",
+  OTHER: "OTHER",
+} as const;
+
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+export const HourlySlot = {
+  SLOT_10_11: "SLOT_10_11",
+  SLOT_11_12: "SLOT_11_12",
+  SLOT_12_01: "SLOT_12_01",
+  SLOT_01_02: "SLOT_01_02",
+  SLOT_02_03: "SLOT_02_03",
+  SLOT_03_04: "SLOT_03_04",
+  SLOT_04_05: "SLOT_04_05",
+  SLOT_05_06: "SLOT_05_06",
+  SLOT_06_07: "SLOT_06_07",
+  SLOT_07_08: "SLOT_07_08",
+  CUSTOM: "CUSTOM",
+} as const;
+
+export type HourlySlot = (typeof HourlySlot)[keyof typeof HourlySlot];
+
+export const PainSide = {
+  RIGHT: "RIGHT",
+  LEFT: "LEFT",
+  BOTH: "BOTH",
+} as const;
+
+export type PainSide = (typeof PainSide)[keyof typeof PainSide];
+
+export const PainType = {
+  SHARP: "SHARP",
+  DULL: "DULL",
+  BURNING: "BURNING",
+  RADIATING: "RADIATING",
+} as const;
+
+export type PainType = (typeof PainType)[keyof typeof PainType];
+
+export const RomStatus = {
+  NORMAL: "NORMAL",
+  RESTRICTED: "RESTRICTED",
+} as const;
+
+export type RomStatus = (typeof RomStatus)[keyof typeof RomStatus];
+
+export const PackageStatus = {
+  ACTIVE: "ACTIVE",
+  COMPLETED: "COMPLETED",
+  EXPIRED: "EXPIRED",
+  CANCELLED: "CANCELLED",
+} as const;
+
+export type PackageStatus = (typeof PackageStatus)[keyof typeof PackageStatus];
+
+export const PunctualityStatus = {
+  ON_TIME: "ON_TIME",
+  MODERATE_LATE: "MODERATE_LATE",
+  SEVERE_LATE: "SEVERE_LATE",
+} as const;
+
+export type PunctualityStatus =
+  (typeof PunctualityStatus)[keyof typeof PunctualityStatus];

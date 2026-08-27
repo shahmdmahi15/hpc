@@ -61,3 +61,33 @@ export type Session = Prisma.SessionModel;
  *
  */
 export type AuditLog = Prisma.AuditLogModel;
+/**
+ * Model Patient
+ *
+ */
+export type Patient = Prisma.PatientModel;
+/**
+ * Model Serial
+ *
+ */
+export type Serial = Prisma.SerialModel;
+/**
+ * Model ClinicalAssessment
+ *
+ */
+export type ClinicalAssessment = Prisma.ClinicalAssessmentModel;
+/**
+ * Model TreatmentSession
+ *
+ */
+export type TreatmentSession = Prisma.TreatmentSessionModel;
+/**
+ * Model PatientPackage
+ *
+ */
+export type PatientPackage = Prisma.PatientPackageModel;
+/**
+ * Model BillingRecord
+ *
+ */
+export type BillingRecord = Prisma.BillingRecordModel;

@@ -16,7 +16,7 @@ import {
 import { SidebarBrandHeader } from "./sidebar-brand-header";
 import { SidebarUserFooter } from "./sidebar-user-footer";
 import { AdminOmniNav } from "./admin-omni-nav";
-import { LayoutDashboard, Users, Activity, FileText, User } from "lucide-react";
+import { Stethoscope, Users, Tv, User } from "lucide-react";
 import { Role } from "@/generated/prisma/enums";
 
 interface DoctorSidebarProps {
@@ -31,14 +31,8 @@ export function DoctorSidebar({ user }: DoctorSidebarProps) {
   const pathname = usePathname();
 
   const navItems = [
-    { title: "Clinical Dashboard", href: "/doctor", icon: LayoutDashboard },
-    { title: "Patient Cases", href: "/doctor#patients", icon: Users },
-    { title: "Pain Treatment Plans", href: "/doctor#plans", icon: Activity },
-    {
-      title: "Clinical Consultations",
-      href: "/doctor#consults",
-      icon: FileText,
-    },
+    { title: "Clinical Workspace", href: "/doctor", icon: Stethoscope },
+    { title: "Live Waiting Kiosk", href: "/", icon: Tv },
     { title: "My Profile", href: "/doctor/profile", icon: User },
   ];
 
@@ -65,7 +59,7 @@ export function DoctorSidebar({ user }: DoctorSidebarProps) {
                       isActive={isActive}
                       tooltip={item.title}
                     >
-                      <Icon className="h-4 w-4 shrink-0 text-cyan-500" />
+                      <Icon className="h-4 w-4 shrink-0 text-primary" />
                       <span className="truncate">{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

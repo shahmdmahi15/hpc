@@ -10,4 +10,10 @@
 export type * from "./models/User";
 export type * from "./models/Session";
 export type * from "./models/AuditLog";
+export type * from "./models/Patient";
+export type * from "./models/Serial";
+export type * from "./models/ClinicalAssessment";
+export type * from "./models/TreatmentSession";
+export type * from "./models/PatientPackage";
+export type * from "./models/BillingRecord";
 export type * from "./commonInputTypes";

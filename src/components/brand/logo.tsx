@@ -68,7 +68,7 @@ export function BrandLogo({
             </span>
             {variant === "full" && (
               <span className="hidden sm:inline-block text-xs font-semibold text-muted-foreground uppercase tracking-widest pl-1 border-l border-border">
-                Care Center
+                Jashore
               </span>
             )}
           </div>

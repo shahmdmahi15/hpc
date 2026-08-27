@@ -7,13 +7,5 @@ export function ThemeProvider({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
-  return (
-    <NextThemesProvider
-      enableColorScheme={false}
-      scriptProps={{ async: true }}
-      {...props}
-    >
-      {children}
-    </NextThemesProvider>
-  );
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }
