@@ -429,6 +429,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never
 export const ModelName = {
   User: "User",
   Session: "Session",
+  AuditLog: "AuditLog",
 } as const;
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
@@ -450,7 +451,7 @@ export type TypeMap<
     omit: GlobalOmitOptions;
   };
   meta: {
-    modelProps: "user" | "session";
+    modelProps: "user" | "session" | "auditLog";
     txIsolationLevel: TransactionIsolationLevel;
   };
   model: {
@@ -606,6 +607,82 @@ export type TypeMap<
         };
       };
     };
+    AuditLog: {
+      payload: Prisma.$AuditLogPayload<ExtArgs>;
+      fields: Prisma.AuditLogFieldRefs;
+      operations: {
+        findUnique: {
+          args: Prisma.AuditLogFindUniqueArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload> | null;
+        };
+        findUniqueOrThrow: {
+          args: Prisma.AuditLogFindUniqueOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>;
+        };
+        findFirst: {
+          args: Prisma.AuditLogFindFirstArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload> | null;
+        };
+        findFirstOrThrow: {
+          args: Prisma.AuditLogFindFirstOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>;
+        };
+        findMany: {
+          args: Prisma.AuditLogFindManyArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>[];
+        };
+        create: {
+          args: Prisma.AuditLogCreateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>;
+        };
+        createMany: {
+          args: Prisma.AuditLogCreateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        createManyAndReturn: {
+          args: Prisma.AuditLogCreateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>[];
+        };
+        delete: {
+          args: Prisma.AuditLogDeleteArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>;
+        };
+        update: {
+          args: Prisma.AuditLogUpdateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>;
+        };
+        deleteMany: {
+          args: Prisma.AuditLogDeleteManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateMany: {
+          args: Prisma.AuditLogUpdateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateManyAndReturn: {
+          args: Prisma.AuditLogUpdateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>[];
+        };
+        upsert: {
+          args: Prisma.AuditLogUpsertArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuditLogPayload>;
+        };
+        aggregate: {
+          args: Prisma.AuditLogAggregateArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAuditLog>;
+        };
+        groupBy: {
+          args: Prisma.AuditLogGroupByArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.AuditLogGroupByOutputType>[];
+        };
+        count: {
+          args: Prisma.AuditLogCountArgs<ExtArgs>;
+          result:
+            | runtime.Types.Utils.Optional<Prisma.AuditLogCountAggregateOutputType>
+            | number;
+        };
+      };
+    };
   };
 } & {
   other: {
@@ -658,6 +735,11 @@ export const SessionScalarFieldEnum = {
   id: "id",
   token: "token",
   userId: "userId",
+  ipAddress: "ipAddress",
+  userAgent: "userAgent",
+  device: "device",
+  browser: "browser",
+  os: "os",
   expiresAt: "expiresAt",
   revokedAt: "revokedAt",
   lastAccessAt: "lastAccessAt",
@@ -667,6 +749,22 @@ export const SessionScalarFieldEnum = {
 
 export type SessionScalarFieldEnum =
   (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum];
+
+export const AuditLogScalarFieldEnum = {
+  id: "id",
+  action: "action",
+  status: "status",
+  userId: "userId",
+  entity: "entity",
+  entityId: "entityId",
+  details: "details",
+  ipAddress: "ipAddress",
+  userAgent: "userAgent",
+  createdAt: "createdAt",
+} as const;
+
+export type AuditLogScalarFieldEnum =
+  (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum];
 
 export const SortOrder = {
   asc: "asc",
@@ -708,6 +806,22 @@ export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<
   $PrismaModel,
   "DateTime"
+>;
+
+/**
+ * Reference to a field of type 'AuditAction'
+ */
+export type EnumAuditActionFieldRefInput<$PrismaModel> = FieldRefInputType<
+  $PrismaModel,
+  "AuditAction"
+>;
+
+/**
+ * Reference to a field of type 'AuditStatus'
+ */
+export type EnumAuditStatusFieldRefInput<$PrismaModel> = FieldRefInputType<
+  $PrismaModel,
+  "AuditStatus"
 >;
 
 /**
@@ -877,6 +991,7 @@ export type PrismaClientOptions =
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit;
   session?: Prisma.SessionOmit;
+  auditLog?: Prisma.AuditLogOmit;
 };
 
 /* Types for Logging */

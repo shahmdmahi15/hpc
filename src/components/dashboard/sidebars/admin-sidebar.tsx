@@ -16,7 +16,13 @@ import {
 import { SidebarBrandHeader } from "./sidebar-brand-header";
 import { SidebarUserFooter } from "./sidebar-user-footer";
 import { AdminOmniNav } from "./admin-omni-nav";
-import { LayoutDashboard, Users, User } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  User,
+  ShieldCheck,
+  KeyRound,
+} from "lucide-react";
 import type { Role } from "@/generated/prisma/enums";
 
 interface AdminSidebarProps {
@@ -33,6 +39,8 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
   const navItems = [
     { title: "System Overview", href: "/admin", icon: LayoutDashboard },
     { title: "Staff & Role Access", href: "/admin/users", icon: Users },
+    { title: "Active Sessions", href: "/admin/sessions", icon: KeyRound },
+    { title: "Audit & Security Logs", href: "/admin/logs", icon: ShieldCheck },
     { title: "My Profile", href: "/admin/profile", icon: User },
   ];
 

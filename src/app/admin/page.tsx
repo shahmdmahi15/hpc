@@ -14,6 +14,7 @@ import Link from "next/link";
 import {
   Users,
   ShieldAlert,
+  ShieldCheck,
   KeyRound,
   Database,
   ArrowRight,
@@ -21,11 +22,15 @@ import {
   Headphones,
   UserCheck,
   Activity,
-  Server,
-  Lock,
+  Laptop,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ChevronRight,
 } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { Role } from "@/generated/prisma/enums";
+import { normalizeIpAddress } from "@/lib/device";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -45,6 +50,8 @@ export default async function AdminDashboardPage() {
     handlerCount,
     adminCount,
     recentUsers,
+    recentAuditLogs,
+    activeSessions,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.session.count({
@@ -67,6 +74,36 @@ export default async function AdminDashboardPage() {
         createdAt: true,
       },
     }),
+    prisma.auditLog.findMany({
+      take: 6,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+    }),
+    prisma.session.findMany({
+      where: {
+        expiresAt: { gt: new Date() },
+        revokedAt: null,
+      },
+      take: 4,
+      orderBy: { lastAccessAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+    }),
   ]);
 
   const ROLE_BADGE_STYLES: Record<Role, string> = {
@@ -75,6 +112,20 @@ export default async function AdminDashboardPage() {
     [Role.RECEPTIONIST]:
       "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
     [Role.HANDLER]: "border-amber-500/30 bg-amber-500/10 text-amber-500",
+  };
+
+  const AUDIT_ACTION_STYLES: Record<string, string> = {
+    LOGIN_SUCCESS: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
+    LOGIN_FAILURE: "border-red-500/30 bg-red-500/10 text-red-500",
+    LOGOUT: "border-slate-500/30 bg-slate-500/10 text-slate-400",
+    USER_CREATE: "border-cyan-500/30 bg-cyan-500/10 text-cyan-500",
+    USER_UPDATE: "border-blue-500/30 bg-blue-500/10 text-blue-500",
+    USER_PASSWORD_RESET: "border-amber-500/30 bg-amber-500/10 text-amber-500",
+    USER_DELETE: "border-rose-500/30 bg-rose-500/10 text-rose-500",
+    USER_SESSIONS_REVOKED:
+      "border-purple-500/30 bg-purple-500/10 text-purple-500",
+    PROFILE_UPDATE: "border-teal-500/30 bg-teal-500/10 text-teal-500",
+    PASSWORD_UPDATE: "border-amber-500/30 bg-amber-500/10 text-amber-500",
   };
 
   return (
@@ -95,13 +146,24 @@ export default async function AdminDashboardPage() {
               access controls.
             </p>
           </div>
-          <Link href="/admin/users">
-            <Button className="cursor-pointer gap-2 font-semibold shadow-md shadow-primary/20">
-              <Users className="h-4 w-4" />
-              <span>Manage Staff & Roles</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/logs">
+              <Button
+                variant="outline"
+                className="cursor-pointer gap-2 font-semibold text-xs h-9"
+              >
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span>Audit Trail</span>
+              </Button>
+            </Link>
+            <Link href="/admin/users">
+              <Button className="cursor-pointer gap-2 font-semibold shadow-md shadow-primary/20 text-xs h-9">
+                <Users className="h-4 w-4" />
+                <span>Manage Staff</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* 1. Metric Overview Cards */}
@@ -136,7 +198,7 @@ export default async function AdminDashboardPage() {
               {totalSessions}
             </p>
             <span className="text-[11px] text-muted-foreground mt-1 block">
-              Encrypted SHA-256 tokens
+              With device & IP telemetry
             </span>
           </Card>
 
@@ -277,7 +339,10 @@ export default async function AdminDashboardPage() {
                       >
                         {u.role}
                       </Badge>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span
+                        suppressHydrationWarning
+                        className="text-[11px] text-muted-foreground"
+                      >
                         {new Date(u.createdAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -345,6 +410,159 @@ export default async function AdminDashboardPage() {
                   </Link>
                 );
               })}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 3. Live Security Audit Trail & Enriched Sessions Telemetry */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Security Audit Feed */}
+          <Card className="lg:col-span-2 shadow-sm border-border bg-card/85 backdrop-blur-md">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <span>Recent Security & Audit Events</span>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Real-time immutable activity log across authentication and
+                  data operations
+                </CardDescription>
+              </div>
+              <Link href="/admin/logs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5 cursor-pointer"
+                >
+                  <span>Full Audit Trail</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </CardHeader>
+            <CardContent>
+              {recentAuditLogs.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">
+                  No security events recorded yet. Perform a login or profile
+                  action to initiate audit telemetry.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {recentAuditLogs.map((log) => {
+                    const badgeStyle =
+                      AUDIT_ACTION_STYLES[log.action] ||
+                      "border-muted bg-muted/20 text-muted-foreground";
+
+                    return (
+                      <div
+                        key={log.id}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-border/60 bg-muted/20 text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {log.status === "SUCCESS" ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                          )}
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] font-mono font-semibold shrink-0 ${badgeStyle}`}
+                          >
+                            {log.action}
+                          </Badge>
+                          <span className="font-semibold text-foreground truncate">
+                            {log.user?.name || "System"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-[11px] font-mono text-muted-foreground">
+                            {normalizeIpAddress(log.ipAddress)}
+                          </span>
+                          <span
+                            suppressHydrationWarning
+                            className="text-[11px] text-muted-foreground flex items-center gap-1"
+                          >
+                            <Clock className="h-3 w-3" />
+                            {new Date(log.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Enriched Active Sessions Telemetry */}
+          <Card className="shadow-sm border-border bg-card/85 backdrop-blur-md">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Laptop className="h-4 w-4 text-emerald-500" />
+                  <span>Active Session Telemetry</span>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Enriched client device, OS, and IP metadata
+                </CardDescription>
+              </div>
+              <Link
+                href="/admin/sessions"
+                className="text-xs text-primary hover:underline font-semibold flex items-center gap-1"
+              >
+                <span>Control Center</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </CardHeader>
+            <CardContent className="space-y-2.5">
+              {activeSessions.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">
+                  No active sessions found.
+                </div>
+              ) : (
+                activeSessions.map((s) => (
+                  <div
+                    key={s.id}
+                    className="p-2.5 rounded-xl border border-border/60 bg-muted/20 text-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-foreground">
+                        {s.user.name}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={ROLE_BADGE_STYLES[s.user.role]}
+                      >
+                        {s.user.role}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Laptop className="h-3 w-3" />
+                        {s.os || "Windows"} • {s.browser || "Chrome"}
+                      </span>
+                      <span className="font-mono">
+                        {normalizeIpAddress(s.ipAddress)}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" />
+                      <span suppressHydrationWarning>
+                        Last active:{" "}
+                        {s.lastAccessAt
+                          ? new Date(s.lastAccessAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "Just now"}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>

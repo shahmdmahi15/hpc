@@ -140,7 +140,10 @@ export default function RootLayout({
       lang="en"
       className={`${poppins.variable} font-sans h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex flex-col font-sans"
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

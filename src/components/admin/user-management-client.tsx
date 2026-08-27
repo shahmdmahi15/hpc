@@ -368,7 +368,10 @@ export function UserManagementClient({
                     </TableCell>
 
                     {/* Onboarded Date */}
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell
+                      suppressHydrationWarning
+                      className="text-xs text-muted-foreground"
+                    >
                       {new Date(user.createdAt).toLocaleDateString(undefined, {
                         year: "numeric",
                         month: "short",

@@ -56,6 +56,7 @@ export function SidebarUserFooter({ user }: SidebarUserFooterProps) {
 
         <form
           action={logoutAction}
+          suppressHydrationWarning
           className={state === "collapsed" ? "hidden" : "shrink-0"}
         >
           <button

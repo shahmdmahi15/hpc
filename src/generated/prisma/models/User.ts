@@ -194,6 +194,7 @@ export type UserWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string;
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string;
   sessions?: Prisma.SessionListRelationFilter;
+  auditLogs?: Prisma.AuditLogListRelationFilter;
 };
 
 export type UserOrderByWithRelationInput = {
@@ -204,6 +205,7 @@ export type UserOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
   sessions?: Prisma.SessionOrderByRelationAggregateInput;
+  auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput;
 };
 
 export type UserWhereUniqueInput = Prisma.AtLeast<
@@ -218,6 +220,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<
     createdAt?: Prisma.DateTimeFilter<"User"> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string;
     sessions?: Prisma.SessionListRelationFilter;
+    auditLogs?: Prisma.AuditLogListRelationFilter;
   },
   "id"
 >;
@@ -258,6 +261,7 @@ export type UserCreateInput = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput;
 };
 
 export type UserUncheckedCreateInput = {
@@ -268,6 +272,7 @@ export type UserUncheckedCreateInput = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput;
 };
 
 export type UserUpdateInput = {
@@ -278,6 +283,7 @@ export type UserUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput;
 };
 
 export type UserUncheckedUpdateInput = {
@@ -288,6 +294,7 @@ export type UserUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput;
 };
 
 export type UserCreateManyInput = {
@@ -349,6 +356,11 @@ export type UserScalarRelationFilter = {
   isNot?: Prisma.UserWhereInput;
 };
 
+export type UserNullableScalarRelationFilter = {
+  is?: Prisma.UserWhereInput | null;
+  isNot?: Prisma.UserWhereInput | null;
+};
+
 export type StringFieldUpdateOperationsInput = {
   set?: string;
 };
@@ -387,6 +399,34 @@ export type UserUpdateOneRequiredWithoutSessionsNestedInput = {
   >;
 };
 
+export type UserCreateNestedOneWithoutAuditLogsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutAuditLogsInput,
+    Prisma.UserUncheckedCreateWithoutAuditLogsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuditLogsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneWithoutAuditLogsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutAuditLogsInput,
+    Prisma.UserUncheckedCreateWithoutAuditLogsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuditLogsInput;
+  upsert?: Prisma.UserUpsertWithoutAuditLogsInput;
+  disconnect?: Prisma.UserWhereInput | boolean;
+  delete?: Prisma.UserWhereInput | boolean;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutAuditLogsInput,
+      Prisma.UserUpdateWithoutAuditLogsInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutAuditLogsInput
+  >;
+};
+
 export type UserCreateWithoutSessionsInput = {
   id?: string;
   name: string;
@@ -394,6 +434,7 @@ export type UserCreateWithoutSessionsInput = {
   password: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput;
 };
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -403,6 +444,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   password: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput;
 };
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -440,6 +482,7 @@ export type UserUpdateWithoutSessionsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -449,6 +492,75 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput;
+};
+
+export type UserCreateWithoutAuditLogsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput;
+};
+
+export type UserUncheckedCreateWithoutAuditLogsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput;
+};
+
+export type UserCreateOrConnectWithoutAuditLogsInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutAuditLogsInput,
+    Prisma.UserUncheckedCreateWithoutAuditLogsInput
+  >;
+};
+
+export type UserUpsertWithoutAuditLogsInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutAuditLogsInput,
+    Prisma.UserUncheckedUpdateWithoutAuditLogsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutAuditLogsInput,
+    Prisma.UserUncheckedCreateWithoutAuditLogsInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutAuditLogsInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutAuditLogsInput,
+    Prisma.UserUncheckedUpdateWithoutAuditLogsInput
+  >;
+};
+
+export type UserUpdateWithoutAuditLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutAuditLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput;
 };
 
 /**
@@ -457,6 +569,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
 
 export type UserCountOutputType = {
   sessions: number;
+  auditLogs: number;
 };
 
 export type UserCountOutputTypeSelect<
@@ -464,6 +577,7 @@ export type UserCountOutputTypeSelect<
     runtime.Types.Extensions.DefaultArgs,
 > = {
   sessions?: boolean | UserCountOutputTypeCountSessionsArgs;
+  auditLogs?: boolean | UserCountOutputTypeCountAuditLogsArgs;
 };
 
 /**
@@ -489,6 +603,16 @@ export type UserCountOutputTypeCountSessionsArgs<
   where?: Prisma.SessionWhereInput;
 };
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountAuditLogsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.AuditLogWhereInput;
+};
+
 export type UserSelect<
   ExtArgs extends runtime.Types.Extensions.InternalArgs =
     runtime.Types.Extensions.DefaultArgs,
@@ -501,6 +625,7 @@ export type UserSelect<
     createdAt?: boolean;
     updatedAt?: boolean;
     sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>;
+    auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>;
     _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>;
   },
   ExtArgs["result"]["user"]
@@ -557,6 +682,7 @@ export type UserInclude<
     runtime.Types.Extensions.DefaultArgs,
 > = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>;
+  auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>;
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>;
 };
 export type UserIncludeCreateManyAndReturn<
@@ -575,6 +701,7 @@ export type $UserPayload<
   name: "User";
   objects: {
     sessions: Prisma.$SessionPayload<ExtArgs>[];
+    auditLogs: Prisma.$AuditLogPayload<ExtArgs>[];
   };
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
@@ -1145,6 +1272,17 @@ export interface Prisma__UserClient<
       >
     | Null
   >;
+  auditLogs<T extends Prisma.User$auditLogsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$auditLogsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$AuditLogPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1654,6 +1792,35 @@ export type User$sessionsArgs<
   take?: number;
   skip?: number;
   distinct?: Prisma.SessionScalarFieldEnum | Prisma.SessionScalarFieldEnum[];
+};
+
+/**
+ * User.auditLogs
+ */
+export type User$auditLogsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the AuditLog
+   */
+  select?: Prisma.AuditLogSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the AuditLog
+   */
+  omit?: Prisma.AuditLogOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuditLogInclude<ExtArgs> | null;
+  where?: Prisma.AuditLogWhereInput;
+  orderBy?:
+    | Prisma.AuditLogOrderByWithRelationInput
+    | Prisma.AuditLogOrderByWithRelationInput[];
+  cursor?: Prisma.AuditLogWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.AuditLogScalarFieldEnum | Prisma.AuditLogScalarFieldEnum[];
 };
 
 /**

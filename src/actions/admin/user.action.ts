@@ -12,6 +12,9 @@ import {
 } from "@/schemas/admin/user.schema";
 import { revalidatePath } from "next/cache";
 
+import { logAudit } from "@/lib/audit";
+import { AuditAction, AuditStatus } from "@/generated/prisma/enums";
+
 export interface AdminActionState {
   success?: boolean;
   message?: string;
@@ -25,6 +28,11 @@ export async function createUserAction(
 ): Promise<AdminActionState> {
   const currentSession = await getCurrentSession();
   if (!currentSession || currentSession.user.role !== Role.ADMIN) {
+    await logAudit({
+      action: AuditAction.USER_CREATE,
+      status: AuditStatus.FAILURE,
+      details: { reason: "Unauthorized admin privilege required" },
+    });
     return {
       success: false,
       message: "Unauthorized: Administrator privileges required.",
@@ -39,6 +47,16 @@ export async function createUserAction(
 
   const validated = CreateUserSchema.safeParse(rawData);
   if (!validated.success) {
+    await logAudit({
+      action: AuditAction.USER_CREATE,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      details: {
+        reason: "Validation error",
+        errors: validated.error.flatten().fieldErrors,
+      },
+    });
+
     return {
       success: false,
       message: "Please correct the errors in the form.",
@@ -49,11 +67,25 @@ export async function createUserAction(
   try {
     const hashedPassword = await hashPassword(validated.data.password);
 
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         name: validated.data.name,
         role: validated.data.role,
         password: hashedPassword,
+      },
+    });
+
+    await logAudit({
+      action: AuditAction.USER_CREATE,
+      status: AuditStatus.SUCCESS,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: newUser.id,
+      details: {
+        createdUserId: newUser.id,
+        createdUserName: newUser.name,
+        assignedRole: newUser.role,
+        adminName: currentSession.user.name,
       },
     });
 
@@ -64,6 +96,17 @@ export async function createUserAction(
     };
   } catch (error) {
     console.error("createUserAction error:", error);
+    await logAudit({
+      action: AuditAction.USER_CREATE,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      details: {
+        targetName: validated.data.name,
+        targetRole: validated.data.role,
+        error: String(error),
+      },
+    });
+
     return {
       success: false,
       message: "A database error occurred while creating the staff user.",
@@ -78,6 +121,11 @@ export async function updateUserAction(
 ): Promise<AdminActionState> {
   const currentSession = await getCurrentSession();
   if (!currentSession || currentSession.user.role !== Role.ADMIN) {
+    await logAudit({
+      action: AuditAction.USER_UPDATE,
+      status: AuditStatus.FAILURE,
+      details: { reason: "Unauthorized admin privilege required" },
+    });
     return {
       success: false,
       message: "Unauthorized: Administrator privileges required.",
@@ -92,6 +140,16 @@ export async function updateUserAction(
 
   const validated = UpdateUserSchema.safeParse(rawData);
   if (!validated.success) {
+    await logAudit({
+      action: AuditAction.USER_UPDATE,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      details: {
+        reason: "Validation error",
+        errors: validated.error.flatten().fieldErrors,
+      },
+    });
+
     return {
       success: false,
       message: "Please correct the errors in the form.",
@@ -105,6 +163,14 @@ export async function updateUserAction(
     });
 
     if (!targetUser) {
+      await logAudit({
+        action: AuditAction.USER_UPDATE,
+        status: AuditStatus.FAILURE,
+        userId: currentSession.user.id,
+        entity: "User",
+        entityId: validated.data.userId,
+        details: { reason: "Target staff user not found" },
+      });
       return { success: false, message: "Staff user not found." };
     }
 
@@ -114,6 +180,16 @@ export async function updateUserAction(
         where: { role: Role.ADMIN },
       });
       if (adminCount <= 1) {
+        await logAudit({
+          action: AuditAction.USER_UPDATE,
+          status: AuditStatus.FAILURE,
+          userId: currentSession.user.id,
+          entity: "User",
+          entityId: targetUser.id,
+          details: {
+            reason: "Attempted to demote the sole remaining administrator",
+          },
+        });
         return {
           success: false,
           message:
@@ -122,11 +198,27 @@ export async function updateUserAction(
       }
     }
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: validated.data.userId },
       data: {
         name: validated.data.name,
         role: validated.data.role,
+      },
+    });
+
+    await logAudit({
+      action: AuditAction.USER_UPDATE,
+      status: AuditStatus.SUCCESS,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: updatedUser.id,
+      details: {
+        targetUserId: targetUser.id,
+        previousName: targetUser.name,
+        newName: updatedUser.name,
+        previousRole: targetUser.role,
+        newRole: updatedUser.role,
+        adminName: currentSession.user.name,
       },
     });
 
@@ -137,6 +229,15 @@ export async function updateUserAction(
     };
   } catch (error) {
     console.error("updateUserAction error:", error);
+    await logAudit({
+      action: AuditAction.USER_UPDATE,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: validated.data.userId,
+      details: { error: String(error) },
+    });
+
     return {
       success: false,
       message: "Failed to update staff account.",
@@ -151,6 +252,11 @@ export async function resetUserPasswordAction(
 ): Promise<AdminActionState> {
   const currentSession = await getCurrentSession();
   if (!currentSession || currentSession.user.role !== Role.ADMIN) {
+    await logAudit({
+      action: AuditAction.USER_PASSWORD_RESET,
+      status: AuditStatus.FAILURE,
+      details: { reason: "Unauthorized admin privilege required" },
+    });
     return {
       success: false,
       message: "Unauthorized: Administrator privileges required.",
@@ -164,6 +270,16 @@ export async function resetUserPasswordAction(
 
   const validated = ResetUserPasswordSchema.safeParse(rawData);
   if (!validated.success) {
+    await logAudit({
+      action: AuditAction.USER_PASSWORD_RESET,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      details: {
+        reason: "Validation error",
+        errors: validated.error.flatten().fieldErrors,
+      },
+    });
+
     return {
       success: false,
       message: "Please enter a valid password.",
@@ -177,6 +293,14 @@ export async function resetUserPasswordAction(
     });
 
     if (!targetUser) {
+      await logAudit({
+        action: AuditAction.USER_PASSWORD_RESET,
+        status: AuditStatus.FAILURE,
+        userId: currentSession.user.id,
+        entity: "User",
+        entityId: validated.data.userId,
+        details: { reason: "Target staff user not found" },
+      });
       return { success: false, message: "Staff user not found." };
     }
 
@@ -193,6 +317,21 @@ export async function resetUserPasswordAction(
       }),
     ]);
 
+    await logAudit({
+      action: AuditAction.USER_PASSWORD_RESET,
+      status: AuditStatus.SUCCESS,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: targetUser.id,
+      details: {
+        targetUserId: targetUser.id,
+        targetUserName: targetUser.name,
+        targetRole: targetUser.role,
+        sessionsTerminated: true,
+        adminName: currentSession.user.name,
+      },
+    });
+
     revalidatePath("/admin");
     return {
       success: true,
@@ -200,6 +339,15 @@ export async function resetUserPasswordAction(
     };
   } catch (error) {
     console.error("resetUserPasswordAction error:", error);
+    await logAudit({
+      action: AuditAction.USER_PASSWORD_RESET,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: validated.data.userId,
+      details: { error: String(error) },
+    });
+
     return {
       success: false,
       message: "Failed to reset password.",
@@ -214,6 +362,11 @@ export async function deleteUserAction(
 ): Promise<AdminActionState> {
   const currentSession = await getCurrentSession();
   if (!currentSession || currentSession.user.role !== Role.ADMIN) {
+    await logAudit({
+      action: AuditAction.USER_DELETE,
+      status: AuditStatus.FAILURE,
+      details: { reason: "Unauthorized admin privilege required" },
+    });
     return {
       success: false,
       message: "Unauthorized: Administrator privileges required.",
@@ -231,6 +384,14 @@ export async function deleteUserAction(
 
   // Safety 1: Cannot delete self
   if (currentSession.user.id === validated.data.userId) {
+    await logAudit({
+      action: AuditAction.USER_DELETE,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: validated.data.userId,
+      details: { reason: "Admin attempted self-deletion" },
+    });
     return {
       success: false,
       message:
@@ -244,6 +405,14 @@ export async function deleteUserAction(
     });
 
     if (!targetUser) {
+      await logAudit({
+        action: AuditAction.USER_DELETE,
+        status: AuditStatus.FAILURE,
+        userId: currentSession.user.id,
+        entity: "User",
+        entityId: validated.data.userId,
+        details: { reason: "Target staff user not found" },
+      });
       return { success: false, message: "Staff user not found." };
     }
 
@@ -253,6 +422,16 @@ export async function deleteUserAction(
         where: { role: Role.ADMIN },
       });
       if (adminCount <= 1) {
+        await logAudit({
+          action: AuditAction.USER_DELETE,
+          status: AuditStatus.FAILURE,
+          userId: currentSession.user.id,
+          entity: "User",
+          entityId: targetUser.id,
+          details: {
+            reason: "Attempted to delete the sole remaining administrator",
+          },
+        });
         return {
           success: false,
           message:
@@ -265,6 +444,20 @@ export async function deleteUserAction(
       where: { id: validated.data.userId },
     });
 
+    await logAudit({
+      action: AuditAction.USER_DELETE,
+      status: AuditStatus.SUCCESS,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: targetUser.id,
+      details: {
+        deletedUserId: targetUser.id,
+        deletedUserName: targetUser.name,
+        deletedRole: targetUser.role,
+        adminName: currentSession.user.name,
+      },
+    });
+
     revalidatePath("/admin");
     return {
       success: true,
@@ -272,6 +465,15 @@ export async function deleteUserAction(
     };
   } catch (error) {
     console.error("deleteUserAction error:", error);
+    await logAudit({
+      action: AuditAction.USER_DELETE,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: validated.data.userId,
+      details: { error: String(error) },
+    });
+
     return {
       success: false,
       message: "Failed to delete staff account.",
@@ -286,6 +488,11 @@ export async function revokeUserSessionsAction(
 ): Promise<AdminActionState> {
   const currentSession = await getCurrentSession();
   if (!currentSession || currentSession.user.role !== Role.ADMIN) {
+    await logAudit({
+      action: AuditAction.USER_SESSIONS_REVOKED,
+      status: AuditStatus.FAILURE,
+      details: { reason: "Unauthorized admin privilege required" },
+    });
     return {
       success: false,
       message: "Unauthorized: Administrator privileges required.",
@@ -302,8 +509,26 @@ export async function revokeUserSessionsAction(
   }
 
   try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: validated.data.userId },
+    });
+
     const deleted = await prisma.session.deleteMany({
       where: { userId: validated.data.userId },
+    });
+
+    await logAudit({
+      action: AuditAction.USER_SESSIONS_REVOKED,
+      status: AuditStatus.SUCCESS,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: validated.data.userId,
+      details: {
+        targetUserId: validated.data.userId,
+        targetUserName: targetUser?.name || "Unknown",
+        revokedSessionsCount: deleted.count,
+        adminName: currentSession.user.name,
+      },
     });
 
     revalidatePath("/admin");
@@ -313,6 +538,15 @@ export async function revokeUserSessionsAction(
     };
   } catch (error) {
     console.error("revokeUserSessionsAction error:", error);
+    await logAudit({
+      action: AuditAction.USER_SESSIONS_REVOKED,
+      status: AuditStatus.FAILURE,
+      userId: currentSession.user.id,
+      entity: "User",
+      entityId: validated.data.userId,
+      details: { error: String(error) },
+    });
+
     return {
       success: false,
       message: "Failed to revoke sessions.",

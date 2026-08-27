@@ -16,3 +16,25 @@ export const Role = {
 } as const;
 
 export type Role = (typeof Role)[keyof typeof Role];
+
+export const AuditAction = {
+  LOGIN_SUCCESS: "LOGIN_SUCCESS",
+  LOGIN_FAILURE: "LOGIN_FAILURE",
+  LOGOUT: "LOGOUT",
+  USER_CREATE: "USER_CREATE",
+  USER_UPDATE: "USER_UPDATE",
+  USER_PASSWORD_RESET: "USER_PASSWORD_RESET",
+  USER_DELETE: "USER_DELETE",
+  USER_SESSIONS_REVOKED: "USER_SESSIONS_REVOKED",
+  PROFILE_UPDATE: "PROFILE_UPDATE",
+  PASSWORD_UPDATE: "PASSWORD_UPDATE",
+} as const;
+
+export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
+
+export const AuditStatus = {
+  SUCCESS: "SUCCESS",
+  FAILURE: "FAILURE",
+} as const;
+
+export type AuditStatus = (typeof AuditStatus)[keyof typeof AuditStatus];

@@ -66,7 +66,11 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = React.useState(false);
 
   return (
-    <form action={formAction} className="w-full max-w-lg">
+    <form
+      action={formAction}
+      suppressHydrationWarning
+      className="w-full max-w-lg"
+    >
       <Card className="w-full shadow-2xl border-border bg-card/85 backdrop-blur-xl">
         <CardHeader className="space-y-2 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 ring-8 ring-emerald-500/5">
@@ -99,7 +103,12 @@ export function LoginForm() {
             </Label>
 
             {/* Hidden Input for Form Submission */}
-            <input type="hidden" name="role" value={selectedRole} />
+            <input
+              type="hidden"
+              name="role"
+              value={selectedRole}
+              suppressHydrationWarning
+            />
 
             {/* Visual Interactive Role Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

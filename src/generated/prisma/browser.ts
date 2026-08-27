@@ -26,3 +26,8 @@ export type User = Prisma.UserModel;
  *
  */
 export type Session = Prisma.SessionModel;
+/**
+ * Model AuditLog
+ *
+ */
+export type AuditLog = Prisma.AuditLogModel;

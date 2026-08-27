@@ -2,10 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import {
-  createUserAction,
-  type AdminActionState,
-} from "@/actions/admin/user.action";
+import { createUserAction } from "@/actions/admin/user.action";
 import {
   Dialog,
   DialogContent,
@@ -97,7 +94,11 @@ export function CreateUserModal({ open, onOpenChange }: CreateUserModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4 pt-1">
+        <form
+          action={formAction}
+          suppressHydrationWarning
+          className="space-y-4 pt-1"
+        >
           {state?.message && (
             <div
               className={`flex items-start gap-3 rounded-xl border p-3.5 text-xs ${

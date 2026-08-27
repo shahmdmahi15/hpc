@@ -2,10 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import {
-  updateUserAction,
-  type AdminActionState,
-} from "@/actions/admin/user.action";
+import { updateUserAction } from "@/actions/admin/user.action";
 import {
   Dialog,
   DialogContent,
@@ -65,34 +62,148 @@ interface EditUserModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function EditUserForm({
+  user,
+  onClose,
+}: {
+  user: { id: string; name: string; role: Role };
+  onClose: () => void;
+}) {
+  const [state, formAction, isPending] = useActionState(
+    updateUserAction,
+    undefined,
+  );
+  const [selectedRole, setSelectedRole] = React.useState<Role>(user.role);
+
+  React.useEffect(() => {
+    if (state?.success) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [state, onClose]);
+
+  return (
+    <form
+      action={formAction}
+      suppressHydrationWarning
+      className="space-y-4 pt-1"
+    >
+      <input type="hidden" name="userId" value={user.id} />
+      <input type="hidden" name="role" value={selectedRole} />
+
+      {state?.message && (
+        <div
+          className={`flex items-start gap-3 rounded-xl border p-3.5 text-xs ${
+            state.success
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+              : "border-destructive/30 bg-destructive/10 text-destructive"
+          }`}
+        >
+          {state.success ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+          ) : (
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          )}
+          <span>{state.message}</span>
+        </div>
+      )}
+
+      {/* Staff Name */}
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-name">Staff Name</Label>
+        <Input
+          id="edit-name"
+          name="name"
+          defaultValue={user.name}
+          placeholder="e.g. Dr. Jane Smith"
+          required
+          disabled={isPending}
+        />
+        {state?.fieldErrors?.name && (
+          <p className="text-xs text-destructive font-medium">
+            {state.fieldErrors.name[0]}
+          </p>
+        )}
+      </div>
+
+      {/* Role Selection */}
+      <div className="space-y-2">
+        <Label>Departmental Role</Label>
+        <div className="grid grid-cols-1 gap-2">
+          {ROLE_OPTIONS.map((option) => {
+            const Icon = option.icon;
+            const isSelected = selectedRole === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSelectedRole(option.value)}
+                className={`flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  isSelected
+                    ? "border-primary bg-primary/10 ring-1 ring-primary"
+                    : "border-border bg-background/50 hover:bg-muted/40"
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-lg border shrink-0 ${option.badgeColor}`}
+                >
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-foreground">
+                    {option.label}
+                  </div>
+                </div>
+                {isSelected && (
+                  <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {state?.fieldErrors?.role && (
+          <p className="text-xs text-destructive font-medium">
+            {state.fieldErrors.role[0]}
+          </p>
+        )}
+      </div>
+
+      <DialogFooter className="pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={isPending}
+          className="cursor-pointer"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="cursor-pointer font-semibold"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving Changes...
+            </>
+          ) : (
+            "Save Changes"
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
 export function EditUserModal({
   user,
   open,
   onOpenChange,
 }: EditUserModalProps) {
-  const [state, formAction, isPending] = useActionState(
-    updateUserAction,
-    undefined,
-  );
-  const [selectedRole, setSelectedRole] = React.useState<Role>(
-    user?.role || Role.DOCTOR,
-  );
-
-  React.useEffect(() => {
-    if (user) {
-      setSelectedRole(user.role);
-    }
-  }, [user]);
-
-  React.useEffect(() => {
-    if (state?.success) {
-      const timer = setTimeout(() => {
-        onOpenChange(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [state, onOpenChange]);
-
   if (!user) return null;
 
   return (
@@ -109,102 +220,11 @@ export function EditUserModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4 pt-1">
-          <input type="hidden" name="userId" value={user.id} />
-          <input type="hidden" name="role" value={selectedRole} />
-
-          {state?.message && (
-            <div
-              className={`flex items-start gap-3 rounded-xl border p-3.5 text-xs ${
-                state.success
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                  : "border-destructive/30 bg-destructive/10 text-destructive"
-              }`}
-            >
-              {state.success ? (
-                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              )}
-              <span>{state.message}</span>
-            </div>
-          )}
-
-          {/* Full Name */}
-          <div className="space-y-2">
-            <Label htmlFor="edit-name">Display Name</Label>
-            <Input
-              id="edit-name"
-              name="name"
-              defaultValue={user.name}
-              required
-              disabled={isPending}
-            />
-            {state?.fieldErrors?.name && (
-              <p className="text-xs text-destructive font-medium">
-                {state.fieldErrors.name[0]}
-              </p>
-            )}
-          </div>
-
-          {/* Role Selection */}
-          <div className="space-y-2 pb-2">
-            <Label>Assigned Role</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {ROLE_OPTIONS.map((opt) => {
-                const Icon = opt.icon;
-                const isSelected = selectedRole === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setSelectedRole(opt.value)}
-                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                        : "border-border bg-muted/30 hover:bg-muted/60"
-                    }`}
-                  >
-                    <div
-                      className={`p-1.5 rounded-lg border shrink-0 ${opt.badgeColor}`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="text-xs font-semibold text-foreground truncate">
-                      {opt.value}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            {state?.fieldErrors?.role && (
-              <p className="text-xs text-destructive font-medium">
-                {state.fieldErrors.role[0]}
-              </p>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving Changes...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+        <EditUserForm
+          key={user.id}
+          user={user}
+          onClose={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );

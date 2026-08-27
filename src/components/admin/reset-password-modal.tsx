@@ -2,10 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import {
-  resetUserPasswordAction,
-  type AdminActionState,
-} from "@/actions/admin/user.action";
+import { resetUserPasswordAction } from "@/actions/admin/user.action";
 import {
   Dialog,
   DialogContent,
@@ -64,7 +61,11 @@ export function ResetPasswordModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4 pt-1">
+        <form
+          action={formAction}
+          suppressHydrationWarning
+          className="space-y-4 pt-1"
+        >
           <input type="hidden" name="userId" value={user.id} />
 
           {state?.message && (

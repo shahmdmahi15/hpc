@@ -14,13 +14,32 @@ enum Role {
   HANDLER
 }
 
+enum AuditAction {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGOUT
+  USER_CREATE
+  USER_UPDATE
+  USER_PASSWORD_RESET
+  USER_DELETE
+  USER_SESSIONS_REVOKED
+  PROFILE_UPDATE
+  PASSWORD_UPDATE
+}
+
+enum AuditStatus {
+  SUCCESS
+  FAILURE
+}
+
 model User {
   id       String @id @default(cuid())
   name     String
   role     Role
   password String
 
-  sessions Session[]
+  sessions  Session[]
+  auditLogs AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -33,9 +52,37 @@ model Session {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  ipAddress    String?
+  userAgent    String?
+  device       String?
+  browser      String?
+  os           String?
+
   expiresAt    DateTime
   revokedAt    DateTime?
   lastAccessAt DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  action    AuditAction
+  status    AuditStatus @default(SUCCESS)
+
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  entity    String?
+  entityId  String?
+  details   String?
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+

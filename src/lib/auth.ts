@@ -47,6 +47,8 @@ export function hashSessionToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+import { getClientDeviceInfo } from "@/lib/device";
+
 // ----------------------------------------------------
 // Database Session Management
 // ----------------------------------------------------
@@ -57,12 +59,31 @@ export async function createSession(
   const tokenHash = hashSessionToken(token);
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
+  let deviceInfo = {
+    ipAddress: "127.0.0.1",
+    userAgent: "Unknown User Agent",
+    device: "Desktop",
+    browser: "Unknown Browser",
+    os: "Unknown OS",
+  };
+
+  try {
+    deviceInfo = await getClientDeviceInfo();
+  } catch {
+    // Fallback if headers cannot be inspected
+  }
+
   const session = await prisma.session.create({
     data: {
       token: tokenHash,
       userId,
       expiresAt,
       lastAccessAt: new Date(),
+      ipAddress: deviceInfo.ipAddress,
+      userAgent: deviceInfo.userAgent,
+      device: deviceInfo.device,
+      browser: deviceInfo.browser,
+      os: deviceInfo.os,
     },
   });
 
@@ -94,11 +115,37 @@ export async function validateSessionToken(
   const needsRefresh =
     session.expiresAt.getTime() - now < SESSION_REFRESH_THRESHOLD_MS;
 
+  let currentDeviceInfo: {
+    ipAddress?: string;
+    userAgent?: string;
+    device?: string;
+    browser?: string;
+    os?: string;
+  } = {};
+
+  try {
+    const info = await getClientDeviceInfo();
+    currentDeviceInfo = {
+      ipAddress: info.ipAddress,
+      userAgent: info.userAgent,
+      device: info.device,
+      browser: info.browser,
+      os: info.os,
+    };
+  } catch {
+    // Graceful fallback
+  }
+
   const updatedSession = await prisma.session.update({
     where: { id: session.id },
     data: {
       lastAccessAt: new Date(),
       expiresAt: needsRefresh ? new Date(now + SESSION_DURATION_MS) : undefined,
+      ipAddress: currentDeviceInfo.ipAddress || session.ipAddress,
+      userAgent: currentDeviceInfo.userAgent || session.userAgent,
+      device: currentDeviceInfo.device || session.device,
+      browser: currentDeviceInfo.browser || session.browser,
+      os: currentDeviceInfo.os || session.os,
     },
   });
 

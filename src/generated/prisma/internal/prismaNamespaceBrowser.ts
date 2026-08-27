@@ -56,6 +56,7 @@ export const AnyNull = runtime.AnyNull;
 export const ModelName = {
   User: "User",
   Session: "Session",
+  AuditLog: "AuditLog",
 } as const;
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
@@ -87,6 +88,11 @@ export const SessionScalarFieldEnum = {
   id: "id",
   token: "token",
   userId: "userId",
+  ipAddress: "ipAddress",
+  userAgent: "userAgent",
+  device: "device",
+  browser: "browser",
+  os: "os",
   expiresAt: "expiresAt",
   revokedAt: "revokedAt",
   lastAccessAt: "lastAccessAt",
@@ -96,6 +102,22 @@ export const SessionScalarFieldEnum = {
 
 export type SessionScalarFieldEnum =
   (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum];
+
+export const AuditLogScalarFieldEnum = {
+  id: "id",
+  action: "action",
+  status: "status",
+  userId: "userId",
+  entity: "entity",
+  entityId: "entityId",
+  details: "details",
+  ipAddress: "ipAddress",
+  userAgent: "userAgent",
+  createdAt: "createdAt",
+} as const;
+
+export type AuditLogScalarFieldEnum =
+  (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum];
 
 export const SortOrder = {
   asc: "asc",
