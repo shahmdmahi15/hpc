@@ -1,4 +1,5 @@
 import { getKioskWaitingRoomData } from "@/actions/kiosk";
+import { getCurrentSession } from "@/lib/auth";
 import { WaitingRoomDisplay } from "@/components/kiosk/waiting-room-display";
 import type { Metadata } from "next";
 
@@ -11,7 +12,19 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const initialData = await getKioskWaitingRoomData();
+  const [initialData, session] = await Promise.all([
+    getKioskWaitingRoomData(),
+    getCurrentSession(),
+  ]);
 
-  return <WaitingRoomDisplay initialData={initialData} />;
+  const currentUser = session?.user
+    ? {
+        name: session.user.name,
+        role: session.user.role,
+      }
+    : null;
+
+  return (
+    <WaitingRoomDisplay initialData={initialData} currentUser={currentUser} />
+  );
 }

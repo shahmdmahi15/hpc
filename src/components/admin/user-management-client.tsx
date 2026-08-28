@@ -32,9 +32,8 @@ import {
   Headphones,
   UserCheck,
   Shield,
-  Activity,
-  CheckCircle2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export interface StaffUserItem {
   id: string;
@@ -93,17 +92,11 @@ export function UserManagementClient({
   };
 
   const handleRevokeSessions = async (userId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to revoke all active sessions for this staff member?",
-      )
-    ) {
-      return;
-    }
     setRevokingId(userId);
     const fd = new FormData();
     fd.append("userId", userId);
     await revokeUserSessionsAction(undefined, fd);
+    toast.success("Active sessions revoked successfully.");
     setRevokingId(null);
   };
 
@@ -116,104 +109,104 @@ export function UserManagementClient({
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Metric Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+    <div className="space-y-3 w-full max-w-full min-w-0">
+      {/* 1. Metric Stat Cards (Compact & High Density) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 min-w-0">
         {/* Total Staff */}
-        <div className="flex flex-col justify-between p-4 rounded-2xl border border-border bg-card/85 backdrop-blur-md shadow-sm">
+        <div className="flex flex-col justify-between p-2 sm:p-2.5 rounded-xl border border-border bg-card shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground">
               Total Staff
             </span>
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Users className="h-4 w-4" />
+            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+              <Users className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-foreground">
+          <div className="mt-1">
+            <div className="text-lg sm:text-xl font-black font-mono text-foreground">
               {stats.total}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground">
               Active accounts
             </p>
           </div>
         </div>
 
         {/* Doctors */}
-        <div className="flex flex-col justify-between p-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 backdrop-blur-md shadow-sm">
+        <div className="flex flex-col justify-between p-2 sm:p-2.5 rounded-xl border border-cyan-500/20 bg-cyan-500/5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-cyan-500">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-cyan-500">
               Specialists
             </span>
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-500">
-              <Stethoscope className="h-4 w-4" />
+            <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-500">
+              <Stethoscope className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-foreground">
+          <div className="mt-1">
+            <div className="text-lg sm:text-xl font-black font-mono text-foreground">
               {stats.doctors}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground">
               Pain care doctors
             </p>
           </div>
         </div>
 
         {/* Receptionists */}
-        <div className="flex flex-col justify-between p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-md shadow-sm">
+        <div className="flex flex-col justify-between p-2 sm:p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-500">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-emerald-500">
               Front Desk
             </span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
-              <Headphones className="h-4 w-4" />
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+              <Headphones className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-foreground">
+          <div className="mt-1">
+            <div className="text-lg sm:text-xl font-black font-mono text-foreground">
               {stats.receptionists}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground">
               Intake & check-in
             </p>
           </div>
         </div>
 
         {/* Handlers */}
-        <div className="flex flex-col justify-between p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-md shadow-sm">
+        <div className="flex flex-col justify-between p-2 sm:p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-500">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-amber-500">
               Care Handlers
             </span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
-              <UserCheck className="h-4 w-4" />
+            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+              <UserCheck className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-foreground">
+          <div className="mt-1">
+            <div className="text-lg sm:text-xl font-black font-mono text-foreground">
               {stats.handlers}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground">
               Rehab & mobility
             </p>
           </div>
         </div>
 
         {/* Administrators */}
-        <div className="col-span-2 sm:col-span-1 flex flex-col justify-between p-4 rounded-2xl border border-red-500/20 bg-red-500/5 backdrop-blur-md shadow-sm">
+        <div className="col-span-2 sm:col-span-1 flex flex-col justify-between p-2 sm:p-2.5 rounded-xl border border-red-500/20 bg-red-500/5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-red-500">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-red-500">
               Administrators
             </span>
-            <div className="p-2 rounded-xl bg-red-500/10 text-red-500">
-              <ShieldAlert className="h-4 w-4" />
+            <div className="p-1.5 rounded-lg bg-red-500/10 text-red-500">
+              <ShieldAlert className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-foreground">
+          <div className="mt-1">
+            <div className="text-lg sm:text-xl font-black font-mono text-foreground">
               {stats.admins}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground">
               System operators
             </p>
           </div>
@@ -221,22 +214,22 @@ export function UserManagementClient({
       </div>
 
       {/* 2. Search, Filter & Action Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl border border-border bg-card/85 backdrop-blur-md shadow-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-1.5 sm:p-2 rounded-xl border border-border bg-card shadow-xs max-w-full min-w-0">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search staff members by name..."
-            className="pl-9 bg-background/50"
+            placeholder="Search staff members..."
+            className="pl-8 h-7.5 text-xs bg-background/50"
           />
         </div>
 
         {/* Role Filters & Create Button */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {/* Role Filter Pills */}
-          <div className="flex items-center bg-muted/40 p-1 rounded-xl border border-border">
+          <div className="flex items-center bg-muted/40 p-0.5 rounded-lg border border-border">
             {(
               [
                 { label: "All", value: "ALL" },
@@ -249,9 +242,9 @@ export function UserManagementClient({
               <button
                 key={filter.value}
                 onClick={() => setSelectedRoleFilter(filter.value)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                className={`px-2 py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer ${
                   selectedRoleFilter === filter.value
-                    ? "bg-card text-foreground shadow-xs"
+                    ? "bg-card text-foreground shadow-xs font-bold"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -262,24 +255,25 @@ export function UserManagementClient({
 
           {/* Add Staff Member Button */}
           <Button
+            size="sm"
             onClick={() => setIsCreateOpen(true)}
-            className="cursor-pointer gap-2 font-semibold shadow-md shadow-primary/20"
+            className="cursor-pointer gap-1 font-semibold shadow-xs h-7.5 text-xs px-2.5"
           >
-            <UserPlus className="h-4 w-4" />
-            <span>Add Staff Member</span>
+            <UserPlus className="h-3.5 w-3.5" />
+            <span>Add Staff</span>
           </Button>
         </div>
       </div>
 
       {/* 3. Staff Users Table */}
-      <div className="rounded-2xl border border-border bg-card/85 backdrop-blur-md shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <h3 className="font-bold text-foreground">
+      <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
+        <div className="p-2.5 px-3 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Shield className="h-4 w-4 text-primary" />
+            <h3 className="text-xs sm:text-sm font-bold text-foreground">
               Clinic Staff Directory
             </h3>
-            <span className="text-xs text-muted-foreground ml-2">
+            <span className="text-[10px] text-muted-foreground ml-1">
               ({filteredUsers.length}{" "}
               {filteredUsers.length === 1 ? "member" : "members"})
             </span>

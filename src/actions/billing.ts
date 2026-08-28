@@ -171,3 +171,15 @@ export async function auditLedgerEntry(billingRecordId: string) {
 
   return { success: true, billingRecord };
 }
+
+export async function getAllPackages() {
+  return prisma.patientPackage.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      patient: true,
+      billingRecords: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+}

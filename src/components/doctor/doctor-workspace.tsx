@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { useRealtime } from "@/hooks/use-realtime";
 import {
   getDoctorQueue,
@@ -8,10 +8,7 @@ import {
   updateSerialStatus,
   assignToHandlerWithPlan,
 } from "@/actions/serials";
-import {
-  saveClinicalAssessment,
-  SaveAssessmentInput,
-} from "@/actions/assessments";
+import { saveClinicalAssessment } from "@/actions/assessments";
 import { formatBSTTime } from "@/lib/date";
 import {
   Card,
@@ -24,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +39,6 @@ import {
   AlertTriangle,
   Stethoscope,
   FileCheck,
-  History,
   Sparkles,
   RefreshCw,
   Send,
@@ -52,8 +49,9 @@ import {
   PainSide,
   PainType,
   RomStatus,
-  PunctualityStatus,
 } from "@/generated/prisma/enums";
+import { getAllRoomsWithOccupancy } from "@/actions/rooms";
+import { RoomSelect } from "@/components/rooms/room-select";
 
 interface DoctorWorkspaceProps {
   initialQueue: Awaited<ReturnType<typeof getDoctorQueue>>;
@@ -73,23 +71,32 @@ const COMMON_MODALITIES = [
   "Strengthening & Mobilization Exercises",
 ];
 
+type DoctorQueueItem = NonNullable<
+  Awaited<ReturnType<typeof getDoctorQueue>>
+>[number];
+
 export function DoctorWorkspace({
-  initialQueue,
   doctorId,
+  initialQueue,
 }: DoctorWorkspaceProps) {
+  const { t } = useI18n();
   const [queue, setQueue] = useState(initialQueue);
-  const [selectedSerial, setSelectedSerial] = useState<any | null>(null);
+  const [selectedSerial, setSelectedSerial] = useState<DoctorQueueItem | null>(
+    null,
+  );
   const [isExamOpen, setIsExamOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // Route to Handler Modal State
   const [isRouteHandlerOpen, setIsRouteHandlerOpen] = useState(false);
-  const [routeSerial, setRouteSerial] = useState<any | null>(null);
+  const [routeSerial, setRouteSerial] = useState<DoctorQueueItem | null>(null);
   const [prescribedPlan, setPrescribedPlan] = useState(
     "SWD (20 mins), UST (10 mins), IFT (20 mins), Manual Therapy",
   );
-  const [selectedBay, setSelectedBay] = useState("Physio Bay 1");
+  const [selectedBay, setSelectedBay] = useState("207");
+  const [roomsData, setRoomsData] = useState<Awaited<
+    ReturnType<typeof getAllRoomsWithOccupancy>
+  > | null>(null);
   const [routeError, setRouteError] = useState("");
 
   // Clinical Assessment Form State (Matching Page 1 of PDF 2)
@@ -146,19 +153,29 @@ export function DoctorWorkspace({
   const refreshData = useCallback(() => {
     startTransition(async () => {
       try {
-        const updated = await getDoctorQueue(doctorId);
+        const [updated, rooms] = await Promise.all([
+          getDoctorQueue(doctorId),
+          getAllRoomsWithOccupancy(),
+        ]);
         setQueue(updated);
+        setRoomsData(rooms);
       } catch (err) {
         console.error("Failed to refresh doctor queue", err);
       }
     });
   }, [doctorId]);
 
+  useEffect(() => {
+    getAllRoomsWithOccupancy()
+      .then(setRoomsData)
+      .catch(() => {});
+  }, []);
+
   useRealtime({
     onRefresh: refreshData,
   });
 
-  const handleCallPatient = async (serial: any) => {
+  const handleCallPatient = async (serial: DoctorQueueItem) => {
     await callSerial(
       serial.id,
       serial.roomNo || "205",
@@ -167,7 +184,7 @@ export function DoctorWorkspace({
     refreshData();
   };
 
-  const handleOpenRouteToHandler = (serial: any) => {
+  const handleOpenRouteToHandler = (serial: DoctorQueueItem) => {
     setRouteSerial(serial);
     setRouteError("");
     setPrescribedPlan(
@@ -176,10 +193,8 @@ export function DoctorWorkspace({
         "SWD (20 mins), UST (10 mins), IFT (20 mins)",
     );
     setSelectedBay(
-      serial.roomNo ||
-        (serial.patient.gender === "FEMALE"
-          ? "Female Therapy Bay 2"
-          : "Male Therapy Bay 1"),
+      (serial.roomNo || "").replace(/[^0-9]/g, "") ||
+        (serial.patient.gender === "FEMALE" ? "209" : "207"),
     );
     setIsRouteHandlerOpen(true);
   };
@@ -224,7 +239,7 @@ export function DoctorWorkspace({
     refreshData();
   };
 
-  const handleOpenExam = (serial: any) => {
+  const handleOpenExam = (serial: DoctorQueueItem) => {
     setSelectedSerial(serial);
     const prevExam = serial.patient.assessments?.[0];
     if (prevExam) {
@@ -288,89 +303,89 @@ export function DoctorWorkspace({
   ).length;
 
   return (
-    <div className="space-y-6">
-      {/* Top Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 shadow-sm border-border bg-card">
+    <div className="space-y-3 w-full max-w-full min-w-0">
+      {/* Top Clinical Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 min-w-0">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">
-              Today&apos;s Queue
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("rec.scheduled_today", "Today's Patients")}
             </span>
-            <Users className="h-4 w-4 text-primary" />
+            <Users className="h-3.5 w-3.5 text-primary" />
           </div>
-          <p className="text-2xl font-bold mt-2 font-mono text-foreground">
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-foreground">
             {queue.length}
           </p>
-          <span className="text-[11px] text-muted-foreground mt-1">
-            Total assigned patients
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            {t("rec.total_registered", "Total assigned patients")}
           </span>
         </Card>
 
-        <Card className="p-4 shadow-sm border-border bg-card">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">
-              Waiting in Lounge
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("rec.waiting_room", "Waiting in Lounge")}
             </span>
-            <Clock className="h-4 w-4 text-primary" />
+            <Clock className="h-3.5 w-3.5 text-primary" />
           </div>
-          <p className="text-2xl font-bold mt-2 font-mono text-foreground">
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-foreground">
             {waitingCount}
           </p>
-          <span className="text-[11px] text-muted-foreground mt-1">
-            Ready for triage / consultation
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            {t("status.waiting", "Ready for consultation")}
           </span>
         </Card>
 
-        <Card className="p-4 shadow-sm border-border bg-card">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">
-              Active In Chamber
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("status.in_consultation", "Active In Chamber")}
             </span>
-            <Activity className="h-4 w-4 text-primary animate-pulse" />
+            <Activity className="h-3.5 w-3.5 text-primary animate-pulse" />
           </div>
-          <p className="text-2xl font-bold mt-2 font-mono text-primary">
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-primary">
             {activeConsultation
               ? `#${activeConsultation.serialNumber}`
               : "None"}
           </p>
-          <span className="text-[11px] text-muted-foreground mt-1">
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block truncate">
             {activeConsultation?.patient.name || "Chamber available"}
           </span>
         </Card>
 
-        <Card className="p-4 shadow-sm border-border bg-card">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase">
-              Completed Today
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("rec.completed_today", "Completed Today")}
             </span>
-            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
           </div>
-          <p className="text-2xl font-bold mt-2 font-mono text-foreground">
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-foreground">
             {completedCount}
           </p>
-          <span className="text-[11px] text-muted-foreground mt-1">
-            Care plans issued
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            {t("status.completed", "Care plans issued")}
           </span>
         </Card>
       </div>
 
-      {/* Active Consultation Spotlight Banner */}
+      {/* Active Consultation Spotlight Banner (Compact) */}
       {activeConsultation && (
-        <Card className="p-5 border-2 border-primary/60 bg-primary/5 shadow-lg rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-primary text-primary-foreground font-black text-2xl font-mono shadow-md">
+        <Card className="p-3 sm:p-3.5 border border-primary/50 bg-primary/5 shadow-xs rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary text-primary-foreground font-black text-lg font-mono shadow-xs shrink-0">
               #{activeConsultation.serialNumber}
             </div>
             <div>
-              <div className="text-xs uppercase font-bold text-primary flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Currently In Chamber &bull; চলমান পরামর্শ</span>
+              <div className="text-[10px] uppercase font-bold text-primary flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                <span>Currently In Chamber</span>
               </div>
-              <h2 className="text-xl font-black text-foreground">
+              <h2 className="text-base font-black text-foreground leading-tight">
                 {activeConsultation.patient.name}
               </h2>
-              <p className="text-xs text-muted-foreground font-mono">
-                Patient ID: #{activeConsultation.patient.patientId} &bull;{" "}
+              <p className="text-[11px] text-muted-foreground font-mono">
+                ID: #{activeConsultation.patient.patientId} &bull;{" "}
                 {activeConsultation.patient.gender} (
                 {activeConsultation.patient.age || "-"}y) &bull;{" "}
                 {activeConsultation.patient.phone}
@@ -378,28 +393,31 @@ export function DoctorWorkspace({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <Button
+              size="sm"
               onClick={() => handleOpenRouteToHandler(activeConsultation)}
-              className="gap-1.5 font-bold cursor-pointer bg-primary text-primary-foreground"
+              className="h-7.5 text-xs gap-1 font-bold cursor-pointer bg-primary text-primary-foreground"
             >
-              <Send className="h-4 w-4" />
-              <span>Send to Handler (থেরাপিতে পাঠান)</span>
+              <Send className="h-3 w-3" />
+              <span>Send to Handler</span>
             </Button>
 
             <Button
+              size="sm"
               onClick={() => handleOpenExam(activeConsultation)}
               variant="outline"
-              className="gap-1.5 font-bold cursor-pointer"
+              className="h-7.5 text-xs gap-1 font-bold cursor-pointer"
             >
-              <FileCheck className="h-4 w-4 text-primary" />
-              <span>Full Clinical Exam Form</span>
+              <FileCheck className="h-3 w-3 text-primary" />
+              <span>Exam Form</span>
             </Button>
 
             <Button
+              size="sm"
               onClick={() => handleCompleteSerial(activeConsultation.id)}
               variant="outline"
-              className="cursor-pointer"
+              className="h-7.5 text-xs cursor-pointer"
             >
               Complete Visit
             </Button>
@@ -408,19 +426,16 @@ export function DoctorWorkspace({
       )}
 
       {/* Main Doctor Queue Table */}
-      <Card className="shadow-md border-border bg-card">
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+      <Card className="shadow-xs border-border bg-card">
+        <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Stethoscope className="h-4 w-4 text-primary" />
-              <span>
-                Doctor Queue &amp; Patient Triage (রোগী তালিকা ও থেরাপিতে
-                প্রেরণ)
-              </span>
+            <CardTitle className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
+              <Stethoscope className="h-3.5 w-3.5 text-primary" />
+              <span>Doctor Queue &amp; Patient Triage</span>
             </CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-[11px]">
               Review arrivals in priority order, call to chamber, or prescribe
-              treatment plans and dispatch directly to Care Handler.
+              treatment plans.
             </CardDescription>
           </div>
           <Button
@@ -428,26 +443,36 @@ export function DoctorWorkspace({
             size="icon"
             onClick={refreshData}
             title="Refresh Queue"
-            className="h-8 w-8 cursor-pointer"
+            className="h-7.5 w-7.5 cursor-pointer"
           >
             <RefreshCw
-              className={`h-3.5 w-3.5 ${isPending ? "animate-spin text-primary" : ""}`}
+              className={`h-3 w-3 ${isPending ? "animate-spin text-primary" : ""}`}
             />
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 px-2 sm:px-4 pb-3">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[650px]">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
-                  <th className="pb-3 font-semibold w-12">সিরিয়াল</th>
-                  <th className="pb-3 font-semibold">রোগীর নাম ও আইডি</th>
-                  <th className="pb-3 font-semibold">আসার সময় (Told)</th>
-                  <th className="pb-3 font-semibold">উপস্থিতি (Arrival)</th>
-                  <th className="pb-3 font-semibold">সমস্যা / প্রিভিয়াস VAS</th>
-                  <th className="pb-3 font-semibold">অবস্থা</th>
-                  <th className="pb-3 font-semibold text-right">
-                    পদক্ষেপ (Actions)
+                  <th className="pb-2 font-semibold w-12">
+                    {t("col.serial", "Serial")}
+                  </th>
+                  <th className="pb-2 font-semibold">
+                    {t("col.patient_details", "Patient Details")}
+                  </th>
+                  <th className="pb-2 font-semibold">
+                    {t("col.told_time", "Told Time")}
+                  </th>
+                  <th className="pb-2 font-semibold">
+                    {t("col.arrival_status", "Arrival Time")}
+                  </th>
+                  <th className="pb-2 font-semibold">Chief Complaint / VAS</th>
+                  <th className="pb-2 font-semibold">
+                    {t("col.queue_status", "Status")}
+                  </th>
+                  <th className="pb-2 font-semibold text-right">
+                    {t("col.action", "Actions")}
                   </th>
                 </tr>
               </thead>
@@ -498,7 +523,7 @@ export function DoctorWorkspace({
                               </span>
                               {s.punctualityStatus === "ON_TIME" && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                  সময়মত
+                                  On-Time
                                 </span>
                               )}
                               {s.punctualityStatus === "MODERATE_LATE" && (
@@ -642,7 +667,7 @@ export function DoctorWorkspace({
             {/* Quick Modality Selection Chips */}
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-primary">
-                Quick Select Modalities (ক্লিক করে নির্বাচন করুন):
+                Quick Select Modalities:
               </Label>
               <div className="flex flex-wrap gap-1.5">
                 {COMMON_MODALITIES.map((modality) => {
@@ -669,8 +694,7 @@ export function DoctorWorkspace({
             {/* Prescribed Plan Textarea */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">
-                Doctor Prescribed Plan / Modality Instructions (চিকিৎসকের
-                নির্দেশনা) *
+                Doctor Prescribed Plan / Modality Instructions *
               </Label>
               <textarea
                 value={prescribedPlan}
@@ -682,16 +706,16 @@ export function DoctorWorkspace({
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Assigned Bay / Room (থেরাপি কক্ষ / বে)
-              </Label>
-              <Input
-                value={selectedBay}
-                onChange={(e) => setSelectedBay(e.target.value)}
-                placeholder="Physio Bay 1 / Male Bay 2 / Rehab Studio"
-              />
-            </div>
+            {/* Enhanced Room Selection from 201 to 220 with Multi-Patient Live Status */}
+            <RoomSelect
+              value={selectedBay}
+              onChange={setSelectedBay}
+              genderFilter={
+                routeSerial?.patient?.gender === "FEMALE" ? "FEMALE" : "MALE"
+              }
+              roomsOccupancy={roomsData?.rooms}
+              label="Assigned Therapy Chamber / Bay"
+            />
 
             <DialogFooter className="pt-2">
               <Button
@@ -719,10 +743,7 @@ export function DoctorWorkspace({
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <FileCheck className="h-5 w-5 text-primary" />
-              <span>
-                HPC Pain Physiotherapy Assessment Form (ফিজিওথেরাপি
-                অ্যাসেসমেন্ট)
-              </span>
+              <span>HPC Pain Physiotherapy Assessment Form</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
               Complete clinical diagnostic profile matching physical assessment
@@ -753,7 +774,7 @@ export function DoctorWorkspace({
             {/* Section 1: Pain Assessment */}
             <div className="p-3 rounded-xl border border-border bg-card/50 space-y-3">
               <div className="text-xs font-bold text-primary uppercase tracking-wider">
-                1. Pain Assessment &amp; History (ব্যথার বিবরণ)
+                1. Pain Assessment &amp; History
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -780,9 +801,9 @@ export function DoctorWorkspace({
                     }
                     className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs"
                   >
-                    <option value={PainSide.BOTH}>Both (উভয়)</option>
-                    <option value={PainSide.LEFT}>Left (বাম)</option>
-                    <option value={PainSide.RIGHT}>Right (ডান)</option>
+                    <option value={PainSide.BOTH}>Both</option>
+                    <option value={PainSide.LEFT}>Left</option>
+                    <option value={PainSide.RIGHT}>Right</option>
                   </select>
                 </div>
 
@@ -827,7 +848,7 @@ export function DoctorWorkspace({
             {/* Section 2: Physical Exam */}
             <div className="p-3 rounded-xl border border-border bg-card/50 space-y-3">
               <div className="text-xs font-bold text-primary uppercase tracking-wider">
-                2. Physical Examination (শারীরিক পরীক্ষা)
+                2. Physical Examination
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -845,10 +866,8 @@ export function DoctorWorkspace({
                     }
                     className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs"
                   >
-                    <option value={RomStatus.NORMAL}>Normal (স্বাভাবিক)</option>
-                    <option value={RomStatus.RESTRICTED}>
-                      Restricted (সীমাবদ্ধ)
-                    </option>
+                    <option value={RomStatus.NORMAL}>Normal</option>
+                    <option value={RomStatus.RESTRICTED}>Restricted</option>
                   </select>
                 </div>
 

@@ -203,6 +203,12 @@ export type UserWhereInput = {
   conductedSessions?: Prisma.TreatmentSessionListRelationFilter;
   cashierBillings?: Prisma.BillingRecordListRelationFilter;
   auditedBillings?: Prisma.BillingRecordListRelationFilter;
+  doctorFiles?: Prisma.FileListRelationFilter;
+  doctorFileSlots?: Prisma.FileTreatmentSlotListRelationFilter;
+  handlerFileSlots?: Prisma.FileTreatmentSlotListRelationFilter;
+  collectedPayments?: Prisma.FilePaymentListRelationFilter;
+  doctorRooms?: Prisma.RoomListRelationFilter;
+  handlerRooms?: Prisma.RoomListRelationFilter;
 };
 
 export type UserOrderByWithRelationInput = {
@@ -222,6 +228,12 @@ export type UserOrderByWithRelationInput = {
   conductedSessions?: Prisma.TreatmentSessionOrderByRelationAggregateInput;
   cashierBillings?: Prisma.BillingRecordOrderByRelationAggregateInput;
   auditedBillings?: Prisma.BillingRecordOrderByRelationAggregateInput;
+  doctorFiles?: Prisma.FileOrderByRelationAggregateInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotOrderByRelationAggregateInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotOrderByRelationAggregateInput;
+  collectedPayments?: Prisma.FilePaymentOrderByRelationAggregateInput;
+  doctorRooms?: Prisma.RoomOrderByRelationAggregateInput;
+  handlerRooms?: Prisma.RoomOrderByRelationAggregateInput;
 };
 
 export type UserWhereUniqueInput = Prisma.AtLeast<
@@ -245,6 +257,12 @@ export type UserWhereUniqueInput = Prisma.AtLeast<
     conductedSessions?: Prisma.TreatmentSessionListRelationFilter;
     cashierBillings?: Prisma.BillingRecordListRelationFilter;
     auditedBillings?: Prisma.BillingRecordListRelationFilter;
+    doctorFiles?: Prisma.FileListRelationFilter;
+    doctorFileSlots?: Prisma.FileTreatmentSlotListRelationFilter;
+    handlerFileSlots?: Prisma.FileTreatmentSlotListRelationFilter;
+    collectedPayments?: Prisma.FilePaymentListRelationFilter;
+    doctorRooms?: Prisma.RoomListRelationFilter;
+    handlerRooms?: Prisma.RoomListRelationFilter;
   },
   "id"
 >;
@@ -294,6 +312,12 @@ export type UserCreateInput = {
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateInput = {
@@ -313,6 +337,12 @@ export type UserUncheckedCreateInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUpdateInput = {
@@ -332,6 +362,12 @@ export type UserUpdateInput = {
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateInput = {
@@ -351,6 +387,12 @@ export type UserUncheckedUpdateInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserCreateManyInput = {
@@ -707,6 +749,174 @@ export type UserUpdateOneWithoutAuditedBillingsNestedInput = {
   >;
 };
 
+export type UserCreateNestedOneWithoutDoctorFilesInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorFilesInput,
+    Prisma.UserUncheckedCreateWithoutDoctorFilesInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDoctorFilesInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneWithoutDoctorFilesNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorFilesInput,
+    Prisma.UserUncheckedCreateWithoutDoctorFilesInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDoctorFilesInput;
+  upsert?: Prisma.UserUpsertWithoutDoctorFilesInput;
+  disconnect?: Prisma.UserWhereInput | boolean;
+  delete?: Prisma.UserWhereInput | boolean;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutDoctorFilesInput,
+      Prisma.UserUpdateWithoutDoctorFilesInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutDoctorFilesInput
+  >;
+};
+
+export type UserCreateNestedOneWithoutDoctorFileSlotsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorFileSlotsInput,
+    Prisma.UserUncheckedCreateWithoutDoctorFileSlotsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDoctorFileSlotsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserCreateNestedOneWithoutHandlerFileSlotsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutHandlerFileSlotsInput,
+    Prisma.UserUncheckedCreateWithoutHandlerFileSlotsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutHandlerFileSlotsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneWithoutDoctorFileSlotsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorFileSlotsInput,
+    Prisma.UserUncheckedCreateWithoutDoctorFileSlotsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDoctorFileSlotsInput;
+  upsert?: Prisma.UserUpsertWithoutDoctorFileSlotsInput;
+  disconnect?: Prisma.UserWhereInput | boolean;
+  delete?: Prisma.UserWhereInput | boolean;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutDoctorFileSlotsInput,
+      Prisma.UserUpdateWithoutDoctorFileSlotsInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutDoctorFileSlotsInput
+  >;
+};
+
+export type UserUpdateOneWithoutHandlerFileSlotsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutHandlerFileSlotsInput,
+    Prisma.UserUncheckedCreateWithoutHandlerFileSlotsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutHandlerFileSlotsInput;
+  upsert?: Prisma.UserUpsertWithoutHandlerFileSlotsInput;
+  disconnect?: Prisma.UserWhereInput | boolean;
+  delete?: Prisma.UserWhereInput | boolean;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutHandlerFileSlotsInput,
+      Prisma.UserUpdateWithoutHandlerFileSlotsInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutHandlerFileSlotsInput
+  >;
+};
+
+export type UserCreateNestedOneWithoutCollectedPaymentsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutCollectedPaymentsInput,
+    Prisma.UserUncheckedCreateWithoutCollectedPaymentsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCollectedPaymentsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneWithoutCollectedPaymentsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutCollectedPaymentsInput,
+    Prisma.UserUncheckedCreateWithoutCollectedPaymentsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCollectedPaymentsInput;
+  upsert?: Prisma.UserUpsertWithoutCollectedPaymentsInput;
+  disconnect?: Prisma.UserWhereInput | boolean;
+  delete?: Prisma.UserWhereInput | boolean;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutCollectedPaymentsInput,
+      Prisma.UserUpdateWithoutCollectedPaymentsInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutCollectedPaymentsInput
+  >;
+};
+
+export type UserCreateNestedOneWithoutDoctorRoomsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorRoomsInput,
+    Prisma.UserUncheckedCreateWithoutDoctorRoomsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDoctorRoomsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserCreateNestedOneWithoutHandlerRoomsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutHandlerRoomsInput,
+    Prisma.UserUncheckedCreateWithoutHandlerRoomsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutHandlerRoomsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneWithoutDoctorRoomsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorRoomsInput,
+    Prisma.UserUncheckedCreateWithoutDoctorRoomsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDoctorRoomsInput;
+  upsert?: Prisma.UserUpsertWithoutDoctorRoomsInput;
+  disconnect?: Prisma.UserWhereInput | boolean;
+  delete?: Prisma.UserWhereInput | boolean;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutDoctorRoomsInput,
+      Prisma.UserUpdateWithoutDoctorRoomsInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutDoctorRoomsInput
+  >;
+};
+
+export type UserUpdateOneWithoutHandlerRoomsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutHandlerRoomsInput,
+    Prisma.UserUncheckedCreateWithoutHandlerRoomsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutHandlerRoomsInput;
+  upsert?: Prisma.UserUpsertWithoutHandlerRoomsInput;
+  disconnect?: Prisma.UserWhereInput | boolean;
+  delete?: Prisma.UserWhereInput | boolean;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutHandlerRoomsInput,
+      Prisma.UserUpdateWithoutHandlerRoomsInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutHandlerRoomsInput
+  >;
+};
+
 export type UserCreateWithoutSessionsInput = {
   id?: string;
   name: string;
@@ -723,6 +933,12 @@ export type UserCreateWithoutSessionsInput = {
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -741,6 +957,12 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -787,6 +1009,12 @@ export type UserUpdateWithoutSessionsInput = {
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -805,6 +1033,12 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -823,6 +1057,12 @@ export type UserCreateWithoutAuditLogsInput = {
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -841,6 +1081,12 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -887,6 +1133,12 @@ export type UserUpdateWithoutAuditLogsInput = {
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -905,6 +1157,12 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserCreateWithoutRegisteredPatientsInput = {
@@ -923,6 +1181,12 @@ export type UserCreateWithoutRegisteredPatientsInput = {
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutRegisteredPatientsInput = {
@@ -941,6 +1205,12 @@ export type UserUncheckedCreateWithoutRegisteredPatientsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutRegisteredPatientsInput = {
@@ -987,6 +1257,12 @@ export type UserUpdateWithoutRegisteredPatientsInput = {
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutRegisteredPatientsInput = {
@@ -1005,6 +1281,12 @@ export type UserUncheckedUpdateWithoutRegisteredPatientsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserCreateWithoutDoctorSerialsInput = {
@@ -1023,6 +1305,12 @@ export type UserCreateWithoutDoctorSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutDoctorSerialsInput = {
@@ -1041,6 +1329,12 @@ export type UserUncheckedCreateWithoutDoctorSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutDoctorSerialsInput = {
@@ -1067,6 +1361,12 @@ export type UserCreateWithoutHandlerSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutHandlerSerialsInput = {
@@ -1085,6 +1385,12 @@ export type UserUncheckedCreateWithoutHandlerSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutHandlerSerialsInput = {
@@ -1111,6 +1417,12 @@ export type UserCreateWithoutCreatedSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutCreatedSerialsInput = {
@@ -1129,6 +1441,12 @@ export type UserUncheckedCreateWithoutCreatedSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutCreatedSerialsInput = {
@@ -1175,6 +1493,12 @@ export type UserUpdateWithoutDoctorSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutDoctorSerialsInput = {
@@ -1193,6 +1517,12 @@ export type UserUncheckedUpdateWithoutDoctorSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUpsertWithoutHandlerSerialsInput = {
@@ -1231,6 +1561,12 @@ export type UserUpdateWithoutHandlerSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutHandlerSerialsInput = {
@@ -1249,6 +1585,12 @@ export type UserUncheckedUpdateWithoutHandlerSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUpsertWithoutCreatedSerialsInput = {
@@ -1287,6 +1629,12 @@ export type UserUpdateWithoutCreatedSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutCreatedSerialsInput = {
@@ -1305,6 +1653,12 @@ export type UserUncheckedUpdateWithoutCreatedSerialsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserCreateWithoutDoctorAssessmentsInput = {
@@ -1323,6 +1677,12 @@ export type UserCreateWithoutDoctorAssessmentsInput = {
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutDoctorAssessmentsInput = {
@@ -1341,6 +1701,12 @@ export type UserUncheckedCreateWithoutDoctorAssessmentsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutDoctorAssessmentsInput = {
@@ -1387,6 +1753,12 @@ export type UserUpdateWithoutDoctorAssessmentsInput = {
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutDoctorAssessmentsInput = {
@@ -1405,6 +1777,12 @@ export type UserUncheckedUpdateWithoutDoctorAssessmentsInput = {
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserCreateWithoutConductedSessionsInput = {
@@ -1423,6 +1801,12 @@ export type UserCreateWithoutConductedSessionsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutConductedSessionsInput = {
@@ -1441,6 +1825,12 @@ export type UserUncheckedCreateWithoutConductedSessionsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutConductedSessionsInput = {
@@ -1487,6 +1877,12 @@ export type UserUpdateWithoutConductedSessionsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutConductedSessionsInput = {
@@ -1505,6 +1901,12 @@ export type UserUncheckedUpdateWithoutConductedSessionsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserCreateWithoutCashierBillingsInput = {
@@ -1523,6 +1925,12 @@ export type UserCreateWithoutCashierBillingsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutCashierBillingsInput = {
@@ -1541,6 +1949,12 @@ export type UserUncheckedCreateWithoutCashierBillingsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutCashierBillingsInput = {
@@ -1567,6 +1981,12 @@ export type UserCreateWithoutAuditedBillingsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
   conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserUncheckedCreateWithoutAuditedBillingsInput = {
@@ -1585,6 +2005,12 @@ export type UserUncheckedCreateWithoutAuditedBillingsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
   conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
   cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
 };
 
 export type UserCreateOrConnectWithoutAuditedBillingsInput = {
@@ -1631,6 +2057,12 @@ export type UserUpdateWithoutCashierBillingsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutCashierBillingsInput = {
@@ -1649,6 +2081,12 @@ export type UserUncheckedUpdateWithoutCashierBillingsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUpsertWithoutAuditedBillingsInput = {
@@ -1687,6 +2125,12 @@ export type UserUpdateWithoutAuditedBillingsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
   conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutAuditedBillingsInput = {
@@ -1705,6 +2149,756 @@ export type UserUncheckedUpdateWithoutAuditedBillingsInput = {
   doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
   conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
   cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserCreateWithoutDoctorFilesInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserUncheckedCreateWithoutDoctorFilesInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientUncheckedCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserCreateOrConnectWithoutDoctorFilesInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorFilesInput,
+    Prisma.UserUncheckedCreateWithoutDoctorFilesInput
+  >;
+};
+
+export type UserUpsertWithoutDoctorFilesInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutDoctorFilesInput,
+    Prisma.UserUncheckedUpdateWithoutDoctorFilesInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorFilesInput,
+    Prisma.UserUncheckedCreateWithoutDoctorFilesInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutDoctorFilesInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutDoctorFilesInput,
+    Prisma.UserUncheckedUpdateWithoutDoctorFilesInput
+  >;
+};
+
+export type UserUpdateWithoutDoctorFilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutDoctorFilesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUncheckedUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUncheckedUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUncheckedUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUncheckedUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserCreateWithoutDoctorFileSlotsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserUncheckedCreateWithoutDoctorFileSlotsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientUncheckedCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserCreateOrConnectWithoutDoctorFileSlotsInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorFileSlotsInput,
+    Prisma.UserUncheckedCreateWithoutDoctorFileSlotsInput
+  >;
+};
+
+export type UserCreateWithoutHandlerFileSlotsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserUncheckedCreateWithoutHandlerFileSlotsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientUncheckedCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserCreateOrConnectWithoutHandlerFileSlotsInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutHandlerFileSlotsInput,
+    Prisma.UserUncheckedCreateWithoutHandlerFileSlotsInput
+  >;
+};
+
+export type UserUpsertWithoutDoctorFileSlotsInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutDoctorFileSlotsInput,
+    Prisma.UserUncheckedUpdateWithoutDoctorFileSlotsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorFileSlotsInput,
+    Prisma.UserUncheckedCreateWithoutDoctorFileSlotsInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutDoctorFileSlotsInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutDoctorFileSlotsInput,
+    Prisma.UserUncheckedUpdateWithoutDoctorFileSlotsInput
+  >;
+};
+
+export type UserUpdateWithoutDoctorFileSlotsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutDoctorFileSlotsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUncheckedUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUncheckedUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUncheckedUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUncheckedUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserUpsertWithoutHandlerFileSlotsInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutHandlerFileSlotsInput,
+    Prisma.UserUncheckedUpdateWithoutHandlerFileSlotsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutHandlerFileSlotsInput,
+    Prisma.UserUncheckedCreateWithoutHandlerFileSlotsInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutHandlerFileSlotsInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutHandlerFileSlotsInput,
+    Prisma.UserUncheckedUpdateWithoutHandlerFileSlotsInput
+  >;
+};
+
+export type UserUpdateWithoutHandlerFileSlotsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutHandlerFileSlotsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUncheckedUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUncheckedUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUncheckedUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUncheckedUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserCreateWithoutCollectedPaymentsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserUncheckedCreateWithoutCollectedPaymentsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientUncheckedCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserCreateOrConnectWithoutCollectedPaymentsInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutCollectedPaymentsInput,
+    Prisma.UserUncheckedCreateWithoutCollectedPaymentsInput
+  >;
+};
+
+export type UserUpsertWithoutCollectedPaymentsInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutCollectedPaymentsInput,
+    Prisma.UserUncheckedUpdateWithoutCollectedPaymentsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutCollectedPaymentsInput,
+    Prisma.UserUncheckedCreateWithoutCollectedPaymentsInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutCollectedPaymentsInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutCollectedPaymentsInput,
+    Prisma.UserUncheckedUpdateWithoutCollectedPaymentsInput
+  >;
+};
+
+export type UserUpdateWithoutCollectedPaymentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutCollectedPaymentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUncheckedUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUncheckedUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUncheckedUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUncheckedUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserCreateWithoutDoctorRoomsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  handlerRooms?: Prisma.RoomCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserUncheckedCreateWithoutDoctorRoomsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientUncheckedCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  handlerRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentHandlerInput;
+};
+
+export type UserCreateOrConnectWithoutDoctorRoomsInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorRoomsInput,
+    Prisma.UserUncheckedCreateWithoutDoctorRoomsInput
+  >;
+};
+
+export type UserCreateWithoutHandlerRoomsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomCreateNestedManyWithoutCurrentDoctorInput;
+};
+
+export type UserUncheckedCreateWithoutHandlerRoomsInput = {
+  id?: string;
+  name: string;
+  role: $Enums.Role;
+  password: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput;
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput;
+  registeredPatients?: Prisma.PatientUncheckedCreateNestedManyWithoutRegisteredByInput;
+  doctorSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutDoctorInput;
+  handlerSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutHandlerInput;
+  createdSerials?: Prisma.SerialUncheckedCreateNestedManyWithoutCreatedByInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedCreateNestedManyWithoutDoctorInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutHandlerInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutCashierInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutAuditedByInput;
+  doctorFiles?: Prisma.FileUncheckedCreateNestedManyWithoutPrimaryDoctorInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedDoctorInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedCreateNestedManyWithoutAssignedHandlerInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedCreateNestedManyWithoutCollectedByInput;
+  doctorRooms?: Prisma.RoomUncheckedCreateNestedManyWithoutCurrentDoctorInput;
+};
+
+export type UserCreateOrConnectWithoutHandlerRoomsInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutHandlerRoomsInput,
+    Prisma.UserUncheckedCreateWithoutHandlerRoomsInput
+  >;
+};
+
+export type UserUpsertWithoutDoctorRoomsInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutDoctorRoomsInput,
+    Prisma.UserUncheckedUpdateWithoutDoctorRoomsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutDoctorRoomsInput,
+    Prisma.UserUncheckedCreateWithoutDoctorRoomsInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutDoctorRoomsInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutDoctorRoomsInput,
+    Prisma.UserUncheckedUpdateWithoutDoctorRoomsInput
+  >;
+};
+
+export type UserUpdateWithoutDoctorRoomsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  handlerRooms?: Prisma.RoomUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutDoctorRoomsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUncheckedUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUncheckedUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUncheckedUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUncheckedUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  handlerRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentHandlerNestedInput;
+};
+
+export type UserUpsertWithoutHandlerRoomsInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutHandlerRoomsInput,
+    Prisma.UserUncheckedUpdateWithoutHandlerRoomsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutHandlerRoomsInput,
+    Prisma.UserUncheckedCreateWithoutHandlerRoomsInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutHandlerRoomsInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutHandlerRoomsInput,
+    Prisma.UserUncheckedUpdateWithoutHandlerRoomsInput
+  >;
+};
+
+export type UserUpdateWithoutHandlerRoomsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUpdateManyWithoutCurrentDoctorNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutHandlerRoomsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  name?: Prisma.StringFieldUpdateOperationsInput | string;
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role;
+  password?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput;
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput;
+  registeredPatients?: Prisma.PatientUncheckedUpdateManyWithoutRegisteredByNestedInput;
+  doctorSerials?: Prisma.SerialUncheckedUpdateManyWithoutDoctorNestedInput;
+  handlerSerials?: Prisma.SerialUncheckedUpdateManyWithoutHandlerNestedInput;
+  createdSerials?: Prisma.SerialUncheckedUpdateManyWithoutCreatedByNestedInput;
+  doctorAssessments?: Prisma.ClinicalAssessmentUncheckedUpdateManyWithoutDoctorNestedInput;
+  conductedSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutHandlerNestedInput;
+  cashierBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutCashierNestedInput;
+  auditedBillings?: Prisma.BillingRecordUncheckedUpdateManyWithoutAuditedByNestedInput;
+  doctorFiles?: Prisma.FileUncheckedUpdateManyWithoutPrimaryDoctorNestedInput;
+  doctorFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedDoctorNestedInput;
+  handlerFileSlots?: Prisma.FileTreatmentSlotUncheckedUpdateManyWithoutAssignedHandlerNestedInput;
+  collectedPayments?: Prisma.FilePaymentUncheckedUpdateManyWithoutCollectedByNestedInput;
+  doctorRooms?: Prisma.RoomUncheckedUpdateManyWithoutCurrentDoctorNestedInput;
 };
 
 /**
@@ -1722,6 +2916,12 @@ export type UserCountOutputType = {
   conductedSessions: number;
   cashierBillings: number;
   auditedBillings: number;
+  doctorFiles: number;
+  doctorFileSlots: number;
+  handlerFileSlots: number;
+  collectedPayments: number;
+  doctorRooms: number;
+  handlerRooms: number;
 };
 
 export type UserCountOutputTypeSelect<
@@ -1738,6 +2938,12 @@ export type UserCountOutputTypeSelect<
   conductedSessions?: boolean | UserCountOutputTypeCountConductedSessionsArgs;
   cashierBillings?: boolean | UserCountOutputTypeCountCashierBillingsArgs;
   auditedBillings?: boolean | UserCountOutputTypeCountAuditedBillingsArgs;
+  doctorFiles?: boolean | UserCountOutputTypeCountDoctorFilesArgs;
+  doctorFileSlots?: boolean | UserCountOutputTypeCountDoctorFileSlotsArgs;
+  handlerFileSlots?: boolean | UserCountOutputTypeCountHandlerFileSlotsArgs;
+  collectedPayments?: boolean | UserCountOutputTypeCountCollectedPaymentsArgs;
+  doctorRooms?: boolean | UserCountOutputTypeCountDoctorRoomsArgs;
+  handlerRooms?: boolean | UserCountOutputTypeCountHandlerRoomsArgs;
 };
 
 /**
@@ -1853,6 +3059,66 @@ export type UserCountOutputTypeCountAuditedBillingsArgs<
   where?: Prisma.BillingRecordWhereInput;
 };
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDoctorFilesArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.FileWhereInput;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDoctorFileSlotsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.FileTreatmentSlotWhereInput;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountHandlerFileSlotsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.FileTreatmentSlotWhereInput;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCollectedPaymentsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.FilePaymentWhereInput;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDoctorRoomsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.RoomWhereInput;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountHandlerRoomsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.RoomWhereInput;
+};
+
 export type UserSelect<
   ExtArgs extends runtime.Types.Extensions.InternalArgs =
     runtime.Types.Extensions.DefaultArgs,
@@ -1874,6 +3140,12 @@ export type UserSelect<
     conductedSessions?: boolean | Prisma.User$conductedSessionsArgs<ExtArgs>;
     cashierBillings?: boolean | Prisma.User$cashierBillingsArgs<ExtArgs>;
     auditedBillings?: boolean | Prisma.User$auditedBillingsArgs<ExtArgs>;
+    doctorFiles?: boolean | Prisma.User$doctorFilesArgs<ExtArgs>;
+    doctorFileSlots?: boolean | Prisma.User$doctorFileSlotsArgs<ExtArgs>;
+    handlerFileSlots?: boolean | Prisma.User$handlerFileSlotsArgs<ExtArgs>;
+    collectedPayments?: boolean | Prisma.User$collectedPaymentsArgs<ExtArgs>;
+    doctorRooms?: boolean | Prisma.User$doctorRoomsArgs<ExtArgs>;
+    handlerRooms?: boolean | Prisma.User$handlerRoomsArgs<ExtArgs>;
     _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>;
   },
   ExtArgs["result"]["user"]
@@ -1939,6 +3211,12 @@ export type UserInclude<
   conductedSessions?: boolean | Prisma.User$conductedSessionsArgs<ExtArgs>;
   cashierBillings?: boolean | Prisma.User$cashierBillingsArgs<ExtArgs>;
   auditedBillings?: boolean | Prisma.User$auditedBillingsArgs<ExtArgs>;
+  doctorFiles?: boolean | Prisma.User$doctorFilesArgs<ExtArgs>;
+  doctorFileSlots?: boolean | Prisma.User$doctorFileSlotsArgs<ExtArgs>;
+  handlerFileSlots?: boolean | Prisma.User$handlerFileSlotsArgs<ExtArgs>;
+  collectedPayments?: boolean | Prisma.User$collectedPaymentsArgs<ExtArgs>;
+  doctorRooms?: boolean | Prisma.User$doctorRoomsArgs<ExtArgs>;
+  handlerRooms?: boolean | Prisma.User$handlerRoomsArgs<ExtArgs>;
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>;
 };
 export type UserIncludeCreateManyAndReturn<
@@ -1966,6 +3244,12 @@ export type $UserPayload<
     conductedSessions: Prisma.$TreatmentSessionPayload<ExtArgs>[];
     cashierBillings: Prisma.$BillingRecordPayload<ExtArgs>[];
     auditedBillings: Prisma.$BillingRecordPayload<ExtArgs>[];
+    doctorFiles: Prisma.$FilePayload<ExtArgs>[];
+    doctorFileSlots: Prisma.$FileTreatmentSlotPayload<ExtArgs>[];
+    handlerFileSlots: Prisma.$FileTreatmentSlotPayload<ExtArgs>[];
+    collectedPayments: Prisma.$FilePaymentPayload<ExtArgs>[];
+    doctorRooms: Prisma.$RoomPayload<ExtArgs>[];
+    handlerRooms: Prisma.$RoomPayload<ExtArgs>[];
   };
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
@@ -2631,6 +3915,72 @@ export interface Prisma__UserClient<
   ): Prisma.PrismaPromise<
     | runtime.Types.Result.GetResult<
         Prisma.$BillingRecordPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  doctorFiles<T extends Prisma.User$doctorFilesArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$doctorFilesArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$FilePayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  doctorFileSlots<T extends Prisma.User$doctorFileSlotsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$doctorFileSlotsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$FileTreatmentSlotPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  handlerFileSlots<T extends Prisma.User$handlerFileSlotsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$handlerFileSlotsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$FileTreatmentSlotPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  collectedPayments<T extends Prisma.User$collectedPaymentsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$collectedPaymentsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$FilePaymentPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  doctorRooms<T extends Prisma.User$doctorRoomsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$doctorRoomsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$RoomPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  handlerRooms<T extends Prisma.User$handlerRoomsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$handlerRoomsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$RoomPayload<ExtArgs>,
         T,
         "findMany",
         GlobalOmitOptions
@@ -3413,6 +4763,182 @@ export type User$auditedBillingsArgs<
   skip?: number;
   distinct?:
     Prisma.BillingRecordScalarFieldEnum | Prisma.BillingRecordScalarFieldEnum[];
+};
+
+/**
+ * User.doctorFiles
+ */
+export type User$doctorFilesArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the File
+   */
+  select?: Prisma.FileSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the File
+   */
+  omit?: Prisma.FileOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FileInclude<ExtArgs> | null;
+  where?: Prisma.FileWhereInput;
+  orderBy?:
+    Prisma.FileOrderByWithRelationInput | Prisma.FileOrderByWithRelationInput[];
+  cursor?: Prisma.FileWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.FileScalarFieldEnum | Prisma.FileScalarFieldEnum[];
+};
+
+/**
+ * User.doctorFileSlots
+ */
+export type User$doctorFileSlotsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the FileTreatmentSlot
+   */
+  select?: Prisma.FileTreatmentSlotSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the FileTreatmentSlot
+   */
+  omit?: Prisma.FileTreatmentSlotOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FileTreatmentSlotInclude<ExtArgs> | null;
+  where?: Prisma.FileTreatmentSlotWhereInput;
+  orderBy?:
+    | Prisma.FileTreatmentSlotOrderByWithRelationInput
+    | Prisma.FileTreatmentSlotOrderByWithRelationInput[];
+  cursor?: Prisma.FileTreatmentSlotWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?:
+    | Prisma.FileTreatmentSlotScalarFieldEnum
+    | Prisma.FileTreatmentSlotScalarFieldEnum[];
+};
+
+/**
+ * User.handlerFileSlots
+ */
+export type User$handlerFileSlotsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the FileTreatmentSlot
+   */
+  select?: Prisma.FileTreatmentSlotSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the FileTreatmentSlot
+   */
+  omit?: Prisma.FileTreatmentSlotOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FileTreatmentSlotInclude<ExtArgs> | null;
+  where?: Prisma.FileTreatmentSlotWhereInput;
+  orderBy?:
+    | Prisma.FileTreatmentSlotOrderByWithRelationInput
+    | Prisma.FileTreatmentSlotOrderByWithRelationInput[];
+  cursor?: Prisma.FileTreatmentSlotWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?:
+    | Prisma.FileTreatmentSlotScalarFieldEnum
+    | Prisma.FileTreatmentSlotScalarFieldEnum[];
+};
+
+/**
+ * User.collectedPayments
+ */
+export type User$collectedPaymentsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the FilePayment
+   */
+  select?: Prisma.FilePaymentSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the FilePayment
+   */
+  omit?: Prisma.FilePaymentOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FilePaymentInclude<ExtArgs> | null;
+  where?: Prisma.FilePaymentWhereInput;
+  orderBy?:
+    | Prisma.FilePaymentOrderByWithRelationInput
+    | Prisma.FilePaymentOrderByWithRelationInput[];
+  cursor?: Prisma.FilePaymentWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?:
+    Prisma.FilePaymentScalarFieldEnum | Prisma.FilePaymentScalarFieldEnum[];
+};
+
+/**
+ * User.doctorRooms
+ */
+export type User$doctorRoomsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the Room
+   */
+  select?: Prisma.RoomSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the Room
+   */
+  omit?: Prisma.RoomOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RoomInclude<ExtArgs> | null;
+  where?: Prisma.RoomWhereInput;
+  orderBy?:
+    Prisma.RoomOrderByWithRelationInput | Prisma.RoomOrderByWithRelationInput[];
+  cursor?: Prisma.RoomWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.RoomScalarFieldEnum | Prisma.RoomScalarFieldEnum[];
+};
+
+/**
+ * User.handlerRooms
+ */
+export type User$handlerRoomsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the Room
+   */
+  select?: Prisma.RoomSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the Room
+   */
+  omit?: Prisma.RoomOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RoomInclude<ExtArgs> | null;
+  where?: Prisma.RoomWhereInput;
+  orderBy?:
+    Prisma.RoomOrderByWithRelationInput | Prisma.RoomOrderByWithRelationInput[];
+  cursor?: Prisma.RoomWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.RoomScalarFieldEnum | Prisma.RoomScalarFieldEnum[];
 };
 
 /**

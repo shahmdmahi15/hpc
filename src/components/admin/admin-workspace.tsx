@@ -31,11 +31,12 @@ import {
   DollarSign,
   Package,
   CheckCircle2,
-  Users,
   CreditCard,
   Plus,
   RefreshCw,
+  DoorOpen,
 } from "lucide-react";
+import { RoomManagementPanel } from "@/components/admin/room-management-panel";
 
 interface AdminWorkspaceProps {
   initialLedger: Awaited<ReturnType<typeof getDailyCashLedger>>;
@@ -43,6 +44,7 @@ interface AdminWorkspaceProps {
 
 export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
   const [ledger, setLedger] = useState(initialLedger);
+  const [activeTab, setActiveTab] = useState<"ledger" | "rooms">("ledger");
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -122,7 +124,7 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
         <Card className="p-4 shadow-sm border-border bg-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase">
-              Total Desk Cash (আজকের জমা)
+              Total Desk Cash
             </span>
             <DollarSign className="h-4 w-4 text-primary" />
           </div>
@@ -137,7 +139,7 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
         <Card className="p-4 shadow-sm border-border bg-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase">
-              Assessed Bill (মোট বিল)
+              Assessed Bill
             </span>
             <CreditCard className="h-4 w-4 text-primary" />
           </div>
@@ -167,7 +169,7 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
         <Card className="p-4 shadow-sm border-border bg-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase">
-              Outstanding Dues (বকেয়া)
+              Outstanding Dues
             </span>
             <CreditCard className="h-4 w-4 text-destructive" />
           </div>
@@ -180,132 +182,162 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
         </Card>
       </div>
 
-      {/* CEO Audit Daily Cash Ledger (Matching Printed Ledger Page 3 of PDF 1) */}
-      <Card className="shadow-md border-border bg-card">
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-              <span>
-                CEO Daily Cash Ledger Audit &amp; Sign-off (টাকা জমার খাতা
-                অনুমোদন)
-              </span>
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Review and grant CEO audit approval on daily cashier receipts
-              matching the physical ledger.
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setIsPackageModalOpen(true)}
-              className="h-8 text-xs font-bold gap-1.5 cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Create 21-30 Day Package</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={refreshData}
-              title="Refresh Ledger"
-              className="h-8 w-8 cursor-pointer"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isPending ? "animate-spin text-primary" : ""}`}
-              />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="pb-3 font-semibold w-12">SL NO</th>
-                  <th className="pb-3 font-semibold">PATIENT NAME &amp; ID</th>
-                  <th className="pb-3 font-semibold">A. BILL (ধার্য বিল)</th>
-                  <th className="pb-3 font-semibold">PAY. BILL (আদায়)</th>
-                  <th className="pb-3 font-semibold">DUE (বকেয়া)</th>
-                  <th className="pb-3 font-semibold">CASHIER (ক্যাশিয়ার)</th>
-                  <th className="pb-3 font-semibold text-right">
-                    CEO AUDIT APPROVAL
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {ledger.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="py-8 text-center text-muted-foreground"
-                    >
-                      No cashier billing records for today yet.
-                    </td>
+      {/* Navigation Tab Bar */}
+      <div className="flex items-center gap-2 bg-card p-2 rounded-2xl border border-border shadow-xs">
+        <button
+          onClick={() => setActiveTab("ledger")}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "ledger"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground bg-muted/60"
+          }`}
+        >
+          <ShieldCheck className="h-3.5 w-3.5" />
+          <span>Daily Cash Ledger &amp; Packages</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("rooms")}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "rooms"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground bg-muted/60"
+          }`}
+        >
+          <DoorOpen className="h-3.5 w-3.5" />
+          <span>Chambers &amp; Rooms Management</span>
+        </button>
+      </div>
+
+      {activeTab === "rooms" ? (
+        <RoomManagementPanel />
+      ) : (
+        /* CEO Audit Daily Cash Ledger */
+        <Card className="shadow-md border-border bg-card">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span>CEO Daily Cash Ledger Audit &amp; Sign-off</span>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Review and grant CEO audit approval on daily cashier receipts
+                matching the physical ledger.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setIsPackageModalOpen(true)}
+                className="h-8 text-xs font-bold gap-1.5 cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Create 21-30 Day Package</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={refreshData}
+                title="Refresh Ledger"
+                className="h-8 w-8 cursor-pointer"
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${isPending ? "animate-spin text-primary" : ""}`}
+                />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="pb-3 font-semibold w-12">SL NO</th>
+                    <th className="pb-3 font-semibold">
+                      PATIENT NAME &amp; ID
+                    </th>
+                    <th className="pb-3 font-semibold">A. BILL</th>
+                    <th className="pb-3 font-semibold">PAY. BILL</th>
+                    <th className="pb-3 font-semibold">DUE</th>
+                    <th className="pb-3 font-semibold">CASHIER</th>
+                    <th className="pb-3 font-semibold text-right">
+                      CEO AUDIT APPROVAL
+                    </th>
                   </tr>
-                ) : (
-                  ledger.map((item, idx) => (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-muted/30 transition-colors"
-                    >
-                      <td className="py-3 font-mono font-bold text-muted-foreground">
-                        {String(idx + 1).padStart(2, "0")}.
-                      </td>
-                      <td className="py-3">
-                        <div className="font-bold text-foreground">
-                          {item.patient.name}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground font-mono">
-                          ID: #{item.patient.patientId}
-                        </div>
-                      </td>
-                      <td className="py-3 font-mono text-muted-foreground">
-                        ৳{item.actualBill}
-                      </td>
-                      <td className="py-3 font-mono font-bold">
-                        {item.isPackageCovered ? (
-                          <Badge variant="secondary" className="text-[10px]">
-                            N.P (No Payment Made)
-                          </Badge>
-                        ) : (
-                          <span className="text-primary text-sm font-bold">
-                            ৳{item.paidAmount}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 font-mono text-destructive font-semibold">
-                        {item.dueAmount > 0 ? `৳${item.dueAmount}` : "-"}
-                      </td>
-                      <td className="py-3 text-muted-foreground">
-                        {item.cashier?.name || "Front Desk"}
-                      </td>
-                      <td className="py-3 text-right">
-                        {item.auditedBy ? (
-                          <span className="inline-flex items-center gap-1 text-primary font-bold text-[11px]">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>Approved ({item.auditedBy.name})</span>
-                          </span>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-[11px] gap-1 cursor-pointer"
-                            onClick={() => handleAuditApprove(item.id)}
-                          >
-                            <ShieldCheck className="h-3 w-3 text-primary" />
-                            <span>CEO Sign &amp; Approve</span>
-                          </Button>
-                        )}
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {ledger.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="py-8 text-center text-muted-foreground"
+                      >
+                        No cashier billing records for today yet.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                  ) : (
+                    ledger.map((item, idx) => (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-muted/30 transition-colors"
+                      >
+                        <td className="py-3 font-mono font-bold text-muted-foreground">
+                          {String(idx + 1).padStart(2, "0")}.
+                        </td>
+                        <td className="py-3">
+                          <div className="font-bold text-foreground">
+                            {item.patient.name}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground font-mono">
+                            ID: #{item.patient.patientId}
+                          </div>
+                        </td>
+                        <td className="py-3 font-mono text-muted-foreground">
+                          ৳{item.actualBill}
+                        </td>
+                        <td className="py-3 font-mono font-bold">
+                          {item.isPackageCovered ? (
+                            <Badge variant="secondary" className="text-[10px]">
+                              N.P (No Payment Made)
+                            </Badge>
+                          ) : (
+                            <span className="text-primary text-sm font-bold">
+                              ৳{item.paidAmount}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 font-mono text-destructive font-semibold">
+                          {item.dueAmount > 0 ? `৳${item.dueAmount}` : "-"}
+                        </td>
+                        <td className="py-3 text-muted-foreground">
+                          {item.cashier?.name || "Front Desk"}
+                        </td>
+                        <td className="py-3 text-right">
+                          {item.auditedBy ? (
+                            <span className="inline-flex items-center gap-1 text-primary font-bold text-[11px]">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>Approved ({item.auditedBy.name})</span>
+                            </span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-[11px] gap-1 cursor-pointer"
+                              onClick={() => handleAuditApprove(item.id)}
+                            >
+                              <ShieldCheck className="h-3 w-3 text-primary" />
+                              <span>CEO Sign &amp; Approve</span>
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* DIALOG: Create 21-30 Day Rehabilitation Package */}
       <Dialog open={isPackageModalOpen} onOpenChange={setIsPackageModalOpen}>
@@ -313,7 +345,7 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" />
-              <span>Create 21–30 Day Patient Package (প্যাকেজ কার্ড)</span>
+              <span>Create 21–30 Day Patient Package</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
               Matching HPC Physical Package Billing Card (e.g. 10,000/- or
@@ -353,9 +385,7 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Total Days (দিন)
-                </Label>
+                <Label className="text-xs font-semibold">Total Days</Label>
                 <Input
                   type="number"
                   value={pkgForm.totalDays}

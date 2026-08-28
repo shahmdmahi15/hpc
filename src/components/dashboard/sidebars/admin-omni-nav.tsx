@@ -18,33 +18,35 @@ import {
   UserCheck,
   Tv,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export function AdminOmniNav() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   const panels = [
     {
-      title: "Admin Command Center",
+      title: t("nav.system_command", "Admin Command Center"),
       href: "/admin",
       icon: ShieldAlert,
     },
     {
-      title: "Doctor Clinical Panel",
+      title: t("nav.doctor_hub", "Doctor Clinical Panel"),
       href: "/doctor",
       icon: Stethoscope,
     },
     {
-      title: "Reception Intake Panel",
+      title: t("nav.front_desk", "Reception Intake Panel"),
       href: "/receptionist",
       icon: Headphones,
     },
     {
-      title: "Care Handler Panel",
+      title: t("nav.handler_hub", "Care Handler Panel"),
       href: "/handler",
       icon: UserCheck,
     },
     {
-      title: "Live Waiting Room Kiosk",
+      title: t("nav.kiosk", "Live Waiting Room Kiosk"),
       href: "/",
       icon: Tv,
     },

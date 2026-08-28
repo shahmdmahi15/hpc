@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { RealtimePayload } from "@/lib/events";
 
 interface UseRealtimeOptions {
@@ -13,67 +13,68 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
   const { onEvent, onRefresh, enabled = true } = options;
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<RealtimePayload | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const onEventRef = useRef(onEvent);
   const onRefreshRef = useRef(onRefresh);
 
-  onEventRef.current = onEvent;
-  onRefreshRef.current = onRefresh;
-
-  const connect = useCallback(() => {
-    if (!enabled || typeof window === "undefined") return;
-
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    try {
-      const eventSource = new EventSource("/api/realtime");
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        setIsConnected(true);
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const payload: RealtimePayload = JSON.parse(event.data);
-          setLastEvent(payload);
-          if (onEventRef.current) {
-            onEventRef.current(payload);
-          }
-          if (onRefreshRef.current) {
-            onRefreshRef.current();
-          }
-        } catch {
-          // ignore parse errors on keepalive comments
-        }
-      };
-
-      eventSource.onerror = () => {
-        setIsConnected(false);
-        eventSource.close();
-        // Retry connection after 3 seconds
-        setTimeout(connect, 3000);
-      };
-    } catch {
-      setIsConnected(false);
-      setTimeout(connect, 3000);
-    }
-  }, [enabled]);
+  useEffect(() => {
+    onEventRef.current = onEvent;
+    onRefreshRef.current = onRefresh;
+  }, [onEvent, onRefresh]);
 
   useEffect(() => {
-    connect();
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+    if (!enabled || typeof window === "undefined") return;
+
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let isCancelled = false;
+
+    const createConnection = () => {
+      if (isCancelled) return;
+      try {
+        eventSource = new EventSource("/api/realtime");
+
+        eventSource.onopen = () => {
+          if (!isCancelled) setIsConnected(true);
+        };
+
+        eventSource.onmessage = (event) => {
+          if (isCancelled) return;
+          try {
+            const payload: RealtimePayload = JSON.parse(event.data);
+            setLastEvent(payload);
+            onEventRef.current?.(payload);
+            onRefreshRef.current?.();
+          } catch {
+            // ignore parse errors on keepalive comments
+          }
+        };
+
+        eventSource.onerror = () => {
+          if (isCancelled) return;
+          setIsConnected(false);
+          eventSource?.close();
+          reconnectTimeout = setTimeout(createConnection, 3000);
+        };
+      } catch {
+        if (!isCancelled) {
+          reconnectTimeout = setTimeout(createConnection, 3000);
+        }
       }
     };
-  }, [connect]);
+
+    createConnection();
+
+    return () => {
+      isCancelled = true;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [enabled]);
 
   return {
     isConnected,
     lastEvent,
-    reconnect: connect,
   };
 }

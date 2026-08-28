@@ -12,14 +12,13 @@ import {
   searchPatients,
   createPatient,
   getAllPatients,
+  getNextSuggestedPatientId,
 } from "@/actions/patients";
 import { getDailyCashLedger } from "@/actions/billing";
 import {
   formatBSTTime,
   formatBSTShortDate,
-  formatBSTDate,
   getBSTDateString,
-  getBSTTimeString,
 } from "@/lib/date";
 import {
   Card,
@@ -40,6 +39,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   UserPlus,
   Search,
@@ -54,6 +62,7 @@ import {
   BookOpen,
   Plus,
   Calendar,
+  DoorOpen,
 } from "lucide-react";
 import {
   Gender,
@@ -61,39 +70,99 @@ import {
   VisitType,
   HourlySlot,
   PaymentMethod,
-  PunctualityStatus,
 } from "@/generated/prisma/enums";
+import { getAllRoomsWithOccupancy } from "@/actions/rooms";
+import { RoomSelect } from "@/components/rooms/room-select";
+import { RoomOccupancyDashboard } from "@/components/rooms/room-occupancy-dashboard";
+import {
+  validatePatientForm,
+  validateSerialBooking,
+  validatePaymentInput,
+} from "@/lib/validation";
+import { SlotTicketPicker } from "@/components/booking/slot-ticket-picker";
+import { DailySlotScheduleMatrix } from "@/components/booking/daily-slot-schedule-matrix";
+import { Ticket } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface ReceptionistWorkspaceProps {
   initialSerials: Awaited<ReturnType<typeof getDailySerials>>;
   initialLedger: Awaited<ReturnType<typeof getDailyCashLedger>>;
 }
 
+type ReceptionistSerial = NonNullable<
+  Awaited<ReturnType<typeof getDailySerials>>
+>[number];
+type PatientItem =
+  | NonNullable<Awaited<ReturnType<typeof getAllPatients>>>[number]
+  | NonNullable<Awaited<ReturnType<typeof searchPatients>>>[number]
+  | NonNullable<
+      NonNullable<Awaited<ReturnType<typeof createPatient>>>["patient"]
+    >;
+
+const VISIT_TYPE_LABELS: Record<VisitType, string> = {
+  [VisitType.NEW_CONSULTATION]: "New Consultation (নতুন ভিজিট)",
+  [VisitType.FOLLOW_UP]: "Follow-up Therapy (চলমান থেরাপি)",
+  [VisitType.REPORT_REVIEW]: "Report Review (রিপোর্ট পর্যালোচনা)",
+  [VisitType.THERAPY_PROCEDURE]: "Therapy Procedure (থেরাপি পদ্ধতি)",
+  [VisitType.EMERGENCY]: "Emergency (জরুরী)",
+};
+
+const GENDER_LABELS: Record<Gender, string> = {
+  [Gender.MALE]: "Male (পুরুষ)",
+  [Gender.FEMALE]: "Female (মহিলা)",
+  [Gender.OTHER]: "Other",
+};
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  [PaymentMethod.CASH]: "Cash (নগদ)",
+  [PaymentMethod.MOBILE_BANKING]: "bKash / Nagad / Rocket",
+  [PaymentMethod.CARD]: "Card (কার্ড)",
+  [PaymentMethod.OTHER]: "Other (অন্যান্য)",
+  [PaymentMethod.INSURANCE]: "Insurance (বীমা)",
+};
+
 export function ReceptionistWorkspace({
   initialSerials,
   initialLedger,
 }: ReceptionistWorkspaceProps) {
+  const { t } = useI18n();
   const [selectedDate, setSelectedDate] = useState(() => getBSTDateString());
   const [serials, setSerials] = useState(initialSerials);
   const [ledger, setLedger] = useState(initialLedger);
+  const [roomsData, setRoomsData] = useState<Awaited<
+    ReturnType<typeof getAllRoomsWithOccupancy>
+  > | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "serials" | "ledger" | "directory"
+    "serials" | "ledger" | "directory" | "chambers" | "slots"
   >("serials");
-  const [allPatientsList, setAllPatientsList] = useState<any[]>([]);
+  const [allPatientsList, setAllPatientsList] = useState<PatientItem[]>([]);
 
   const [isPending, startTransition] = useTransition();
 
   // Search & Patient selection
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+  const [searchResults, setSearchResults] = useState<PatientItem[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<PatientItem | null>(
+    null,
+  );
 
   // Modals
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isBookOpen, setIsBookOpen] = useState(false);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
-  const [checkInSerial, setCheckInSerial] = useState<any | null>(null);
+  const [checkInSerial, setCheckInSerial] = useState<ReceptionistSerial | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Validation Errors
+  const [patientErrors, setPatientErrors] = useState<Record<string, string>>(
+    {},
+  );
+  const [bookErrors, setBookErrors] = useState<Record<string, string>>({});
+  const [checkInErrors, setCheckInErrors] = useState<Record<string, string>>(
+    {},
+  );
 
   // New Patient Form (Step 1)
   const [patientForm, setPatientForm] = useState<{
@@ -134,7 +203,7 @@ export function ReceptionistWorkspace({
     type: VisitType.NEW_CONSULTATION,
     isReport: false,
     notes: "",
-    roomNo: "205",
+    roomNo: "207",
   });
 
   // Physical Arrival Check-in & Payment Form (Step 2)
@@ -142,10 +211,12 @@ export function ReceptionistWorkspace({
     paidAmount: number;
     isNoPayment: boolean;
     paymentMethod: PaymentMethod;
+    roomNo: string;
   }>({
     paidAmount: 500,
     isNoPayment: false,
     paymentMethod: PaymentMethod.CASH,
+    roomNo: "207",
   });
 
   // Load directory
@@ -159,20 +230,36 @@ export function ReceptionistWorkspace({
   }, []);
 
   useEffect(() => {
-    loadPatientsData();
-  }, [loadPatientsData]);
+    let isMounted = true;
+    getAllPatients()
+      .then((patients) => {
+        if (isMounted) setAllPatientsList(patients);
+      })
+      .catch(console.error);
+    getAllRoomsWithOccupancy(selectedDate)
+      .then((rooms) => {
+        if (isMounted) setRoomsData(rooms);
+      })
+      .catch(console.error);
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDate]);
 
   const refreshData = useCallback(
     (targetDate?: string) => {
       const dateToFetch = targetDate || selectedDate;
       startTransition(async () => {
         try {
-          const [updatedSerials, updatedLedger] = await Promise.all([
-            getDailySerials(dateToFetch),
-            getDailyCashLedger(dateToFetch),
-          ]);
+          const [updatedSerials, updatedLedger, updatedRooms] =
+            await Promise.all([
+              getDailySerials(dateToFetch),
+              getDailyCashLedger(dateToFetch),
+              getAllRoomsWithOccupancy(dateToFetch),
+            ]);
           setSerials(updatedSerials);
           setLedger(updatedLedger);
+          setRoomsData(updatedRooms);
           loadPatientsData();
         } catch (err) {
           console.error("Failed to refresh receptionist data", err);
@@ -202,13 +289,18 @@ export function ReceptionistWorkspace({
     setSearchResults(results);
   };
 
-  const handleSelectPatientForBooking = (patient: any) => {
+  const handleSelectPatientForBooking = (patient: PatientItem) => {
     setSelectedPatient(patient);
+    setBookErrors({});
+    setErrorMessage("");
     setBookForm((prev) => ({
       ...prev,
       date: selectedDate,
+      roomNo: "",
       type:
-        patient.serials && patient.serials.length > 0
+        "serials" in patient &&
+        Array.isArray(patient.serials) &&
+        patient.serials.length > 0
           ? VisitType.FOLLOW_UP
           : VisitType.NEW_CONSULTATION,
     }));
@@ -218,21 +310,31 @@ export function ReceptionistWorkspace({
   const handleRegisterPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+    setPatientErrors({});
 
-    if (!patientForm.patientId || !patientForm.name || !patientForm.phone) {
-      setErrorMessage("Please fill required fields: Patient ID, Name, Phone.");
+    const valResult = validatePatientForm({
+      patientId: patientForm.patientId,
+      name: patientForm.name,
+      phone: patientForm.phone,
+      age: patientForm.age,
+      gender: patientForm.gender,
+    });
+
+    if (!valResult.isValid) {
+      setPatientErrors(valResult.errors);
+      setErrorMessage("Please correct the form errors before proceeding.");
       return;
     }
 
     const res = await createPatient({
-      patientId: patientForm.patientId,
-      name: patientForm.name,
-      phone: patientForm.phone,
+      patientId: patientForm.patientId.trim(),
+      name: patientForm.name.trim(),
+      phone: patientForm.phone.trim(),
       age: patientForm.age ? parseInt(patientForm.age) : undefined,
       gender: patientForm.gender,
-      address: patientForm.address,
-      occupation: patientForm.occupation,
-      notes: patientForm.notes,
+      address: patientForm.address.trim() || undefined,
+      occupation: patientForm.occupation.trim() || undefined,
+      notes: patientForm.notes.trim() || undefined,
     });
 
     if (res.error) {
@@ -241,9 +343,17 @@ export function ReceptionistWorkspace({
     }
 
     if (res.patient) {
+      toast.success(
+        `Patient #${res.patient.patientId} registered successfully!`,
+      );
       setSelectedPatient(res.patient);
       setIsRegisterOpen(false);
-      setBookForm((prev) => ({ ...prev, date: selectedDate }));
+      setBookErrors({});
+      setBookForm((prev) => ({
+        ...prev,
+        date: selectedDate,
+        roomNo: "",
+      }));
       setIsBookOpen(true);
       setPatientForm({
         patientId: "",
@@ -263,6 +373,21 @@ export function ReceptionistWorkspace({
   const handleBookSerial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPatient) return;
+    setErrorMessage("");
+    setBookErrors({});
+
+    const valResult = validateSerialBooking({
+      date: bookForm.date,
+      toldTime: bookForm.toldTime,
+      roomNo: bookForm.roomNo,
+      patientId: selectedPatient.id,
+    });
+
+    if (!valResult.isValid) {
+      setBookErrors(valResult.errors);
+      setErrorMessage("Please correct appointment details.");
+      return;
+    }
 
     const res = await bookSerial({
       patientId: selectedPatient.id,
@@ -274,27 +399,29 @@ export function ReceptionistWorkspace({
       type: bookForm.type,
       fee: 500,
       isReport: bookForm.isReport,
-      notes: bookForm.notes,
-      roomNo: bookForm.roomNo || "205",
+      notes: bookForm.notes.trim() || undefined,
     });
 
     if (res.error) {
       setErrorMessage(res.error);
+      toast.error(res.error);
       return;
     }
 
+    toast.success("Serial booked successfully!");
     setIsBookOpen(false);
     setSelectedPatient(null);
     refreshData();
   };
 
   // Open Check-in & Payment Modal when patient physically arrives
-  const handleOpenCheckInModal = (serial: any) => {
+  const handleOpenCheckInModal = (serial: ReceptionistSerial) => {
     setCheckInSerial(serial);
     setCheckInForm({
       paidAmount: serial.fee || 500,
       isNoPayment: false,
       paymentMethod: PaymentMethod.CASH,
+      roomNo: (serial.roomNo || "").replace(/[^0-9]/g, "") || "207",
     });
     setIsCheckInModalOpen(true);
   };
@@ -303,14 +430,27 @@ export function ReceptionistWorkspace({
   const handleConfirmArrivalCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkInSerial) return;
+    setCheckInErrors({});
+
+    const valResult = validatePaymentInput({
+      paidAmount: Number(checkInForm.paidAmount),
+      isNoPayment: checkInForm.isNoPayment,
+    });
+
+    if (!valResult.isValid) {
+      setCheckInErrors(valResult.errors);
+      return;
+    }
 
     await checkInPatient({
       serialId: checkInSerial.id,
       paidAmount: checkInForm.isNoPayment ? 0 : Number(checkInForm.paidAmount),
       isNoPayment: checkInForm.isNoPayment,
       paymentMethod: checkInForm.paymentMethod,
+      roomNo: checkInForm.roomNo || "207",
     });
 
+    toast.success("Arrival recorded & queue status updated!");
     setIsCheckInModalOpen(false);
     setCheckInSerial(null);
     refreshData();
@@ -336,113 +476,135 @@ export function ReceptionistWorkspace({
   );
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
-      {/* Top Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-3.5 sm:p-4 shadow-sm border-border bg-card">
+    <div className="space-y-3 w-full max-w-full min-w-0 overflow-x-hidden">
+      {/* Top Metrics Row (Compact & High Density) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 min-w-0">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase">
-              Scheduled ({selectedDate})
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("rec.scheduled_today", "Scheduled")} ({selectedDate})
             </span>
-            <Users className="h-4 w-4 text-primary" />
+            <Users className="h-3.5 w-3.5 text-primary" />
           </div>
-          <p className="text-xl sm:text-2xl font-bold mt-1.5 sm:mt-2 font-mono text-foreground">
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-foreground">
             {totalBooked}
           </p>
-          <span className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 block">
-            Registered queue serials
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            {t("rec.total_registered", "Total Serials")}
           </span>
         </Card>
 
-        <Card className="p-3.5 sm:p-4 shadow-sm border-border bg-card">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase">
-              Waiting Room
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("rec.waiting_room", "Waiting Room")}
             </span>
-            <Clock className="h-4 w-4 text-primary" />
+            <Clock className="h-3.5 w-3.5 text-primary" />
           </div>
-          <p className="text-xl sm:text-2xl font-bold mt-1.5 sm:mt-2 font-mono text-foreground">
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-foreground">
             {waitingCount}
           </p>
-          <span className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 block">
-            Checked in &bull; Room 205
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            {t("status.waiting", "Waiting")} &bull; Room 205
           </span>
         </Card>
 
-        <Card className="p-3.5 sm:p-4 shadow-sm border-border bg-card">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase">
-              Completed Today
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("rec.completed_today", "Completed Today")}
             </span>
-            <CheckCircle2 className="h-4 w-4 text-primary" />
+            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
           </div>
-          <p className="text-xl sm:text-2xl font-bold mt-1.5 sm:mt-2 font-mono text-foreground">
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-foreground">
             {completedCount}
           </p>
-          <span className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 block">
-            Discharged or served
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            {t("status.completed", "Completed")}
           </span>
         </Card>
 
-        <Card className="p-3.5 sm:p-4 shadow-sm border-border bg-card">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase">
-              Cash Collection (BST)
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("rec.cash_collection", "Cash Collection (BST)")}
             </span>
-            <DollarSign className="h-4 w-4 text-primary" />
+            <DollarSign className="h-3.5 w-3.5 text-primary" />
           </div>
-          <p className="text-xl sm:text-2xl font-bold mt-1.5 sm:mt-2 font-mono text-primary">
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-primary">
             ৳{totalCashCollected.toLocaleString()}
           </p>
-          <span className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 block">
-            Daily desk receipts
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            {t("col.cash_received", "Cash Received")}
           </span>
         </Card>
       </div>
 
-      {/* Action Header, Date Filter & Search (Fully Responsive Single-Bar Layout) */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3 bg-card p-2 sm:p-2.5 rounded-2xl border border-border shadow-xs">
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl overflow-x-auto shrink-0">
+      {/* Action Header, Date Filter & Search (Compact Single Bar) */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 bg-card p-1.5 sm:p-2 rounded-xl border border-border shadow-xs max-w-full min-w-0">
+        {/* Navigation Tabs (Compact pills without ugly scrollbar) */}
+        <div className="flex items-center gap-1 bg-muted/70 p-0.5 rounded-lg overflow-x-auto min-w-0 shrink-0 scrollbar-none [&::-webkit-scrollbar]:hidden">
           <button
             onClick={() => setActiveTab("serials")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "serials"
-                ? "bg-card text-primary shadow-xs"
+                ? "bg-card text-primary shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Serials (সিরিয়াল)
+            {t("nav.serials", "Daily Serials")}
           </button>
           <button
             onClick={() => setActiveTab("directory")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
               activeTab === "directory"
-                ? "bg-card text-primary shadow-xs"
+                ? "bg-card text-primary shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <BookOpen className="h-3.5 w-3.5" />
-            <span>Patients (রোগী)</span>
+            <BookOpen className="h-3 w-3" />
+            <span>{t("nav.patients", "Patients Directory")}</span>
           </button>
           <button
             onClick={() => setActiveTab("ledger")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "ledger"
-                ? "bg-card text-primary shadow-xs"
+                ? "bg-card text-primary shadow-xs font-bold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Ledger (ক্যাশ)
+            {t("nav.ledger", "Cash Ledger")}
+          </button>
+          <button
+            onClick={() => setActiveTab("chambers")}
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+              activeTab === "chambers"
+                ? "bg-card text-primary shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <DoorOpen className="h-3 w-3" />
+            <span>{t("nav.chambers", "Chambers & Bays")}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("slots")}
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+              activeTab === "slots"
+                ? "bg-card text-primary shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Ticket className="h-3 w-3" />
+            <span>{t("nav.slot_matrix", "Slot Matrix")}</span>
           </button>
         </div>
 
         {/* Right Tools Bar (Date, Search, Refresh) */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
+        <div className="flex items-center gap-1.5 w-full lg:w-auto justify-between lg:justify-end min-w-0">
           {/* Appointment Date Picker */}
-          <div className="flex items-center gap-1 bg-background border border-input px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl shadow-xs shrink-0">
-            <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="text-[11px] font-bold text-muted-foreground uppercase hidden sm:inline">
+          <div className="flex items-center gap-1 bg-background border border-input px-2 py-0.5 rounded-lg shadow-xs shrink-0 h-7.5">
+            <Calendar className="h-3 w-3 text-primary shrink-0" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase hidden sm:inline">
               Date:
             </span>
             <input
@@ -454,13 +616,13 @@ export function ReceptionistWorkspace({
           </div>
 
           {/* Search Input for Old Patients */}
-          <div className="relative flex-1 md:w-60">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <div className="relative flex-1 lg:w-56 min-w-[130px]">
+            <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search ID, Name..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-8 h-8.5 sm:h-9 text-xs"
+              className="pl-7.5 h-7.5 text-xs"
             />
           </div>
 
@@ -469,10 +631,10 @@ export function ReceptionistWorkspace({
             size="icon"
             onClick={() => refreshData(selectedDate)}
             title="Refresh"
-            className="h-8.5 w-8.5 sm:h-9 sm:w-9 cursor-pointer shrink-0"
+            className="h-7.5 w-7.5 cursor-pointer shrink-0"
           >
             <RefreshCw
-              className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isPending ? "animate-spin text-primary" : ""}`}
+              className={`h-3 w-3 ${isPending ? "animate-spin text-primary" : ""}`}
             />
           </Button>
         </div>
@@ -520,55 +682,66 @@ export function ReceptionistWorkspace({
 
       {/* VIEW 1: Daily Serial Schedule */}
       {activeTab === "serials" && (
-        <Card className="shadow-md border-border bg-card">
-          <CardHeader className="pb-3 px-4 sm:px-6">
-            <CardTitle className="text-sm sm:text-base font-bold flex items-center justify-between flex-wrap gap-2">
+        <Card className="shadow-xs border-border bg-card">
+          <CardHeader className="p-3 pb-2 px-3 sm:px-4">
+            <CardTitle className="text-xs sm:text-sm font-bold flex items-center justify-between flex-wrap gap-2">
               <span>
-                HPC Daily Patient Serial Register &bull; {selectedDate} (সিরিয়াল
-                তালিকা)
+                HPC Daily Patient Serial Register &bull; {selectedDate}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Badge
                   variant="outline"
-                  className="font-mono text-xs px-2.5 py-1"
+                  className="font-mono text-[10px] px-2 py-0.5"
                 >
-                  {serials.length} Total Registered Serials
+                  {serials.length} {t("rec.total_registered", "Total Serials")}
                 </Badge>
                 <Button
                   onClick={() => setIsRegisterOpen(true)}
                   size="sm"
-                  className="h-8 text-xs font-bold gap-1.5 cursor-pointer shadow-xs"
+                  className="h-7 text-xs font-bold gap-1 cursor-pointer shadow-xs"
                 >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  <span>New Patient</span>
+                  <UserPlus className="h-3 w-3" />
+                  <span>{t("rec.new_patient", "New Patient")}</span>
                 </Button>
               </div>
             </CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-[11px]">
               When patient physically arrives, click &quot;Check-In &amp;
               Payment&quot; to stamp arrival time and record desk payment or
               N.P.
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-2 sm:px-6">
+          <CardContent className="p-0 px-2 sm:px-4 pb-3">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[720px]">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
-                    <th className="pb-3 font-semibold w-12">সিরিয়াল</th>
-                    <th className="pb-3 font-semibold">তারিখ</th>
-                    <th className="pb-3 font-semibold">রোগীর নাম ও আইডি</th>
-                    <th className="pb-3 font-semibold">ফোন নম্বর</th>
-                    <th className="pb-3 font-semibold">
-                      নির্ধারিত সময় (Told Time)
+                    <th className="pb-2 font-semibold w-12">
+                      {t("col.serial", "Serial")}
                     </th>
-                    <th className="pb-3 font-semibold">
-                      উপস্থিতি (Arrival &amp; Punctuality)
+                    <th className="pb-2 font-semibold">
+                      {t("col.date", "Date")}
                     </th>
-                    <th className="pb-3 font-semibold">পেমেন্ট (Payment)</th>
-                    <th className="pb-3 font-semibold">অবস্থা</th>
-                    <th className="pb-3 font-semibold text-right">
-                      পদক্ষেপ (Action)
+                    <th className="pb-2 font-semibold">
+                      {t("col.patient_details", "Patient Details")}
+                    </th>
+                    <th className="pb-2 font-semibold">
+                      {t("col.phone", "Phone Number")}
+                    </th>
+                    <th className="pb-2 font-semibold">
+                      {t("col.told_time", "Told Time")}
+                    </th>
+                    <th className="pb-2 font-semibold">
+                      {t("col.arrival_status", "Arrival & Status")}
+                    </th>
+                    <th className="pb-2 font-semibold">
+                      {t("col.billing_payment", "Billing & Payment")}
+                    </th>
+                    <th className="pb-2 font-semibold">
+                      {t("col.queue_status", "Queue Status")}
+                    </th>
+                    <th className="pb-2 font-semibold text-right">
+                      {t("col.action", "Action")}
                     </th>
                   </tr>
                 </thead>
@@ -577,7 +750,7 @@ export function ReceptionistWorkspace({
                     <tr>
                       <td
                         colSpan={9}
-                        className="py-8 text-center text-muted-foreground"
+                        className="py-6 text-center text-muted-foreground text-xs"
                       >
                         No patient serials registered for {selectedDate}. Use
                         search or directory to book.
@@ -589,26 +762,26 @@ export function ReceptionistWorkspace({
                         key={s.id}
                         className="hover:bg-muted/30 transition-colors"
                       >
-                        <td className="py-3 font-mono font-black text-base text-primary">
+                        <td className="py-2 font-mono font-black text-sm text-primary">
                           #{s.serialNumber}
                         </td>
-                        <td className="py-3 font-mono text-muted-foreground font-semibold">
+                        <td className="py-2 font-mono text-muted-foreground font-semibold text-[11px]">
                           {formatBSTShortDate(s.date)}
                         </td>
-                        <td className="py-3">
+                        <td className="py-2">
                           <div className="font-bold text-foreground">
                             {s.patient.name}
                           </div>
-                          <div className="text-[11px] text-muted-foreground font-mono">
+                          <div className="text-[10px] text-muted-foreground font-mono">
                             ID: #{s.patient.patientId} &bull; {s.patient.gender}
                           </div>
                         </td>
-                        <td className="py-3 font-mono text-muted-foreground">
+                        <td className="py-2 font-mono text-muted-foreground text-[11px]">
                           {s.patient.phone}
                         </td>
-                        <td className="py-3 font-medium text-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <td className="py-2 font-medium text-foreground">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
                             <span>
                               {s.toldTime
                                 ? formatBSTTime(s.toldTime)
@@ -624,18 +797,17 @@ export function ReceptionistWorkspace({
                               </span>
                               {s.punctualityStatus === "ON_TIME" && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                  সময়মত
+                                  On-Time
                                 </span>
                               )}
                               {s.punctualityStatus === "MODERATE_LATE" && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                                  বিলম্ব (+{s.latenessMinutes}m)
+                                  Late (+{s.latenessMinutes}m)
                                 </span>
                               )}
                               {s.punctualityStatus === "SEVERE_LATE" && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
-                                  অতিরিক্ত বিলম্ব (+{s.latenessMinutes}m | -5
-                                  Pos)
+                                  Severe Delay (+{s.latenessMinutes}m)
                                 </span>
                               )}
                             </div>
@@ -718,9 +890,7 @@ export function ReceptionistWorkspace({
         <Card className="shadow-md border-border bg-card">
           <CardHeader className="pb-3 px-4 sm:px-6">
             <CardTitle className="text-sm sm:text-base font-bold flex items-center justify-between flex-wrap gap-2">
-              <span>
-                All Registered Patients Directory (সকল নিবন্ধিত রোগীর তালিকা)
-              </span>
+              <span>All Registered Patients Directory</span>
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
@@ -748,16 +918,16 @@ export function ReceptionistWorkspace({
               <table className="w-full text-left text-xs min-w-[700px]">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
-                    <th className="pb-3 font-semibold w-16">রোগী কোড</th>
-                    <th className="pb-3 font-semibold">রোগীর নাম</th>
-                    <th className="pb-3 font-semibold">ফোন নম্বর</th>
-                    <th className="pb-3 font-semibold">লিঙ্গ / বয়স</th>
-                    <th className="pb-3 font-semibold">ঠিকানা</th>
+                    <th className="pb-3 font-semibold w-16">Patient ID</th>
+                    <th className="pb-3 font-semibold">Full Name</th>
+                    <th className="pb-3 font-semibold">Phone Number</th>
+                    <th className="pb-3 font-semibold">Gender &amp; Age</th>
+                    <th className="pb-3 font-semibold">Address</th>
                     <th className="pb-3 font-semibold">
-                      আজকের অবস্থা ({selectedDate})
+                      Status ({selectedDate})
                     </th>
                     <th className="pb-3 font-semibold text-right">
-                      সিরিয়াল বুকিং
+                      Serial Booking
                     </th>
                   </tr>
                 </thead>
@@ -773,7 +943,10 @@ export function ReceptionistWorkspace({
                     </tr>
                   ) : (
                     allPatientsList.map((p) => {
-                      const todaySerial = p.serials && p.serials[0];
+                      const todaySerial =
+                        "serials" in p && Array.isArray(p.serials)
+                          ? p.serials[0]
+                          : undefined;
                       return (
                         <tr
                           key={p.id}
@@ -831,14 +1004,13 @@ export function ReceptionistWorkspace({
         </Card>
       )}
 
-      {/* VIEW 3: Daily Cash Ledger (Page 3 of PDF 1) */}
+      {/* VIEW 3: Daily Cash Ledger */}
       {activeTab === "ledger" && (
         <Card className="shadow-md border-border bg-card">
           <CardHeader className="pb-3 px-4 sm:px-6">
             <CardTitle className="text-sm sm:text-base font-bold flex items-center justify-between flex-wrap gap-2">
               <span>
-                Official Daily Cash Collection Sheet &bull; {selectedDate} (টাকা
-                জমার খাতা)
+                Official Daily Cash Collection Sheet &bull; {selectedDate}
               </span>
               <div className="text-sm font-bold font-mono text-primary">
                 Total Collection: ৳{totalCashCollected.toLocaleString()}
@@ -856,11 +1028,9 @@ export function ReceptionistWorkspace({
                   <tr className="border-b border-border text-muted-foreground">
                     <th className="pb-3 font-semibold w-16">SL NO</th>
                     <th className="pb-3 font-semibold">PATIENT NAME</th>
-                    <th className="pb-3 font-semibold">TAKA (টাকা)</th>
-                    <th className="pb-3 font-semibold">CASHIER (ক্যাশিয়ার)</th>
-                    <th className="pb-3 font-semibold">
-                      CEO AUDIT (সিইও অনুমোদন)
-                    </th>
+                    <th className="pb-3 font-semibold">AMOUNT (TAKA)</th>
+                    <th className="pb-3 font-semibold">CASHIER</th>
+                    <th className="pb-3 font-semibold">CEO AUDIT</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -926,15 +1096,55 @@ export function ReceptionistWorkspace({
         </Card>
       )}
 
-      {/* DIALOG 1: Register New Patient */}
+      {/* VIEW 4: Live Chambers & Therapy Bays (Rooms 201 to 220) */}
+      {activeTab === "chambers" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-foreground">
+                Chambers &amp; Therapy Bay Realtime Occupancy
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Live monitoring of clinic chambers and therapy bays.
+              </p>
+            </div>
+          </div>
+          <RoomOccupancyDashboard initialData={roomsData ?? undefined} />
+        </div>
+      )}
+
+      {/* VIEW 5: Daily 10-Slot Ticket Matrix (Max 6 patients per slot) */}
+      {activeTab === "slots" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Ticket className="h-4 w-4 text-primary" />
+                <span>Daily Slot Booking Matrix ({selectedDate})</span>
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                10 hourly slots from 10:00 AM to 08:00 PM with strict 6-patient
+                max capacity per slot.
+              </p>
+            </div>
+          </div>
+          <DailySlotScheduleMatrix selectedDate={selectedDate} />
+        </div>
+      )}
+
+      {/* DIALOG 1: Register New Patient (Robust Shadcn Modal) */}
       <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
-        <DialogContent className="sm:max-w-lg bg-card w-[95vw] sm:w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-xl md:max-w-2xl bg-card w-[95vw] sm:w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">
-              Register New Patient (নতুন রোগী নিবন্ধন)
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              <span>{t("patient.register_title", "Register New Patient")}</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Enter primary details to create patient profile.
+              {t(
+                "patient.register_desc",
+                "Fill in required patient credentials to generate physical card & profile.",
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -945,93 +1155,201 @@ export function ReceptionistWorkspace({
             </div>
           )}
 
-          <form onSubmit={handleRegisterPatient} className="space-y-4">
+          <form onSubmit={handleRegisterPatient} className="space-y-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Patient 4-Digit ID (রোগী কোড) *
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-foreground">
+                    {t("patient.id", "Patient 5-Digit ID")}{" "}
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-1 text-[10px] font-mono text-primary hover:text-primary/80 font-bold"
+                    onClick={async () => {
+                      try {
+                        const nextId = await getNextSuggestedPatientId();
+                        setPatientForm((prev) => ({
+                          ...prev,
+                          patientId: nextId,
+                        }));
+                        if (patientErrors.patientId) {
+                          setPatientErrors((prev) => ({
+                            ...prev,
+                            patientId: "",
+                          }));
+                        }
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                  >
+                    + {t("patient.auto_generate", "Auto Generate")}
+                  </Button>
+                </div>
                 <Input
-                  placeholder="e.g. 1800"
+                  placeholder="e.g. 10001"
+                  maxLength={5}
                   value={patientForm.patientId}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const cleaned = e.target.value
+                      .replace(/[^0-9]/g, "")
+                      .slice(0, 5);
                     setPatientForm({
                       ...patientForm,
-                      patientId: e.target.value,
-                    })
-                  }
+                      patientId: cleaned,
+                    });
+                    if (patientErrors.patientId) {
+                      setPatientErrors((prev) => ({ ...prev, patientId: "" }));
+                    }
+                  }}
+                  className={`font-mono font-bold ${
+                    patientErrors.patientId
+                      ? "border-destructive text-destructive"
+                      : ""
+                  }`}
                   required
                 />
+                {patientErrors.patientId && (
+                  <p className="text-[11px] text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>{patientErrors.patientId}</span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Full Name (নাম) *
+                <Label className="text-xs font-bold text-foreground">
+                  {t("patient.name", "Full Name")}{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  placeholder="উম্মে হাবিবা / আব্দুল খালেক"
+                  placeholder="e.g. Umme Habiba / Abdul Khaleque"
                   value={patientForm.name}
-                  onChange={(e) =>
-                    setPatientForm({ ...patientForm, name: e.target.value })
+                  onChange={(e) => {
+                    setPatientForm({ ...patientForm, name: e.target.value });
+                    if (patientErrors.name) {
+                      setPatientErrors((prev) => ({ ...prev, name: "" }));
+                    }
+                  }}
+                  className={
+                    patientErrors.name
+                      ? "border-destructive text-destructive"
+                      : ""
                   }
                   required
                 />
+                {patientErrors.name && (
+                  <p className="text-[11px] text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>{patientErrors.name}</span>
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Phone (ফোন নম্বর) *
+                <Label className="text-xs font-bold text-foreground">
+                  {t("patient.phone", "Phone Number")}{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   placeholder="01973-818213"
                   value={patientForm.phone}
-                  onChange={(e) =>
-                    setPatientForm({ ...patientForm, phone: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setPatientForm({ ...patientForm, phone: e.target.value });
+                    if (patientErrors.phone) {
+                      setPatientErrors((prev) => ({ ...prev, phone: "" }));
+                    }
+                  }}
+                  className={`font-mono ${
+                    patientErrors.phone
+                      ? "border-destructive text-destructive"
+                      : ""
+                  }`}
                   required
                 />
+                {patientErrors.phone && (
+                  <p className="text-[11px] text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>{patientErrors.phone}</span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Age (বয়স)</Label>
+                <Label className="text-xs font-semibold text-foreground">
+                  {t("patient.age", "Age")}
+                </Label>
                 <Input
                   type="number"
                   placeholder="e.g. 28"
+                  min={0}
+                  max={125}
                   value={patientForm.age}
-                  onChange={(e) =>
-                    setPatientForm({ ...patientForm, age: e.target.value })
+                  onChange={(e) => {
+                    setPatientForm({ ...patientForm, age: e.target.value });
+                    if (patientErrors.age) {
+                      setPatientErrors((prev) => ({ ...prev, age: "" }));
+                    }
+                  }}
+                  className={
+                    patientErrors.age
+                      ? "border-destructive text-destructive"
+                      : ""
                   }
                 />
+                {patientErrors.age && (
+                  <p className="text-[11px] text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>{patientErrors.age}</span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Gender (লিঙ্গ)</Label>
-                <select
+                <Label className="text-xs font-bold text-foreground">
+                  {t("patient.gender", "Gender")}{" "}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Select
                   value={patientForm.gender}
-                  onChange={(e) =>
+                  onValueChange={(val) =>
                     setPatientForm({
                       ...patientForm,
-                      gender: e.target.value as Gender,
+                      gender: val as Gender,
                     })
                   }
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs"
                 >
-                  <option value={Gender.MALE}>Male (পুরুষ)</option>
-                  <option value={Gender.FEMALE}>Female (মহিলা)</option>
-                  <option value={Gender.OTHER}>Other</option>
-                </select>
+                  <SelectTrigger className="w-full h-9 text-xs">
+                    <SelectValue placeholder="Select Gender">
+                      {patientForm.gender
+                        ? GENDER_LABELS[patientForm.gender]
+                        : undefined}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={Gender.MALE}>
+                      {t("gender.male", "Male (পুরুষ)")}
+                    </SelectItem>
+                    <SelectItem value={Gender.FEMALE}>
+                      {t("gender.female", "Female (মহিলা)")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Address / Location (ঠিকানা)
+                <Label className="text-xs font-semibold text-foreground">
+                  {t("patient.address", "Address / Location")}
                 </Label>
                 <Input
-                  placeholder="মোস্তফাপুর / ঝিনাইদহ / নড়াইল"
+                  placeholder="e.g. Mostofapur / Jhenaidah"
                   value={patientForm.address}
                   onChange={(e) =>
                     setPatientForm({ ...patientForm, address: e.target.value })
@@ -1040,8 +1358,8 @@ export function ReceptionistWorkspace({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Occupation (পেশা)
+                <Label className="text-xs font-semibold text-foreground">
+                  {t("patient.occupation", "Occupation")}
                 </Label>
                 <Input
                   placeholder="Service / Business / Housewife"
@@ -1057,8 +1375,8 @@ export function ReceptionistWorkspace({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Clinical Remarks / Notes (মন্তব্য)
+              <Label className="text-xs font-semibold text-foreground">
+                {t("patient.notes", "Clinical Remarks / Notes")}
               </Label>
               <Input
                 placeholder="Referred by Dr. / Chronic Back Pain"
@@ -1069,17 +1387,20 @@ export function ReceptionistWorkspace({
               />
             </div>
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="pt-3 flex flex-row items-center justify-end gap-2 shrink-0">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsRegisterOpen(false)}
                 className="cursor-pointer"
               >
-                Cancel
+                {t("btn.cancel", "Cancel")}
               </Button>
-              <Button type="submit" className="font-bold cursor-pointer">
-                Save &amp; Proceed to Booking
+              <Button
+                type="submit"
+                className="font-bold cursor-pointer shadow-xs"
+              >
+                {t("patient.save_proceed", "Save & Proceed to Booking")}
               </Button>
             </DialogFooter>
           </form>
@@ -1088,15 +1409,19 @@ export function ReceptionistWorkspace({
 
       {/* DIALOG 2: Schedule Queue Serial (Pure Booking - No Payment) */}
       <Dialog open={isBookOpen} onOpenChange={setIsBookOpen}>
-        <DialogContent className="sm:max-w-lg bg-card w-[95vw] sm:w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl md:max-w-4xl bg-card w-[96vw] sm:w-[92vw] md:w-[860px] p-4 sm:p-6 max-h-[92vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <PhoneCall className="h-5 w-5 text-primary" />
-              <span>Schedule Patient Serial (সিরিয়াল বুকিং)</span>
+              <span>
+                {t("booking.schedule_title", "Schedule Patient Serial")}
+              </span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Discuss and set appointment date and promised arrival time. No
-              payment required at booking.
+              {t(
+                "booking.schedule_desc",
+                "Set appointment date and promised arrival time.",
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -1120,7 +1445,7 @@ export function ReceptionistWorkspace({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-primary">
-                  Appointment Date (সিরিয়ালের তারিখ) *
+                  {t("booking.date", "Appointment Date")} *
                 </Label>
                 <Input
                   type="date"
@@ -1133,173 +1458,137 @@ export function ReceptionistWorkspace({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-primary">
-                  Promised Arrival Time (আসার নির্ধারিত সময়) *
+                <Label className="text-xs font-semibold text-foreground">
+                  {t("booking.purpose", "Visit Purpose / Type")}
                 </Label>
-                <Input
-                  type="time"
-                  value={bookForm.toldTime}
-                  onChange={(e) =>
-                    setBookForm({ ...bookForm, toldTime: e.target.value })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Hourly Slot (ঘণ্টাভিত্তিক স্লট)
-                </Label>
-                <select
-                  value={bookForm.hourlySlot}
-                  onChange={(e) =>
-                    setBookForm({
-                      ...bookForm,
-                      hourlySlot: e.target.value as HourlySlot,
-                      timeSlot:
-                        e.target.value
-                          .replace("SLOT_", "")
-                          .replace("_", ":00 - ") + ":00",
-                    })
-                  }
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs"
-                >
-                  <option value={HourlySlot.SLOT_10_11}>
-                    10:00 - 11:00 AM
-                  </option>
-                  <option value={HourlySlot.SLOT_11_12}>
-                    11:00 - 12:00 PM
-                  </option>
-                  <option value={HourlySlot.SLOT_12_01}>
-                    12:00 - 01:00 PM
-                  </option>
-                  <option value={HourlySlot.SLOT_01_02}>
-                    01:00 - 02:00 PM
-                  </option>
-                  <option value={HourlySlot.SLOT_02_03}>
-                    02:00 - 03:00 PM
-                  </option>
-                  <option value={HourlySlot.SLOT_03_04}>
-                    03:00 - 04:00 PM
-                  </option>
-                  <option value={HourlySlot.SLOT_04_05}>
-                    04:00 - 05:00 PM
-                  </option>
-                  <option value={HourlySlot.SLOT_05_06}>
-                    05:00 - 06:00 PM
-                  </option>
-                  <option value={HourlySlot.SLOT_06_07}>
-                    06:00 - 07:00 PM
-                  </option>
-                  <option value={HourlySlot.SLOT_07_08}>
-                    07:00 - 08:00 PM
-                  </option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  Visit Purpose / Type
-                </Label>
-                <select
+                <Select
                   value={bookForm.type}
-                  onChange={(e) =>
+                  onValueChange={(val) =>
                     setBookForm({
                       ...bookForm,
-                      type: e.target.value as VisitType,
+                      type: val as VisitType,
                     })
                   }
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs"
                 >
-                  <option value={VisitType.NEW_CONSULTATION}>
-                    New Consultation (নতুন রোগী)
-                  </option>
-                  <option value={VisitType.FOLLOW_UP}>
-                    Follow-up Therapy (রিভিসিট)
-                  </option>
-                  <option value={VisitType.REPORT_REVIEW}>
-                    Report Review (রিপোর্ট)
-                  </option>
-                  <option value={VisitType.THERAPY_PROCEDURE}>
-                    Therapy Procedure
-                  </option>
-                  <option value={VisitType.EMERGENCY}>Emergency</option>
-                </select>
+                  <SelectTrigger className="w-full h-9 text-xs">
+                    <SelectValue placeholder="Select Visit Purpose">
+                      {bookForm.type
+                        ? VISIT_TYPE_LABELS[bookForm.type]
+                        : undefined}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={VisitType.NEW_CONSULTATION}>
+                      {t(
+                        "visit.new_consultation",
+                        "New Consultation (নতুন ভিজিট)",
+                      )}
+                    </SelectItem>
+                    <SelectItem value={VisitType.FOLLOW_UP}>
+                      {t("visit.follow_up", "Follow-up Therapy (চলমান থেরাপি)")}
+                    </SelectItem>
+                    <SelectItem value={VisitType.REPORT_REVIEW}>
+                      {t(
+                        "visit.report_review",
+                        "Report Review (রিপোর্ট পর্যালোচনা)",
+                      )}
+                    </SelectItem>
+                    <SelectItem value={VisitType.THERAPY_PROCEDURE}>
+                      {t(
+                        "visit.therapy_procedure",
+                        "Therapy Procedure (থেরাপি পদ্ধতি)",
+                      )}
+                    </SelectItem>
+                    <SelectItem value={VisitType.EMERGENCY}>
+                      {t("visit.emergency", "Emergency (জরুরী)")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Assigned Room</Label>
-                <Input
-                  value={bookForm.roomNo}
-                  onChange={(e) =>
-                    setBookForm({ ...bookForm, roomNo: e.target.value })
-                  }
-                  placeholder="205"
-                />
-              </div>
+            {/* Ticket Booking Slot Picker */}
+            <SlotTicketPicker
+              selectedSlot={bookForm.hourlySlot}
+              selectedTime={bookForm.toldTime}
+              selectedDate={bookForm.date}
+              onSlotSelect={(slot, toldTime, timeSlotLabel) =>
+                setBookForm({
+                  ...bookForm,
+                  hourlySlot: slot as HourlySlot,
+                  toldTime,
+                  timeSlot: timeSlotLabel,
+                })
+              }
+              error={bookErrors.toldTime || bookErrors.hourlySlot}
+            />
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Desk Remarks</Label>
-                <Input
-                  value={bookForm.notes}
-                  onChange={(e) =>
-                    setBookForm({ ...bookForm, notes: e.target.value })
-                  }
-                  placeholder="e.g. মোস্তফাপুর / রিভিসিট"
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">
+                {t("booking.desk_remarks", "Desk Remarks")}
+              </Label>
+              <Input
+                value={bookForm.notes}
+                onChange={(e) =>
+                  setBookForm({ ...bookForm, notes: e.target.value })
+                }
+                placeholder="e.g. Mostofapur / Revisit / Therapy session"
+              />
             </div>
 
             {/* Report Checkbox */}
-            <div className="pt-1">
-              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={bookForm.isReport}
-                  onChange={(e) =>
-                    setBookForm({
-                      ...bookForm,
-                      isReport: e.target.checked,
-                    })
-                  }
-                  className="h-4 w-4 rounded text-primary"
-                />
-                <span>রিপোর্ট পেশ (Report Review Session)</span>
-              </label>
+            <div className="flex items-center gap-2 pt-1">
+              <Checkbox
+                id="report-review-checkbox"
+                checked={bookForm.isReport}
+                onCheckedChange={(checked) =>
+                  setBookForm({
+                    ...bookForm,
+                    isReport: Boolean(checked),
+                  })
+                }
+              />
+              <Label
+                htmlFor="report-review-checkbox"
+                className="text-xs font-medium cursor-pointer text-foreground"
+              >
+                {t("booking.report_session", "Report Review Session (রিপোর্ট)")}
+              </Label>
             </div>
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="pt-3 flex flex-row items-center justify-end gap-2 shrink-0">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsBookOpen(false)}
                 className="cursor-pointer"
               >
-                Cancel
+                {t("btn.cancel", "Cancel")}
               </Button>
-              <Button type="submit" className="font-bold cursor-pointer">
-                Confirm Serial Booking
+              <Button
+                type="submit"
+                className="font-bold cursor-pointer shadow-xs"
+              >
+                {t("booking.confirm", "Confirm Serial Booking")}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG 3: Physical Arrival Check-In & Desk Payment (Step 2) */}
+      {/* DIALOG 3: Physical Arrival Check-In & Desk Payment */}
       <Dialog open={isCheckInModalOpen} onOpenChange={setIsCheckInModalOpen}>
-        <DialogContent className="sm:max-w-md bg-card w-[95vw] sm:w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg md:max-w-xl bg-card w-[95vw] sm:w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
               <UserCheck className="h-5 w-5 text-primary" />
-              <span>Record Arrival &amp; Payment (উপস্থিতি ও বিল গ্রহণ)</span>
+              <span>{t("checkin.title", "Record Arrival & Payment")}</span>
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Stamps patient check-in time and records payment to put patient on
-              the Waiting List for Room 205.
+              {t(
+                "checkin.desc",
+                "Stamps patient check-in time and records payment.",
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -1335,13 +1624,13 @@ export function ReceptionistWorkspace({
           <form onSubmit={handleConfirmArrivalCheckIn} className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold text-foreground">
-                Payment Collection (বিল ও টাকা আদায়)
+                {t("checkin.payment_collection", "Payment Collection")}
               </Label>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-[11px] text-muted-foreground font-semibold">
-                    Amount (টাকা) ৳
+                    {t("checkin.amount", "Amount (৳)")}
                   </Label>
                   <Input
                     type="number"
@@ -1356,76 +1645,115 @@ export function ReceptionistWorkspace({
                     disabled={checkInForm.isNoPayment}
                     className="font-mono font-bold text-sm"
                   />
+                  {checkInErrors.paidAmount && (
+                    <p className="text-[10px] text-destructive font-medium">
+                      {checkInErrors.paidAmount}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-[11px] text-muted-foreground font-semibold">
-                    Method (পদ্ধতি)
+                    {t("checkin.method", "Payment Method")}
                   </Label>
-                  <select
+                  <Select
                     value={checkInForm.paymentMethod}
-                    onChange={(e) =>
+                    onValueChange={(val) =>
                       setCheckInForm({
                         ...checkInForm,
-                        paymentMethod: e.target.value as PaymentMethod,
+                        paymentMethod: val as PaymentMethod,
                       })
                     }
                     disabled={checkInForm.isNoPayment}
-                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs"
                   >
-                    <option value={PaymentMethod.CASH}>Cash (নগদ)</option>
-                    <option value={PaymentMethod.MOBILE_BANKING}>
-                      bKash / Nagad / Rocket
-                    </option>
-                    <option value={PaymentMethod.CARD}>Card (কার্ড)</option>
-                    <option value={PaymentMethod.OTHER}>
-                      Other (অন্যান্য)
-                    </option>
-                  </select>
+                    <SelectTrigger className="w-full h-9 text-xs">
+                      <SelectValue placeholder="Select Method">
+                        {checkInForm.paymentMethod
+                          ? PAYMENT_METHOD_LABELS[checkInForm.paymentMethod]
+                          : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={PaymentMethod.CASH}>
+                        {t("payment.cash", "Cash (নগদ)")}
+                      </SelectItem>
+                      <SelectItem value={PaymentMethod.MOBILE_BANKING}>
+                        {t("payment.mobile", "bKash / Nagad / Rocket")}
+                      </SelectItem>
+                      <SelectItem value={PaymentMethod.CARD}>
+                        {t("payment.card", "Card (কার্ড)")}
+                      </SelectItem>
+                      <SelectItem value={PaymentMethod.OTHER}>
+                        {t("payment.other", "Other (অন্যান্য)")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
 
+            {/* Room Confirmation / Selection for Arrival */}
+            <RoomSelect
+              value={checkInForm.roomNo}
+              onChange={(roomNum) =>
+                setCheckInForm({ ...checkInForm, roomNo: roomNum })
+              }
+              genderFilter={
+                checkInSerial?.patient?.gender === "MALE" ||
+                checkInSerial?.patient?.gender === "FEMALE"
+                  ? checkInSerial.patient.gender
+                  : undefined
+              }
+              roomsOccupancy={roomsData?.rooms}
+              label={t(
+                "col.chamber_bay",
+                "Assigned Chamber / Therapy Bay for this Visit",
+              )}
+            />
+
             {/* 1-Click N.P (No Payment Made) Toggle */}
             <div className="p-2.5 rounded-xl border border-border bg-muted/30">
-              <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="no-payment-checkbox"
                   checked={checkInForm.isNoPayment}
-                  onChange={(e) =>
+                  onCheckedChange={(checked) =>
                     setCheckInForm({
                       ...checkInForm,
-                      isNoPayment: e.target.checked,
-                      paidAmount: e.target.checked ? 0 : 500,
+                      isNoPayment: Boolean(checked),
+                      paidAmount: checked ? 0 : 500,
                     })
                   }
-                  className="h-4 w-4 rounded text-primary cursor-pointer"
                 />
-                <span className="font-bold text-foreground">
-                  Mark as N.P (No Payment Made / কোন টাকা দেয়নি)
-                </span>
-              </label>
+                <Label
+                  htmlFor="no-payment-checkbox"
+                  className="font-bold text-foreground text-xs cursor-pointer"
+                >
+                  {t("checkin.mark_np", "Mark as N.P (No Payment Made)")}
+                </Label>
+              </div>
               <p className="text-[10px] text-muted-foreground mt-1 pl-6">
-                Check this if patient is on a complimentary visit, pending dues,
-                or non-payment.
+                {t(
+                  "checkin.np_desc",
+                  "Check this if patient is on a complimentary visit, package, or pending dues.",
+                )}
               </p>
             </div>
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="pt-3 flex flex-row items-center justify-end gap-2 shrink-0">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsCheckInModalOpen(false)}
                 className="cursor-pointer"
               >
-                Cancel
+                {t("btn.cancel", "Cancel")}
               </Button>
               <Button
                 type="submit"
-                className="font-bold cursor-pointer bg-primary text-primary-foreground gap-1.5"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer shadow-xs"
               >
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Confirm Check-In &amp; Place in Waiting</span>
+                {t("checkin.confirm", "Confirm Arrival & Save")}
               </Button>
             </DialogFooter>
           </form>

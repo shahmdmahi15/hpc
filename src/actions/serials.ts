@@ -13,12 +13,11 @@ import {
   PaymentMethod,
   PunctualityStatus,
 } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
-import {
-  formatBSTShortDate,
-  getStartAndEndOfBSTDay,
-  getBSTDateString,
-} from "@/lib/date";
+import { getStartAndEndOfBSTDay } from "@/lib/date";
+import { getDynamicSlotAvailability } from "@/actions/slots";
+import { getSlotConfig, MAX_PATIENTS_PER_SLOT } from "@/lib/slot-config";
 
 export interface BookSerialInput {
   patientId: string; // Patient record id or 4-digit patientId
@@ -40,13 +39,11 @@ export interface BookSerialInput {
   paymentMethod?: PaymentMethod;
 }
 
-function getStartAndEndOfDay(dateStr?: string) {
-  const target = dateStr ? new Date(dateStr) : new Date();
-  const startOfDay = new Date(target);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(target);
-  endOfDay.setHours(23, 59, 59, 999);
-  return { startOfDay, endOfDay, target };
+// ----------------------------------------------------
+// GET DAILY SLOT AVAILABILITY (TICKET BOOKING SYSTEM)
+// ----------------------------------------------------
+export async function getDailySlotAvailability(dateStr?: string) {
+  return getDynamicSlotAvailability(dateStr);
 }
 
 export async function getDailySerials(dateStr?: string) {
@@ -73,7 +70,7 @@ export async function getDailySerials(dateStr?: string) {
 export async function getDoctorQueue(doctorId?: string, dateStr?: string) {
   const { startOfDay, endOfDay } = getStartAndEndOfBSTDay(dateStr);
 
-  const whereClause: any = {
+  const whereClause: Prisma.SerialWhereInput = {
     date: {
       gte: startOfDay,
       lte: endOfDay,
@@ -165,6 +162,32 @@ export async function bookSerial(data: BookSerialInput) {
     return { error: "Patient record not found." };
   }
 
+  const chosenSlot = data.hourlySlot || HourlySlot.SLOT_02_03;
+  const slotConf = getSlotConfig(chosenSlot);
+
+  // TICKET BOOKING SYSTEM: DYNAMIC MAXIMUM CAPACITY CHECK FROM DATABASE
+  const dbSlot = await prisma.bookingSlot.findUnique({
+    where: { slotCode: chosenSlot },
+  });
+  const maxCapacity = dbSlot?.maxCapacity ?? MAX_PATIENTS_PER_SLOT;
+
+  const currentSlotBookingsCount = await prisma.serial.count({
+    where: {
+      date: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+      hourlySlot: chosenSlot,
+      status: { not: SerialStatus.CANCELLED },
+    },
+  });
+
+  if (currentSlotBookingsCount >= maxCapacity) {
+    return {
+      error: `Slot "${dbSlot?.label || slotConf.label}" is FULL (${currentSlotBookingsCount}/${maxCapacity} tickets booked). Please select another time slot.`,
+    };
+  }
+
   // Calculate next sequential serial number for the day
   const latestSerial = await prisma.serial.findFirst({
     where: {
@@ -182,13 +205,18 @@ export async function bookSerial(data: BookSerialInput) {
   const formattedDate = target.toISOString().slice(2, 10).replace(/-/g, "");
   const serialCode = `HPC-${formattedDate}-${String(nextSerialNumber).padStart(2, "0")}`;
 
-  // Parse toldTime (promised arrival time)
+  // Parse toldTime (promised arrival time) or auto-assign seat time
   let parsedToldTime: Date | null = null;
-  if (data.toldTime) {
-    if (data.toldTime.includes("T")) {
-      parsedToldTime = new Date(data.toldTime);
-    } else if (data.toldTime.includes(":")) {
-      const [hours, minutes] = data.toldTime.split(":").map(Number);
+  const effectiveToldTime =
+    data.toldTime ||
+    slotConf.seatTimes[currentSlotBookingsCount] ||
+    `${slotConf.startHour}:00`;
+
+  if (effectiveToldTime) {
+    if (effectiveToldTime.includes("T")) {
+      parsedToldTime = new Date(effectiveToldTime);
+    } else if (effectiveToldTime.includes(":")) {
+      const [hours, minutes] = effectiveToldTime.split(":").map(Number);
       parsedToldTime = new Date(target);
       parsedToldTime.setHours(hours, minutes, 0, 0);
     }
@@ -199,15 +227,15 @@ export async function bookSerial(data: BookSerialInput) {
       serialNumber: nextSerialNumber,
       serialCode,
       date: target,
-      timeSlot: data.timeSlot || "01:00 - 02:00 PM",
-      hourlySlot: data.hourlySlot || HourlySlot.CUSTOM,
+      timeSlot: slotConf.label,
+      hourlySlot: chosenSlot,
       toldTime: parsedToldTime,
       scheduledTime: parsedToldTime,
       gender: data.gender || patient.gender,
       status: SerialStatus.PENDING,
       type: data.type || VisitType.NEW_CONSULTATION,
       priority: data.priority || Priority.REGULAR,
-      roomNo: data.roomNo || "205",
+      roomNo: data.roomNo ? data.roomNo.replace(/[^0-9]/g, "") || null : null,
       isReport: !!data.isReport,
       notes: data.notes || null,
       fee: data.fee ?? 500,
@@ -242,6 +270,7 @@ export async function checkInPatient(data: {
   isNoPayment?: boolean;
   paymentMethod?: PaymentMethod;
   customArrivalTime?: string;
+  roomNo?: string;
 }) {
   const session = await getCurrentSession();
   const existing = await prisma.serial.findUnique({
@@ -293,6 +322,9 @@ export async function checkInPatient(data: {
       punctualityStatus,
       queuePriorityScore,
       status: SerialStatus.WAITING,
+      roomNo: data.roomNo
+        ? data.roomNo.replace(/[^0-9]/g, "") || data.roomNo
+        : existing.roomNo,
       paidAmount: collectedAmount,
       isPackageCovered: isNP,
       paymentStatus: isNP
@@ -403,12 +435,12 @@ export async function updateSerialStatus(
     return { error: "Serial not found" };
   }
 
-  const updateData: any = { status };
+  const updateData: Prisma.SerialUpdateInput = { status };
   if (chamberRoom) {
     updateData.roomNo = chamberRoom;
   }
   if (assignedDoctorId) {
-    updateData.doctorId = assignedDoctorId;
+    updateData.doctor = { connect: { id: assignedDoctorId } };
   }
 
   // Auto set timestamps on status transitions
@@ -494,7 +526,7 @@ export async function updateSerialTimings(
     handlerId?: string;
   },
 ) {
-  const data: any = {};
+  const data: Prisma.SerialUpdateInput = {};
   if (timings.scheduledTime !== undefined) {
     data.scheduledTime = timings.scheduledTime
       ? new Date(timings.scheduledTime)
@@ -518,7 +550,7 @@ export async function updateSerialTimings(
     data.roomNo = timings.roomNo;
   }
   if (timings.handlerId) {
-    data.handlerId = timings.handlerId;
+    data.handler = { connect: { id: timings.handlerId } };
   }
 
   const serial = await prisma.serial.update({

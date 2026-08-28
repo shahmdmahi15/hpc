@@ -32,6 +32,19 @@ enum AuditAction {
   PATIENT_CREATE
   PATIENT_UPDATE
   PATIENT_DELETE
+  FILE_CREATE
+  FILE_UPDATE
+  TREATMENT_SLOT_CREATE
+  TREATMENT_SLOT_UPDATE
+  PAYMENT_CREATE
+  ROOM_CREATE
+  ROOM_UPDATE
+  ROOM_DELETE
+  ROOM_OCCUPY
+  ROOM_RELEASE
+  SLOT_CREATE
+  SLOT_UPDATE
+  SLOT_DELETE
   SERIAL_CREATE
   SERIAL_UPDATE
   SERIAL_STATUS_CHANGE
@@ -174,6 +187,14 @@ model User {
   cashierBillings    BillingRecord[]      @relation("CashierBillings")
   auditedBillings    BillingRecord[]      @relation("AuditedBillings")
 
+  // File, Slots & Room Relations
+  doctorFiles        File[]               @relation("DoctorFiles")
+  doctorFileSlots    FileTreatmentSlot[]  @relation("DoctorSlots")
+  handlerFileSlots   FileTreatmentSlot[]  @relation("HandlerSlots")
+  collectedPayments  FilePayment[]        @relation("CollectedPayments")
+  doctorRooms        Room[]               @relation("RoomCurrentDoctor")
+  handlerRooms       Room[]               @relation("RoomCurrentHandler")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -261,6 +282,12 @@ model Patient {
   treatmentSessions        TreatmentSession[]
   packages                 PatientPackage[]
   billingRecords           BillingRecord[]
+
+  // File System Relations
+  files                    File[]
+  fileTreatmentSlots       FileTreatmentSlot[]
+  filePayments             FilePayment[]
+  occupiedRooms            Room[]               @relation("RoomCurrentPatient")
 
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
@@ -515,4 +542,211 @@ model BillingRecord {
   @@index([auditedById])
   @@index([date])
 }
+
+// --------------------------------------------------------
+// PATIENT MASTER MEDICAL FILE (All history, profile & multi-slot tracking)
+// --------------------------------------------------------
+
+model File {
+  id                      String              @id @default(cuid())
+  fileNumber              String              @unique // e.g. "FILE-1800", "F-2026-001"
+  patientId               String
+  patient                 Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  // Status & Clinical Scope
+  status                  String              @default("ACTIVE") // ACTIVE, IN_TREATMENT, COMPLETED, ARCHIVED, ON_HOLD
+  openingDate             DateTime            @default(now())
+  closingDate             DateTime?
+
+  // Primary Clinical Overseer
+  primaryDoctorId         String?
+  primaryDoctor           User?               @relation("DoctorFiles", fields: [primaryDoctorId], references: [id], onDelete: SetNull)
+
+  // Medical dossier & baseline history
+  diagnosis               String?             // e.g. Lumbar Canal Stenosis, Cervical Radiculopathy
+  chiefComplaints         String?             // Bengali or English complaints
+  medicalHistory          String?             // Past interventions, comorbidities
+  treatmentPlan           String?             // Prescribed multi-modal protocol
+  prescribedModalities    String?             // e.g. "SWD, UST, Traction, PMF, Laser"
+  totalPrescribedSessions Int                 @default(10)
+  completedSessions       Int                 @default(0)
+
+  packageType             String?             // "21 Days Package", "30 Days Package", "Per Visit / Daily"
+  notes                   String?
+
+  // Relations
+  treatmentSlots          FileTreatmentSlot[]
+  payments                FilePayment[]
+
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  @@index([patientId])
+  @@index([primaryDoctorId])
+  @@index([fileNumber])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// --------------------------------------------------------
+// MULTI-SLOT DAILY TREATMENT SESSIONS (Multiple slots/times per day)
+// --------------------------------------------------------
+
+model FileTreatmentSlot {
+  id                   String       @id @default(cuid())
+  fileId               String
+  file                 File         @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  patientId            String
+  patient              Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  date                 DateTime     @default(now()) // Day of treatment
+  slotTime             String       // e.g. "10:00 AM - 11:00 AM", "04:00 PM - 05:00 PM"
+  slotSequence         Int          @default(1) // 1st slot, 2nd slot of day, etc.
+
+  roomNumber           String?      // Room 201 to 220
+  
+  assignedDoctorId     String?
+  assignedDoctor       User?        @relation("DoctorSlots", fields: [assignedDoctorId], references: [id], onDelete: SetNull)
+
+  assignedHandlerId    String?
+  assignedHandler      User?        @relation("HandlerSlots", fields: [assignedHandlerId], references: [id], onDelete: SetNull)
+
+  modalitiesPrescribed String?      // What doctor assigned for this slot
+  modalitiesPerformed  String?      // What handler executed
+  
+  status               String       @default("SCHEDULED") // SCHEDULED, WAITING, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
+  startTime            DateTime?    // Actual therapy start
+  endTime              DateTime?    // Actual therapy completion
+  
+  notes                String?
+
+  // Payment attached to this specific treatment slot
+  payment              FilePayment?
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([fileId])
+  @@index([patientId])
+  @@index([date])
+  @@index([roomNumber])
+  @@index([status])
+  @@index([assignedDoctorId])
+  @@index([assignedHandlerId])
+}
+
+// --------------------------------------------------------
+// FLEXIBLE MULTI-VISIT / MULTI-TREATMENT PAYMENTS (Paid or N.P)
+// --------------------------------------------------------
+
+model FilePayment {
+  id              String             @id @default(cuid())
+  fileId          String
+  file            File               @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  patientId       String
+  patient         Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  treatmentSlotId String?            @unique
+  treatmentSlot   FileTreatmentSlot? @relation(fields: [treatmentSlotId], references: [id], onDelete: SetNull)
+
+  date            DateTime           @default(now())
+  amount          Float              @default(0.0) // Bill / fee amount
+  paidAmount      Float              @default(0.0) // Paid cash/card/mobile banking amount
+  dueAmount       Float              @default(0.0) // Remaining due balance
+  advanceAdjusted Float              @default(0.0) // Deducted from advance deposit
+
+  isNP            Boolean            @default(false) // N.P (No Payment / Package covered / Doctor exemption)
+  paymentMethod   PaymentMethod?     @default(CASH)
+  paymentStatus   PaymentStatus      @default(PAID) // PAID, UNPAID, PARTIALLY_PAID, REFUNDED
+
+  collectedById   String?
+  collectedBy     User?              @relation("CollectedPayments", fields: [collectedById], references: [id], onDelete: SetNull)
+
+  notes           String?            // e.g. "Slot 1 morning treatment", "N.P - 30 days package", "Doctor discount"
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([fileId])
+  @@index([patientId])
+  @@index([treatmentSlotId])
+  @@index([date])
+  @@index([isNP])
+  @@index([paymentStatus])
+  @@index([collectedById])
+}
+
+// --------------------------------------------------------
+// DYNAMIC CLINIC ROOMS & REALTIME MULTI-BED OCCUPANCY
+// --------------------------------------------------------
+
+model Room {
+  id                      String    @id @default(cuid())
+  roomNumber              String    @unique // e.g. "201", "207", "305", "VIP-1"
+  name                    String    // e.g. "Doctor Consultation Chamber 1", "Male Electrotherapy Bay 5"
+  purpose                 String    @default("Physiotherapy & Modalities") // e.g. "Consultation", "Male Bay", "Female Bay", "Active Rehab", "Spinal Traction"
+  type                    String    @default("THERAPY_BAY") // "CONSULTATION", "THERAPY_BAY", "REHAB_STUDIO", "FEMALE_BAY", "MALE_BAY", "PROCEDURE"
+  capacity                Int       @default(2) // Total treatment beds / stations in this room
+  genderPreference        String    @default("ALL") // "MALE", "FEMALE", "ALL"
+  floor                   String    @default("2nd Floor")
+  isActive                Boolean   @default(true)
+  isStaffOnly             Boolean   @default(false)
+  sortOrder               Int       @default(0)
+  
+  isOccupied              Boolean   @default(false)
+  currentPatientId        String?
+  currentPatient          Patient?  @relation("RoomCurrentPatient", fields: [currentPatientId], references: [id], onDelete: SetNull)
+
+  currentDoctorId         String?
+  currentDoctor           User?     @relation("RoomCurrentDoctor", fields: [currentDoctorId], references: [id], onDelete: SetNull)
+
+  currentHandlerId        String?
+  currentHandler          User?     @relation("RoomCurrentHandler", fields: [currentHandlerId], references: [id], onDelete: SetNull)
+
+  currentSlotId           String?
+  occupiedSince           DateTime?
+  expectedDurationMinutes Int?      @default(45)
+
+  notes                   String?
+
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([roomNumber])
+  @@index([isActive])
+  @@index([isStaffOnly])
+  @@index([isOccupied])
+  @@index([currentPatientId])
+  @@index([currentDoctorId])
+  @@index([currentHandlerId])
+}
+
+// --------------------------------------------------------
+// DYNAMIC SERIAL BOOKING SLOTS & CAPACITY CONFIGURATION
+// --------------------------------------------------------
+
+model BookingSlot {
+  id              String    @id @default(cuid())
+  slotCode        String    @unique // e.g. "SLOT_10_11", "SLOT_11_12", "SLOT_07_08"
+  startTime       String    // e.g. "10:00 AM"
+  endTime         String    // e.g. "11:00 AM"
+  label           String    // e.g. "10:00 AM - 11:00 AM"
+  maxCapacity     Int       @default(6) // Admin-configurable maximum patients per slot
+  intervalMinutes Int       @default(10) // e.g. 10 minutes per ticket/token
+  isActive        Boolean   @default(true) // Enable/disable slot
+  isVipOnly       Boolean   @default(false)
+  sortOrder       Int       @default(0)
+  notes           String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([slotCode])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+
 

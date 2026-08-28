@@ -129,6 +129,9 @@ export const metadata: Metadata = {
   },
 };
 
+import { I18nProvider } from "@/lib/i18n";
+import { Toaster } from "@/components/ui/sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -150,7 +153,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <I18nProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>

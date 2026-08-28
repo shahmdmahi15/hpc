@@ -61,3 +61,28 @@ export type PatientPackage = Prisma.PatientPackageModel;
  *
  */
 export type BillingRecord = Prisma.BillingRecordModel;
+/**
+ * Model File
+ *
+ */
+export type File = Prisma.FileModel;
+/**
+ * Model FileTreatmentSlot
+ *
+ */
+export type FileTreatmentSlot = Prisma.FileTreatmentSlotModel;
+/**
+ * Model FilePayment
+ *
+ */
+export type FilePayment = Prisma.FilePaymentModel;
+/**
+ * Model Room
+ *
+ */
+export type Room = Prisma.RoomModel;
+/**
+ * Model BookingSlot
+ *
+ */
+export type BookingSlot = Prisma.BookingSlotModel;

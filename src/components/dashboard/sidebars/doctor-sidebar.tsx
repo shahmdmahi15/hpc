@@ -16,7 +16,8 @@ import {
 import { SidebarBrandHeader } from "./sidebar-brand-header";
 import { SidebarUserFooter } from "./sidebar-user-footer";
 import { AdminOmniNav } from "./admin-omni-nav";
-import { Stethoscope, Users, Tv, User } from "lucide-react";
+import { Stethoscope, Tv, User } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { Role } from "@/generated/prisma/enums";
 
 interface DoctorSidebarProps {
@@ -29,11 +30,20 @@ interface DoctorSidebarProps {
 
 export function DoctorSidebar({ user }: DoctorSidebarProps) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   const navItems = [
-    { title: "Clinical Workspace", href: "/doctor", icon: Stethoscope },
-    { title: "Live Waiting Kiosk", href: "/", icon: Tv },
-    { title: "My Profile", href: "/doctor/profile", icon: User },
+    {
+      title: t("nav.doctor_hub", "Clinical Workspace"),
+      href: "/doctor",
+      icon: Stethoscope,
+    },
+    { title: t("nav.kiosk", "Live Waiting Kiosk"), href: "/", icon: Tv },
+    {
+      title: t("nav.profile", "My Profile"),
+      href: "/doctor/profile",
+      icon: User,
+    },
   ];
 
   return (

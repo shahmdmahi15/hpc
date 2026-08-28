@@ -1,33 +1,67 @@
 "use client";
 
 import { useEffect, useState, useCallback, useTransition, useRef } from "react";
+import Link from "next/link";
 import { useRealtime } from "@/hooks/use-realtime";
 import { playClinicChime } from "@/lib/chime";
 import { formatBSTTime, formatBSTDate } from "@/lib/date";
 import { getKioskWaitingRoomData } from "@/actions/kiosk";
 import { BrandLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { FullscreenToggle } from "@/components/fullscreen-toggle";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Volume2,
   VolumeX,
-  Maximize,
-  Minimize,
   Radio,
   PhoneCall,
   Clock,
   MapPin,
   Users,
+  LogIn,
+  LayoutDashboard,
+  Shield,
+  Stethoscope,
+  ClipboardList,
+  Activity,
 } from "lucide-react";
 
 interface WaitingRoomDisplayProps {
   initialData: Awaited<ReturnType<typeof getKioskWaitingRoomData>>;
+  currentUser?: {
+    name: string;
+    role: string;
+  } | null;
 }
 
-export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
+const ROLE_DASHBOARD_ROUTES: Record<string, string> = {
+  ADMIN: "/admin",
+  DOCTOR: "/doctor",
+  RECEPTIONIST: "/receptionist",
+  HANDLER: "/handler",
+};
+
+function getRoleIcon(role?: string) {
+  switch (role) {
+    case "ADMIN":
+      return Shield;
+    case "DOCTOR":
+      return Stethoscope;
+    case "RECEPTIONIST":
+      return ClipboardList;
+    case "HANDLER":
+      return Activity;
+    default:
+      return LayoutDashboard;
+  }
+}
+
+export function WaitingRoomDisplay({
+  initialData,
+  currentUser,
+}: WaitingRoomDisplayProps) {
   const [data, setData] = useState(initialData);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [calledAlert, setCalledAlert] = useState<{
     serialNumber: number;
@@ -37,7 +71,7 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
     doctorName?: string;
   } | null>(null);
 
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
 
@@ -99,12 +133,19 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
   useRealtime({
     onEvent: (event) => {
       if (event.type === "SERIAL_CALLED" && event.data) {
+        const payloadData = event.data as {
+          serialNumber: number;
+          patientName: string;
+          patientId: string;
+          roomNo?: string;
+          doctorName?: string;
+        };
         setCalledAlert({
-          serialNumber: event.data.serialNumber,
-          patientName: event.data.patientName,
-          patientId: event.data.patientId,
-          roomNo: event.data.roomNo || "205",
-          doctorName: event.data.doctorName,
+          serialNumber: payloadData.serialNumber,
+          patientName: payloadData.patientName,
+          patientId: payloadData.patientId,
+          roomNo: payloadData.roomNo || "205",
+          doctorName: payloadData.doctorName,
         });
 
         if (soundEnabled) {
@@ -119,16 +160,6 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
     },
     onRefresh: refreshData,
   });
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen().catch(() => {});
-      setIsFullscreen(false);
-    }
-  };
 
   return (
     <div className="h-screen w-screen bg-background text-foreground flex flex-col justify-between select-none overflow-hidden font-sans">
@@ -170,19 +201,37 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
               )}
             </button>
 
-            <button
-              onClick={toggleFullscreen}
-              title="Toggle Fullscreen TV Mode"
-              className="p-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
-            >
-              {isFullscreen ? (
-                <Minimize className="h-4 w-4" />
-              ) : (
-                <Maximize className="h-4 w-4" />
-              )}
-            </button>
+            <FullscreenToggle />
 
             <ThemeToggle />
+
+            <Link
+              href={
+                currentUser
+                  ? ROLE_DASHBOARD_ROUTES[currentUser.role] || "/admin"
+                  : "/login"
+              }
+              title={
+                currentUser
+                  ? `${currentUser.role} Dashboard (${currentUser.name})`
+                  : "Staff Login"
+              }
+              aria-label={
+                currentUser ? `${currentUser.role} Dashboard` : "Staff Login"
+              }
+              className="p-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer inline-flex items-center justify-center group"
+            >
+              {currentUser ? (
+                (() => {
+                  const Icon = getRoleIcon(currentUser.role);
+                  return (
+                    <Icon className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                  );
+                })()
+              ) : (
+                <LogIn className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:scale-110 transition-transform" />
+              )}
+            </Link>
           </div>
         </div>
       </header>
@@ -198,7 +247,7 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
               <div>
                 <div className="text-xs uppercase tracking-widest text-primary-foreground/90 font-extrabold flex items-center gap-1.5">
                   <PhoneCall className="h-4 w-4 animate-ping" />
-                  <span>NOW CALLING / এখন ডাকা হচ্ছে</span>
+                  <span>NOW CALLING</span>
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight mt-0.5">
                   {calledAlert.patientName}
@@ -227,7 +276,7 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
             <div className="flex items-center gap-2.5">
               <span className="flex h-3 w-3 rounded-full bg-primary animate-ping" />
               <h2 className="font-extrabold text-base tracking-wide text-foreground uppercase">
-                এখন চলছে / NOW SERVING
+                NOW SERVING
               </h2>
             </div>
             <Badge variant="default" className="font-bold text-xs">
@@ -264,7 +313,9 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
                       <div className="flex items-center gap-2 text-xs font-bold text-primary mt-0.5">
                         <MapPin className="h-3.5 w-3.5" />
                         <span className="uppercase">
-                          Room {s.roomNo || "205"}
+                          {(s.roomNo || "").toLowerCase().startsWith("room")
+                            ? s.roomNo
+                            : `Room ${s.roomNo || "207"}`}
                         </span>
                         <span>&bull;</span>
                         <span className="font-mono">
@@ -292,7 +343,7 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
               <h2 className="font-extrabold text-base tracking-wide text-foreground uppercase">
-                অপেক্ষারত সিরিয়াল তালিকা / WAITING QUEUE
+                WAITING QUEUE
               </h2>
             </div>
             <Badge variant="outline" className="font-mono text-xs font-bold">
@@ -336,7 +387,7 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
                         <span>{s.patient.name}</span>
                         {s.isReport && (
                           <Badge variant="secondary" className="text-[10px]">
-                            রিপোর্ট
+                            Report Review
                           </Badge>
                         )}
                       </div>
@@ -355,7 +406,7 @@ export function WaitingRoomDisplay({ initialData }: WaitingRoomDisplayProps) {
                       <div className="text-right">
                         {s.punctualityStatus === "ON_TIME" && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                            সময়মত
+                            On-Time
                           </span>
                         )}
                         {s.punctualityStatus === "MODERATE_LATE" && (

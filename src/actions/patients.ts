@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentSession } from "@/lib/auth";
 import { realtimeBus } from "@/lib/events";
 import { Gender, BloodGroup } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
 export interface CreatePatientInput {
-  patientId: string; // e.g. "1800" or custom
+  patientId: string; // e.g. "10001" (5-digit ID)
   name: string;
   phone: string;
   email?: string;
@@ -25,6 +26,25 @@ export interface CreatePatientInput {
   medicalHistory?: string;
   currentMedications?: string;
   notes?: string;
+}
+
+export async function getNextSuggestedPatientId(): Promise<string> {
+  const allPatients = await prisma.patient.findMany({
+    select: { patientId: true },
+  });
+
+  let maxNumeric = 10000;
+  for (const p of allPatients) {
+    const num = parseInt(p.patientId.replace(/[^0-9]/g, ""), 10);
+    if (!isNaN(num) && num >= 10000 && num < 99999) {
+      if (num > maxNumeric) {
+        maxNumeric = num;
+      }
+    }
+  }
+
+  const nextId = (maxNumeric + 1).toString();
+  return nextId;
 }
 
 export async function searchPatients(query: string) {
@@ -110,7 +130,7 @@ export async function getRecentRevisitingPatients() {
 
 export async function getAllPatients(search?: string) {
   const trimmed = search?.trim();
-  const where: any = {};
+  const where: Prisma.PatientWhereInput = {};
   if (trimmed) {
     where.OR = [
       { patientId: { contains: trimmed } },

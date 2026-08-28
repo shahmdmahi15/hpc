@@ -10,12 +10,22 @@ export type RealtimeEventType =
   | "ASSESSMENT_SAVED"
   | "SESSION_LOGGED"
   | "BILLING_RECORDED"
-  | "LEDGER_AUDITED";
+  | "LEDGER_AUDITED"
+  | "FILE_CREATED"
+  | "FILE_UPDATED"
+  | "SLOT_ASSIGNED"
+  | "SLOT_UPDATED"
+  | "PAYMENT_RECORDED"
+  | "ROOM_OCCUPIED"
+  | "ROOM_VACATED"
+  | "ROOM_UPDATED"
+  | "ROOM_CREATED"
+  | "ROOM_DELETED";
 
 export interface RealtimePayload {
   type: RealtimeEventType;
   timestamp: string;
-  data?: any;
+  data?: unknown;
 }
 
 class RealtimeEventBus extends EventEmitter {
@@ -25,7 +35,7 @@ class RealtimeEventBus extends EventEmitter {
     this.setMaxListeners(1000);
   }
 
-  notify(type: RealtimeEventType, data?: any) {
+  notify(type: RealtimeEventType, data?: unknown) {
     const payload: RealtimePayload = {
       type,
       timestamp: new Date().toISOString(),

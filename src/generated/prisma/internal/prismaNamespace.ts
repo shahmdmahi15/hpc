@@ -436,6 +436,11 @@ export const ModelName = {
   TreatmentSession: "TreatmentSession",
   PatientPackage: "PatientPackage",
   BillingRecord: "BillingRecord",
+  File: "File",
+  FileTreatmentSlot: "FileTreatmentSlot",
+  FilePayment: "FilePayment",
+  Room: "Room",
+  BookingSlot: "BookingSlot",
 } as const;
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName];
@@ -466,7 +471,12 @@ export type TypeMap<
       | "clinicalAssessment"
       | "treatmentSession"
       | "patientPackage"
-      | "billingRecord";
+      | "billingRecord"
+      | "file"
+      | "fileTreatmentSlot"
+      | "filePayment"
+      | "room"
+      | "bookingSlot";
     txIsolationLevel: TransactionIsolationLevel;
   };
   model: {
@@ -1154,6 +1164,386 @@ export type TypeMap<
         };
       };
     };
+    File: {
+      payload: Prisma.$FilePayload<ExtArgs>;
+      fields: Prisma.FileFieldRefs;
+      operations: {
+        findUnique: {
+          args: Prisma.FileFindUniqueArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload> | null;
+        };
+        findUniqueOrThrow: {
+          args: Prisma.FileFindUniqueOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>;
+        };
+        findFirst: {
+          args: Prisma.FileFindFirstArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload> | null;
+        };
+        findFirstOrThrow: {
+          args: Prisma.FileFindFirstOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>;
+        };
+        findMany: {
+          args: Prisma.FileFindManyArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>[];
+        };
+        create: {
+          args: Prisma.FileCreateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>;
+        };
+        createMany: {
+          args: Prisma.FileCreateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        createManyAndReturn: {
+          args: Prisma.FileCreateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>[];
+        };
+        delete: {
+          args: Prisma.FileDeleteArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>;
+        };
+        update: {
+          args: Prisma.FileUpdateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>;
+        };
+        deleteMany: {
+          args: Prisma.FileDeleteManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateMany: {
+          args: Prisma.FileUpdateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateManyAndReturn: {
+          args: Prisma.FileUpdateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>[];
+        };
+        upsert: {
+          args: Prisma.FileUpsertArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePayload>;
+        };
+        aggregate: {
+          args: Prisma.FileAggregateArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFile>;
+        };
+        groupBy: {
+          args: Prisma.FileGroupByArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.FileGroupByOutputType>[];
+        };
+        count: {
+          args: Prisma.FileCountArgs<ExtArgs>;
+          result:
+            | runtime.Types.Utils.Optional<Prisma.FileCountAggregateOutputType>
+            | number;
+        };
+      };
+    };
+    FileTreatmentSlot: {
+      payload: Prisma.$FileTreatmentSlotPayload<ExtArgs>;
+      fields: Prisma.FileTreatmentSlotFieldRefs;
+      operations: {
+        findUnique: {
+          args: Prisma.FileTreatmentSlotFindUniqueArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload> | null;
+        };
+        findUniqueOrThrow: {
+          args: Prisma.FileTreatmentSlotFindUniqueOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>;
+        };
+        findFirst: {
+          args: Prisma.FileTreatmentSlotFindFirstArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload> | null;
+        };
+        findFirstOrThrow: {
+          args: Prisma.FileTreatmentSlotFindFirstOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>;
+        };
+        findMany: {
+          args: Prisma.FileTreatmentSlotFindManyArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>[];
+        };
+        create: {
+          args: Prisma.FileTreatmentSlotCreateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>;
+        };
+        createMany: {
+          args: Prisma.FileTreatmentSlotCreateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        createManyAndReturn: {
+          args: Prisma.FileTreatmentSlotCreateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>[];
+        };
+        delete: {
+          args: Prisma.FileTreatmentSlotDeleteArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>;
+        };
+        update: {
+          args: Prisma.FileTreatmentSlotUpdateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>;
+        };
+        deleteMany: {
+          args: Prisma.FileTreatmentSlotDeleteManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateMany: {
+          args: Prisma.FileTreatmentSlotUpdateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateManyAndReturn: {
+          args: Prisma.FileTreatmentSlotUpdateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>[];
+        };
+        upsert: {
+          args: Prisma.FileTreatmentSlotUpsertArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FileTreatmentSlotPayload>;
+        };
+        aggregate: {
+          args: Prisma.FileTreatmentSlotAggregateArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFileTreatmentSlot>;
+        };
+        groupBy: {
+          args: Prisma.FileTreatmentSlotGroupByArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.FileTreatmentSlotGroupByOutputType>[];
+        };
+        count: {
+          args: Prisma.FileTreatmentSlotCountArgs<ExtArgs>;
+          result:
+            | runtime.Types.Utils.Optional<Prisma.FileTreatmentSlotCountAggregateOutputType>
+            | number;
+        };
+      };
+    };
+    FilePayment: {
+      payload: Prisma.$FilePaymentPayload<ExtArgs>;
+      fields: Prisma.FilePaymentFieldRefs;
+      operations: {
+        findUnique: {
+          args: Prisma.FilePaymentFindUniqueArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload> | null;
+        };
+        findUniqueOrThrow: {
+          args: Prisma.FilePaymentFindUniqueOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>;
+        };
+        findFirst: {
+          args: Prisma.FilePaymentFindFirstArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload> | null;
+        };
+        findFirstOrThrow: {
+          args: Prisma.FilePaymentFindFirstOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>;
+        };
+        findMany: {
+          args: Prisma.FilePaymentFindManyArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>[];
+        };
+        create: {
+          args: Prisma.FilePaymentCreateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>;
+        };
+        createMany: {
+          args: Prisma.FilePaymentCreateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        createManyAndReturn: {
+          args: Prisma.FilePaymentCreateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>[];
+        };
+        delete: {
+          args: Prisma.FilePaymentDeleteArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>;
+        };
+        update: {
+          args: Prisma.FilePaymentUpdateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>;
+        };
+        deleteMany: {
+          args: Prisma.FilePaymentDeleteManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateMany: {
+          args: Prisma.FilePaymentUpdateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateManyAndReturn: {
+          args: Prisma.FilePaymentUpdateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>[];
+        };
+        upsert: {
+          args: Prisma.FilePaymentUpsertArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FilePaymentPayload>;
+        };
+        aggregate: {
+          args: Prisma.FilePaymentAggregateArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFilePayment>;
+        };
+        groupBy: {
+          args: Prisma.FilePaymentGroupByArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.FilePaymentGroupByOutputType>[];
+        };
+        count: {
+          args: Prisma.FilePaymentCountArgs<ExtArgs>;
+          result:
+            | runtime.Types.Utils.Optional<Prisma.FilePaymentCountAggregateOutputType>
+            | number;
+        };
+      };
+    };
+    Room: {
+      payload: Prisma.$RoomPayload<ExtArgs>;
+      fields: Prisma.RoomFieldRefs;
+      operations: {
+        findUnique: {
+          args: Prisma.RoomFindUniqueArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload> | null;
+        };
+        findUniqueOrThrow: {
+          args: Prisma.RoomFindUniqueOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>;
+        };
+        findFirst: {
+          args: Prisma.RoomFindFirstArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload> | null;
+        };
+        findFirstOrThrow: {
+          args: Prisma.RoomFindFirstOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>;
+        };
+        findMany: {
+          args: Prisma.RoomFindManyArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>[];
+        };
+        create: {
+          args: Prisma.RoomCreateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>;
+        };
+        createMany: {
+          args: Prisma.RoomCreateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        createManyAndReturn: {
+          args: Prisma.RoomCreateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>[];
+        };
+        delete: {
+          args: Prisma.RoomDeleteArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>;
+        };
+        update: {
+          args: Prisma.RoomUpdateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>;
+        };
+        deleteMany: {
+          args: Prisma.RoomDeleteManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateMany: {
+          args: Prisma.RoomUpdateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateManyAndReturn: {
+          args: Prisma.RoomUpdateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>[];
+        };
+        upsert: {
+          args: Prisma.RoomUpsertArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomPayload>;
+        };
+        aggregate: {
+          args: Prisma.RoomAggregateArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRoom>;
+        };
+        groupBy: {
+          args: Prisma.RoomGroupByArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.RoomGroupByOutputType>[];
+        };
+        count: {
+          args: Prisma.RoomCountArgs<ExtArgs>;
+          result:
+            | runtime.Types.Utils.Optional<Prisma.RoomCountAggregateOutputType>
+            | number;
+        };
+      };
+    };
+    BookingSlot: {
+      payload: Prisma.$BookingSlotPayload<ExtArgs>;
+      fields: Prisma.BookingSlotFieldRefs;
+      operations: {
+        findUnique: {
+          args: Prisma.BookingSlotFindUniqueArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload> | null;
+        };
+        findUniqueOrThrow: {
+          args: Prisma.BookingSlotFindUniqueOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>;
+        };
+        findFirst: {
+          args: Prisma.BookingSlotFindFirstArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload> | null;
+        };
+        findFirstOrThrow: {
+          args: Prisma.BookingSlotFindFirstOrThrowArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>;
+        };
+        findMany: {
+          args: Prisma.BookingSlotFindManyArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>[];
+        };
+        create: {
+          args: Prisma.BookingSlotCreateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>;
+        };
+        createMany: {
+          args: Prisma.BookingSlotCreateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        createManyAndReturn: {
+          args: Prisma.BookingSlotCreateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>[];
+        };
+        delete: {
+          args: Prisma.BookingSlotDeleteArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>;
+        };
+        update: {
+          args: Prisma.BookingSlotUpdateArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>;
+        };
+        deleteMany: {
+          args: Prisma.BookingSlotDeleteManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateMany: {
+          args: Prisma.BookingSlotUpdateManyArgs<ExtArgs>;
+          result: BatchPayload;
+        };
+        updateManyAndReturn: {
+          args: Prisma.BookingSlotUpdateManyAndReturnArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>[];
+        };
+        upsert: {
+          args: Prisma.BookingSlotUpsertArgs<ExtArgs>;
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingSlotPayload>;
+        };
+        aggregate: {
+          args: Prisma.BookingSlotAggregateArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBookingSlot>;
+        };
+        groupBy: {
+          args: Prisma.BookingSlotGroupByArgs<ExtArgs>;
+          result: runtime.Types.Utils.Optional<Prisma.BookingSlotGroupByOutputType>[];
+        };
+        count: {
+          args: Prisma.BookingSlotCountArgs<ExtArgs>;
+          result:
+            | runtime.Types.Utils.Optional<Prisma.BookingSlotCountAggregateOutputType>
+            | number;
+        };
+      };
+    };
   };
 } & {
   other: {
@@ -1402,6 +1792,121 @@ export const BillingRecordScalarFieldEnum = {
 
 export type BillingRecordScalarFieldEnum =
   (typeof BillingRecordScalarFieldEnum)[keyof typeof BillingRecordScalarFieldEnum];
+
+export const FileScalarFieldEnum = {
+  id: "id",
+  fileNumber: "fileNumber",
+  patientId: "patientId",
+  status: "status",
+  openingDate: "openingDate",
+  closingDate: "closingDate",
+  primaryDoctorId: "primaryDoctorId",
+  diagnosis: "diagnosis",
+  chiefComplaints: "chiefComplaints",
+  medicalHistory: "medicalHistory",
+  treatmentPlan: "treatmentPlan",
+  prescribedModalities: "prescribedModalities",
+  totalPrescribedSessions: "totalPrescribedSessions",
+  completedSessions: "completedSessions",
+  packageType: "packageType",
+  notes: "notes",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type FileScalarFieldEnum =
+  (typeof FileScalarFieldEnum)[keyof typeof FileScalarFieldEnum];
+
+export const FileTreatmentSlotScalarFieldEnum = {
+  id: "id",
+  fileId: "fileId",
+  patientId: "patientId",
+  date: "date",
+  slotTime: "slotTime",
+  slotSequence: "slotSequence",
+  roomNumber: "roomNumber",
+  assignedDoctorId: "assignedDoctorId",
+  assignedHandlerId: "assignedHandlerId",
+  modalitiesPrescribed: "modalitiesPrescribed",
+  modalitiesPerformed: "modalitiesPerformed",
+  status: "status",
+  startTime: "startTime",
+  endTime: "endTime",
+  notes: "notes",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type FileTreatmentSlotScalarFieldEnum =
+  (typeof FileTreatmentSlotScalarFieldEnum)[keyof typeof FileTreatmentSlotScalarFieldEnum];
+
+export const FilePaymentScalarFieldEnum = {
+  id: "id",
+  fileId: "fileId",
+  patientId: "patientId",
+  treatmentSlotId: "treatmentSlotId",
+  date: "date",
+  amount: "amount",
+  paidAmount: "paidAmount",
+  dueAmount: "dueAmount",
+  advanceAdjusted: "advanceAdjusted",
+  isNP: "isNP",
+  paymentMethod: "paymentMethod",
+  paymentStatus: "paymentStatus",
+  collectedById: "collectedById",
+  notes: "notes",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type FilePaymentScalarFieldEnum =
+  (typeof FilePaymentScalarFieldEnum)[keyof typeof FilePaymentScalarFieldEnum];
+
+export const RoomScalarFieldEnum = {
+  id: "id",
+  roomNumber: "roomNumber",
+  name: "name",
+  purpose: "purpose",
+  type: "type",
+  capacity: "capacity",
+  genderPreference: "genderPreference",
+  floor: "floor",
+  isActive: "isActive",
+  isStaffOnly: "isStaffOnly",
+  sortOrder: "sortOrder",
+  isOccupied: "isOccupied",
+  currentPatientId: "currentPatientId",
+  currentDoctorId: "currentDoctorId",
+  currentHandlerId: "currentHandlerId",
+  currentSlotId: "currentSlotId",
+  occupiedSince: "occupiedSince",
+  expectedDurationMinutes: "expectedDurationMinutes",
+  notes: "notes",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type RoomScalarFieldEnum =
+  (typeof RoomScalarFieldEnum)[keyof typeof RoomScalarFieldEnum];
+
+export const BookingSlotScalarFieldEnum = {
+  id: "id",
+  slotCode: "slotCode",
+  startTime: "startTime",
+  endTime: "endTime",
+  label: "label",
+  maxCapacity: "maxCapacity",
+  intervalMinutes: "intervalMinutes",
+  isActive: "isActive",
+  isVipOnly: "isVipOnly",
+  sortOrder: "sortOrder",
+  notes: "notes",
+  createdAt: "createdAt",
+  updatedAt: "updatedAt",
+} as const;
+
+export type BookingSlotScalarFieldEnum =
+  (typeof BookingSlotScalarFieldEnum)[keyof typeof BookingSlotScalarFieldEnum];
 
 export const SortOrder = {
   asc: "asc",
@@ -1753,6 +2258,11 @@ export type GlobalOmitConfig = {
   treatmentSession?: Prisma.TreatmentSessionOmit;
   patientPackage?: Prisma.PatientPackageOmit;
   billingRecord?: Prisma.BillingRecordOmit;
+  file?: Prisma.FileOmit;
+  fileTreatmentSlot?: Prisma.FileTreatmentSlotOmit;
+  filePayment?: Prisma.FilePaymentOmit;
+  room?: Prisma.RoomOmit;
+  bookingSlot?: Prisma.BookingSlotOmit;
 };
 
 /* Types for Logging */

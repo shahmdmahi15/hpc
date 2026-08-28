@@ -17,6 +17,7 @@ import { SidebarBrandHeader } from "./sidebar-brand-header";
 import { SidebarUserFooter } from "./sidebar-user-footer";
 import { AdminOmniNav } from "./admin-omni-nav";
 import { LayoutDashboard, Tv, User } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { Role } from "@/generated/prisma/enums";
 
 interface ReceptionistSidebarProps {
@@ -29,15 +30,20 @@ interface ReceptionistSidebarProps {
 
 export function ReceptionistSidebar({ user }: ReceptionistSidebarProps) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   const navItems = [
     {
-      title: "Front Desk & Queue",
+      title: t("nav.front_desk", "Front Desk & Queue"),
       href: "/receptionist",
       icon: LayoutDashboard,
     },
-    { title: "Live Waiting Kiosk", href: "/", icon: Tv },
-    { title: "My Profile", href: "/receptionist/profile", icon: User },
+    { title: t("nav.kiosk", "Live Waiting Kiosk"), href: "/", icon: Tv },
+    {
+      title: t("nav.profile", "My Profile"),
+      href: "/receptionist/profile",
+      icon: User,
+    },
   ];
 
   return (

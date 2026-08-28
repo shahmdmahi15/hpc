@@ -17,6 +17,7 @@ import { SidebarBrandHeader } from "./sidebar-brand-header";
 import { SidebarUserFooter } from "./sidebar-user-footer";
 import { AdminOmniNav } from "./admin-omni-nav";
 import { Activity, Tv, User } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { Role } from "@/generated/prisma/enums";
 
 interface HandlerSidebarProps {
@@ -29,11 +30,20 @@ interface HandlerSidebarProps {
 
 export function HandlerSidebar({ user }: HandlerSidebarProps) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   const navItems = [
-    { title: "Therapy & Timing Hub", href: "/handler", icon: Activity },
-    { title: "Live Waiting Kiosk", href: "/", icon: Tv },
-    { title: "My Profile", href: "/handler/profile", icon: User },
+    {
+      title: t("nav.handler_hub", "Therapy & Timing Hub"),
+      href: "/handler",
+      icon: Activity,
+    },
+    { title: t("nav.kiosk", "Live Waiting Kiosk"), href: "/", icon: Tv },
+    {
+      title: t("nav.profile", "My Profile"),
+      href: "/handler/profile",
+      icon: User,
+    },
   ];
 
   return (
