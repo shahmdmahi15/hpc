@@ -63,9 +63,6 @@ export const ModelName = {
   TreatmentSession: "TreatmentSession",
   PatientPackage: "PatientPackage",
   BillingRecord: "BillingRecord",
-  File: "File",
-  FileTreatmentSlot: "FileTreatmentSlot",
-  FilePayment: "FilePayment",
   Room: "Room",
   BookingSlot: "BookingSlot",
 } as const;
@@ -295,75 +292,6 @@ export const BillingRecordScalarFieldEnum = {
 
 export type BillingRecordScalarFieldEnum =
   (typeof BillingRecordScalarFieldEnum)[keyof typeof BillingRecordScalarFieldEnum];
-
-export const FileScalarFieldEnum = {
-  id: "id",
-  fileNumber: "fileNumber",
-  patientId: "patientId",
-  status: "status",
-  openingDate: "openingDate",
-  closingDate: "closingDate",
-  primaryDoctorId: "primaryDoctorId",
-  diagnosis: "diagnosis",
-  chiefComplaints: "chiefComplaints",
-  medicalHistory: "medicalHistory",
-  treatmentPlan: "treatmentPlan",
-  prescribedModalities: "prescribedModalities",
-  totalPrescribedSessions: "totalPrescribedSessions",
-  completedSessions: "completedSessions",
-  packageType: "packageType",
-  notes: "notes",
-  createdAt: "createdAt",
-  updatedAt: "updatedAt",
-} as const;
-
-export type FileScalarFieldEnum =
-  (typeof FileScalarFieldEnum)[keyof typeof FileScalarFieldEnum];
-
-export const FileTreatmentSlotScalarFieldEnum = {
-  id: "id",
-  fileId: "fileId",
-  patientId: "patientId",
-  date: "date",
-  slotTime: "slotTime",
-  slotSequence: "slotSequence",
-  roomNumber: "roomNumber",
-  assignedDoctorId: "assignedDoctorId",
-  assignedHandlerId: "assignedHandlerId",
-  modalitiesPrescribed: "modalitiesPrescribed",
-  modalitiesPerformed: "modalitiesPerformed",
-  status: "status",
-  startTime: "startTime",
-  endTime: "endTime",
-  notes: "notes",
-  createdAt: "createdAt",
-  updatedAt: "updatedAt",
-} as const;
-
-export type FileTreatmentSlotScalarFieldEnum =
-  (typeof FileTreatmentSlotScalarFieldEnum)[keyof typeof FileTreatmentSlotScalarFieldEnum];
-
-export const FilePaymentScalarFieldEnum = {
-  id: "id",
-  fileId: "fileId",
-  patientId: "patientId",
-  treatmentSlotId: "treatmentSlotId",
-  date: "date",
-  amount: "amount",
-  paidAmount: "paidAmount",
-  dueAmount: "dueAmount",
-  advanceAdjusted: "advanceAdjusted",
-  isNP: "isNP",
-  paymentMethod: "paymentMethod",
-  paymentStatus: "paymentStatus",
-  collectedById: "collectedById",
-  notes: "notes",
-  createdAt: "createdAt",
-  updatedAt: "updatedAt",
-} as const;
-
-export type FilePaymentScalarFieldEnum =
-  (typeof FilePaymentScalarFieldEnum)[keyof typeof FilePaymentScalarFieldEnum];
 
 export const RoomScalarFieldEnum = {
   id: "id",

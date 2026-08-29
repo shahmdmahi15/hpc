@@ -250,13 +250,35 @@ export async function updatePatient(
   id: string,
   data: Partial<CreatePatientInput>,
 ) {
+  if (data.patientId) {
+    const trimmedId = data.patientId.trim();
+    const existing = await prisma.patient.findFirst({
+      where: {
+        patientId: trimmedId,
+        NOT: { id },
+      },
+    });
+
+    if (existing) {
+      return {
+        error: `Patient ID #${trimmedId} is already in use by another patient.`,
+      };
+    }
+  }
+
   const patient = await prisma.patient.update({
     where: { id },
     data: {
+      patientId: data.patientId?.trim() || undefined,
       name: data.name?.trim(),
       phone: data.phone?.trim(),
       email: data.email?.trim() || null,
-      age: data.age ? Number(data.age) : undefined,
+      age:
+        data.age !== undefined
+          ? data.age
+            ? Number(data.age)
+            : null
+          : undefined,
       gender: data.gender,
       bloodGroup: data.bloodGroup || null,
       occupation: data.occupation?.trim() || null,

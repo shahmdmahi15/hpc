@@ -466,10 +466,13 @@ export async function toggleRoomStaffOnly(id: string, isStaffOnly: boolean) {
 // ----------------------------------------------------
 // GET ALL DYNAMIC ACTIVE ROOMS (FOR USER SELECTION)
 // ----------------------------------------------------
-export async function getActiveRooms() {
+export async function getActiveRooms(options?: { excludeStaffOnly?: boolean }) {
   await ensureDefaultRoomsSeeded();
   const rooms = await prisma.room.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(options?.excludeStaffOnly ? { isStaffOnly: false } : {}),
+    },
   });
   return rooms.sort((a, b) => compareRoomNumbers(a.roomNumber, b.roomNumber));
 }
@@ -499,7 +502,7 @@ export async function getAllRoomsWithOccupancy(dateStr?: string) {
 
   const { startOfDay, endOfDay } = getStartAndEndOfBSTDay(dateStr);
 
-  const [dbRoomsRaw, todaySerials, todaySlots] = await Promise.all([
+  const [dbRoomsRaw, todaySerials] = await Promise.all([
     prisma.room.findMany({
       where: { isActive: true },
       include: {
@@ -537,26 +540,6 @@ export async function getAllRoomsWithOccupancy(dateStr?: string) {
         handler: { select: { id: true, name: true } },
       },
     }),
-    prisma.fileTreatmentSlot.findMany({
-      where: {
-        date: { gte: startOfDay, lte: endOfDay },
-      },
-      orderBy: { slotTime: "asc" },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            patientId: true,
-            name: true,
-            phone: true,
-            gender: true,
-            primaryCondition: true,
-          },
-        },
-        assignedHandler: { select: { id: true, name: true } },
-        assignedDoctor: { select: { id: true, name: true } },
-      },
-    }),
   ]);
 
   const dbRooms = dbRoomsRaw.sort((a, b) =>
@@ -577,26 +560,11 @@ export async function getAllRoomsWithOccupancy(dateStr?: string) {
       );
     });
 
-    // Match today's slots assigned to this room
-    const matchingSlots = todaySlots.filter((slot) => {
-      const cleanSlotRoom = (slot.roomNumber || "")
-        .replace(/[^0-9A-Za-z]/g, "")
-        .toLowerCase();
-      return (
-        cleanSlotRoom === cleanNum ||
-        (slot.roomNumber && slot.roomNumber.includes(room.roomNumber))
-      );
-    });
-
     // Active patients currently in session
     const activeSerials = matchingSerials.filter(
       (s) =>
         s.status === SerialStatus.IN_THERAPY ||
         s.status === SerialStatus.IN_CONSULTATION,
-    );
-
-    const activeSlots = matchingSlots.filter(
-      (slot) => slot.status === "IN_PROGRESS",
     );
 
     interface ActivePatientInfo {
@@ -640,26 +608,6 @@ export async function getAllRoomsWithOccupancy(dateStr?: string) {
       });
     }
 
-    for (const slot of activeSlots) {
-      if (!activePatientsMap.has(slot.patient.id)) {
-        activePatientsMap.set(slot.patient.id, {
-          id: slot.patient.id,
-          patientId: slot.patient.patientId,
-          name: slot.patient.name,
-          phone: slot.patient.phone,
-          gender: slot.patient.gender,
-          slotId: slot.id,
-          slotTime: slot.slotTime,
-          status: slot.status,
-          statusLabel: "In Therapy Session",
-          handlerName: slot.assignedHandler?.name,
-          doctorName: slot.assignedDoctor?.name,
-          startTime: slot.startTime,
-          assignedTreatmentPlan: slot.modalitiesPrescribed,
-        });
-      }
-    }
-
     const activePatients = Array.from(activePatientsMap.values());
     const activeCount = activePatients.length;
     const capacity = typeof room.capacity === "number" ? room.capacity : 0;
@@ -684,17 +632,19 @@ export async function getAllRoomsWithOccupancy(dateStr?: string) {
       availableBeds,
       activePatients,
       todaySerials: matchingSerials,
-      todaySlots: matchingSlots,
-      totalScheduledToday: matchingSerials.length + matchingSlots.length,
+      totalScheduledToday: matchingSerials.length,
       currentDoctor: room.currentDoctor || null,
       currentHandler: room.currentHandler || null,
       notes: room.notes || null,
     };
   });
 
-  const totalCapacity = enrichedRooms.reduce((acc, r) => acc + r.capacity, 0);
+  const totalCapacity = enrichedRooms.reduce(
+    (acc: number, r) => acc + r.capacity,
+    0,
+  );
   const totalActivePatients = enrichedRooms.reduce(
-    (acc, r) => acc + r.activeCount,
+    (acc: number, r) => acc + r.activeCount,
     0,
   );
   const occupiedRoomsCount = enrichedRooms.filter((r) => r.isOccupied).length;
@@ -732,6 +682,12 @@ export async function occupyRoom(data: OccupyRoomInput) {
   const dbRoom = await prisma.room.findUnique({
     where: { roomNumber: cleanRoom },
   });
+
+  if (dbRoom && dbRoom.isStaffOnly) {
+    return {
+      error: `Room ${cleanRoom} (${dbRoom.name}) is a Staff-Only room and cannot be assigned to patients.`,
+    };
+  }
 
   const room = await prisma.room.upsert({
     where: { roomNumber: cleanRoom },

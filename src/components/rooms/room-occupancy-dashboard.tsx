@@ -21,13 +21,20 @@ import { formatBSTTime } from "@/lib/date";
 import { useI18n } from "@/lib/i18n";
 import { compareRoomNumbers } from "@/lib/rooms";
 
+type RoomOccupancyResponse = NonNullable<
+  Awaited<ReturnType<typeof getAllRoomsWithOccupancy>>
+>;
+type RoomItem = RoomOccupancyResponse["rooms"][number];
+
 export function RoomOccupancyDashboard({
   initialData,
 }: {
-  initialData?: Awaited<ReturnType<typeof getAllRoomsWithOccupancy>>;
+  initialData?: RoomOccupancyResponse;
 }) {
   const { t } = useI18n();
-  const [data, setData] = React.useState(initialData);
+  const [data, setData] = React.useState<RoomOccupancyResponse | undefined>(
+    initialData,
+  );
   const [filterCategory, setFilterCategory] = React.useState<string>("ALL");
   const [isPending, startTransition] = React.useTransition();
 
@@ -65,7 +72,7 @@ export function RoomOccupancyDashboard({
     loadRooms();
   };
 
-  const rooms = React.useMemo(() => data?.rooms || [], [data]);
+  const rooms: RoomItem[] = React.useMemo(() => data?.rooms || [], [data]);
   const stats = React.useMemo(() => {
     return (
       data?.stats || {

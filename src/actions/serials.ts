@@ -12,10 +12,11 @@ import {
   PaymentStatus,
   PaymentMethod,
   PunctualityStatus,
+  AuditAction,
 } from "@/generated/prisma/enums";
 import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
-import { getStartAndEndOfBSTDay } from "@/lib/date";
+import { getStartAndEndOfBSTDay, parseBSTTime } from "@/lib/date";
 import { getDynamicSlotAvailability } from "@/actions/slots";
 import { getSlotConfig, MAX_PATIENTS_PER_SLOT } from "@/lib/slot-config";
 
@@ -33,10 +34,6 @@ export interface BookSerialInput {
   roomNo?: string;
   isReport?: boolean;
   notes?: string;
-  fee?: number;
-  paidAmount?: number;
-  isPackageCovered?: boolean;
-  paymentMethod?: PaymentMethod;
 }
 
 // ----------------------------------------------------
@@ -206,19 +203,31 @@ export async function bookSerial(data: BookSerialInput) {
   const serialCode = `HPC-${formattedDate}-${String(nextSerialNumber).padStart(2, "0")}`;
 
   // Parse toldTime (promised arrival time) or auto-assign seat time
-  let parsedToldTime: Date | null = null;
   const effectiveToldTime =
     data.toldTime ||
     slotConf.seatTimes[currentSlotBookingsCount] ||
     `${slotConf.startHour}:00`;
 
-  if (effectiveToldTime) {
-    if (effectiveToldTime.includes("T")) {
-      parsedToldTime = new Date(effectiveToldTime);
-    } else if (effectiveToldTime.includes(":")) {
-      const [hours, minutes] = effectiveToldTime.split(":").map(Number);
-      parsedToldTime = new Date(target);
-      parsedToldTime.setHours(hours, minutes, 0, 0);
+  let parsedToldTime = parseBSTTime(effectiveToldTime, data.date);
+  if (!parsedToldTime) {
+    parsedToldTime =
+      parseBSTTime(`${slotConf.startHour}:00`, data.date) || target;
+  }
+
+  // Validate room is not staff-only
+  let validatedRoomNo: string | null = null;
+  if (data.roomNo) {
+    const cleanRoom = data.roomNo.replace(/[^0-9A-Za-z]/g, "");
+    if (cleanRoom) {
+      const room = await prisma.room.findUnique({
+        where: { roomNumber: cleanRoom },
+      });
+      if (room && room.isStaffOnly) {
+        return {
+          error: `Room ${cleanRoom} (${room.name}) is a Staff-Only room and cannot be assigned to patients.`,
+        };
+      }
+      validatedRoomNo = cleanRoom;
     }
   }
 
@@ -235,10 +244,10 @@ export async function bookSerial(data: BookSerialInput) {
       status: SerialStatus.PENDING,
       type: data.type || VisitType.NEW_CONSULTATION,
       priority: data.priority || Priority.REGULAR,
-      roomNo: data.roomNo ? data.roomNo.replace(/[^0-9]/g, "") || null : null,
+      roomNo: validatedRoomNo,
       isReport: !!data.isReport,
       notes: data.notes || null,
-      fee: data.fee ?? 500,
+      fee: 500,
       paidAmount: 0,
       isPackageCovered: false,
       paymentStatus: PaymentStatus.UNPAID,
@@ -266,9 +275,6 @@ export async function bookSerial(data: BookSerialInput) {
 
 export async function checkInPatient(data: {
   serialId: string;
-  paidAmount?: number;
-  isNoPayment?: boolean;
-  paymentMethod?: PaymentMethod;
   customArrivalTime?: string;
   roomNo?: string;
 }) {
@@ -282,37 +288,56 @@ export async function checkInPatient(data: {
     return { error: "Serial record not found." };
   }
 
-  const arrivalTime = data.customArrivalTime
-    ? new Date(data.customArrivalTime)
-    : new Date();
+  let arrivalTime = new Date();
+  if (data.customArrivalTime) {
+    const custom =
+      parseBSTTime(data.customArrivalTime) || new Date(data.customArrivalTime);
+    if (!isNaN(custom.getTime())) {
+      arrivalTime = custom;
+    }
+  }
 
   let latenessMinutes = 0;
   let punctualityStatus: PunctualityStatus = PunctualityStatus.ON_TIME;
   let queuePriorityScore = 0;
 
   if (existing.toldTime) {
-    const diffMs =
-      arrivalTime.getTime() - new Date(existing.toldTime).getTime();
-    latenessMinutes = Math.round(diffMs / 60000);
+    const told = new Date(existing.toldTime);
+    if (!isNaN(told.getTime())) {
+      const diffMs = arrivalTime.getTime() - told.getTime();
+      latenessMinutes = Math.round(diffMs / 60000);
 
-    if (latenessMinutes <= 0) {
-      // Early or on time (Green)
-      punctualityStatus = PunctualityStatus.ON_TIME;
-      queuePriorityScore = 0;
-    } else if (latenessMinutes <= 30) {
-      // Up to 30 mins late (Yellow)
-      punctualityStatus = PunctualityStatus.MODERATE_LATE;
-      queuePriorityScore = 0;
-    } else {
-      // More than 30 mins late (Red - penalty push back 5 positions)
-      punctualityStatus = PunctualityStatus.SEVERE_LATE;
-      queuePriorityScore = 5;
+      if (latenessMinutes <= 0) {
+        // Early or on time (Green)
+        punctualityStatus = PunctualityStatus.ON_TIME;
+        queuePriorityScore = 0;
+      } else if (latenessMinutes <= 30) {
+        // Up to 30 mins late (Yellow)
+        punctualityStatus = PunctualityStatus.MODERATE_LATE;
+        queuePriorityScore = 0;
+      } else {
+        // More than 30 mins late (Red - penalty push back 5 positions)
+        punctualityStatus = PunctualityStatus.SEVERE_LATE;
+        queuePriorityScore = 5;
+      }
     }
   }
 
-  const fee = existing.fee ?? 500;
-  const isNP = !!data.isNoPayment;
-  const collectedAmount = isNP ? 0 : (data.paidAmount ?? fee);
+  let validatedRoomNo = existing.roomNo || "207";
+  if (data.roomNo) {
+    const cleanRoom = data.roomNo.replace(/[^0-9A-Za-z]/g, "");
+    if (cleanRoom) {
+      const room = await prisma.room.findUnique({
+        where: { roomNumber: cleanRoom },
+      });
+      if (room && room.isStaffOnly) {
+        return {
+          error: `Room ${cleanRoom} (${room.name}) is a Staff-Only room and cannot be assigned to patients.`,
+        };
+      }
+      validatedRoomNo = cleanRoom;
+    }
+  }
 
   const updatedSerial = await prisma.serial.update({
     where: { id: data.serialId },
@@ -322,38 +347,12 @@ export async function checkInPatient(data: {
       punctualityStatus,
       queuePriorityScore,
       status: SerialStatus.WAITING,
-      roomNo: data.roomNo
-        ? data.roomNo.replace(/[^0-9]/g, "") || data.roomNo
-        : existing.roomNo,
-      paidAmount: collectedAmount,
-      isPackageCovered: isNP,
-      paymentStatus: isNP
-        ? PaymentStatus.PAID
-        : collectedAmount >= fee
-          ? PaymentStatus.PAID
-          : PaymentStatus.UNPAID,
-      paymentMethod: data.paymentMethod || PaymentMethod.CASH,
+      roomNo: validatedRoomNo,
     },
     include: {
       patient: true,
       doctor: true,
       handler: true,
-    },
-  });
-
-  // Create official desk cashier collection record
-  await prisma.billingRecord.create({
-    data: {
-      patientId: existing.patient.id,
-      serialId: updatedSerial.id,
-      date: updatedSerial.date,
-      actualBill: fee,
-      paidAmount: collectedAmount,
-      dueAmount: Math.max(0, fee - collectedAmount),
-      isPackageCovered: isNP,
-      paymentMethod: data.paymentMethod || PaymentMethod.CASH,
-      cashierId: session?.user?.id || null,
-      notes: isNP ? "N.P (No Payment Made)" : "Serial Desk Payment",
     },
   });
 
@@ -371,6 +370,164 @@ export async function checkInPatient(data: {
   return { success: true, serial: updatedSerial };
 }
 
+export async function updateSerialPayment(data: {
+  serialId: string;
+  fee?: number;
+  paidAmount: number;
+  discount?: number;
+  isNoPayment?: boolean;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  notes?: string;
+}) {
+  const session = await getCurrentSession();
+  const existing = await prisma.serial.findUnique({
+    where: { id: data.serialId },
+    include: {
+      patient: true,
+      billingRecords: { orderBy: { createdAt: "desc" } },
+    },
+  });
+
+  if (!existing) {
+    return { error: "Serial record not found." };
+  }
+
+  const fee =
+    data.fee !== undefined && !isNaN(Number(data.fee))
+      ? Math.max(0, Number(data.fee))
+      : (existing.fee ?? 500);
+  const isNP = Boolean(data.isNoPayment);
+  const discount = Math.max(0, Number(data.discount) || 0);
+  const netPayable = Math.max(0, fee - discount);
+  const paidAmount = isNP ? 0 : Math.max(0, Number(data.paidAmount) || 0);
+  const dueAmount = isNP ? 0 : Math.max(0, netPayable - paidAmount);
+
+  let finalPaymentStatus: PaymentStatus =
+    data.paymentStatus || PaymentStatus.UNPAID;
+  if (isNP) {
+    finalPaymentStatus = PaymentStatus.PAID;
+  } else if (!data.paymentStatus) {
+    if (paidAmount >= netPayable && netPayable >= 0) {
+      finalPaymentStatus = PaymentStatus.PAID;
+    } else if (paidAmount > 0) {
+      finalPaymentStatus = PaymentStatus.PARTIALLY_PAID;
+    } else {
+      finalPaymentStatus = PaymentStatus.UNPAID;
+    }
+  }
+
+  const paymentMethod =
+    data.paymentMethod || existing.paymentMethod || PaymentMethod.CASH;
+
+  // Find existing billing record for this serial if any
+  const existingBilling = existing.billingRecords?.[0];
+
+  const operations: any[] = [
+    prisma.serial.update({
+      where: { id: data.serialId },
+      data: {
+        fee,
+        paidAmount,
+        isPackageCovered: isNP,
+        paymentStatus: finalPaymentStatus,
+        paymentMethod,
+      },
+      include: {
+        patient: true,
+        doctor: true,
+        handler: true,
+        billingRecords: true,
+      },
+    }),
+  ];
+
+  if (existingBilling) {
+    operations.push(
+      prisma.billingRecord.update({
+        where: { id: existingBilling.id },
+        data: {
+          actualBill: fee,
+          paidAmount,
+          advanceAmount: discount,
+          dueAmount,
+          isPackageCovered: isNP,
+          paymentMethod,
+          cashierId: session?.user?.id || existingBilling.cashierId || null,
+          notes:
+            data.notes?.trim() ||
+            (isNP
+              ? "N.P (No Payment Made / Package Covered)"
+              : `Serial #${existing.serialNumber} Desk Payment Updated`),
+        },
+        include: {
+          patient: true,
+          cashier: true,
+        },
+      }),
+    );
+  } else {
+    operations.push(
+      prisma.billingRecord.create({
+        data: {
+          patientId: existing.patient.id,
+          serialId: existing.id,
+          date: existing.date || new Date(),
+          actualBill: fee,
+          paidAmount,
+          advanceAmount: discount,
+          dueAmount,
+          isPackageCovered: isNP,
+          paymentMethod,
+          cashierId: session?.user?.id || null,
+          notes:
+            data.notes?.trim() ||
+            (isNP
+              ? "N.P (No Payment Made / Package Covered)"
+              : `Serial #${existing.serialNumber} Desk Collection`),
+        },
+        include: {
+          patient: true,
+          cashier: true,
+        },
+      }),
+    );
+  }
+
+  const [updatedSerial, billingRecord] = await prisma.$transaction(operations);
+
+  await prisma.auditLog.create({
+    data: {
+      action: AuditAction.SERIAL_UPDATE,
+      entity: "Serial",
+      entityId: existing.id,
+      userId: session?.user?.id || null,
+      details: `Receptionist updated payment for Serial #${existing.serialNumber} (${existing.patient.name}): Fee ৳${fee}, Paid ৳${paidAmount}, Due ৳${dueAmount}, Status: ${finalPaymentStatus}`,
+    },
+  });
+
+  realtimeBus.notify("BILLING_RECORDED", { billingRecord });
+  realtimeBus.notify("SERIAL_UPDATED", { serial: updatedSerial });
+
+  revalidatePath("/");
+  revalidatePath("/receptionist");
+  revalidatePath("/admin");
+  revalidatePath("/admin/ledger");
+
+  return { success: true, serial: updatedSerial, billingRecord };
+}
+
+export async function collectSerialPayment(data: {
+  serialId: string;
+  paidAmount: number;
+  discount?: number;
+  isNoPayment?: boolean;
+  paymentMethod?: PaymentMethod;
+  notes?: string;
+}) {
+  return updateSerialPayment(data);
+}
+
 export async function assignToHandlerWithPlan(
   serialId: string,
   chamberRoom: string = "Physio Bay 1",
@@ -383,6 +540,20 @@ export async function assignToHandlerWithPlan(
     return {
       error: "Doctor must assign a treatment plan before routing to Handler.",
     };
+  }
+
+  if (chamberRoom) {
+    const cleanRoom = chamberRoom.replace(/[^0-9A-Za-z]/g, "");
+    if (cleanRoom) {
+      const room = await prisma.room.findUnique({
+        where: { roomNumber: cleanRoom },
+      });
+      if (room && room.isStaffOnly) {
+        return {
+          error: `Room ${chamberRoom} (${room.name}) is a Staff-Only room and cannot be assigned to patients.`,
+        };
+      }
+    }
   }
 
   const serial = await prisma.serial.update({
@@ -437,6 +608,17 @@ export async function updateSerialStatus(
 
   const updateData: Prisma.SerialUpdateInput = { status };
   if (chamberRoom) {
+    const cleanRoom = chamberRoom.replace(/[^0-9A-Za-z]/g, "");
+    if (cleanRoom) {
+      const room = await prisma.room.findUnique({
+        where: { roomNumber: cleanRoom },
+      });
+      if (room && room.isStaffOnly) {
+        return {
+          error: `Room ${chamberRoom} (${room.name}) is a Staff-Only room and cannot be assigned to patients.`,
+        };
+      }
+    }
     updateData.roomNo = chamberRoom;
   }
   if (assignedDoctorId) {
@@ -526,25 +708,28 @@ export async function updateSerialTimings(
     handlerId?: string;
   },
 ) {
+  const safeDate = (val?: string | Date | null) => {
+    if (!val) return null;
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+    const parsed = parseBSTTime(val) || new Date(val);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
   const data: Prisma.SerialUpdateInput = {};
   if (timings.scheduledTime !== undefined) {
-    data.scheduledTime = timings.scheduledTime
-      ? new Date(timings.scheduledTime)
-      : null;
+    data.scheduledTime = safeDate(timings.scheduledTime);
   }
   if (timings.inTime !== undefined) {
-    data.inTime = timings.inTime ? new Date(timings.inTime) : null;
+    data.inTime = safeDate(timings.inTime);
   }
   if (timings.therapyStartTime !== undefined) {
-    data.therapyStartTime = timings.therapyStartTime
-      ? new Date(timings.therapyStartTime)
-      : null;
+    data.therapyStartTime = safeDate(timings.therapyStartTime);
   }
   if (timings.outTime !== undefined) {
-    data.outTime = timings.outTime ? new Date(timings.outTime) : null;
+    data.outTime = safeDate(timings.outTime);
   }
   if (timings.restTime !== undefined) {
-    data.restTime = timings.restTime ? new Date(timings.restTime) : null;
+    data.restTime = safeDate(timings.restTime);
   }
   if (timings.roomNo) {
     data.roomNo = timings.roomNo;
@@ -565,4 +750,130 @@ export async function updateSerialTimings(
   revalidatePath("/receptionist");
 
   return { success: true, serial };
+}
+
+export interface UpdateSerialDetailsInput {
+  serialId: string;
+  date?: string;
+  hourlySlot?: HourlySlot;
+  timeSlot?: string;
+  toldTime?: string;
+  roomNo?: string;
+  type?: VisitType;
+  priority?: Priority;
+  status?: SerialStatus;
+  isReport?: boolean;
+  notes?: string;
+}
+
+export async function updateSerialDetails(data: UpdateSerialDetailsInput) {
+  const existing = await prisma.serial.findUnique({
+    where: { id: data.serialId },
+    include: { patient: true },
+  });
+
+  if (!existing) {
+    return { error: "Serial record not found." };
+  }
+
+  let validatedRoomNo =
+    data.roomNo !== undefined
+      ? data.roomNo
+        ? data.roomNo.replace(/[^0-9A-Za-z]/g, "")
+        : null
+      : existing.roomNo;
+  if (validatedRoomNo) {
+    const room = await prisma.room.findUnique({
+      where: { roomNumber: validatedRoomNo },
+    });
+    if (room && room.isStaffOnly) {
+      return {
+        error: `Room ${validatedRoomNo} (${room.name}) is a Staff-Only room and cannot be assigned to patients.`,
+      };
+    }
+  }
+
+  // Parse appointment date if changing
+  let targetDate = existing.date;
+  if (data.date) {
+    const { startOfDay } = getStartAndEndOfBSTDay(data.date);
+    targetDate = startOfDay;
+  }
+
+  // Parse told time if changing
+  let parsedToldTime = existing.toldTime;
+  if (data.toldTime) {
+    const custom = parseBSTTime(data.toldTime) || new Date(data.toldTime);
+    if (!isNaN(custom.getTime())) {
+      parsedToldTime = custom;
+    } else {
+      const match = data.toldTime.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+      if (match) {
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const modifier = match[3]?.toUpperCase();
+        if (modifier === "PM" && hours < 12) hours += 12;
+        if (modifier === "AM" && hours === 12) hours = 0;
+        parsedToldTime = new Date(targetDate);
+        parsedToldTime.setHours(hours, minutes, 0, 0);
+      }
+    }
+  }
+
+  const updateData: Prisma.SerialUpdateInput = {
+    date: targetDate,
+    roomNo: validatedRoomNo,
+    notes:
+      data.notes !== undefined ? data.notes.trim() || null : existing.notes,
+    isReport: data.isReport !== undefined ? data.isReport : existing.isReport,
+  };
+
+  if (data.hourlySlot !== undefined) {
+    updateData.hourlySlot = data.hourlySlot;
+    if (data.timeSlot) {
+      updateData.timeSlot = data.timeSlot;
+    }
+  }
+
+  if (parsedToldTime) {
+    updateData.toldTime = parsedToldTime;
+    updateData.scheduledTime = parsedToldTime;
+  }
+
+  if (data.type !== undefined) {
+    updateData.type = data.type;
+  }
+
+  if (data.priority !== undefined) {
+    updateData.priority = data.priority;
+  }
+
+  if (data.status !== undefined) {
+    updateData.status = data.status;
+  }
+
+  const updatedSerial = await prisma.serial.update({
+    where: { id: data.serialId },
+    data: updateData,
+    include: {
+      patient: true,
+      doctor: true,
+      handler: true,
+    },
+  });
+
+  realtimeBus.notify("SERIAL_UPDATED", { serial: updatedSerial });
+  if (data.status && data.status !== existing.status) {
+    realtimeBus.notify("SERIAL_STATUS_CHANGED", {
+      serial: updatedSerial,
+      status: data.status,
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/receptionist");
+  revalidatePath("/doctor");
+  revalidatePath("/handler");
+
+  return { success: true, serial: updatedSerial };
 }

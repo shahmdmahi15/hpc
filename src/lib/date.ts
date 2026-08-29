@@ -92,3 +92,73 @@ export function getStartAndEndOfBSTDay(dateStr?: string) {
 
   return { startOfDay, endOfDay, target, bstDateString: bstDate };
 }
+
+/**
+ * Safely parses any time representation (e.g. "11:00 AM", "02:30 PM", "11:20", "11:00 AM (+20m)", "14:30", ISO string)
+ * into a valid UTC Date object anchored to the specified BST calendar date (or today in BST).
+ * Returns null if parsing fails, never returning an Invalid Date object.
+ */
+export function parseBSTTime(
+  timeStr: string | null | undefined,
+  baseDateStr?: string,
+): Date | null {
+  if (!timeStr || typeof timeStr !== "string") return null;
+
+  const trimmed = timeStr.trim();
+  if (!trimmed) return null;
+
+  // 1. If it's already an ISO string with a date and time (contains 'T')
+  if (trimmed.includes("T")) {
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const bstDate = baseDateStr || getBSTDateString();
+  const parts = bstDate.split("-").map(Number);
+  if (parts.length < 3) return null;
+  const [year, month, day] = parts;
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+
+  // 2. Check for token offset in minutes like "(+10m)" or "(+20m)"
+  let offsetMinutes = 0;
+  const offsetMatch = trimmed.match(/\(\+(\d+)\s*m(?:in(?:ute)?s?)?\)/i);
+  if (offsetMatch) {
+    offsetMinutes = parseInt(offsetMatch[1], 10) || 0;
+  }
+
+  // 3. Match HH:MM with optional AM/PM
+  // Handles formats like "11:00", "11:00 AM", "02:30 PM", "2:30pm", "11:00:00 AM"
+  const timeMatch = trimmed.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i);
+  if (timeMatch) {
+    let hours = parseInt(timeMatch[1], 10);
+    let minutes = parseInt(timeMatch[2], 10);
+    const ampm = timeMatch[3]?.toUpperCase();
+
+    if (ampm === "PM" && hours < 12) {
+      hours += 12;
+    } else if (ampm === "AM" && hours === 12) {
+      hours = 0;
+    }
+
+    minutes += offsetMinutes;
+    if (minutes >= 60) {
+      hours += Math.floor(minutes / 60);
+      minutes = minutes % 60;
+    }
+    hours = hours % 24;
+
+    // BST is UTC+6 -> UTC time is (hours - 6)
+    const resultDate = new Date(
+      Date.UTC(year, month - 1, day, hours - 6, minutes, 0, 0),
+    );
+    return isNaN(resultDate.getTime()) ? null : resultDate;
+  }
+
+  // 4. Try generic Date parsing with BST base date
+  const combined = new Date(`${bstDate} ${trimmed}`);
+  if (!isNaN(combined.getTime())) {
+    return combined;
+  }
+
+  return null;
+}

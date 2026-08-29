@@ -21,6 +21,7 @@ export interface RoomSelectProps {
   label?: string;
   required?: boolean;
   disabled?: boolean;
+  allowStaffOnly?: boolean;
   genderFilter?: "MALE" | "FEMALE";
   roomsOccupancy?: Array<{
     id?: string;
@@ -47,6 +48,7 @@ export function RoomSelect({
   label = "Assigned Room / Therapy Bay",
   required = false,
   disabled = false,
+  allowStaffOnly = false,
   genderFilter,
   roomsOccupancy = [],
   className = "",
@@ -107,8 +109,10 @@ export function RoomSelect({
             };
           });
 
-    return list.sort((a, b) => compareRoomNumbers(a.roomNumber, b.roomNumber));
-  }, [roomsOccupancy, dynamicRooms]);
+    return list
+      .filter((r) => (allowStaffOnly ? true : !r.isStaffOnly))
+      .sort((a, b) => compareRoomNumbers(a.roomNumber, b.roomNumber));
+  }, [roomsOccupancy, dynamicRooms, allowStaffOnly]);
 
   // Clean room number (e.g. "Room 207" -> "207")
   const currentRoomNum = (value || "").replace(/[^0-9A-Za-z]/g, "");
