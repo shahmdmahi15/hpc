@@ -77,7 +77,9 @@ export async function getDoctorQueue(doctorId?: string, dateStr?: string) {
         SerialStatus.PENDING,
         SerialStatus.WAITING,
         SerialStatus.CHECKED_IN,
+        SerialStatus.CALLING,
         SerialStatus.IN_CONSULTATION,
+        SerialStatus.IN_THERAPY,
         SerialStatus.COMPLETED,
       ],
     },
@@ -374,8 +376,10 @@ export async function updateSerialPayment(data: {
   serialId: string;
   fee?: number;
   paidAmount: number;
+  refundedAmount?: number;
   discount?: number;
   isNoPayment?: boolean;
+  packageId?: string;
   paymentMethod?: PaymentMethod;
   paymentStatus?: PaymentStatus;
   notes?: string;
@@ -397,20 +401,55 @@ export async function updateSerialPayment(data: {
     data.fee !== undefined && !isNaN(Number(data.fee))
       ? Math.max(0, Number(data.fee))
       : (existing.fee ?? 500);
-  const isNP = Boolean(data.isNoPayment);
+  const isNP = Boolean(data.isNoPayment) || Boolean(data.packageId);
   const discount = Math.max(0, Number(data.discount) || 0);
   const netPayable = Math.max(0, fee - discount);
-  const paidAmount = isNP ? 0 : Math.max(0, Number(data.paidAmount) || 0);
-  const dueAmount = isNP ? 0 : Math.max(0, netPayable - paidAmount);
+  let paidAmount = isNP ? 0 : Math.max(0, Number(data.paidAmount) || 0);
+  let refundedAmount = Math.max(0, Number(data.refundedAmount) || 0);
 
+  // If status is explicitly REFUNDED and refundedAmount was 0, default to paidAmount (or existing paid)
+  if (data.paymentStatus === PaymentStatus.REFUNDED) {
+    if (refundedAmount === 0) {
+      refundedAmount =
+        paidAmount > 0
+          ? paidAmount
+          : existing.paidAmount > 0
+            ? existing.paidAmount
+            : fee;
+    }
+    if (paidAmount === 0 && existing.paidAmount > 0) {
+      paidAmount = existing.paidAmount;
+    }
+  }
+
+  // Cap refund at paidAmount
+  if (refundedAmount > paidAmount && paidAmount > 0) {
+    refundedAmount = paidAmount;
+  }
+
+  const netRetainedCash = Math.max(0, paidAmount - refundedAmount);
+  const dueAmount = isNP ? 0 : Math.max(0, netPayable - netRetainedCash);
+
+  // Determine final payment status
   let finalPaymentStatus: PaymentStatus =
     data.paymentStatus || PaymentStatus.UNPAID;
+
   if (isNP) {
     finalPaymentStatus = PaymentStatus.PAID;
+  } else if (
+    data.paymentStatus === PaymentStatus.REFUNDED ||
+    (refundedAmount > 0 && refundedAmount >= paidAmount && paidAmount > 0)
+  ) {
+    finalPaymentStatus = PaymentStatus.REFUNDED;
+  } else if (
+    data.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED ||
+    (refundedAmount > 0 && refundedAmount < paidAmount)
+  ) {
+    finalPaymentStatus = PaymentStatus.PARTIALLY_REFUNDED;
   } else if (!data.paymentStatus) {
-    if (paidAmount >= netPayable && netPayable >= 0) {
+    if (netRetainedCash >= netPayable && netPayable > 0) {
       finalPaymentStatus = PaymentStatus.PAID;
-    } else if (paidAmount > 0) {
+    } else if (netRetainedCash > 0) {
       finalPaymentStatus = PaymentStatus.PARTIALLY_PAID;
     } else {
       finalPaymentStatus = PaymentStatus.UNPAID;
@@ -429,7 +468,10 @@ export async function updateSerialPayment(data: {
       data: {
         fee,
         paidAmount,
+        refundedAmount,
+        discountAmount: discount,
         isPackageCovered: isNP,
+        packageId: data.packageId || null,
         paymentStatus: finalPaymentStatus,
         paymentMethod,
       },
@@ -449,16 +491,25 @@ export async function updateSerialPayment(data: {
         data: {
           actualBill: fee,
           paidAmount,
+          refundedAmount,
           advanceAmount: discount,
           dueAmount,
           isPackageCovered: isNP,
+          packageId: data.packageId || null,
+          paymentStatus: finalPaymentStatus,
           paymentMethod,
           cashierId: session?.user?.id || existingBilling.cashierId || null,
           notes:
             data.notes?.trim() ||
-            (isNP
-              ? "N.P (No Payment Made / Package Covered)"
-              : `Serial #${existing.serialNumber} Desk Payment Updated`),
+            (finalPaymentStatus === PaymentStatus.REFUNDED
+              ? `Refunded: ৳${refundedAmount} returned to patient`
+              : finalPaymentStatus === PaymentStatus.PARTIALLY_REFUNDED
+                ? `Partial Refund: ৳${refundedAmount} (Net: ৳${netRetainedCash})`
+                : isNP
+                  ? data.packageId
+                    ? "Package Covered Session"
+                    : "N.P (No Payment / Free Visit)"
+                  : `Serial #${existing.serialNumber} Desk Payment Updated`),
         },
         include: {
           patient: true,
@@ -473,18 +524,27 @@ export async function updateSerialPayment(data: {
           patientId: existing.patient.id,
           serialId: existing.id,
           date: existing.date || new Date(),
+          packageId: data.packageId || null,
           actualBill: fee,
           paidAmount,
+          refundedAmount,
           advanceAmount: discount,
           dueAmount,
           isPackageCovered: isNP,
+          paymentStatus: finalPaymentStatus,
           paymentMethod,
           cashierId: session?.user?.id || null,
           notes:
             data.notes?.trim() ||
-            (isNP
-              ? "N.P (No Payment Made / Package Covered)"
-              : `Serial #${existing.serialNumber} Desk Collection`),
+            (finalPaymentStatus === PaymentStatus.REFUNDED
+              ? `Refunded: ৳${refundedAmount} returned to patient`
+              : finalPaymentStatus === PaymentStatus.PARTIALLY_REFUNDED
+                ? `Partial Refund: ৳${refundedAmount} (Net: ৳${netRetainedCash})`
+                : isNP
+                  ? data.packageId
+                    ? "Package Covered Session"
+                    : "N.P (No Payment / Free Visit)"
+                  : `Serial #${existing.serialNumber} Desk Collection`),
         },
         include: {
           patient: true,
@@ -496,13 +556,24 @@ export async function updateSerialPayment(data: {
 
   const [updatedSerial, billingRecord] = await prisma.$transaction(operations);
 
+  // If associated with a package, update package collected & due amounts
+  if (data.packageId) {
+    await prisma.patientPackage.update({
+      where: { id: data.packageId },
+      data: {
+        paidAmount: { increment: netRetainedCash },
+        refundedAmount: { increment: refundedAmount },
+      },
+    });
+  }
+
   await prisma.auditLog.create({
     data: {
       action: AuditAction.SERIAL_UPDATE,
       entity: "Serial",
       entityId: existing.id,
       userId: session?.user?.id || null,
-      details: `Receptionist updated payment for Serial #${existing.serialNumber} (${existing.patient.name}): Fee ৳${fee}, Paid ৳${paidAmount}, Due ৳${dueAmount}, Status: ${finalPaymentStatus}`,
+      details: `Receptionist updated payment for Serial #${existing.serialNumber} (${existing.patient.name}): Fee ৳${fee}, Paid ৳${paidAmount}, Refund ৳${refundedAmount}, Net ৳${netRetainedCash}, Due ৳${dueAmount}, Status: ${finalPaymentStatus}`,
     },
   });
 
@@ -661,14 +732,13 @@ export async function updateSerialStatus(
 export async function callSerial(
   serialId: string,
   chamberRoom: string = "205",
-  targetStatus: SerialStatus = SerialStatus.IN_CONSULTATION,
+  targetStatus: SerialStatus = SerialStatus.CALLING,
 ) {
   const serial = await prisma.serial.update({
     where: { id: serialId },
     data: {
       status: targetStatus,
       roomNo: chamberRoom,
-      therapyStartTime: new Date(),
     },
     include: {
       patient: true,
@@ -683,9 +753,78 @@ export async function callSerial(
     patientName: serial.patient.name,
     patientId: serial.patient.patientId,
     roomNo: chamberRoom,
-    doctorName: serial.doctor?.name || "Specialist",
+    doctorName: serial.doctor?.name || "Doctor Chamber",
     status: targetStatus,
+    durationSeconds: 5,
     timestamp: new Date().toISOString(),
+  });
+
+  revalidatePath("/");
+  revalidatePath("/receptionist");
+  revalidatePath("/doctor");
+  revalidatePath("/handler");
+
+  return { success: true, serial };
+}
+
+export async function stopCallSerial(serialId: string) {
+  const existing = await prisma.serial.findUnique({
+    where: { id: serialId },
+    include: { patient: true, doctor: true },
+  });
+
+  if (!existing) return { error: "Serial not found" };
+
+  // Only revert if it's currently in CALLING status
+  let updatedSerial = existing;
+  if (existing.status === SerialStatus.CALLING) {
+    updatedSerial = await prisma.serial.update({
+      where: { id: serialId },
+      data: { status: SerialStatus.WAITING },
+      include: {
+        patient: true,
+        doctor: true,
+        handler: true,
+      },
+    });
+  }
+
+  realtimeBus.notify("SERIAL_UPDATED", {
+    serialId: existing.id,
+    serialNumber: existing.serialNumber,
+    event: "CALL_STOPPED",
+    timestamp: new Date().toISOString(),
+  });
+
+  revalidatePath("/");
+  revalidatePath("/receptionist");
+  revalidatePath("/doctor");
+  revalidatePath("/handler");
+
+  return { success: true, serial: updatedSerial };
+}
+
+export async function startDoctorConsultation(
+  serialId: string,
+  chamberRoom?: string,
+) {
+  const serial = await prisma.serial.update({
+    where: { id: serialId },
+    data: {
+      status: SerialStatus.IN_CONSULTATION,
+      ...(chamberRoom ? { roomNo: chamberRoom } : {}),
+      therapyStartTime: new Date(),
+    },
+    include: {
+      patient: true,
+      doctor: true,
+      handler: true,
+    },
+  });
+
+  realtimeBus.notify("SERIAL_STATUS_CHANGED", {
+    serial,
+    status: SerialStatus.IN_CONSULTATION,
   });
 
   revalidatePath("/");

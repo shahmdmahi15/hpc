@@ -5,16 +5,23 @@ import { useRealtime } from "@/hooks/use-realtime";
 import { getDailySlotAvailability } from "@/actions/serials";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Ticket, CheckCircle2 } from "lucide-react";
+import { Clock, Users, Ticket, CheckCircle2, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export function DailySlotScheduleMatrix({
   selectedDate,
+  searchQuery: externalSearchQuery,
 }: {
   selectedDate: string;
+  searchQuery?: string;
 }) {
   const [data, setData] = React.useState<Awaited<
     ReturnType<typeof getDailySlotAvailability>
   > | null>(null);
+  const [localSearch, setLocalSearch] = React.useState<string>("");
+
+  const activeSearch =
+    externalSearchQuery !== undefined ? externalSearchQuery : localSearch;
 
   const loadSlotData = React.useCallback(async () => {
     try {
@@ -43,10 +50,114 @@ export function DailySlotScheduleMatrix({
     onRefresh: loadSlotData,
   });
 
-  const slots = data?.slots || [];
+  const allSlots = data?.slots || [];
+  const filteredSlots = React.useMemo(() => {
+    if (!activeSearch.trim()) return allSlots;
+    const rawQ = activeSearch.trim().toLowerCase();
+    const cleanQ = rawQ.replace(/^[#\s]+/, "");
+    const numOnlyQ = rawQ.replace(/[^0-9]/g, "");
+
+    return allSlots.filter((s) => {
+      const code = s.slotCode.toLowerCase();
+      const label = s.label.toLowerCase();
+      const start = s.startTime.toLowerCase();
+      const end = s.endTime.toLowerCase();
+      const notes = (s.notes || "").toLowerCase();
+
+      // 1. Check direct slot timing & labels
+      const matchesTime =
+        code.includes(rawQ) ||
+        code.includes(cleanQ) ||
+        label.includes(rawQ) ||
+        start.includes(rawQ) ||
+        end.includes(rawQ) ||
+        notes.includes(rawQ);
+
+      if (matchesTime) return true;
+
+      // 2. Check assigned serials for this slot
+      const matchesSerials = (s.serials || []).some((serial) => {
+        const patName = (serial.patient?.name || "").toLowerCase();
+        const patPhone = (serial.patient?.phone || "").toLowerCase();
+        const patId = String(serial.patient?.patientId || "").toLowerCase();
+        const serialNum = String(serial.serialNumber || "");
+        const paddedSerial = serialNum.padStart(2, "0");
+        const docName = (serial.doctor?.name || "").toLowerCase();
+        const roomNo = (serial.roomNo || "").toLowerCase();
+
+        const matchesSerialNum =
+          serial.serialNumber !== undefined &&
+          (rawQ === serialNum ||
+            rawQ === `#${serialNum}` ||
+            rawQ === paddedSerial ||
+            rawQ === `#${paddedSerial}` ||
+            cleanQ === serialNum ||
+            cleanQ === paddedSerial ||
+            rawQ === `serial ${serialNum}` ||
+            rawQ === `sl ${serialNum}`);
+
+        const matchesPhone =
+          patPhone.includes(rawQ) ||
+          (numOnlyQ && patPhone.replace(/[^0-9]/g, "").includes(numOnlyQ));
+
+        const matchesPatId =
+          patId.includes(rawQ) ||
+          patId.includes(cleanQ) ||
+          (numOnlyQ && patId.replace(/[^0-9]/g, "").includes(numOnlyQ));
+
+        return (
+          patName.includes(rawQ) ||
+          matchesPhone ||
+          matchesPatId ||
+          matchesSerialNum ||
+          docName.includes(rawQ) ||
+          roomNo.includes(rawQ)
+        );
+      });
+
+      if (matchesSerials) return true;
+
+      // 3. Check seat tokens if assigned
+      const matchesSeats = (s.seatTokens || []).some((seat) => {
+        if (!seat.serial) return false;
+        const patName = (seat.serial.patientName || "").toLowerCase();
+        const patId = String(seat.serial.patientId || "").toLowerCase();
+        const serialNum = String(seat.serial.serialNumber || "");
+        const paddedSerial = serialNum.padStart(2, "0");
+        const docName = (seat.serial.doctorName || "").toLowerCase();
+        const roomNo = (seat.serial.roomNo || "").toLowerCase();
+
+        const matchesSerialNum =
+          seat.serial.serialNumber !== undefined &&
+          (rawQ === serialNum ||
+            rawQ === `#${serialNum}` ||
+            rawQ === paddedSerial ||
+            rawQ === `#${paddedSerial}` ||
+            cleanQ === serialNum ||
+            cleanQ === paddedSerial);
+
+        const matchesPatId =
+          patId.includes(rawQ) ||
+          patId.includes(cleanQ) ||
+          (numOnlyQ && patId.replace(/[^0-9]/g, "").includes(numOnlyQ));
+
+        return (
+          patName.includes(rawQ) ||
+          matchesPatId ||
+          matchesSerialNum ||
+          docName.includes(rawQ) ||
+          roomNo.includes(rawQ)
+        );
+      });
+
+      return matchesSeats;
+    });
+  }, [allSlots, activeSearch]);
+
+  const slots = filteredSlots;
   const stats = data?.stats || {
-    totalSlots: slots.length,
-    activeSlotsCount: slots.filter((s) => s.isActive).length,
+    totalSlots: allSlots.length,
+    activeSlotsCount: allSlots.filter((s) => s.isActive).length,
     totalCapacity: 60,
     totalBooked: 0,
     totalRemaining: 60,

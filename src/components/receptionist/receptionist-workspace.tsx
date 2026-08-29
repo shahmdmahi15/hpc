@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useTransition,
+  useMemo,
+} from "react";
 import { useRealtime } from "@/hooks/use-realtime";
 import {
   getDailySerials,
@@ -18,7 +24,7 @@ import {
   getAllPatients,
   getNextSuggestedPatientId,
 } from "@/actions/patients";
-import { getDailyCashLedger } from "@/actions/billing";
+import { getDailyCashLedger, getPatientPackages } from "@/actions/billing";
 import {
   formatBSTTime,
   formatBSTShortDate,
@@ -79,6 +85,11 @@ import {
   FileEdit,
   UserCog,
   Ticket,
+  RotateCcw,
+  PackageCheck,
+  Package,
+  X,
+  Filter,
 } from "lucide-react";
 import {
   Gender,
@@ -102,6 +113,7 @@ import { SlotTicketPicker } from "@/components/booking/slot-ticket-picker";
 import { DailySlotScheduleMatrix } from "@/components/booking/daily-slot-schedule-matrix";
 import { PromisedTimePicker } from "@/components/booking/time-picker";
 import { useI18n } from "@/lib/i18n";
+import { playClinicChime } from "@/lib/chime";
 
 interface ReceptionistWorkspaceProps {
   initialSerials: Awaited<ReturnType<typeof getDailySerials>>;
@@ -140,6 +152,39 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   [PaymentMethod.OTHER]: "Other (অন্যান্য)",
 };
 
+const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  [PaymentStatus.PAID]: "PAID (পরিশোধিত - Cash Collected)",
+  [PaymentStatus.PARTIALLY_PAID]:
+    "PARTIALLY PAID (আংশিক পরিশোধ - Advance/Deposit)",
+  [PaymentStatus.UNPAID]: "UNPAID (বকেয়া - No Cash Collected)",
+  [PaymentStatus.REFUNDED]: "REFUNDED (সম্পূর্ণ অর্থ ফেরত - Full Refund)",
+  [PaymentStatus.PARTIALLY_REFUNDED]:
+    "PARTIALLY REFUNDED (আংশিক অর্থ ফেরত - Partial Refund)",
+};
+
+const SERIAL_STATUS_LABELS: Record<SerialStatus, string> = {
+  [SerialStatus.PENDING]: "PENDING (অপেক্ষমান শিডিউল)",
+  [SerialStatus.CHECKED_IN]: "CHECKED IN (উপস্থিত / চেক-ইন সম্পন্ন)",
+  [SerialStatus.WAITING]: "WAITING (ওয়েটিং লাউঞ্জ)",
+  [SerialStatus.CALLING]: "CALLING (চেম্বারে ডাকা হচ্ছে - 5s Buzzer)",
+  [SerialStatus.IN_CONSULTATION]: "IN CONSULTATION (ডাক্তারের চেম্বারে)",
+  [SerialStatus.IN_THERAPY]: "IN THERAPY (থেরাপি বে-তে)",
+  [SerialStatus.COMPLETED]: "COMPLETED (সম্পন্ন)",
+  [SerialStatus.CANCELLED]: "CANCELLED (বাতিল)",
+  [SerialStatus.NO_SHOW]: "NO SHOW (অনুপস্থিত)",
+};
+
+const BLOOD_GROUP_LABELS: Record<string, string> = {
+  A_POSITIVE: "A+ (A Positive)",
+  A_NEGATIVE: "A- (A Negative)",
+  B_POSITIVE: "B+ (B Positive)",
+  B_NEGATIVE: "B- (B Negative)",
+  O_POSITIVE: "O+ (O Positive)",
+  O_NEGATIVE: "O- (O Negative)",
+  AB_POSITIVE: "AB+ (AB Positive)",
+  AB_NEGATIVE: "AB- (AB Negative)",
+};
+
 export function ReceptionistWorkspace({
   initialSerials,
   initialLedger,
@@ -157,7 +202,14 @@ export function ReceptionistWorkspace({
     "serials" | "ledger" | "directory" | "chambers" | "slots"
   >("serials");
 
-  // Search & Patient Selection
+  // Dedicated Table Search States
+  const [serialsSearch, setSerialsSearch] = useState("");
+  const [patientSearch, setPatientSearch] = useState("");
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [chambersSearch, setChambersSearch] = useState("");
+  const [slotsSearch, setSlotsSearch] = useState("");
+
+  // Search & Patient Selection (Global / Drawer)
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<PatientItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -253,20 +305,25 @@ export function ReceptionistWorkspace({
   const [paymentForm, setPaymentForm] = useState<{
     fee: number;
     paidAmount: number;
+    refundedAmount: number;
     discount: number;
     isNoPayment: boolean;
+    packageId: string;
     paymentMethod: PaymentMethod;
     paymentStatus: PaymentStatus;
     notes: string;
   }>({
     fee: 500,
     paidAmount: 500,
+    refundedAmount: 0,
     discount: 0,
     isNoPayment: false,
+    packageId: "",
     paymentMethod: PaymentMethod.CASH,
     paymentStatus: PaymentStatus.PAID,
     notes: "",
   });
+  const [patientPackages, setPatientPackages] = useState<any[]>([]);
 
   // Edit Patient State
   const [isEditPatientOpen, setIsEditPatientOpen] = useState(false);
@@ -387,6 +444,29 @@ export function ReceptionistWorkspace({
   );
 
   useRealtime({
+    onEvent: (event) => {
+      if (event.type === "SERIAL_CALLED" && event.data) {
+        const data = event.data as {
+          serialNumber: number;
+          patientName: string;
+          roomNo?: string;
+          doctorName?: string;
+        };
+        try {
+          playClinicChime("call");
+        } catch (err) {
+          console.error("Audio chime error:", err);
+        }
+        toast.info(
+          `🔔 Dr. ${data.doctorName || "Doctor"} is calling Serial #${data.serialNumber} (${data.patientName}) to Room ${data.roomNo || "205"}`,
+          {
+            duration: 5000,
+            id: `call-notify-${data.serialNumber}`,
+          },
+        );
+      }
+      refreshData(selectedDate);
+    },
     onRefresh: () => refreshData(selectedDate),
   });
 
@@ -598,23 +678,38 @@ export function ReceptionistWorkspace({
     setPaymentSerial(serial);
     setPaymentErrors({});
     const totalFee = serial.fee ?? 500;
-    const remainingDue = Math.max(0, totalFee - (serial.paidAmount || 0));
+    const paid = serial.paidAmount || 0;
+    const refunded = (serial as any).refundedAmount || 0;
+    const discount = (serial as any).discountAmount || 0;
+    const packageId = (serial as any).packageId || "";
+    const remainingDue = Math.max(0, totalFee - discount - paid + refunded);
+
     setPaymentForm({
       fee: totalFee,
       paidAmount:
-        serial.paymentStatus === PaymentStatus.PAID || serial.paidAmount > 0
-          ? serial.paidAmount
+        serial.paymentStatus === PaymentStatus.PAID || paid > 0
+          ? paid
           : remainingDue > 0
             ? remainingDue
             : totalFee,
-      discount: 0,
+      refundedAmount: refunded,
+      discount,
       isNoPayment: Boolean(serial.isPackageCovered),
+      packageId,
       paymentMethod: serial.paymentMethod || PaymentMethod.CASH,
       paymentStatus:
         serial.paymentStatus ||
-        (serial.paidAmount > 0 ? PaymentStatus.PAID : PaymentStatus.UNPAID),
+        (paid > 0 ? PaymentStatus.PAID : PaymentStatus.UNPAID),
       notes: "",
     });
+
+    // Fetch patient active packages
+    if (serial.patient?.id) {
+      getPatientPackages(serial.patient.id)
+        .then((pkgs) => setPatientPackages(pkgs))
+        .catch(console.error);
+    }
+
     setIsPaymentModalOpen(true);
   };
 
@@ -624,23 +719,32 @@ export function ReceptionistWorkspace({
     if (!paymentSerial) return;
     setPaymentErrors({});
 
-    const valResult = validatePaymentInput({
-      paidAmount: Number(paymentForm.paidAmount),
-      actualBill: Number(paymentForm.fee) || 500,
-      isNoPayment: paymentForm.isNoPayment,
-    });
+    const isRefund =
+      paymentForm.paymentStatus === PaymentStatus.REFUNDED ||
+      paymentForm.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED ||
+      paymentForm.refundedAmount > 0;
 
-    if (!valResult.isValid) {
-      setPaymentErrors(valResult.errors);
-      return;
+    if (!isRefund) {
+      const valResult = validatePaymentInput({
+        paidAmount: Number(paymentForm.paidAmount),
+        actualBill: Number(paymentForm.fee) || 500,
+        isNoPayment: paymentForm.isNoPayment,
+      });
+
+      if (!valResult.isValid) {
+        setPaymentErrors(valResult.errors);
+        return;
+      }
     }
 
     const res = await updateSerialPayment({
       serialId: paymentSerial.id,
       fee: Number(paymentForm.fee) || 500,
       paidAmount: paymentForm.isNoPayment ? 0 : Number(paymentForm.paidAmount),
+      refundedAmount: Number(paymentForm.refundedAmount) || 0,
       discount: Number(paymentForm.discount) || 0,
       isNoPayment: paymentForm.isNoPayment,
+      packageId: paymentForm.packageId || undefined,
       paymentMethod: paymentForm.paymentMethod,
       paymentStatus: paymentForm.paymentStatus,
       notes: paymentForm.notes.trim() || undefined,
@@ -651,8 +755,15 @@ export function ReceptionistWorkspace({
       return;
     }
 
+    const isRefundDone =
+      paymentForm.paymentStatus === PaymentStatus.REFUNDED ||
+      paymentForm.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED ||
+      paymentForm.refundedAmount > 0;
+
     toast.success(
-      `Payment details updated for Serial #${paymentSerial.serialNumber} (${paymentSerial.patient.name})!`,
+      isRefundDone
+        ? `Refund of ৳${paymentForm.refundedAmount || paymentForm.paidAmount} processed for Serial #${paymentSerial.serialNumber} (${paymentSerial.patient.name})!`
+        : `Payment details updated for Serial #${paymentSerial.serialNumber} (${paymentSerial.patient.name})!`,
     );
     setIsPaymentModalOpen(false);
     setPaymentSerial(null);
@@ -815,6 +926,198 @@ export function ReceptionistWorkspace({
     refreshData();
   };
 
+  // Top search bar dynamic bindings based on active tab
+  const currentTabSearchValue =
+    activeTab === "serials"
+      ? serialsSearch
+      : activeTab === "directory"
+        ? patientSearch
+        : activeTab === "ledger"
+          ? ledgerSearch
+          : activeTab === "chambers"
+            ? chambersSearch
+            : slotsSearch;
+
+  const handleTopSearchChange = (val: string) => {
+    if (activeTab === "serials") {
+      setSerialsSearch(val);
+    } else if (activeTab === "directory") {
+      setPatientSearch(val);
+    } else if (activeTab === "ledger") {
+      setLedgerSearch(val);
+    } else if (activeTab === "chambers") {
+      setChambersSearch(val);
+    } else {
+      setSlotsSearch(val);
+    }
+  };
+
+  const handleClearTopSearch = () => {
+    handleTopSearchChange("");
+  };
+
+  const currentSearchPlaceholder =
+    activeTab === "serials"
+      ? "Search serial #, patient ID, name, phone, room, status..."
+      : activeTab === "directory"
+        ? "Search patient ID, name, phone, address, condition..."
+        : activeTab === "ledger"
+          ? "Search payment, patient, cashier, method, token..."
+          : activeTab === "chambers"
+            ? "Search room #, chamber, floor, doctor/patient..."
+            : "Search slot time, code, capacity...";
+
+  // Robust multi-field search helper for receptionist
+  const matchesSearch = (
+    query: string,
+    fields: {
+      patientName?: string | null;
+      phone?: string | null;
+      patientId?: string | number | null;
+      serialNumber?: string | number | null;
+      extra?: (string | number | Date | null | undefined)[];
+    },
+  ) => {
+    if (!query.trim()) return true;
+    const rawQ = query.trim().toLowerCase();
+    const cleanQ = rawQ.replace(/^[#\s]+/, "");
+    const numOnlyQ = rawQ.replace(/[^0-9]/g, "");
+
+    // 1. Patient Name match
+    if (fields.patientName && fields.patientName.toLowerCase().includes(rawQ)) {
+      return true;
+    }
+
+    // 2. Phone Number / Number match
+    if (fields.phone) {
+      const rawPhone = fields.phone.toLowerCase();
+      const cleanPhone = rawPhone.replace(/[^0-9]/g, "");
+      if (
+        rawPhone.includes(rawQ) ||
+        (numOnlyQ && cleanPhone.includes(numOnlyQ))
+      ) {
+        return true;
+      }
+    }
+
+    // 3. Serial Number match (#1, 1, 01, #01, serial 1, sl 1)
+    if (fields.serialNumber !== undefined && fields.serialNumber !== null) {
+      const serialStr = String(fields.serialNumber);
+      const padded = serialStr.padStart(2, "0");
+      if (
+        rawQ === serialStr ||
+        rawQ === `#${serialStr}` ||
+        rawQ === padded ||
+        rawQ === `#${padded}` ||
+        cleanQ === serialStr ||
+        cleanQ === padded ||
+        rawQ === `serial ${serialStr}` ||
+        rawQ === `sl ${serialStr}` ||
+        rawQ === `sl #${serialStr}` ||
+        serialStr.includes(cleanQ)
+      ) {
+        return true;
+      }
+    }
+
+    // 4. Patient ID match (1001, #1001, etc.)
+    if (fields.patientId !== undefined && fields.patientId !== null) {
+      const patIdStr = String(fields.patientId).toLowerCase();
+      if (
+        patIdStr.includes(rawQ) ||
+        patIdStr.includes(cleanQ) ||
+        rawQ === `#${patIdStr}` ||
+        (numOnlyQ && patIdStr.replace(/[^0-9]/g, "").includes(numOnlyQ))
+      ) {
+        return true;
+      }
+    }
+
+    // 5. Extra contextual fields
+    if (fields.extra && fields.extra.length > 0) {
+      for (const item of fields.extra) {
+        if (item !== undefined && item !== null) {
+          const itemStr = String(item).toLowerCase();
+          if (itemStr.includes(rawQ) || itemStr.includes(cleanQ)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  };
+
+  // Filtered Serials for Table View (Patient Name, Phone, Serial #, Patient ID, Room, Status, etc.)
+  const filteredSerials = useMemo(() => {
+    if (!serialsSearch.trim()) return serials;
+    return serials.filter((s) =>
+      matchesSearch(serialsSearch, {
+        patientName: s.patient?.name,
+        phone: s.patient?.phone,
+        patientId: s.patient?.patientId,
+        serialNumber: s.serialNumber,
+        extra: [
+          s.serialCode,
+          s.roomNo,
+          s.status,
+          s.paymentStatus,
+          s.timeSlot,
+          s.toldTime,
+          s.type,
+          s.doctor?.name,
+          s.handler?.name,
+          s.notes,
+        ],
+      }),
+    );
+  }, [serials, serialsSearch]);
+
+  // Filtered Patients for Directory View (Patient Name, Phone, Patient ID, Address, Gender, NID, etc.)
+  const filteredPatients = useMemo(() => {
+    if (!patientSearch.trim()) return allPatientsList;
+    return allPatientsList.filter((p) => {
+      const todaySerial =
+        "serials" in p && Array.isArray(p.serials) ? p.serials[0] : undefined;
+      return matchesSearch(patientSearch, {
+        patientName: p.name,
+        phone: p.phone,
+        patientId: p.patientId,
+        serialNumber: todaySerial?.serialNumber,
+        extra: [
+          p.address,
+          p.gender,
+          p.bloodGroup,
+          p.nationalId,
+          p.occupation,
+          p.notes,
+          (p as any).primaryCondition,
+        ],
+      });
+    });
+  }, [allPatientsList, patientSearch]);
+
+  // Filtered Ledger for Cash Collection View (Patient Name, Phone, Patient ID, Serial #, Cashier, Method, etc.)
+  const filteredLedger = useMemo(() => {
+    if (!ledgerSearch.trim()) return ledger;
+    return ledger.filter((item) =>
+      matchesSearch(ledgerSearch, {
+        patientName: item.patient?.name,
+        phone: item.patient?.phone,
+        patientId: item.patient?.patientId,
+        serialNumber: item.serial?.serialNumber || (item as any).serialNumber,
+        extra: [
+          item.cashier?.name,
+          item.paymentMethod,
+          item.paymentStatus,
+          item.notes,
+          item.paidAmount,
+          item.actualBill,
+        ],
+      }),
+    );
+  }, [ledger, ledgerSearch]);
+
   // Metrics
   const totalBooked = serials.length;
   const waitingCount = serials.filter(
@@ -824,10 +1127,15 @@ export function ReceptionistWorkspace({
   const completedCount = serials.filter(
     (s) => s.status === SerialStatus.COMPLETED,
   ).length;
-  const totalCashCollected = ledger.reduce(
+  const totalGrossCollected = ledger.reduce(
     (acc, curr) => acc + (curr.paidAmount || 0),
     0,
   );
+  const totalRefunded = ledger.reduce(
+    (acc, curr) => acc + ((curr as any).refundedAmount || 0),
+    0,
+  );
+  const totalCashCollected = Math.max(0, totalGrossCollected - totalRefunded);
 
   return (
     <div className="space-y-3 w-full max-w-full min-w-0 overflow-x-hidden">
@@ -953,7 +1261,7 @@ export function ReceptionistWorkspace({
           </button>
         </div>
 
-        {/* Right Tools Bar (Date, Search, Refresh) */}
+        {/* Right Tools Bar (Date, Active Tab Search, Refresh) */}
         <div className="flex items-center gap-1.5 w-full lg:w-auto justify-between lg:justify-end min-w-0">
           {/* Appointment Date Picker */}
           <div className="flex items-center gap-1 bg-background border border-input px-2 py-0.5 rounded-lg shadow-xs shrink-0 h-7.5">
@@ -969,15 +1277,25 @@ export function ReceptionistWorkspace({
             />
           </div>
 
-          {/* Search Input for Old Patients */}
-          <div className="relative flex-1 lg:w-56 min-w-[130px]">
+          {/* Dynamic Active Tab Search Input */}
+          <div className="relative flex-1 lg:w-72 min-w-[140px]">
             <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search ID, Name..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-7.5 h-7.5 text-xs"
+              placeholder={currentSearchPlaceholder}
+              value={currentTabSearchValue}
+              onChange={(e) => handleTopSearchChange(e.target.value)}
+              className="pl-7.5 pr-7 h-7.5 text-xs bg-background"
             />
+            {currentTabSearchValue && (
+              <button
+                type="button"
+                onClick={handleClearTopSearch}
+                title="Clear Search Filter"
+                className="absolute right-2 top-2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           <Button
@@ -994,60 +1312,37 @@ export function ReceptionistWorkspace({
         </div>
       </div>
 
-      {/* Search Results Dropdown List */}
-      {searchResults.length > 0 && (
-        <Card className="p-3 shadow-lg border-primary/30 bg-card">
-          <div className="text-xs font-bold text-primary mb-2 flex items-center justify-between">
-            <span>Found {searchResults.length} Matching Patient(s)</span>
-            <span className="text-[10px] text-muted-foreground">
-              Click patient card to schedule serial
-            </span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {searchResults.map((p) => (
-              <div
-                key={p.id}
-                onClick={() => {
-                  handleSelectPatientForBooking(p);
-                  setSearchResults([]);
-                  setSearchQuery("");
-                }}
-                className="p-2.5 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="font-bold text-xs text-foreground">
-                    {p.name}
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="font-mono text-[10px] font-bold text-primary"
-                  >
-                    #{p.patientId}
-                  </Badge>
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  {p.phone} &bull; {p.gender} &bull; {p.address || "No address"}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
       {/* VIEW 1: Daily Serial Schedule */}
       {activeTab === "serials" && (
         <Card className="shadow-xs border-border bg-card">
           <CardHeader className="p-3 pb-2 px-3 sm:px-4">
             <CardTitle className="text-xs sm:text-sm font-bold flex items-center justify-between flex-wrap gap-2">
-              <span>
-                HPC Daily Patient Serial Register &bull; {selectedDate}
-              </span>
+              <div className="flex items-center gap-2">
+                <span>
+                  HPC Daily Patient Serial Register &bull; {selectedDate}
+                </span>
+                {serialsSearch && (
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] font-normal gap-1"
+                  >
+                    <span>Filtering: &quot;{serialsSearch}&quot;</span>
+                    <button
+                      onClick={() => setSerialsSearch("")}
+                      className="hover:text-foreground cursor-pointer"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-1.5">
                 <Badge
                   variant="outline"
                   className="font-mono text-[10px] px-2 py-0.5"
                 >
-                  {serials.length} {t("rec.total_registered", "Total Serials")}
+                  {filteredSerials.length} of {serials.length}{" "}
+                  {t("rec.total_registered", "Serials")}
                 </Badge>
                 <Button
                   onClick={() => {
@@ -1111,18 +1406,37 @@ export function ReceptionistWorkspace({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {serials.length === 0 ? (
+                  {filteredSerials.length === 0 ? (
                     <tr>
                       <td
                         colSpan={9}
-                        className="py-6 text-center text-muted-foreground text-xs"
+                        className="py-8 text-center text-muted-foreground text-xs"
                       >
-                        No patient serials registered for {selectedDate}. Use
-                        search or directory to book.
+                        {serialsSearch ? (
+                          <div className="space-y-1.5">
+                            <p>
+                              No serials found matching &quot;{serialsSearch}
+                              &quot; for {selectedDate}.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSerialsSearch("")}
+                              className="h-6 text-[11px] px-2.5 cursor-pointer font-semibold"
+                            >
+                              Clear Search Filter
+                            </Button>
+                          </div>
+                        ) : (
+                          <p>
+                            No patient serials registered for {selectedDate}.
+                            Use &quot;Create Serial&quot; to book.
+                          </p>
+                        )}
                       </td>
                     </tr>
                   ) : (
-                    serials.map((s) => (
+                    filteredSerials.map((s) => (
                       <tr
                         key={s.id}
                         className="hover:bg-muted/30 transition-colors"
@@ -1195,67 +1509,68 @@ export function ReceptionistWorkspace({
                                 variant="outline"
                                 className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 font-semibold"
                               >
-                                N.P (Covered)
+                                N.P (Package Covered)
                               </Badge>
+                            ) : s.paymentStatus === PaymentStatus.REFUNDED ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-rose-600 dark:text-rose-400">
+                                <RotateCcw className="h-3 w-3" />
+                                <span>
+                                  REFUNDED (৳{s.refundedAmount || s.paidAmount})
+                                </span>
+                              </span>
+                            ) : s.paymentStatus ===
+                              PaymentStatus.PARTIALLY_REFUNDED ? (
+                              <div className="text-[11px] font-mono">
+                                <span className="text-amber-600 dark:text-amber-400 font-bold">
+                                  PART. REFUND (৳{s.refundedAmount})
+                                </span>
+                                <span className="text-muted-foreground block text-[10px]">
+                                  Net: ৳
+                                  {Math.max(0, s.paidAmount - s.refundedAmount)}
+                                </span>
+                              </div>
                             ) : s.paymentStatus === PaymentStatus.PAID ? (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-mono font-bold"
-                              >
-                                ৳{s.paidAmount} Paid
-                              </Badge>
-                            ) : s.paidAmount > 0 ? (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-mono font-bold"
-                              >
-                                ৳{s.paidAmount} / ৳{s.fee} (Due ৳
-                                {s.fee - s.paidAmount})
-                              </Badge>
+                              <span className="font-mono text-xs font-bold text-primary">
+                                PAID (৳{s.paidAmount})
+                              </span>
+                            ) : s.paymentStatus ===
+                              PaymentStatus.PARTIALLY_PAID ? (
+                              <span className="font-mono text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                ADVANCE (৳{s.paidAmount})
+                              </span>
                             ) : (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 font-mono font-bold"
+                                className="text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
                               >
-                                ৳{s.fee || 500} Unpaid
+                                UNPAID (Due: ৳{s.fee || 500})
                               </Badge>
                             )}
 
-                            {s.paidAmount > 0 ||
-                            s.isPackageCovered ||
-                            s.paymentStatus === PaymentStatus.PAID ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-6 text-[10px] px-2 gap-1 cursor-pointer font-bold border-border bg-background hover:bg-muted/80 text-foreground shadow-2xs"
-                                onClick={() => handleOpenPaymentModal(s)}
-                                title="Edit serial payment & billing details"
-                              >
-                                <Pencil className="h-2.5 w-2.5 text-primary" />
-                                <span>Edit Payment</span>
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                className="h-6 text-[10px] px-2 gap-1 cursor-pointer font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
-                                onClick={() => handleOpenPaymentModal(s)}
-                                title="Collect patient serial fee"
-                              >
-                                <CreditCard className="h-3 w-3" />
-                                <span>Pay / Collect</span>
-                              </Button>
-                            )}
+                            {/* Payment Edit / Refund trigger button */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-1.5 text-[10px] gap-1 cursor-pointer text-primary hover:bg-primary/10"
+                              onClick={() => handleOpenPaymentModal(s)}
+                              title="Edit serial payment, discount, or refund"
+                            >
+                              <Pencil className="h-2.5 w-2.5" />
+                              <span>Pay/Refund</span>
+                            </Button>
                           </div>
                         </td>
                         <td className="py-3">
                           <Badge
                             variant={
-                              s.status === SerialStatus.IN_CONSULTATION ||
-                              s.status === SerialStatus.IN_THERAPY
+                              s.status === SerialStatus.COMPLETED
                                 ? "default"
-                                : s.status === SerialStatus.WAITING
-                                  ? "secondary"
-                                  : "outline"
+                                : s.status === SerialStatus.IN_CONSULTATION ||
+                                    s.status === SerialStatus.IN_THERAPY
+                                  ? "destructive"
+                                  : s.status === SerialStatus.WAITING
+                                    ? "secondary"
+                                    : "outline"
                             }
                             className="text-[10px] font-bold"
                           >
@@ -1307,14 +1622,16 @@ export function ReceptionistWorkspace({
         <Card className="shadow-md border-border bg-card">
           <CardHeader className="pb-3 px-4 sm:px-6">
             <CardTitle className="text-sm sm:text-base font-bold flex items-center justify-between flex-wrap gap-2">
-              <span>All Registered Patients Directory</span>
               <div className="flex items-center gap-2">
+                <span>All Registered Patients Directory</span>
                 <Badge
                   variant="outline"
-                  className="font-mono text-xs px-2.5 py-1"
+                  className="font-mono text-xs px-2.5 py-0.5"
                 >
-                  {allPatientsList.length} Total Patients
+                  {filteredPatients.length} of {allPatientsList.length} Patients
                 </Badge>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button
                   onClick={() => setIsRegisterOpen(true)}
                   size="sm"
@@ -1349,17 +1666,34 @@ export function ReceptionistWorkspace({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {allPatientsList.length === 0 ? (
+                  {filteredPatients.length === 0 ? (
                     <tr>
                       <td
                         colSpan={7}
                         className="py-8 text-center text-muted-foreground"
                       >
-                        No registered patients in directory.
+                        {patientSearch ? (
+                          <div className="space-y-1.5">
+                            <p>
+                              No registered patients found matching &quot;
+                              {patientSearch}&quot;.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setPatientSearch("")}
+                              className="h-6 text-[11px] px-2.5 cursor-pointer font-semibold"
+                            >
+                              Clear Search Filter
+                            </Button>
+                          </div>
+                        ) : (
+                          <p>No registered patients in directory.</p>
+                        )}
                       </td>
                     </tr>
                   ) : (
-                    allPatientsList.map((p) => {
+                    filteredPatients.map((p) => {
                       const todaySerial =
                         "serials" in p && Array.isArray(p.serials)
                           ? p.serials[0]
@@ -1439,16 +1773,24 @@ export function ReceptionistWorkspace({
         <Card className="shadow-md border-border bg-card">
           <CardHeader className="pb-3 px-4 sm:px-6">
             <CardTitle className="text-sm sm:text-base font-bold flex items-center justify-between flex-wrap gap-2">
-              <span>
-                Official Daily Cash Collection Sheet &bull; {selectedDate}
-              </span>
+              <div className="flex items-center gap-2">
+                <span>
+                  Official Daily Cash Collection Sheet &bull; {selectedDate}
+                </span>
+                <Badge
+                  variant="outline"
+                  className="font-mono text-xs px-2.5 py-0.5"
+                >
+                  {filteredLedger.length} of {ledger.length} Records
+                </Badge>
+              </div>
               <div className="text-sm font-bold font-mono text-primary">
-                Total Collection: ৳{totalCashCollected.toLocaleString()}
+                Net Cash: ৳{totalCashCollected.toLocaleString()}
               </div>
             </CardTitle>
             <CardDescription className="text-xs">
-              HPC Desk Cashier register for {selectedDate} (SL NO, NAME, TAKA,
-              CASHIER, CEO)
+              HPC Desk Cashier register for {selectedDate} (SL NO, PATIENT,
+              AMOUNT, CASHIER, METHOD, ACTION)
             </CardDescription>
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
@@ -1460,22 +1802,41 @@ export function ReceptionistWorkspace({
                     <th className="pb-3 font-semibold">PATIENT NAME</th>
                     <th className="pb-3 font-semibold">AMOUNT (TAKA)</th>
                     <th className="pb-3 font-semibold">CASHIER</th>
-                    <th className="pb-3 font-semibold">CEO AUDIT</th>
+                    <th className="pb-3 font-semibold">METHOD</th>
                     <th className="pb-3 font-semibold text-right">ACTION</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {ledger.length === 0 ? (
+                  {filteredLedger.length === 0 ? (
                     <tr>
                       <td
                         colSpan={6}
                         className="py-8 text-center text-muted-foreground"
                       >
-                        No cash transactions recorded for {selectedDate}.
+                        {ledgerSearch ? (
+                          <div className="space-y-1.5">
+                            <p>
+                              No transactions found matching &quot;
+                              {ledgerSearch}&quot; for {selectedDate}.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setLedgerSearch("")}
+                              className="h-6 text-[11px] px-2.5 cursor-pointer font-semibold"
+                            >
+                              Clear Search Filter
+                            </Button>
+                          </div>
+                        ) : (
+                          <p>
+                            No cash transactions recorded for {selectedDate}.
+                          </p>
+                        )}
                       </td>
                     </tr>
                   ) : (
-                    ledger.map((item, idx) => (
+                    filteredLedger.map((item, idx) => (
                       <tr
                         key={item.id}
                         className="hover:bg-muted/30 transition-colors"
@@ -1494,8 +1855,25 @@ export function ReceptionistWorkspace({
                         <td className="py-3 font-mono font-bold">
                           {item.isPackageCovered ? (
                             <Badge variant="secondary" className="text-[10px]">
-                              N.P (No Payment Made)
+                              N.P (Package Covered)
                             </Badge>
+                          ) : (item as any).refundedAmount > 0 ? (
+                            <div>
+                              <div className="text-muted-foreground line-through text-[11px]">
+                                ৳{item.paidAmount}
+                              </div>
+                              <div className="text-[11px] font-black text-rose-600 dark:text-rose-400">
+                                -৳{(item as any).refundedAmount} (Refund)
+                              </div>
+                              <div className="text-xs font-black text-primary">
+                                Net: ৳
+                                {Math.max(
+                                  0,
+                                  item.paidAmount -
+                                    ((item as any).refundedAmount || 0),
+                                )}
+                              </div>
+                            </div>
                           ) : (
                             <span className="text-primary text-sm font-bold">
                               ৳{item.paidAmount}
@@ -1506,16 +1884,12 @@ export function ReceptionistWorkspace({
                           {item.cashier?.name || "Front Desk"}
                         </td>
                         <td className="py-3">
-                          {item.auditedBy ? (
-                            <span className="inline-flex items-center gap-1 text-primary font-semibold text-[11px]">
-                              <CheckCircle2 className="h-3 w-3" />
-                              <span>Approved ({item.auditedBy.name})</span>
-                            </span>
-                          ) : (
-                            <Badge variant="outline" className="text-[10px]">
-                              Pending CEO Audit
-                            </Badge>
-                          )}
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-mono font-semibold"
+                          >
+                            {item.paymentMethod || "CASH"}
+                          </Badge>
                         </td>
                         <td className="py-3 text-right">
                           {item.serialId ? (
@@ -1565,7 +1939,10 @@ export function ReceptionistWorkspace({
               </p>
             </div>
           </div>
-          <RoomOccupancyDashboard initialData={roomsData ?? undefined} />
+          <RoomOccupancyDashboard
+            initialData={roomsData ?? undefined}
+            searchQuery={chambersSearch}
+          />
         </div>
       )}
 
@@ -1584,7 +1961,10 @@ export function ReceptionistWorkspace({
               </p>
             </div>
           </div>
-          <DailySlotScheduleMatrix selectedDate={selectedDate} />
+          <DailySlotScheduleMatrix
+            selectedDate={selectedDate}
+            searchQuery={slotsSearch}
+          />
         </div>
       )}
 
@@ -2149,25 +2529,6 @@ export function ReceptionistWorkspace({
               error={bookErrors.toldTime}
             />
 
-            {/* Assigned Chamber / Room (Staff-only rooms excluded) */}
-            <RoomSelect
-              value={bookForm.roomNo}
-              onChange={(roomNum) =>
-                setBookForm({ ...bookForm, roomNo: roomNum })
-              }
-              genderFilter={
-                selectedPatient?.gender === "MALE" ||
-                selectedPatient?.gender === "FEMALE"
-                  ? selectedPatient.gender
-                  : undefined
-              }
-              roomsOccupancy={roomsData?.rooms}
-              label={t(
-                "booking.assigned_room",
-                "Pre-Assigned Chamber / Room (Optional)",
-              )}
-            />
-
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">
                 {t("booking.desk_remarks", "Desk Remarks")}
@@ -2288,27 +2649,6 @@ export function ReceptionistWorkspace({
           )}
 
           <form onSubmit={handleConfirmArrivalCheckIn} className="space-y-4">
-            {/* Room Confirmation / Selection for Arrival */}
-            <div className="space-y-1.5">
-              <RoomSelect
-                value={checkInForm.roomNo}
-                onChange={(roomNum) =>
-                  setCheckInForm({ ...checkInForm, roomNo: roomNum })
-                }
-                genderFilter={
-                  checkInSerial?.patient?.gender === "MALE" ||
-                  checkInSerial?.patient?.gender === "FEMALE"
-                    ? checkInSerial.patient.gender
-                    : undefined
-                }
-                roomsOccupancy={roomsData?.rooms}
-                label={t(
-                  "col.chamber_bay",
-                  "Assigned Chamber / Therapy Bay for this Visit",
-                )}
-              />
-            </div>
-
             {/* Custom Arrival Time (Optional override) */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
@@ -2395,33 +2735,38 @@ export function ReceptionistWorkspace({
           </DialogHeader>
 
           {paymentSerial && (
-            <div className="p-3.5 rounded-2xl bg-muted/60 border border-border text-xs space-y-2">
+            <div className="p-3.5 rounded-2xl bg-muted/60 border border-border text-xs space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="font-extrabold text-foreground text-sm">
-                  {paymentSerial.patient.name}
-                </span>
-                <Badge
-                  variant="default"
-                  className="font-mono font-bold bg-primary"
-                >
-                  Serial #{paymentSerial.serialNumber}
-                </Badge>
-              </div>
-              <div className="text-muted-foreground flex items-center justify-between text-[11px]">
-                <span>
-                  ID: #{paymentSerial.patient.patientId} &bull;{" "}
-                  {paymentSerial.patient.phone}
-                </span>
-                <span className="font-medium text-foreground">
-                  Chamber / Room: {paymentSerial.roomNo || "207"}
-                </span>
+                <div>
+                  <span className="font-extrabold text-foreground text-sm block">
+                    {paymentSerial.patient.name}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    ID: #{paymentSerial.patient.patientId} &bull;{" "}
+                    {paymentSerial.patient.phone}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="default"
+                    className="font-mono font-bold bg-primary"
+                  >
+                    Serial #{paymentSerial.serialNumber}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-semibold"
+                  >
+                    Room {paymentSerial.roomNo || "207"}
+                  </Badge>
+                </div>
               </div>
 
-              {/* Fee Breakdown Pills */}
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/60">
+              {/* Fee Breakdown Pills (High Density Multi-Metric) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border/60">
                 <div className="p-2 rounded-xl bg-background border border-border text-center">
                   <div className="text-[10px] text-muted-foreground">
-                    Current Fee
+                    Standard Fee
                   </div>
                   <div className="font-mono font-black text-xs text-foreground">
                     ৳{paymentForm.fee || 500}
@@ -2429,26 +2774,33 @@ export function ReceptionistWorkspace({
                 </div>
                 <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
                   <div className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                    Paid Amount
+                    Gross Collected
                   </div>
                   <div className="font-mono font-black text-xs text-emerald-600 dark:text-emerald-400">
                     ৳{paymentForm.isNoPayment ? 0 : paymentForm.paidAmount || 0}
                   </div>
                 </div>
-                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
-                  <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Remaining Due
+                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
+                  <div className="text-[10px] text-rose-600 dark:text-rose-400">
+                    Refunded
                   </div>
-                  <div className="font-mono font-black text-xs text-amber-600 dark:text-amber-400">
+                  <div className="font-mono font-black text-xs text-rose-600 dark:text-rose-400">
+                    ৳{paymentForm.refundedAmount || 0}
+                  </div>
+                </div>
+                <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-center">
+                  <div className="text-[10px] text-primary">
+                    Net Retained Cash
+                  </div>
+                  <div className="font-mono font-black text-xs text-primary">
                     ৳
-                    {paymentForm.isNoPayment
-                      ? 0
-                      : Math.max(
-                          0,
-                          (paymentForm.fee || 500) -
-                            (paymentForm.discount || 0) -
-                            (paymentForm.paidAmount || 0),
-                        )}
+                    {Math.max(
+                      0,
+                      (paymentForm.isNoPayment
+                        ? 0
+                        : paymentForm.paidAmount || 0) -
+                        (paymentForm.refundedAmount || 0),
+                    )}
                   </div>
                 </div>
               </div>
@@ -2456,261 +2808,564 @@ export function ReceptionistWorkspace({
           )}
 
           <form onSubmit={handleConfirmPayment} className="space-y-4">
-            {/* Quick Amount Preset Chips */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
-                Quick Presets
+            {/* Payment Status Selector */}
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+                <span>Payment &amp; Billing Action Status</span>
+                <span className="text-[10px] font-normal text-muted-foreground font-mono">
+                  Current: {paymentForm.paymentStatus}
+                </span>
               </Label>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs font-semibold cursor-pointer hover:border-primary hover:bg-primary/10"
-                  onClick={() => {
-                    const currentFee = paymentForm.fee || 500;
+              <Select
+                value={paymentForm.paymentStatus}
+                onValueChange={(val) => {
+                  const newStatus = val as PaymentStatus;
+                  const currentFee = paymentForm.fee || 500;
+                  const currentPaid =
+                    paymentForm.paidAmount > 0
+                      ? paymentForm.paidAmount
+                      : paymentSerial?.paidAmount || currentFee;
+
+                  if (newStatus === PaymentStatus.REFUNDED) {
                     setPaymentForm({
                       ...paymentForm,
-                      paidAmount: currentFee,
-                      discount: 0,
+                      paymentStatus: PaymentStatus.REFUNDED,
+                      paidAmount: currentPaid,
+                      refundedAmount: currentPaid,
                       isNoPayment: false,
+                    });
+                  } else if (newStatus === PaymentStatus.PARTIALLY_REFUNDED) {
+                    setPaymentForm({
+                      ...paymentForm,
+                      paymentStatus: PaymentStatus.PARTIALLY_REFUNDED,
+                      paidAmount: currentPaid,
+                      refundedAmount:
+                        paymentForm.refundedAmount > 0
+                          ? paymentForm.refundedAmount
+                          : Math.min(200, currentPaid),
+                      isNoPayment: false,
+                    });
+                  } else if (newStatus === PaymentStatus.PAID) {
+                    setPaymentForm({
+                      ...paymentForm,
                       paymentStatus: PaymentStatus.PAID,
+                      refundedAmount: 0,
                     });
-                  }}
-                >
-                  Full Fee (৳{paymentForm.fee || 500})
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs font-semibold cursor-pointer hover:border-primary hover:bg-primary/10"
-                  onClick={() => {
+                  } else if (newStatus === PaymentStatus.UNPAID) {
                     setPaymentForm({
                       ...paymentForm,
-                      paidAmount: 300,
-                      discount: 0,
-                      isNoPayment: false,
-                      paymentStatus: PaymentStatus.PARTIALLY_PAID,
-                    });
-                  }}
-                >
-                  ৳300
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs font-semibold cursor-pointer hover:border-primary hover:bg-primary/10"
-                  onClick={() => {
-                    setPaymentForm({
-                      ...paymentForm,
-                      paidAmount: 200,
-                      discount: 0,
-                      isNoPayment: false,
-                      paymentStatus: PaymentStatus.PARTIALLY_PAID,
-                    });
-                  }}
-                >
-                  ৳200
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs font-semibold cursor-pointer hover:border-purple-500 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30"
-                  onClick={() => {
-                    setPaymentForm({
-                      ...paymentForm,
+                      paymentStatus: PaymentStatus.UNPAID,
                       paidAmount: 0,
-                      discount: 0,
-                      isNoPayment: true,
-                      paymentStatus: PaymentStatus.PAID,
+                      refundedAmount: 0,
+                      isNoPayment: false,
                     });
-                  }}
-                >
-                  Free / N.P (৳0)
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Standard Fee (Actual Bill) */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-foreground">
-                  Total Fee / Bill Amount (৳) *
-                </Label>
-                <Input
-                  type="number"
-                  value={paymentForm.fee}
-                  onChange={(e) =>
+                  } else {
                     setPaymentForm({
                       ...paymentForm,
-                      fee: Math.max(0, Number(e.target.value)),
-                    })
+                      paymentStatus: newStatus,
+                      refundedAmount: 0,
+                    });
                   }
-                  className="font-mono text-xs"
-                  min={0}
-                  required
-                />
-              </div>
-
-              {/* Payment Status Override */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-foreground">
-                  Payment Status
-                </Label>
-                <Select
-                  value={paymentForm.paymentStatus}
-                  onValueChange={(val) =>
-                    setPaymentForm({
-                      ...paymentForm,
-                      paymentStatus: val as PaymentStatus,
-                    })
-                  }
-                >
-                  <SelectTrigger className="w-full h-9 text-xs font-bold">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={PaymentStatus.PAID}>
-                      PAID (পরিশোধিত)
-                    </SelectItem>
-                    <SelectItem value={PaymentStatus.PARTIALLY_PAID}>
-                      PARTIALLY PAID (আংশিক পরিশোধ)
-                    </SelectItem>
-                    <SelectItem value={PaymentStatus.UNPAID}>
-                      UNPAID (বকেয়া)
-                    </SelectItem>
-                    <SelectItem value={PaymentStatus.REFUNDED}>
-                      REFUNDED (ফেরত প্রদান)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                }}
+              >
+                <SelectTrigger className="w-full h-9 text-xs font-bold">
+                  <SelectValue placeholder="Select Status">
+                    {paymentForm.paymentStatus
+                      ? PAYMENT_STATUS_LABELS[paymentForm.paymentStatus]
+                      : undefined}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PaymentStatus.PAID}>
+                    PAID (পরিশোধিত - Cash Collected)
+                  </SelectItem>
+                  <SelectItem value={PaymentStatus.PARTIALLY_PAID}>
+                    PARTIALLY PAID (আংশিক পরিশোধ - Advance/Deposit)
+                  </SelectItem>
+                  <SelectItem value={PaymentStatus.UNPAID}>
+                    UNPAID (বকেয়া - No Cash Collected)
+                  </SelectItem>
+                  <SelectItem value={PaymentStatus.REFUNDED}>
+                    REFUNDED (সম্পূর্ণ অর্থ ফেরত - Full Refund ৳
+                    {paymentForm.paidAmount || paymentSerial?.paidAmount || 500}
+                    )
+                  </SelectItem>
+                  <SelectItem value={PaymentStatus.PARTIALLY_REFUNDED}>
+                    PARTIALLY REFUNDED (আংশিক অর্থ ফেরত - Partial Refund)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Paid Amount */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-foreground flex items-center justify-between">
-                  <span>
-                    {t("checkin.amount", "Collected Paid Amount (৳)")} *
-                  </span>
-                  {paymentForm.isNoPayment && (
-                    <span className="text-[10px] text-purple-600 font-normal">
-                      Marked as Free / N.P
+            {/* DEDICATED REFUND MANAGER CARD (Visible when refund is active) */}
+            {(paymentForm.paymentStatus === PaymentStatus.REFUNDED ||
+              paymentForm.paymentStatus === PaymentStatus.PARTIALLY_REFUNDED ||
+              paymentForm.refundedAmount > 0) && (
+              <div className="p-3.5 rounded-2xl border border-destructive/40 bg-destructive/5 space-y-3 animate-in fade-in-50">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-destructive flex items-center gap-1.5">
+                    <RotateCcw className="h-4 w-4 text-destructive shrink-0" />
+                    <span>
+                      Patient Cash Refund Processing (অর্থ ফেরত হিসাব)
                     </span>
-                  )}
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono font-bold">
-                    ৳
                   </span>
+                  <Badge
+                    variant="destructive"
+                    className="font-mono text-[10px] font-bold"
+                  >
+                    {paymentForm.paymentStatus === PaymentStatus.REFUNDED
+                      ? "Full Refund (৳0 Net)"
+                      : "Partial Refund"}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-destructive">
+                      Refund Amount to Return (৳) *
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono font-bold">
+                        ৳
+                      </span>
+                      <Input
+                        type="number"
+                        value={paymentForm.refundedAmount || ""}
+                        onChange={(e) => {
+                          const refVal = Math.max(0, Number(e.target.value));
+                          const originalPaid =
+                            paymentForm.paidAmount > 0
+                              ? paymentForm.paidAmount
+                              : paymentSerial?.paidAmount ||
+                                paymentForm.fee ||
+                                500;
+
+                          setPaymentForm({
+                            ...paymentForm,
+                            paidAmount: originalPaid,
+                            refundedAmount: refVal,
+                            paymentStatus:
+                              refVal >= originalPaid && originalPaid > 0
+                                ? PaymentStatus.REFUNDED
+                                : refVal > 0
+                                  ? PaymentStatus.PARTIALLY_REFUNDED
+                                  : PaymentStatus.PAID,
+                          });
+                        }}
+                        placeholder="e.g. 500 or 200"
+                        className="pl-8 font-mono font-black text-sm border-destructive/50 focus:border-destructive text-destructive"
+                        min={0}
+                        max={paymentForm.paidAmount || 500}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Quick Refund Presets
+                    </Label>
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs font-bold border-destructive/40 text-destructive hover:bg-destructive/10 cursor-pointer"
+                        onClick={() => {
+                          const originalPaid =
+                            paymentForm.paidAmount > 0
+                              ? paymentForm.paidAmount
+                              : paymentSerial?.paidAmount ||
+                                paymentForm.fee ||
+                                500;
+                          setPaymentForm({
+                            ...paymentForm,
+                            paidAmount: originalPaid,
+                            refundedAmount: originalPaid,
+                            paymentStatus: PaymentStatus.REFUNDED,
+                          });
+                        }}
+                      >
+                        Full Refund (৳
+                        {paymentForm.paidAmount > 0
+                          ? paymentForm.paidAmount
+                          : paymentSerial?.paidAmount || paymentForm.fee || 500}
+                        )
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs font-semibold hover:border-amber-500 hover:bg-amber-500/10 cursor-pointer"
+                        onClick={() => {
+                          const originalPaid =
+                            paymentForm.paidAmount > 0
+                              ? paymentForm.paidAmount
+                              : paymentSerial?.paidAmount ||
+                                paymentForm.fee ||
+                                500;
+                          setPaymentForm({
+                            ...paymentForm,
+                            paidAmount: originalPaid,
+                            refundedAmount: Math.min(300, originalPaid),
+                            paymentStatus: PaymentStatus.PARTIALLY_REFUNDED,
+                          });
+                        }}
+                      >
+                        ৳300 Partial
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs font-semibold hover:border-amber-500 hover:bg-amber-500/10 cursor-pointer"
+                        onClick={() => {
+                          const originalPaid =
+                            paymentForm.paidAmount > 0
+                              ? paymentForm.paidAmount
+                              : paymentSerial?.paidAmount ||
+                                paymentForm.fee ||
+                                500;
+                          setPaymentForm({
+                            ...paymentForm,
+                            paidAmount: originalPaid,
+                            refundedAmount: Math.min(200, originalPaid),
+                            paymentStatus: PaymentStatus.PARTIALLY_REFUNDED,
+                          });
+                        }}
+                      >
+                        ৳200 Partial
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-destructive">
+                    Refund Reason / Voucher Note *
+                  </Label>
                   <Input
-                    type="number"
-                    value={paymentForm.paidAmount}
+                    type="text"
+                    placeholder="e.g. Patient requested refund due to cancellation / Doctor unavailable"
+                    value={paymentForm.notes}
                     onChange={(e) =>
                       setPaymentForm({
                         ...paymentForm,
-                        paidAmount: Math.max(0, Number(e.target.value)),
-                        isNoPayment: false,
+                        notes: e.target.value,
                       })
                     }
-                    disabled={paymentForm.isNoPayment}
-                    className="pl-8 font-mono font-black text-sm"
-                    required={!paymentForm.isNoPayment}
-                    min={0}
+                    className="text-xs border-destructive/30"
                   />
                 </div>
-                {paymentErrors.paidAmount && (
-                  <p className="text-[10px] text-destructive font-medium flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
-                    {paymentErrors.paidAmount}
-                  </p>
+              </div>
+            )}
+
+            {/* Standard Collection Inputs (Fee, Collected Paid, Payment Method) */}
+            {paymentForm.paymentStatus !== PaymentStatus.REFUNDED && (
+              <>
+                {/* Quick Collection Amount Presets */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Quick Amount Presets
+                  </Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-semibold cursor-pointer hover:border-primary hover:bg-primary/10"
+                      onClick={() => {
+                        const currentFee = paymentForm.fee || 500;
+                        setPaymentForm({
+                          ...paymentForm,
+                          paidAmount: currentFee,
+                          refundedAmount: 0,
+                          discount: 0,
+                          isNoPayment: false,
+                          paymentStatus: PaymentStatus.PAID,
+                        });
+                      }}
+                    >
+                      Full Fee (৳{paymentForm.fee || 500})
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-semibold cursor-pointer hover:border-primary hover:bg-primary/10"
+                      onClick={() => {
+                        setPaymentForm({
+                          ...paymentForm,
+                          paidAmount: 300,
+                          refundedAmount: 0,
+                          discount: 0,
+                          isNoPayment: false,
+                          paymentStatus: PaymentStatus.PARTIALLY_PAID,
+                        });
+                      }}
+                    >
+                      ৳300
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-semibold cursor-pointer hover:border-primary hover:bg-primary/10"
+                      onClick={() => {
+                        setPaymentForm({
+                          ...paymentForm,
+                          paidAmount: 200,
+                          refundedAmount: 0,
+                          discount: 0,
+                          isNoPayment: false,
+                          paymentStatus: PaymentStatus.PARTIALLY_PAID,
+                        });
+                      }}
+                    >
+                      ৳200
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-semibold cursor-pointer hover:border-purple-500 hover:bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30"
+                      onClick={() => {
+                        setPaymentForm({
+                          ...paymentForm,
+                          paidAmount: 0,
+                          refundedAmount: 0,
+                          discount: 0,
+                          isNoPayment: true,
+                          packageId: "",
+                          paymentStatus: PaymentStatus.PAID,
+                        });
+                      }}
+                    >
+                      Free / N.P (৳0)
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Standard Fee (Actual Bill) */}
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Total Fee / Bill Amount (৳) *
+                    </Label>
+                    <Input
+                      type="number"
+                      value={paymentForm.fee}
+                      onChange={(e) =>
+                        setPaymentForm({
+                          ...paymentForm,
+                          fee: Math.max(0, Number(e.target.value)),
+                        })
+                      }
+                      className="font-mono text-xs"
+                      min={0}
+                      required
+                    />
+                  </div>
+
+                  {/* Paid Amount */}
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+                      <span>
+                        {t("checkin.amount", "Collected Paid Amount (৳)")} *
+                      </span>
+                      {paymentForm.isNoPayment && (
+                        <span className="text-[10px] text-purple-600 font-normal">
+                          Marked as Free / N.P
+                        </span>
+                      )}
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono font-bold">
+                        ৳
+                      </span>
+                      <Input
+                        type="number"
+                        value={paymentForm.paidAmount}
+                        onChange={(e) =>
+                          setPaymentForm({
+                            ...paymentForm,
+                            paidAmount: Math.max(0, Number(e.target.value)),
+                            isNoPayment: false,
+                          })
+                        }
+                        disabled={paymentForm.isNoPayment}
+                        className="pl-8 font-mono font-black text-sm"
+                        required={!paymentForm.isNoPayment}
+                        min={0}
+                      />
+                    </div>
+                    {paymentErrors.paidAmount && (
+                      <p className="text-[10px] text-destructive font-medium flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {paymentErrors.paidAmount}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Payment Method */}
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-foreground">
+                      {t("checkin.method", "Payment Method")}
+                    </Label>
+                    <Select
+                      value={paymentForm.paymentMethod}
+                      onValueChange={(val) =>
+                        setPaymentForm({
+                          ...paymentForm,
+                          paymentMethod: val as PaymentMethod,
+                        })
+                      }
+                      disabled={paymentForm.isNoPayment}
+                    >
+                      <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectValue placeholder="Select Method">
+                          {paymentForm.paymentMethod
+                            ? PAYMENT_METHOD_LABELS[paymentForm.paymentMethod]
+                            : undefined}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={PaymentMethod.CASH}>
+                          {t("payment.cash", "Cash (নগদ)")}
+                        </SelectItem>
+                        <SelectItem value={PaymentMethod.MOBILE_BANKING}>
+                          {t("payment.mobile", "bKash / Nagad / Rocket")}
+                        </SelectItem>
+                        <SelectItem value={PaymentMethod.CARD}>
+                          {t("payment.card", "Card (কার্ড)")}
+                        </SelectItem>
+                        <SelectItem value={PaymentMethod.OTHER}>
+                          {t("payment.other", "Other (অন্যান্য)")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Special Discount / Concession */}
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Special Discount / Concession (৳)
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={paymentForm.discount || ""}
+                      onChange={(e) =>
+                        setPaymentForm({
+                          ...paymentForm,
+                          discount: Math.max(0, Number(e.target.value)),
+                        })
+                      }
+                      disabled={paymentForm.isNoPayment}
+                      className="text-xs font-mono"
+                      min={0}
+                    />
+                  </div>
+                </div>
+
+                {/* Reason for Edit / Receipt Remarks */}
+                {paymentForm.paymentStatus !==
+                  PaymentStatus.PARTIALLY_REFUNDED && (
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Reason for Edit / Receipt Remarks
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g. Typo adjustment, Discount waiver, Cash correction"
+                      value={paymentForm.notes}
+                      onChange={(e) =>
+                        setPaymentForm({
+                          ...paymentForm,
+                          notes: e.target.value,
+                        })
+                      }
+                      className="text-xs"
+                    />
+                  </div>
                 )}
-              </div>
+              </>
+            )}
 
-              {/* Payment Method */}
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-foreground">
-                  {t("checkin.method", "Payment Method")}
-                </Label>
-                <Select
-                  value={paymentForm.paymentMethod}
-                  onValueChange={(val) =>
-                    setPaymentForm({
-                      ...paymentForm,
-                      paymentMethod: val as PaymentMethod,
-                    })
-                  }
-                  disabled={paymentForm.isNoPayment}
-                >
-                  <SelectTrigger className="w-full h-9 text-xs">
-                    <SelectValue placeholder="Select Method">
-                      {paymentForm.paymentMethod
-                        ? PAYMENT_METHOD_LABELS[paymentForm.paymentMethod]
-                        : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={PaymentMethod.CASH}>
-                      {t("payment.cash", "Cash (নগদ)")}
-                    </SelectItem>
-                    <SelectItem value={PaymentMethod.MOBILE_BANKING}>
-                      {t("payment.mobile", "bKash / Nagad / Rocket")}
-                    </SelectItem>
-                    <SelectItem value={PaymentMethod.CARD}>
-                      {t("payment.card", "Card (কার্ড)")}
-                    </SelectItem>
-                    <SelectItem value={PaymentMethod.OTHER}>
-                      {t("payment.other", "Other (অন্যান্য)")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* PATIENT ACTIVE REHAB PACKAGES (If Any) */}
+            {patientPackages.length > 0 && (
+              <div className="p-3 rounded-2xl border border-purple-500/40 bg-purple-500/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                    <PackageCheck className="h-4 w-4 shrink-0" />
+                    <span>Patient Active Rehabilitation Package(s)</span>
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] border-purple-500/40 text-purple-600 bg-background font-mono"
+                  >
+                    {patientPackages.length} Package(s)
+                  </Badge>
+                </div>
+                <div className="space-y-1.5">
+                  {patientPackages.map((pkg: any) => (
+                    <div
+                      key={pkg.id}
+                      className="p-2 rounded-xl bg-background/90 border border-purple-500/20 text-xs flex items-center justify-between gap-2"
+                    >
+                      <div>
+                        <div className="font-bold text-foreground">
+                          {pkg.packageName}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground font-mono">
+                          {pkg.totalDays} Days &bull; Total ৳{pkg.totalAmount}{" "}
+                          (Paid ৳{pkg.paidAmount}, Due ৳{pkg.dueAmount})
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                          paymentForm.packageId === pkg.id
+                            ? "default"
+                            : "outline"
+                        }
+                        className={`h-6 text-[10px] px-2 font-bold cursor-pointer shrink-0 ${
+                          paymentForm.packageId === pkg.id
+                            ? "bg-purple-600 hover:bg-purple-700 text-white"
+                            : "border-purple-500/30 text-purple-600 hover:bg-purple-500/10"
+                        }`}
+                        onClick={() => {
+                          if (paymentForm.packageId === pkg.id) {
+                            setPaymentForm({
+                              ...paymentForm,
+                              packageId: "",
+                              isNoPayment: false,
+                              paidAmount: paymentForm.fee || 500,
+                            });
+                          } else {
+                            setPaymentForm({
+                              ...paymentForm,
+                              packageId: pkg.id,
+                              isNoPayment: true,
+                              paidAmount: 0,
+                              refundedAmount: 0,
+                              paymentStatus: PaymentStatus.PAID,
+                            });
+                          }
+                        }}
+                      >
+                        {paymentForm.packageId === pkg.id
+                          ? "✓ Covered Under Package"
+                          : "Cover Under Package (N.P)"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Discount / Concession & Remarks */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-foreground">
-                  Special Discount / Concession (৳)
-                </Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={paymentForm.discount || ""}
-                  onChange={(e) =>
-                    setPaymentForm({
-                      ...paymentForm,
-                      discount: Math.max(0, Number(e.target.value)),
-                    })
-                  }
-                  disabled={paymentForm.isNoPayment}
-                  className="text-xs font-mono"
-                  min={0}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold text-foreground">
-                  Reason for Edit / Receipt Remarks
-                </Label>
-                <Input
-                  type="text"
-                  placeholder="e.g. Typo adjustment, Discount waiver, Cash correction"
-                  value={paymentForm.notes}
-                  onChange={(e) =>
-                    setPaymentForm({
-                      ...paymentForm,
-                      notes: e.target.value,
-                    })
-                  }
-                  className="text-xs"
-                />
-              </div>
-            </div>
+            )}
 
             {/* 1-Click N.P (No Payment Made / Package Covered) Toggle */}
             <div className="p-3 rounded-2xl border border-purple-500/30 bg-purple-500/5">
@@ -2724,6 +3379,7 @@ export function ReceptionistWorkspace({
                       isNoPayment: Boolean(checked),
                       paidAmount: checked ? 0 : paymentForm.fee || 500,
                       paymentStatus: PaymentStatus.PAID,
+                      refundedAmount: 0,
                     })
                   }
                 />
@@ -2748,11 +3404,11 @@ export function ReceptionistWorkspace({
               </p>
             </div>
 
-            {/* Live Calculation Summary Banner */}
-            <div className="p-3 rounded-2xl bg-muted/70 border border-border flex items-center justify-between text-xs font-mono">
+            {/* Live Financial Calculation Summary Grid */}
+            <div className="p-3.5 rounded-2xl bg-muted/70 border border-border grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
               <div>
                 <span className="text-muted-foreground block text-[10px]">
-                  Net Payable
+                  Net Payable Fee
                 </span>
                 <span className="font-bold text-foreground">
                   ৳
@@ -2766,28 +3422,42 @@ export function ReceptionistWorkspace({
               </div>
               <div>
                 <span className="text-muted-foreground block text-[10px]">
-                  Collecting / Paid
+                  Gross Collected
                 </span>
-                <span className="font-bold text-primary">
+                <span className="font-bold text-foreground">
                   ৳{paymentForm.isNoPayment ? 0 : paymentForm.paidAmount}
                 </span>
               </div>
               <div>
                 <span className="text-muted-foreground block text-[10px]">
-                  Balance Due
+                  Refunded Back
                 </span>
                 <span
                   className={`font-bold ${
-                    (paymentForm.isNoPayment
-                      ? 0
-                      : Math.max(
-                          0,
-                          (paymentForm.fee || 500) -
-                            (paymentForm.discount || 0) -
-                            (paymentForm.paidAmount || 0),
-                        )) > 0
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-emerald-600 dark:text-emerald-400"
+                    paymentForm.refundedAmount > 0
+                      ? "text-rose-600 dark:text-rose-400 font-black"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {paymentForm.refundedAmount > 0
+                    ? `-৳${paymentForm.refundedAmount}`
+                    : "৳0"}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-[10px]">
+                  Net Retained Cash
+                </span>
+                <span
+                  className={`font-extrabold ${
+                    paymentForm.paymentStatus === PaymentStatus.REFUNDED ||
+                    Math.max(
+                      0,
+                      (paymentForm.isNoPayment ? 0 : paymentForm.paidAmount) -
+                        (paymentForm.refundedAmount || 0),
+                    ) === 0
+                      ? "text-muted-foreground"
+                      : "text-primary"
                   }`}
                 >
                   ৳
@@ -2795,9 +3465,8 @@ export function ReceptionistWorkspace({
                     ? 0
                     : Math.max(
                         0,
-                        (paymentForm.fee || 500) -
-                          (paymentForm.discount || 0) -
-                          (paymentForm.paidAmount || 0),
+                        (paymentForm.paidAmount || 0) -
+                          (paymentForm.refundedAmount || 0),
                       )}
                 </span>
               </div>
@@ -2814,19 +3483,46 @@ export function ReceptionistWorkspace({
               </Button>
               <Button
                 type="submit"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold cursor-pointer shadow-xs gap-1.5"
+                className={`font-bold cursor-pointer shadow-xs gap-1.5 ${
+                  paymentForm.paymentStatus === PaymentStatus.REFUNDED
+                    ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                    : paymentForm.paymentStatus ===
+                        PaymentStatus.PARTIALLY_REFUNDED
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                }`}
               >
-                <Banknote className="h-4 w-4" />
-                <span>
-                  {paymentSerial &&
-                  (paymentSerial.paidAmount > 0 ||
-                    paymentSerial.isPackageCovered ||
-                    paymentSerial.paymentStatus === PaymentStatus.PAID)
-                    ? "Save Payment Changes"
-                    : paymentForm.isNoPayment
-                      ? "Confirm Free / N.P Visit"
-                      : `Record Payment (৳${paymentForm.paidAmount})`}
-                </span>
+                {paymentForm.paymentStatus === PaymentStatus.REFUNDED ? (
+                  <>
+                    <RotateCcw className="h-4 w-4" />
+                    <span>
+                      Confirm Full Refund (-৳
+                      {paymentForm.refundedAmount || paymentForm.paidAmount})
+                    </span>
+                  </>
+                ) : paymentForm.paymentStatus ===
+                  PaymentStatus.PARTIALLY_REFUNDED ? (
+                  <>
+                    <RotateCcw className="h-4 w-4" />
+                    <span>
+                      Confirm Partial Refund (-৳{paymentForm.refundedAmount})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Banknote className="h-4 w-4" />
+                    <span>
+                      {paymentSerial &&
+                      (paymentSerial.paidAmount > 0 ||
+                        paymentSerial.isPackageCovered ||
+                        paymentSerial.paymentStatus === PaymentStatus.PAID)
+                        ? "Save Payment Changes"
+                        : paymentForm.isNoPayment
+                          ? "Confirm Free / N.P Visit"
+                          : `Record Payment (৳${paymentForm.paidAmount})`}
+                    </span>
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -2961,7 +3657,11 @@ export function ReceptionistWorkspace({
                   }
                 >
                   <SelectTrigger className="w-full h-9 text-xs">
-                    <SelectValue placeholder="Gender" />
+                    <SelectValue placeholder="Gender">
+                      {editPatientForm.gender
+                        ? GENDER_LABELS[editPatientForm.gender]
+                        : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={Gender.MALE}>Male (পুরুষ)</SelectItem>
@@ -2991,7 +3691,12 @@ export function ReceptionistWorkspace({
                   }
                 >
                   <SelectTrigger className="w-full h-9 text-xs">
-                    <SelectValue placeholder="Select Blood Group" />
+                    <SelectValue placeholder="Select Blood Group">
+                      {editPatientForm.bloodGroup
+                        ? BLOOD_GROUP_LABELS[editPatientForm.bloodGroup] ||
+                          editPatientForm.bloodGroup
+                        : "Not Known"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UNKNOWN">Not Known</SelectItem>
@@ -3311,7 +4016,11 @@ export function ReceptionistWorkspace({
                 }
               >
                 <SelectTrigger className="w-full h-9 text-xs font-bold">
-                  <SelectValue placeholder="Queue Status" />
+                  <SelectValue placeholder="Queue Status">
+                    {editSerialForm.status
+                      ? SERIAL_STATUS_LABELS[editSerialForm.status]
+                      : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SerialStatus.PENDING}>
@@ -3338,22 +4047,6 @@ export function ReceptionistWorkspace({
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Assigned Chamber / Room */}
-            <RoomSelect
-              value={editSerialForm.roomNo}
-              onChange={(roomNum) =>
-                setEditSerialForm({ ...editSerialForm, roomNo: roomNum })
-              }
-              genderFilter={
-                editingSerial?.patient?.gender === "MALE" ||
-                editingSerial?.patient?.gender === "FEMALE"
-                  ? editingSerial.patient.gender
-                  : undefined
-              }
-              roomsOccupancy={roomsData?.rooms}
-              label="Assigned Chamber / Room (Staff-only rooms excluded)"
-            />
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">

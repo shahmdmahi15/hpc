@@ -560,9 +560,10 @@ export async function getAllRoomsWithOccupancy(dateStr?: string) {
       );
     });
 
-    // Active patients currently in session
+    // Active patients currently in session or calling
     const activeSerials = matchingSerials.filter(
       (s) =>
+        s.status === SerialStatus.CALLING ||
         s.status === SerialStatus.IN_THERAPY ||
         s.status === SerialStatus.IN_CONSULTATION,
     );
@@ -598,9 +599,11 @@ export async function getAllRoomsWithOccupancy(dateStr?: string) {
         serialNumber: s.serialNumber,
         status: s.status,
         statusLabel:
-          s.status === SerialStatus.IN_THERAPY
-            ? "In Therapy"
-            : "In Consultation",
+          s.status === SerialStatus.CALLING
+            ? "Calling to Chamber"
+            : s.status === SerialStatus.IN_THERAPY
+              ? "In Therapy"
+              : "In Consultation",
         handlerName: s.handler?.name,
         doctorName: s.doctor?.name,
         startTime: s.therapyStartTime || s.inTime,

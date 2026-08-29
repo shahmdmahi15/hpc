@@ -139,12 +139,13 @@ export function WaitingRoomDisplay({
           patientId: string;
           roomNo?: string;
           doctorName?: string;
+          durationSeconds?: number;
         };
         setCalledAlert({
           serialNumber: payloadData.serialNumber,
           patientName: payloadData.patientName,
           patientId: payloadData.patientId,
-          roomNo: payloadData.roomNo || "205",
+          roomNo: payloadData.roomNo || "201",
           doctorName: payloadData.doctorName,
         });
 
@@ -152,9 +153,15 @@ export function WaitingRoomDisplay({
           playClinicChime("call");
         }
 
+        const durationMs = (payloadData.durationSeconds || 7) * 1000;
         setTimeout(() => {
           setCalledAlert(null);
-        }, 14000);
+        }, durationMs);
+      } else if (
+        event.type === "SERIAL_UPDATED" &&
+        (event.data as any)?.event === "CALL_STOPPED"
+      ) {
+        setCalledAlert(null);
       }
       refreshData();
     },

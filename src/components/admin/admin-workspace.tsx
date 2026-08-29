@@ -2,11 +2,7 @@
 
 import { useState, useCallback, useTransition } from "react";
 import { useRealtime } from "@/hooks/use-realtime";
-import {
-  getDailyCashLedger,
-  auditLedgerEntry,
-  createOrUpdatePackage,
-} from "@/actions/billing";
+import { getDailyCashLedger, createOrUpdatePackage } from "@/actions/billing";
 import {
   Card,
   CardHeader,
@@ -73,11 +69,6 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
     onRefresh: refreshData,
   });
 
-  const handleAuditApprove = async (recordId: string) => {
-    await auditLedgerEntry(recordId);
-    refreshData();
-  };
-
   const handleCreatePackage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pkgForm.patientId) return;
@@ -103,10 +94,15 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
     refreshData();
   };
 
-  const totalCollected = ledger.reduce(
+  const totalGrossCollected = ledger.reduce(
     (acc, curr) => acc + (curr.paidAmount || 0),
     0,
   );
+  const totalRefunded = ledger.reduce(
+    (acc, curr) => acc + ((curr as any).refundedAmount || 0),
+    0,
+  );
+  const netCashCollected = Math.max(0, totalGrossCollected - totalRefunded);
   const totalActualBill = ledger.reduce(
     (acc, curr) => acc + (curr.actualBill || 0),
     0,
@@ -120,19 +116,34 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
   return (
     <div className="space-y-6">
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="p-4 shadow-sm border-border bg-card">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase">
-              Total Desk Cash
+              Net Desk Cash
             </span>
             <DollarSign className="h-4 w-4 text-primary" />
           </div>
           <p className="text-2xl font-bold mt-2 font-mono text-primary">
-            ৳{totalCollected.toLocaleString()}
+            ৳{netCashCollected.toLocaleString()}
           </p>
           <span className="text-[11px] text-muted-foreground mt-1">
-            Cashier collections verified (BST)
+            Gross ৳{totalGrossCollected.toLocaleString()}
+          </span>
+        </Card>
+
+        <Card className="p-4 shadow-sm border-border bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase">
+              Total Refunded
+            </span>
+            <RefreshCw className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+          </div>
+          <p className="text-2xl font-bold mt-2 font-mono text-rose-600 dark:text-rose-400">
+            ৳{totalRefunded.toLocaleString()}
+          </p>
+          <span className="text-[11px] text-muted-foreground mt-1">
+            Returned to patients
           </span>
         </Card>
 
@@ -162,7 +173,7 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
             {packageVisits}
           </p>
           <span className="text-[11px] text-muted-foreground mt-1">
-            No payment collected on desk (N.P)
+            Package covered visits
           </span>
         </Card>
 
@@ -259,9 +270,7 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
                     <th className="pb-3 font-semibold">PAY. BILL</th>
                     <th className="pb-3 font-semibold">DUE</th>
                     <th className="pb-3 font-semibold">CASHIER</th>
-                    <th className="pb-3 font-semibold text-right">
-                      CEO AUDIT APPROVAL
-                    </th>
+                    <th className="pb-3 font-semibold text-right">METHOD</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -297,8 +306,25 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
                         <td className="py-3 font-mono font-bold">
                           {item.isPackageCovered ? (
                             <Badge variant="secondary" className="text-[10px]">
-                              N.P (No Payment Made)
+                              N.P (Package Covered)
                             </Badge>
+                          ) : (item as any).refundedAmount > 0 ? (
+                            <div>
+                              <div className="text-muted-foreground line-through text-[11px]">
+                                ৳{item.paidAmount}
+                              </div>
+                              <div className="text-[11px] font-black text-rose-600 dark:text-rose-400">
+                                -৳{(item as any).refundedAmount} (Refund)
+                              </div>
+                              <div className="text-xs font-black text-primary">
+                                Net: ৳
+                                {Math.max(
+                                  0,
+                                  item.paidAmount -
+                                    ((item as any).refundedAmount || 0),
+                                )}
+                              </div>
+                            </div>
                           ) : (
                             <span className="text-primary text-sm font-bold">
                               ৳{item.paidAmount}
@@ -312,22 +338,12 @@ export function AdminWorkspace({ initialLedger }: AdminWorkspaceProps) {
                           {item.cashier?.name || "Front Desk"}
                         </td>
                         <td className="py-3 text-right">
-                          {item.auditedBy ? (
-                            <span className="inline-flex items-center gap-1 text-primary font-bold text-[11px]">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              <span>Approved ({item.auditedBy.name})</span>
-                            </span>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[11px] gap-1 cursor-pointer"
-                              onClick={() => handleAuditApprove(item.id)}
-                            >
-                              <ShieldCheck className="h-3 w-3 text-primary" />
-                              <span>CEO Sign &amp; Approve</span>
-                            </Button>
-                          )}
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-mono font-semibold"
+                          >
+                            {item.paymentMethod || "CASH"}
+                          </Badge>
                         </td>
                       </tr>
                     ))

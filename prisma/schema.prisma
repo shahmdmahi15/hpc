@@ -83,6 +83,7 @@ enum SerialStatus {
   PENDING
   CHECKED_IN
   WAITING
+  CALLING
   IN_CONSULTATION
   IN_THERAPY
   COMPLETED
@@ -109,6 +110,7 @@ enum PaymentStatus {
   UNPAID
   PARTIALLY_PAID
   PAID
+  PARTIALLY_REFUNDED
   REFUNDED
 }
 
@@ -329,7 +331,11 @@ model Serial {
   // Day Cash Ledger Entry
   fee                Float         @default(0.0)
   paidAmount         Float         @default(0.0)
+  refundedAmount     Float         @default(0.0)
+  discountAmount     Float         @default(0.0)
   isPackageCovered   Boolean       @default(false) // Marked as N.P (No Payment / Package covered)
+  packageId          String?
+  package            PatientPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
   paymentStatus      PaymentStatus @default(UNPAID)
   paymentMethod      PaymentMethod?
 
@@ -353,11 +359,13 @@ model Serial {
 
   @@unique([date, serialNumber])
   @@index([patientId])
+  @@index([packageId])
   @@index([doctorId])
   @@index([handlerId])
   @@index([date])
   @@index([hourlySlot])
   @@index([status])
+  @@index([paymentStatus])
   @@index([gender])
   @@index([createdAt])
 }
@@ -448,10 +456,25 @@ model TreatmentSession {
   treatmentPerformed String   // Modalities executed (e.g. "D-N, UST, SWD, T-40, TENS, IFT, mass, PMF, Nemas, Lazas")
   notes              String?
 
+  // Payment & Billing for Treatment Session
+  fee                Float         @default(0.0)
+  paidAmount         Float         @default(0.0)
+  refundedAmount     Float         @default(0.0)
+  discountAmount     Float         @default(0.0)
+  isPackageCovered   Boolean       @default(false)
+  packageId          String?
+  package            PatientPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  paymentStatus      PaymentStatus @default(UNPAID)
+  paymentMethod      PaymentMethod?
+
+  billingRecords     BillingRecord[]
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   @@index([patientId])
+  @@index([packageId])
+  @@index([paymentStatus])
   @@index([handlerId])
   @@index([date])
 }
@@ -466,6 +489,7 @@ model PatientPackage {
   totalDays      Int            @default(30) // 21 - 30 days
   totalAmount    Float          // Package price (e.g. 10000, 13000, 20000)
   paidAmount     Float          @default(0.0)
+  refundedAmount Float          @default(0.0)
   dueAmount      Float          @default(0.0)
   startDate      DateTime       @default(now())
   endDate        DateTime?
@@ -475,6 +499,8 @@ model PatientPackage {
   // Relations
   patientId      String
   patient        Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  serials        Serial[]
+  treatmentSessions TreatmentSession[]
   billingRecords BillingRecord[]
 
   createdAt      DateTime       @default(now())
@@ -496,10 +522,12 @@ model BillingRecord {
   // Financial Figures
   actualBill       Float          @default(0.0) // A Bill (e.g. 2,000 / 500)
   paidAmount       Float          @default(0.0) // Pay. Bill (or 0 if N.P)
-  advanceAmount    Float          @default(0.0) // Advance deposit
+  refundedAmount   Float          @default(0.0) // Refunded amount back to patient
+  advanceAmount    Float          @default(0.0) // Advance deposit or discount
   dueAmount        Float          @default(0.0) // Remaining due balance
   isPackageCovered Boolean        @default(false) // Flag for N.P (Package covered session)
 
+  paymentStatus    PaymentStatus  @default(PAID)
   paymentMethod    PaymentMethod? @default(CASH)
 
   // Patient Link
@@ -514,6 +542,10 @@ model BillingRecord {
   serialId         String?
   serial           Serial?        @relation(fields: [serialId], references: [id], onDelete: SetNull)
 
+  // Treatment Session Link (Optional)
+  treatmentSessionId String?
+  treatmentSession   TreatmentSession? @relation(fields: [treatmentSessionId], references: [id], onDelete: SetNull)
+
   // Sign-off Roles (Cashier & CEO Audit)
   cashierId        String?
   cashier          User?          @relation("CashierBillings", fields: [cashierId], references: [id], onDelete: SetNull)
@@ -521,7 +553,7 @@ model BillingRecord {
   auditedById      String?
   auditedBy        User?          @relation("AuditedBillings", fields: [auditedById], references: [id], onDelete: SetNull)
 
-  notes            String?        // Remarks e.g. "N.P", "Cash deposit"
+  notes            String?        // Remarks e.g. "N.P", "Cash deposit", "Refund: ₹500 returned"
 
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -529,6 +561,8 @@ model BillingRecord {
   @@index([patientId])
   @@index([packageId])
   @@index([serialId])
+  @@index([treatmentSessionId])
+  @@index([paymentStatus])
   @@index([cashierId])
   @@index([auditedById])
   @@index([date])

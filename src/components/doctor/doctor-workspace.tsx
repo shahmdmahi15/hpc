@@ -1,15 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useTransition,
+  useMemo,
+} from "react";
 import { useRealtime } from "@/hooks/use-realtime";
 import {
   getDoctorQueue,
   callSerial,
+  stopCallSerial,
+  startDoctorConsultation,
   updateSerialStatus,
   assignToHandlerWithPlan,
 } from "@/actions/serials";
 import { saveClinicalAssessment } from "@/actions/assessments";
 import { formatBSTTime } from "@/lib/date";
+import { toast } from "sonner";
 import {
   Card,
   CardHeader,
@@ -31,6 +40,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Users,
   Clock,
   PhoneCall,
@@ -43,6 +59,15 @@ import {
   RefreshCw,
   Send,
   HeartPulse,
+  Volume2,
+  VolumeX,
+  DoorOpen,
+  Search,
+  X,
+  Play,
+  Square,
+  Radio,
+  Zap,
 } from "lucide-react";
 import {
   SerialStatus,
@@ -87,6 +112,16 @@ export function DoctorWorkspace({
   const [isExamOpen, setIsExamOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  // Active Calling State (5-second countdown with instant stop capability)
+  const [callingSerialId, setCallingSerialId] = useState<string | null>(null);
+  const [callingSecondsRemaining, setCallingSecondsRemaining] =
+    useState<number>(0);
+  const [doctorChamberRoom, setDoctorChamberRoom] = useState<string>("205");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | "IN_CHAMBER_WAITING" | "IN_THERAPY" | "NOT_CHECKED_IN" | "COMPLETED"
+  >("ALL");
+
   // Route to Handler Modal State
   const [isRouteHandlerOpen, setIsRouteHandlerOpen] = useState(false);
   const [routeSerial, setRouteSerial] = useState<DoctorQueueItem | null>(null);
@@ -98,6 +133,41 @@ export function DoctorWorkspace({
     ReturnType<typeof getAllRoomsWithOccupancy>
   > | null>(null);
   const [routeError, setRouteError] = useState("");
+
+  // Dynamically filter ONLY active, non-staff doctor consultation chamber rooms
+  const doctorRooms = useMemo(() => {
+    if (!roomsData?.rooms || roomsData.rooms.length === 0) {
+      return [
+        {
+          roomNumber: "205",
+          name: "Room 205",
+          purpose: "Doctor Room",
+        },
+      ];
+    }
+    const docList = roomsData.rooms.filter(
+      (r) =>
+        r.isActive &&
+        !r.isStaffOnly &&
+        (r.type === "DOCTOR" ||
+          (r.purpose && r.purpose.toLowerCase().includes("doctor")) ||
+          (r.name && r.name.toLowerCase().includes("doctor"))),
+    );
+    if (docList.length > 0) return docList;
+    return roomsData.rooms.filter((r) => r.isActive && !r.isStaffOnly);
+  }, [roomsData]);
+
+  // Sync selected chamber room with available doctor rooms
+  useEffect(() => {
+    if (doctorRooms.length > 0) {
+      const exists = doctorRooms.some(
+        (r) => r.roomNumber === doctorChamberRoom,
+      );
+      if (!exists) {
+        setDoctorChamberRoom(doctorRooms[0].roomNumber);
+      }
+    }
+  }, [doctorRooms, doctorChamberRoom]);
 
   // Clinical Assessment Form State (Matching Page 1 of PDF 2)
   const [examForm, setExamForm] = useState<{
@@ -150,6 +220,23 @@ export function DoctorWorkspace({
     clinicalNotes: "",
   });
 
+  // 5-second countdown interval timer for active call
+  useEffect(() => {
+    if (!callingSerialId || callingSecondsRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setCallingSecondsRemaining((prev) => {
+        if (prev <= 1) {
+          setCallingSerialId(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [callingSerialId, callingSecondsRemaining]);
+
   const refreshData = useCallback(() => {
     startTransition(async () => {
       try {
@@ -175,13 +262,54 @@ export function DoctorWorkspace({
     onRefresh: refreshData,
   });
 
+  // Call Patient to Chamber (Broadcasts event & rings kiosk with sound for 5s)
   const handleCallPatient = async (serial: DoctorQueueItem) => {
-    await callSerial(
-      serial.id,
-      serial.roomNo || "205",
-      SerialStatus.IN_CONSULTATION,
-    );
-    refreshData();
+    const chamber = serial.roomNo || doctorChamberRoom || "201";
+    setCallingSerialId(serial.id);
+    setCallingSecondsRemaining(5);
+
+    try {
+      await callSerial(serial.id, chamber, SerialStatus.CALLING);
+      toast.success(
+        `Calling Serial #${serial.serialNumber} (${serial.patient.name}) to Chamber ${chamber}...`,
+      );
+      refreshData();
+    } catch (err) {
+      console.error("Failed to call patient", err);
+      toast.error("Failed to call patient to chamber.");
+      setCallingSerialId(null);
+      setCallingSecondsRemaining(0);
+    }
+  };
+
+  // Stop Calling immediately
+  const handleStopCall = async (serialId: string) => {
+    setCallingSerialId(null);
+    setCallingSecondsRemaining(0);
+    try {
+      await stopCallSerial(serialId);
+      toast.info("Call stopped.");
+      refreshData();
+    } catch (err) {
+      console.error("Failed to stop call", err);
+    }
+  };
+
+  // Patient Entered Room: Start Consultation
+  const handleStartConsultation = async (serial: DoctorQueueItem) => {
+    setCallingSerialId(null);
+    setCallingSecondsRemaining(0);
+    const chamber = serial.roomNo || doctorChamberRoom || "201";
+    try {
+      await startDoctorConsultation(serial.id, chamber);
+      toast.success(
+        `Consultation started for Serial #${serial.serialNumber} (${serial.patient.name})`,
+      );
+      refreshData();
+    } catch (err) {
+      console.error("Failed to start consultation", err);
+      toast.error("Failed to update status to consulting.");
+    }
   };
 
   const handleOpenRouteToHandler = (serial: DoctorQueueItem) => {
@@ -290,22 +418,158 @@ export function DoctorWorkspace({
     refreshData();
   };
 
-  // Metrics
+  // Metrics & Counters
   const activeConsultation = queue.find(
     (s) => s.status === SerialStatus.IN_CONSULTATION,
   );
-  const waitingCount = queue.filter(
+  const callingCount = queue.filter(
+    (s) => s.status === SerialStatus.CALLING || callingSerialId === s.id,
+  ).length;
+  const consultingCount = queue.filter(
+    (s) => s.status === SerialStatus.IN_CONSULTATION,
+  ).length;
+  const inTherapyCount = queue.filter(
+    (s) => s.status === SerialStatus.IN_THERAPY,
+  ).length;
+  // Patient is checked in and present in the waiting lounge
+  const waitingInLoungeCount = queue.filter(
     (s) =>
-      s.status === SerialStatus.WAITING || s.status === SerialStatus.CHECKED_IN,
+      (s.status === SerialStatus.WAITING ||
+        s.status === SerialStatus.CHECKED_IN) &&
+      !!s.inTime,
+  ).length;
+  // Patient is NOT checked in yet (Pending arrival / En route)
+  const notCheckedInCount = queue.filter(
+    (s) =>
+      (s.status === SerialStatus.PENDING || !s.inTime) &&
+      s.status !== SerialStatus.CALLING &&
+      s.status !== SerialStatus.IN_CONSULTATION &&
+      s.status !== SerialStatus.IN_THERAPY &&
+      s.status !== SerialStatus.COMPLETED &&
+      s.status !== SerialStatus.CANCELLED,
   ).length;
   const completedCount = queue.filter(
     (s) => s.status === SerialStatus.COMPLETED,
   ).length;
+  const inChamberAndWaitingCount =
+    consultingCount + waitingInLoungeCount + callingCount;
+
+  // Filtered Queue by Status & Multi-Field Search with Hierarchical Priority Sorting
+  const filteredQueue = useMemo(() => {
+    let list = queue;
+    if (statusFilter === "IN_CHAMBER_WAITING") {
+      list = list.filter(
+        (s) =>
+          s.status === SerialStatus.IN_CONSULTATION ||
+          s.status === SerialStatus.CALLING ||
+          callingSerialId === s.id ||
+          ((s.status === SerialStatus.WAITING ||
+            s.status === SerialStatus.CHECKED_IN) &&
+            !!s.inTime),
+      );
+    } else if (statusFilter === "IN_THERAPY") {
+      list = list.filter((s) => s.status === SerialStatus.IN_THERAPY);
+    } else if (statusFilter === "NOT_CHECKED_IN") {
+      list = list.filter(
+        (s) =>
+          (s.status === SerialStatus.PENDING || !s.inTime) &&
+          s.status !== SerialStatus.CALLING &&
+          s.status !== SerialStatus.IN_CONSULTATION &&
+          s.status !== SerialStatus.IN_THERAPY &&
+          s.status !== SerialStatus.COMPLETED &&
+          s.status !== SerialStatus.CANCELLED,
+      );
+    } else if (statusFilter === "COMPLETED") {
+      list = list.filter(
+        (s) =>
+          s.status === SerialStatus.COMPLETED ||
+          s.status === SerialStatus.CANCELLED,
+      );
+    }
+
+    if (searchQuery.trim()) {
+      const rawQ = searchQuery.trim().toLowerCase();
+      const cleanQ = rawQ.replace(/^[#\s]+/, "");
+      const numOnlyQ = rawQ.replace(/[^0-9]/g, "");
+
+      list = list.filter((s) => {
+        const patName = (s.patient.name || "").toLowerCase();
+        const patPhone = (s.patient.phone || "").toLowerCase();
+        const patId = String(s.patient.patientId || "").toLowerCase();
+        const serialNum = String(s.serialNumber || "");
+        const paddedSerial = serialNum.padStart(2, "0");
+        const roomNo = (s.roomNo || "").toLowerCase();
+
+        const matchesSerial =
+          rawQ === serialNum ||
+          rawQ === `#${serialNum}` ||
+          rawQ === paddedSerial ||
+          rawQ === `#${paddedSerial}` ||
+          cleanQ === serialNum ||
+          cleanQ === paddedSerial ||
+          rawQ === `serial ${serialNum}` ||
+          rawQ === `sl ${serialNum}`;
+
+        const matchesPhone =
+          patPhone.includes(rawQ) ||
+          (numOnlyQ && patPhone.replace(/[^0-9]/g, "").includes(numOnlyQ));
+
+        const matchesPatId =
+          patId.includes(rawQ) ||
+          patId.includes(cleanQ) ||
+          (numOnlyQ && patId.replace(/[^0-9]/g, "").includes(numOnlyQ));
+
+        return (
+          patName.includes(rawQ) ||
+          matchesPhone ||
+          matchesPatId ||
+          matchesSerial ||
+          roomNo.includes(rawQ)
+        );
+      });
+    }
+
+    // Systematic clinical sort order:
+    // 1. In Chamber / In Consultation (top)
+    // 2. Calling buzzer (right at top with chamber)
+    // 3. Waiting in Lounge (checked-in)
+    // 4. In Therapy (modalities active in therapy bays)
+    // 5. Not Checked In yet (en route / pending)
+    // 6. Completed / Cancelled (at the very bottom / last)
+    const getPriorityRank = (s: DoctorQueueItem): number => {
+      if (s.status === SerialStatus.IN_CONSULTATION) return 1;
+      if (s.status === SerialStatus.CALLING || callingSerialId === s.id)
+        return 2;
+      if (
+        (s.status === SerialStatus.WAITING ||
+          s.status === SerialStatus.CHECKED_IN) &&
+        !!s.inTime
+      )
+        return 3;
+      if (s.status === SerialStatus.IN_THERAPY) return 4;
+      if (s.status === SerialStatus.PENDING || !s.inTime) return 5;
+      if (
+        s.status === SerialStatus.COMPLETED ||
+        s.status === SerialStatus.CANCELLED
+      )
+        return 6;
+      return 7;
+    };
+
+    return [...list].sort((a, b) => {
+      const rankA = getPriorityRank(a);
+      const rankB = getPriorityRank(b);
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+      return (a.serialNumber || 0) - (b.serialNumber || 0);
+    });
+  }, [queue, statusFilter, searchQuery, callingSerialId]);
 
   return (
     <div className="space-y-3 w-full max-w-full min-w-0">
       {/* Top Clinical Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 min-w-0">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-2.5 min-w-0">
         <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
@@ -317,39 +581,84 @@ export function DoctorWorkspace({
             {queue.length}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
-            {t("rec.total_registered", "Total assigned patients")}
+            {t("rec.total_registered", "Assigned patients")}
           </span>
         </Card>
 
         <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
-              {t("rec.waiting_room", "Waiting in Lounge")}
+              Waiting in Lounge
             </span>
-            <Clock className="h-3.5 w-3.5 text-primary" />
+            <Clock className="h-3.5 w-3.5 text-blue-500" />
           </div>
-          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-foreground">
-            {waitingCount}
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-blue-600 dark:text-blue-400">
+            {waitingInLoungeCount}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
-            {t("status.waiting", "Ready for consultation")}
+            Checked in &amp; ready
           </span>
         </Card>
 
         <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
-              {t("status.in_consultation", "Active In Chamber")}
+              Not Checked In
             </span>
-            <Activity className="h-3.5 w-3.5 text-primary animate-pulse" />
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
           </div>
-          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-primary">
-            {activeConsultation
-              ? `#${activeConsultation.serialNumber}`
-              : "None"}
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-amber-600 dark:text-amber-400">
+            {notCheckedInCount}
+          </p>
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            En route / Pending
+          </span>
+        </Card>
+
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              Calling Now
+            </span>
+            <Volume2
+              className={`h-3.5 w-3.5 ${callingCount > 0 ? "text-destructive animate-pulse" : "text-muted-foreground"}`}
+            />
+          </div>
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-amber-600 dark:text-amber-400">
+            {callingCount}
+          </p>
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            Ringing buzzer
+          </span>
+        </Card>
+
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              {t("status.in_consultation", "In Chamber")}
+            </span>
+            <Activity className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
+          </div>
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-emerald-600 dark:text-emerald-400">
+            {consultingCount}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground block truncate">
             {activeConsultation?.patient.name || "Chamber available"}
+          </span>
+        </Card>
+
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
+              In Therapy
+            </span>
+            <Zap className="h-3.5 w-3.5 text-purple-500 animate-pulse" />
+          </div>
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-purple-600 dark:text-purple-400">
+            {inTherapyCount}
+          </p>
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            Modalities active
           </span>
         </Card>
 
@@ -364,7 +673,7 @@ export function DoctorWorkspace({
             {completedCount}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
-            {t("status.completed", "Care plans issued")}
+            {t("status.completed", "Visits completed")}
           </span>
         </Card>
       </div>
@@ -379,7 +688,7 @@ export function DoctorWorkspace({
             <div>
               <div className="text-[10px] uppercase font-bold text-primary flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
-                <span>Currently In Chamber</span>
+                <span>Currently In Consultation Chamber</span>
               </div>
               <h2 className="text-base font-black text-foreground leading-tight">
                 {activeConsultation.patient.name}
@@ -400,7 +709,7 @@ export function DoctorWorkspace({
               className="h-7.5 text-xs gap-1 font-bold cursor-pointer bg-primary text-primary-foreground"
             >
               <Send className="h-3 w-3" />
-              <span>Send to Handler</span>
+              <span>Prescribe &amp; Route</span>
             </Button>
 
             <Button
@@ -417,7 +726,7 @@ export function DoctorWorkspace({
               size="sm"
               onClick={() => handleCompleteSerial(activeConsultation.id)}
               variant="outline"
-              className="h-7.5 text-xs cursor-pointer"
+              className="h-7.5 text-xs cursor-pointer font-semibold"
             >
               Complete Visit
             </Button>
@@ -431,11 +740,11 @@ export function DoctorWorkspace({
           <div>
             <CardTitle className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
               <Stethoscope className="h-3.5 w-3.5 text-primary" />
-              <span>Doctor Queue &amp; Patient Triage</span>
+              <span>Doctor Patient Queue &amp; Chamber Calls</span>
             </CardTitle>
             <CardDescription className="text-[11px]">
-              Review arrivals in priority order, call to chamber, or prescribe
-              treatment plans.
+              Call patients to doctor chamber with audio buzzer, manage
+              consults, and prescribe therapy protocols.
             </CardDescription>
           </div>
           <Button
@@ -450,108 +759,240 @@ export function DoctorWorkspace({
             />
           </Button>
         </CardHeader>
-        <CardContent className="p-0 px-2 sm:px-4 pb-3">
+
+        {/* Filter and Control Bar */}
+        <div className="p-2 sm:p-3 pb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-border bg-muted/20">
+          <div className="flex items-center gap-1 flex-wrap">
+            <Button
+              size="sm"
+              variant={statusFilter === "ALL" ? "default" : "outline"}
+              onClick={() => setStatusFilter("ALL")}
+              className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
+            >
+              All ({queue.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={
+                statusFilter === "IN_CHAMBER_WAITING" ? "default" : "outline"
+              }
+              onClick={() => setStatusFilter("IN_CHAMBER_WAITING")}
+              className="text-xs h-7 px-2.5 cursor-pointer font-semibold gap-1.5 text-emerald-600 dark:text-emerald-400"
+            >
+              <Activity className="h-3 w-3" />
+              <span>In Chamber &amp; Waiting ({inChamberAndWaitingCount})</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "IN_THERAPY" ? "default" : "outline"}
+              onClick={() => setStatusFilter("IN_THERAPY")}
+              className="text-xs h-7 px-2.5 cursor-pointer font-semibold gap-1 text-purple-600 dark:text-purple-400"
+            >
+              <Zap className="h-3 w-3" />
+              <span>In Therapy ({inTherapyCount})</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={
+                statusFilter === "NOT_CHECKED_IN" ? "default" : "outline"
+              }
+              onClick={() => setStatusFilter("NOT_CHECKED_IN")}
+              className="text-xs h-7 px-2.5 cursor-pointer font-semibold gap-1 text-amber-600 dark:text-amber-400"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              <span>Not Checked In ({notCheckedInCount})</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "COMPLETED" ? "default" : "outline"}
+              onClick={() => setStatusFilter("COMPLETED")}
+              className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
+            >
+              Completed ({completedCount})
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Select
+              value={doctorChamberRoom}
+              onValueChange={(val: string | null) => {
+                if (val) setDoctorChamberRoom(val);
+              }}
+            >
+              <SelectTrigger className="h-7.5 text-xs bg-background border-border shadow-xs px-2.5 gap-2 font-medium min-w-[130px] sm:min-w-[155px] cursor-pointer rounded-lg shrink-0">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 shrink-0">
+                  <Stethoscope className="h-3 w-3 text-primary" />
+                  Chamber:
+                </span>
+                <SelectValue placeholder="Select Chamber">
+                  <span className="font-mono font-bold text-foreground">
+                    #{doctorChamberRoom}
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-60" align="end">
+                {doctorRooms.map((r) => {
+                  const label =
+                    r.purpose && r.purpose !== `Room ${r.roomNumber}`
+                      ? r.purpose
+                      : r.name && r.name !== `Room ${r.roomNumber}`
+                        ? r.name
+                        : "Doctor Chamber";
+                  return (
+                    <SelectItem
+                      key={r.roomNumber}
+                      value={r.roomNumber}
+                      className="text-xs font-medium cursor-pointer"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-primary">
+                          #{r.roomNumber}
+                        </span>
+                        <span className="truncate text-foreground">
+                          {label}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+
+            <div className="relative flex-1 sm:w-52">
+              <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search name, phone, serial #..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-7.5 pr-7 h-7.5 text-xs bg-background"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <CardContent className="p-0 pb-3">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[650px]">
+            <table className="w-full text-left text-xs min-w-[680px]">
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="pb-2 font-semibold w-12">
+                <tr className="border-b border-border text-muted-foreground bg-muted/10">
+                  <th className="py-2.5 pl-3.5 sm:pl-4 pr-2 font-semibold w-16">
                     {t("col.serial", "Serial")}
                   </th>
-                  <th className="pb-2 font-semibold">
+                  <th className="py-2.5 px-2.5 font-semibold">
                     {t("col.patient_details", "Patient Details")}
                   </th>
-                  <th className="pb-2 font-semibold">
+                  <th className="py-2.5 px-2.5 font-semibold">
                     {t("col.told_time", "Told Time")}
                   </th>
-                  <th className="pb-2 font-semibold">
+                  <th className="py-2.5 px-2.5 font-semibold">
                     {t("col.arrival_status", "Arrival Time")}
                   </th>
-                  <th className="pb-2 font-semibold">Chief Complaint / VAS</th>
-                  <th className="pb-2 font-semibold">
+                  <th className="py-2.5 px-2.5 font-semibold">
+                    Chief Complaint / VAS
+                  </th>
+                  <th className="py-2.5 px-2.5 font-semibold">
                     {t("col.queue_status", "Status")}
                   </th>
-                  <th className="pb-2 font-semibold text-right">
+                  <th className="py-2.5 pl-2 pr-3.5 sm:pr-4 font-semibold text-right">
                     {t("col.action", "Actions")}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {queue.length === 0 ? (
+                {filteredQueue.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
-                      className="py-8 text-center text-muted-foreground"
+                      className="py-8 text-center text-muted-foreground pl-3.5 pr-3.5 sm:pl-4 sm:pr-4"
                     >
-                      No patients in queue for today yet.
+                      {searchQuery
+                        ? "No matching patients found."
+                        : "No patients in queue for today yet."}
                     </td>
                   </tr>
                 ) : (
-                  queue.map((s) => {
+                  filteredQueue.map((s) => {
                     const latestVas = s.patient.assessments?.[0]?.vasScore;
+                    const isCalling =
+                      s.status === SerialStatus.CALLING ||
+                      callingSerialId === s.id;
+                    const isConsulting =
+                      s.status === SerialStatus.IN_CONSULTATION;
+
                     return (
                       <tr
                         key={s.id}
                         className={`hover:bg-muted/30 transition-colors ${
-                          s.status === SerialStatus.IN_CONSULTATION
-                            ? "bg-primary/10 font-semibold"
-                            : ""
+                          isCalling
+                            ? "bg-amber-500/10 font-medium"
+                            : isConsulting
+                              ? "bg-primary/10 font-semibold"
+                              : ""
                         }`}
                       >
-                        <td className="py-3 font-mono font-black text-base text-primary">
+                        <td className="py-3 pl-3.5 sm:pl-4 pr-2 font-mono font-black text-base text-primary whitespace-nowrap">
                           #{s.serialNumber}
                         </td>
-                        <td className="py-3">
-                          <div className="font-bold text-foreground">
+                        <td className="py-3 px-2.5 min-w-[160px]">
+                          <div className="font-bold text-foreground truncate">
                             {s.patient.name}
                           </div>
-                          <div className="text-[11px] text-muted-foreground font-mono">
+                          <div className="text-[11px] text-muted-foreground font-mono whitespace-nowrap">
                             ID: #{s.patient.patientId} &bull; {s.patient.gender}{" "}
-                            ({s.patient.age || "-"}y)
+                            ({s.patient.age || "-"}y) &bull; {s.patient.phone}
                           </div>
                         </td>
-                        <td className="py-3 font-medium text-foreground">
+                        <td className="py-3 px-2.5 font-medium text-foreground whitespace-nowrap">
                           {s.toldTime
                             ? formatBSTTime(s.toldTime)
                             : s.timeSlot || "Scheduled"}
                         </td>
-                        <td className="py-3">
+                        <td className="py-3 px-2.5 whitespace-nowrap">
                           {s.inTime ? (
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-nowrap">
                               <span className="font-mono text-[11px] font-semibold text-foreground">
                                 {formatBSTTime(s.inTime)}
                               </span>
                               {s.punctualityStatus === "ON_TIME" && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
                                   On-Time
                                 </span>
                               )}
                               {s.punctualityStatus === "MODERATE_LATE" && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap">
                                   +{s.latenessMinutes}m
                                 </span>
                               )}
                               {s.punctualityStatus === "SEVERE_LATE" && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
-                                  +{s.latenessMinutes}m (-5 Pos)
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-destructive/15 text-destructive border border-destructive/30 whitespace-nowrap">
+                                  +{s.latenessMinutes}m
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground text-[11px] italic">
+                            <span className="text-muted-foreground text-[11px] font-medium italic flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-muted-foreground/60" />
                               En route
                             </span>
                           )}
                         </td>
-                        <td className="py-3 text-muted-foreground">
+                        <td className="py-3 px-2.5 text-muted-foreground">
                           <div className="flex items-center gap-2">
-                            <span>
+                            <span className="font-medium text-foreground/90">
                               {s.patient.primaryCondition ||
                                 "Pain Rehabilitation"}
                             </span>
                             {latestVas !== undefined && latestVas !== null && (
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                                   latestVas >= 7
                                     ? "bg-destructive/10 text-destructive border border-destructive/20"
                                     : "bg-primary/10 text-primary border border-primary/20"
@@ -562,58 +1003,194 @@ export function DoctorWorkspace({
                             )}
                           </div>
                         </td>
-                        <td className="py-3">
-                          <Badge
-                            variant={
-                              s.status === SerialStatus.IN_CONSULTATION ||
-                              s.status === SerialStatus.IN_THERAPY
-                                ? "default"
-                                : s.status === SerialStatus.WAITING
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                            className="text-[10px] font-bold"
-                          >
-                            {s.status.replace("_", " ")}
-                          </Badge>
+                        <td className="py-3 px-2.5 whitespace-nowrap">
+                          {isCalling ? (
+                            <Badge className="bg-amber-500 text-white font-bold text-[10px] gap-1 px-2.5 py-0.5 rounded-full animate-pulse shadow-xs whitespace-nowrap">
+                              <Volume2 className="h-3 w-3" />
+                              <span>Calling Chamber</span>
+                            </Badge>
+                          ) : isConsulting ? (
+                            <Badge className="bg-emerald-600 text-white font-bold text-[10px] gap-1 px-2.5 py-0.5 rounded-full shadow-xs whitespace-nowrap">
+                              <Activity className="h-3 w-3 animate-pulse" />
+                              <span>Consulting</span>
+                            </Badge>
+                          ) : s.status === SerialStatus.IN_THERAPY ? (
+                            <Badge className="bg-purple-600 dark:bg-purple-700 text-white font-bold text-[10px] gap-1 px-2.5 py-0.5 rounded-full shadow-xs whitespace-nowrap">
+                              <Zap className="h-3 w-3 animate-pulse" />
+                              <span>In Therapy</span>
+                            </Badge>
+                          ) : !s.inTime || s.status === SerialStatus.PENDING ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-bold text-amber-500 border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 rounded-full whitespace-nowrap gap-1"
+                            >
+                              <Clock className="h-3 w-3" />
+                              <span>Not Checked In</span>
+                            </Badge>
+                          ) : s.status === SerialStatus.WAITING ||
+                            s.status === SerialStatus.CHECKED_IN ? (
+                            <Badge
+                              variant="secondary"
+                              className="text-[10px] font-bold text-blue-500 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap gap-1"
+                            >
+                              <Users className="h-3 w-3" />
+                              <span>Waiting</span>
+                            </Badge>
+                          ) : s.status === SerialStatus.COMPLETED ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 rounded-full whitespace-nowrap gap-1"
+                            >
+                              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                              <span>Completed</span>
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-bold whitespace-nowrap px-2.5 py-0.5 rounded-full"
+                            >
+                              {s.status.replace("_", " ")}
+                            </Badge>
+                          )}
                         </td>
-                        <td className="py-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                            {/* Call Button */}
-                            {s.status !== SerialStatus.COMPLETED &&
-                              s.status !== SerialStatus.CANCELLED && (
+                        <td className="py-3 pl-2 pr-3.5 sm:pr-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5 flex-nowrap">
+                            {/* Calling State Action Buttons */}
+                            {isCalling ? (
+                              <div className="flex items-center gap-1.5 flex-nowrap">
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-7 text-xs cursor-pointer gap-1 font-bold animate-pulse px-2.5 whitespace-nowrap"
+                                  onClick={() => handleStopCall(s.id)}
+                                  title="Stop buzzer call early"
+                                >
+                                  <VolumeX className="h-3.5 w-3.5" />
+                                  <span>
+                                    Stop Call (
+                                    {callingSerialId === s.id &&
+                                    callingSecondsRemaining > 0
+                                      ? `${callingSecondsRemaining}s`
+                                      : "5s"}
+                                    )
+                                  </span>
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs cursor-pointer gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 shadow-xs whitespace-nowrap"
+                                  onClick={() => handleStartConsultation(s)}
+                                  title="Patient arrived inside doctor chamber"
+                                >
+                                  <DoorOpen className="h-3.5 w-3.5" />
+                                  <span>Patient Entered</span>
+                                </Button>
+                              </div>
+                            ) : isConsulting ? (
+                              <div className="flex items-center gap-1.5 flex-nowrap">
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-7 text-[11px] cursor-pointer gap-1"
+                                  className="h-7 text-xs font-semibold px-2.5 gap-1.5 cursor-pointer border-border hover:bg-muted/50 whitespace-nowrap"
+                                  onClick={() => handleOpenExam(s)}
+                                  title="Fill / Edit Clinical Assessment"
+                                >
+                                  <FileCheck className="h-3.5 w-3.5 text-primary" />
+                                  <span>Exam</span>
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs font-bold px-2.5 gap-1.5 cursor-pointer bg-primary text-primary-foreground shadow-xs hover:opacity-90 whitespace-nowrap"
+                                  onClick={() => handleOpenRouteToHandler(s)}
+                                  title="Prescribe & Route to Therapy Handler"
+                                >
+                                  <Send className="h-3.5 w-3.5" />
+                                  <span>Therapy</span>
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs font-semibold px-2.5 gap-1.5 cursor-pointer text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 whitespace-nowrap"
+                                  onClick={() => handleCompleteSerial(s.id)}
+                                  title="Mark consultation completed"
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                  <span>Complete</span>
+                                </Button>
+                              </div>
+                            ) : s.status === SerialStatus.IN_THERAPY ? (
+                              <div className="flex items-center gap-1.5 flex-nowrap">
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] font-medium text-purple-600 dark:text-purple-400 border-purple-500/30 bg-purple-500/10 px-2.5 py-0.5 gap-1 whitespace-nowrap"
+                                >
+                                  <Zap className="h-3 w-3 text-purple-500" />
+                                  <span>Bay {s.roomNo || "Assigned"}</span>
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs font-semibold px-2.5 gap-1 cursor-pointer border-border hover:bg-muted/50 whitespace-nowrap"
+                                  onClick={() => handleOpenExam(s)}
+                                  title="View / Edit Clinical Assessment"
+                                >
+                                  <FileCheck className="h-3.5 w-3.5 text-primary" />
+                                  <span>Exam</span>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs font-semibold px-2.5 gap-1 cursor-pointer text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 whitespace-nowrap"
+                                  onClick={() => handleCompleteSerial(s.id)}
+                                  title="Mark consultation completed"
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                  <span>Complete</span>
+                                </Button>
+                              </div>
+                            ) : !s.inTime ||
+                              s.status === SerialStatus.PENDING ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-normal text-muted-foreground border-border/40 bg-muted/20 px-2.5 py-0.5 gap-1 whitespace-nowrap"
+                              >
+                                <Clock className="h-3 w-3 text-muted-foreground/60" />
+                                <span>Awaiting Check-in</span>
+                              </Badge>
+                            ) : s.status !== SerialStatus.COMPLETED &&
+                              s.status !== SerialStatus.CANCELLED ? (
+                              <div className="flex items-center gap-1.5 flex-nowrap">
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs cursor-pointer gap-1.5 font-bold bg-primary text-primary-foreground shadow-xs px-2.5 whitespace-nowrap"
                                   onClick={() => handleCallPatient(s)}
                                 >
-                                  <PhoneCall className="h-3 w-3 text-primary" />
-                                  <span>Call Chamber</span>
+                                  <PhoneCall className="h-3.5 w-3.5" />
+                                  <span>Call to Chamber</span>
                                 </Button>
-                              )}
 
-                            {/* Direct Route to Handler with Plan */}
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="h-7 text-[11px] cursor-pointer gap-1 bg-primary text-primary-foreground"
-                              onClick={() => handleOpenRouteToHandler(s)}
-                            >
-                              <Send className="h-3 w-3" />
-                              <span>Send to Handler</span>
-                            </Button>
-
-                            {/* Clinical Assessment Form Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[11px] cursor-pointer gap-1"
-                              onClick={() => handleOpenExam(s)}
-                            >
-                              <FileCheck className="h-3 w-3 text-primary" />
-                              <span>Exam</span>
-                            </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs cursor-pointer gap-1.5 font-medium px-2.5 whitespace-nowrap"
+                                  onClick={() => handleStartConsultation(s)}
+                                  title="Directly mark consulting"
+                                >
+                                  <DoorOpen className="h-3.5 w-3.5 text-emerald-600" />
+                                  <span>Consulting</span>
+                                </Button>
+                              </div>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 gap-1 whitespace-nowrap"
+                              >
+                                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                <span>Completed</span>
+                              </Badge>
+                            )}
                           </div>
                         </td>
                       </tr>

@@ -24,6 +24,7 @@ export async function getKioskWaitingRoomData(dateStr?: string) {
 
   const currentlyCalling = serials.filter(
     (s) =>
+      s.status === SerialStatus.CALLING ||
       s.status === SerialStatus.IN_CONSULTATION ||
       s.status === SerialStatus.IN_THERAPY,
   );

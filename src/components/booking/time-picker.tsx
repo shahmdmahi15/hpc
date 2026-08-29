@@ -197,7 +197,9 @@ export function PromisedTimePicker({
                 disabled={disabled}
               >
                 <SelectTrigger className="w-[74px] h-9 text-xs font-mono font-bold bg-background">
-                  <SelectValue placeholder="Hour" />
+                  <SelectValue placeholder="Hour">
+                    {hour || undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-56">
                   {HOURS.map((h) => (
@@ -224,7 +226,9 @@ export function PromisedTimePicker({
                 disabled={disabled}
               >
                 <SelectTrigger className="w-[74px] h-9 text-xs font-mono font-bold bg-background">
-                  <SelectValue placeholder="Min" />
+                  <SelectValue placeholder="Min">
+                    {minute || undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-56">
                   {MINUTES.map((m) => (

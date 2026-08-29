@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Activity,
   Lock,
+  Stethoscope,
 } from "lucide-react";
 import { formatBSTTime } from "@/lib/date";
 import { useI18n } from "@/lib/i18n";
@@ -28,8 +29,10 @@ type RoomItem = RoomOccupancyResponse["rooms"][number];
 
 export function RoomOccupancyDashboard({
   initialData,
+  searchQuery: externalSearchQuery,
 }: {
   initialData?: RoomOccupancyResponse;
+  searchQuery?: string;
 }) {
   const { t } = useI18n();
   const [data, setData] = React.useState<RoomOccupancyResponse | undefined>(
@@ -37,6 +40,8 @@ export function RoomOccupancyDashboard({
   );
   const [filterCategory, setFilterCategory] = React.useState<string>("ALL");
   const [isPending, startTransition] = React.useTransition();
+
+  const activeSearch = externalSearchQuery || "";
 
   const loadRooms = React.useCallback(() => {
     startTransition(async () => {
@@ -101,6 +106,14 @@ export function RoomOccupancyDashboard({
       list = rooms.filter((r) => !r.isOccupied);
     } else if (filterCategory === "STAFF_ONLY") {
       list = rooms.filter((r) => r.isStaffOnly);
+    } else if (filterCategory === "DOCTOR_ONLY") {
+      list = rooms.filter(
+        (r) =>
+          !r.isStaffOnly &&
+          (r.type === "DOCTOR" ||
+            (r.purpose && r.purpose.toLowerCase().includes("doctor")) ||
+            (r.name && r.name.toLowerCase().includes("doctor"))),
+      );
     } else if (filterCategory !== "ALL") {
       list = rooms.filter(
         (r) =>
@@ -110,10 +123,86 @@ export function RoomOccupancyDashboard({
       );
     }
 
+    if (activeSearch.trim()) {
+      const rawQ = activeSearch.trim().toLowerCase();
+      const cleanQ = rawQ.replace(/^[#\s]+/, "");
+      const numOnlyQ = rawQ.replace(/[^0-9]/g, "");
+
+      list = list.filter((r) => {
+        const roomNum = r.roomNumber.toLowerCase();
+        const name = r.name.toLowerCase();
+        const purpose = (r.purpose || "").toLowerCase();
+        const floor = (r.floor || "").toLowerCase();
+        const type = (r.type || "").toLowerCase();
+        const notes = (r.notes || "").toLowerCase();
+
+        // 1. Check direct room properties
+        const matchesRoom =
+          roomNum === rawQ ||
+          roomNum === cleanQ ||
+          roomNum.includes(cleanQ) ||
+          rawQ === `room ${roomNum}` ||
+          name.includes(rawQ) ||
+          purpose.includes(rawQ) ||
+          floor.includes(rawQ) ||
+          type.includes(rawQ) ||
+          notes.includes(rawQ);
+
+        if (matchesRoom) return true;
+
+        // 2. Check active in-session patients (name, phone, serial #, patient id, doctor/handler)
+        const matchesOccupant = (r.activePatients || []).some((p) => {
+          const patName = (p.name || "").toLowerCase();
+          const patPhone = (p.phone || "").toLowerCase();
+          const patId = String(p.patientId || "").toLowerCase();
+          const serialNum = String(p.serialNumber || "");
+          const paddedSerial = serialNum.padStart(2, "0");
+          const plan = (p.assignedTreatmentPlan || "").toLowerCase();
+          const doc = (p.doctorName || "").toLowerCase();
+          const handler = (p.handlerName || "").toLowerCase();
+
+          // Serial number match
+          const matchesSerial =
+            p.serialNumber !== undefined &&
+            (rawQ === serialNum ||
+              rawQ === `#${serialNum}` ||
+              rawQ === paddedSerial ||
+              rawQ === `#${paddedSerial}` ||
+              cleanQ === serialNum ||
+              cleanQ === paddedSerial ||
+              rawQ === `serial ${serialNum}` ||
+              rawQ === `sl ${serialNum}`);
+
+          // Phone match
+          const matchesPhone =
+            patPhone.includes(rawQ) ||
+            (numOnlyQ && patPhone.replace(/[^0-9]/g, "").includes(numOnlyQ));
+
+          // Patient ID match
+          const matchesPatId =
+            patId.includes(rawQ) ||
+            patId.includes(cleanQ) ||
+            (numOnlyQ && patId.replace(/[^0-9]/g, "").includes(numOnlyQ));
+
+          return (
+            patName.includes(rawQ) ||
+            matchesPhone ||
+            matchesPatId ||
+            matchesSerial ||
+            plan.includes(rawQ) ||
+            doc.includes(rawQ) ||
+            handler.includes(rawQ)
+          );
+        });
+
+        return matchesOccupant;
+      });
+    }
+
     return list
       .slice()
       .sort((a, b) => compareRoomNumbers(a.roomNumber, b.roomNumber));
-  }, [rooms, filterCategory]);
+  }, [rooms, filterCategory, activeSearch]);
 
   return (
     <div className="space-y-3 w-full max-w-full min-w-0">
@@ -209,6 +298,28 @@ export function RoomOccupancyDashboard({
           </Button>
           <Button
             size="sm"
+            variant={filterCategory === "DOCTOR_ONLY" ? "default" : "outline"}
+            onClick={() => setFilterCategory("DOCTOR_ONLY")}
+            className="text-xs h-7 px-2.5 cursor-pointer font-semibold gap-1 whitespace-nowrap text-blue-600 dark:text-blue-400"
+          >
+            <Stethoscope className="h-3 w-3" />
+            <span>
+              Doctor Chambers (
+              {
+                rooms.filter(
+                  (r) =>
+                    !r.isStaffOnly &&
+                    (r.type === "DOCTOR" ||
+                      (r.purpose &&
+                        r.purpose.toLowerCase().includes("doctor")) ||
+                      (r.name && r.name.toLowerCase().includes("doctor"))),
+                ).length
+              }
+              )
+            </span>
+          </Button>
+          <Button
+            size="sm"
             variant={filterCategory === "STAFF_ONLY" ? "default" : "outline"}
             onClick={() => setFilterCategory("STAFF_ONLY")}
             className="text-xs h-7 px-2.5 cursor-pointer font-semibold gap-1 whitespace-nowrap"
@@ -218,7 +329,7 @@ export function RoomOccupancyDashboard({
               Staff Only ({rooms.filter((r) => r.isStaffOnly).length})
             </span>
           </Button>
-          {uniquePurposes.slice(0, 4).map((purpose) => (
+          {uniquePurposes.slice(0, 3).map((purpose) => (
             <Button
               key={purpose}
               size="sm"
@@ -235,7 +346,7 @@ export function RoomOccupancyDashboard({
           variant="outline"
           size="sm"
           onClick={loadRooms}
-          className="text-xs h-7 px-2.5 cursor-pointer gap-1 shrink-0"
+          className="text-xs h-7 px-2.5 cursor-pointer gap-1 shrink-0 ml-auto sm:ml-0"
         >
           <RefreshCw
             className={`h-3 w-3 ${isPending ? "animate-spin text-primary" : ""}`}
@@ -252,6 +363,12 @@ export function RoomOccupancyDashboard({
           const capacity =
             typeof room.capacity === "number" ? room.capacity : 0;
           const availableBeds = room.availableBeds;
+          const isDocRoom =
+            room.type === "DOCTOR" ||
+            room.type === "CONSULTATION" ||
+            (room.purpose && room.purpose.toLowerCase().includes("doctor")) ||
+            (room.purpose &&
+              room.purpose.toLowerCase().includes("consultation"));
 
           return (
             <Card
@@ -273,11 +390,16 @@ export function RoomOccupancyDashboard({
                     <div className="min-w-0">
                       <div className="text-xs font-bold text-foreground truncate flex items-center gap-1">
                         <span className="truncate">{room.name}</span>
-                        {room.isStaffOnly && (
+                        {room.isStaffOnly ? (
                           <span className="text-[9px] px-1 py-0 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-bold shrink-0">
                             🔒 Staff
                           </span>
-                        )}
+                        ) : isDocRoom ? (
+                          <span className="text-[9px] px-1 py-0 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold shrink-0 flex items-center gap-0.5">
+                            <Stethoscope className="h-2.5 w-2.5" />
+                            Doctor
+                          </span>
+                        ) : null}
                       </div>
                       <span className="text-[10px] text-muted-foreground truncate block">
                         {room.purpose || "Therapy Chamber"}

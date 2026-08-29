@@ -698,7 +698,9 @@ export function SlotManagementPanel({
                   }
                 >
                   <SelectTrigger className="w-full h-8 text-xs font-medium bg-background border-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Select Slot Type">
+                      {createForm.isVipOnly ? "🔒 VIP Only" : "General Public"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="GENERAL">General Public</SelectItem>
@@ -850,7 +852,9 @@ export function SlotManagementPanel({
                   }
                 >
                   <SelectTrigger className="w-full h-8 text-xs font-medium bg-background border-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Select Status">
+                      {editForm.isActive ? "Active" : "Inactive"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ACTIVE">Active</SelectItem>
@@ -871,7 +875,9 @@ export function SlotManagementPanel({
                   }
                 >
                   <SelectTrigger className="w-full h-8 text-xs font-medium bg-background border-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Select Slot Type">
+                      {editForm.isVipOnly ? "🔒 VIP Only" : "General Public"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="GENERAL">General Public</SelectItem>

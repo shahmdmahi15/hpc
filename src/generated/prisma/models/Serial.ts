@@ -32,6 +32,8 @@ export type SerialAvgAggregateOutputType = {
   queuePriorityScore: number | null;
   fee: number | null;
   paidAmount: number | null;
+  refundedAmount: number | null;
+  discountAmount: number | null;
 };
 
 export type SerialSumAggregateOutputType = {
@@ -40,6 +42,8 @@ export type SerialSumAggregateOutputType = {
   queuePriorityScore: number | null;
   fee: number | null;
   paidAmount: number | null;
+  refundedAmount: number | null;
+  discountAmount: number | null;
 };
 
 export type SerialMinAggregateOutputType = {
@@ -68,7 +72,10 @@ export type SerialMinAggregateOutputType = {
   notes: string | null;
   fee: number | null;
   paidAmount: number | null;
+  refundedAmount: number | null;
+  discountAmount: number | null;
   isPackageCovered: boolean | null;
+  packageId: string | null;
   paymentStatus: $Enums.PaymentStatus | null;
   paymentMethod: $Enums.PaymentMethod | null;
   patientId: string | null;
@@ -105,7 +112,10 @@ export type SerialMaxAggregateOutputType = {
   notes: string | null;
   fee: number | null;
   paidAmount: number | null;
+  refundedAmount: number | null;
+  discountAmount: number | null;
   isPackageCovered: boolean | null;
+  packageId: string | null;
   paymentStatus: $Enums.PaymentStatus | null;
   paymentMethod: $Enums.PaymentMethod | null;
   patientId: string | null;
@@ -142,7 +152,10 @@ export type SerialCountAggregateOutputType = {
   notes: number;
   fee: number;
   paidAmount: number;
+  refundedAmount: number;
+  discountAmount: number;
   isPackageCovered: number;
+  packageId: number;
   paymentStatus: number;
   paymentMethod: number;
   patientId: number;
@@ -160,6 +173,8 @@ export type SerialAvgAggregateInputType = {
   queuePriorityScore?: true;
   fee?: true;
   paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
 };
 
 export type SerialSumAggregateInputType = {
@@ -168,6 +183,8 @@ export type SerialSumAggregateInputType = {
   queuePriorityScore?: true;
   fee?: true;
   paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
 };
 
 export type SerialMinAggregateInputType = {
@@ -196,7 +213,10 @@ export type SerialMinAggregateInputType = {
   notes?: true;
   fee?: true;
   paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
   isPackageCovered?: true;
+  packageId?: true;
   paymentStatus?: true;
   paymentMethod?: true;
   patientId?: true;
@@ -233,7 +253,10 @@ export type SerialMaxAggregateInputType = {
   notes?: true;
   fee?: true;
   paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
   isPackageCovered?: true;
+  packageId?: true;
   paymentStatus?: true;
   paymentMethod?: true;
   patientId?: true;
@@ -270,7 +293,10 @@ export type SerialCountAggregateInputType = {
   notes?: true;
   fee?: true;
   paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
   isPackageCovered?: true;
+  packageId?: true;
   paymentStatus?: true;
   paymentMethod?: true;
   patientId?: true;
@@ -401,7 +427,10 @@ export type SerialGroupByOutputType = {
   notes: string | null;
   fee: number;
   paidAmount: number;
+  refundedAmount: number;
+  discountAmount: number;
   isPackageCovered: boolean;
+  packageId: string | null;
   paymentStatus: $Enums.PaymentStatus;
   paymentMethod: $Enums.PaymentMethod | null;
   patientId: string;
@@ -462,7 +491,10 @@ export type SerialWhereInput = {
   notes?: Prisma.StringNullableFilter<"Serial"> | string | null;
   fee?: Prisma.FloatFilter<"Serial"> | number;
   paidAmount?: Prisma.FloatFilter<"Serial"> | number;
+  refundedAmount?: Prisma.FloatFilter<"Serial"> | number;
+  discountAmount?: Prisma.FloatFilter<"Serial"> | number;
   isPackageCovered?: Prisma.BoolFilter<"Serial"> | boolean;
+  packageId?: Prisma.StringNullableFilter<"Serial"> | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFilter<"Serial"> | $Enums.PaymentStatus;
   paymentMethod?:
@@ -475,6 +507,10 @@ export type SerialWhereInput = {
   createdById?: Prisma.StringNullableFilter<"Serial"> | string | null;
   createdAt?: Prisma.DateTimeFilter<"Serial"> | Date | string;
   updatedAt?: Prisma.DateTimeFilter<"Serial"> | Date | string;
+  package?: Prisma.XOR<
+    Prisma.PatientPackageNullableScalarRelationFilter,
+    Prisma.PatientPackageWhereInput
+  > | null;
   patient?: Prisma.XOR<
     Prisma.PatientScalarRelationFilter,
     Prisma.PatientWhereInput
@@ -520,7 +556,10 @@ export type SerialOrderByWithRelationInput = {
   notes?: Prisma.SortOrderInput | Prisma.SortOrder;
   fee?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
   isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrderInput | Prisma.SortOrder;
   paymentStatus?: Prisma.SortOrder;
   paymentMethod?: Prisma.SortOrderInput | Prisma.SortOrder;
   patientId?: Prisma.SortOrder;
@@ -529,6 +568,7 @@ export type SerialOrderByWithRelationInput = {
   createdById?: Prisma.SortOrderInput | Prisma.SortOrder;
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
+  package?: Prisma.PatientPackageOrderByWithRelationInput;
   patient?: Prisma.PatientOrderByWithRelationInput;
   doctor?: Prisma.UserOrderByWithRelationInput;
   handler?: Prisma.UserOrderByWithRelationInput;
@@ -571,7 +611,10 @@ export type SerialWhereUniqueInput = Prisma.AtLeast<
     notes?: Prisma.StringNullableFilter<"Serial"> | string | null;
     fee?: Prisma.FloatFilter<"Serial"> | number;
     paidAmount?: Prisma.FloatFilter<"Serial"> | number;
+    refundedAmount?: Prisma.FloatFilter<"Serial"> | number;
+    discountAmount?: Prisma.FloatFilter<"Serial"> | number;
     isPackageCovered?: Prisma.BoolFilter<"Serial"> | boolean;
+    packageId?: Prisma.StringNullableFilter<"Serial"> | string | null;
     paymentStatus?:
       Prisma.EnumPaymentStatusFilter<"Serial"> | $Enums.PaymentStatus;
     paymentMethod?:
@@ -584,6 +627,10 @@ export type SerialWhereUniqueInput = Prisma.AtLeast<
     createdById?: Prisma.StringNullableFilter<"Serial"> | string | null;
     createdAt?: Prisma.DateTimeFilter<"Serial"> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<"Serial"> | Date | string;
+    package?: Prisma.XOR<
+      Prisma.PatientPackageNullableScalarRelationFilter,
+      Prisma.PatientPackageWhereInput
+    > | null;
     patient?: Prisma.XOR<
       Prisma.PatientScalarRelationFilter,
       Prisma.PatientWhereInput
@@ -631,7 +678,10 @@ export type SerialOrderByWithAggregationInput = {
   notes?: Prisma.SortOrderInput | Prisma.SortOrder;
   fee?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
   isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrderInput | Prisma.SortOrder;
   paymentStatus?: Prisma.SortOrder;
   paymentMethod?: Prisma.SortOrderInput | Prisma.SortOrder;
   patientId?: Prisma.SortOrder;
@@ -712,7 +762,11 @@ export type SerialScalarWhereWithAggregatesInput = {
   notes?: Prisma.StringNullableWithAggregatesFilter<"Serial"> | string | null;
   fee?: Prisma.FloatWithAggregatesFilter<"Serial"> | number;
   paidAmount?: Prisma.FloatWithAggregatesFilter<"Serial"> | number;
+  refundedAmount?: Prisma.FloatWithAggregatesFilter<"Serial"> | number;
+  discountAmount?: Prisma.FloatWithAggregatesFilter<"Serial"> | number;
   isPackageCovered?: Prisma.BoolWithAggregatesFilter<"Serial"> | boolean;
+  packageId?:
+    Prisma.StringNullableWithAggregatesFilter<"Serial"> | string | null;
   paymentStatus?:
     | Prisma.EnumPaymentStatusWithAggregatesFilter<"Serial">
     | $Enums.PaymentStatus;
@@ -757,11 +811,14 @@ export type SerialCreateInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutSerialsInput;
   patient: Prisma.PatientCreateNestedOneWithoutSerialsInput;
   doctor?: Prisma.UserCreateNestedOneWithoutDoctorSerialsInput;
   handler?: Prisma.UserCreateNestedOneWithoutHandlerSerialsInput;
@@ -795,7 +852,10 @@ export type SerialUncheckedCreateInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -844,6 +904,8 @@ export type SerialUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
@@ -853,6 +915,7 @@ export type SerialUpdateInput = {
     | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  package?: Prisma.PatientPackageUpdateOneWithoutSerialsNestedInput;
   patient?: Prisma.PatientUpdateOneRequiredWithoutSerialsNestedInput;
   doctor?: Prisma.UserUpdateOneWithoutDoctorSerialsNestedInput;
   handler?: Prisma.UserUpdateOneWithoutHandlerSerialsNestedInput;
@@ -897,7 +960,10 @@ export type SerialUncheckedUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -939,7 +1005,10 @@ export type SerialCreateManyInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -987,6 +1056,8 @@ export type SerialUpdateManyMutationInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
@@ -1035,7 +1106,10 @@ export type SerialUncheckedUpdateManyInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -1091,7 +1165,10 @@ export type SerialCountOrderByAggregateInput = {
   notes?: Prisma.SortOrder;
   fee?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
   isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrder;
   paymentStatus?: Prisma.SortOrder;
   paymentMethod?: Prisma.SortOrder;
   patientId?: Prisma.SortOrder;
@@ -1108,6 +1185,8 @@ export type SerialAvgOrderByAggregateInput = {
   queuePriorityScore?: Prisma.SortOrder;
   fee?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
 };
 
 export type SerialMaxOrderByAggregateInput = {
@@ -1136,7 +1215,10 @@ export type SerialMaxOrderByAggregateInput = {
   notes?: Prisma.SortOrder;
   fee?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
   isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrder;
   paymentStatus?: Prisma.SortOrder;
   paymentMethod?: Prisma.SortOrder;
   patientId?: Prisma.SortOrder;
@@ -1173,7 +1255,10 @@ export type SerialMinOrderByAggregateInput = {
   notes?: Prisma.SortOrder;
   fee?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
   isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrder;
   paymentStatus?: Prisma.SortOrder;
   paymentMethod?: Prisma.SortOrder;
   patientId?: Prisma.SortOrder;
@@ -1190,6 +1275,8 @@ export type SerialSumOrderByAggregateInput = {
   queuePriorityScore?: Prisma.SortOrder;
   fee?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
 };
 
 export type SerialNullableScalarRelationFilter = {
@@ -1585,6 +1672,92 @@ export type NullableEnumPaymentMethodFieldUpdateOperationsInput = {
   set?: $Enums.PaymentMethod | null;
 };
 
+export type SerialCreateNestedManyWithoutPackageInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.SerialCreateWithoutPackageInput,
+        Prisma.SerialUncheckedCreateWithoutPackageInput
+      >
+    | Prisma.SerialCreateWithoutPackageInput[]
+    | Prisma.SerialUncheckedCreateWithoutPackageInput[];
+  connectOrCreate?:
+    | Prisma.SerialCreateOrConnectWithoutPackageInput
+    | Prisma.SerialCreateOrConnectWithoutPackageInput[];
+  createMany?: Prisma.SerialCreateManyPackageInputEnvelope;
+  connect?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+};
+
+export type SerialUncheckedCreateNestedManyWithoutPackageInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.SerialCreateWithoutPackageInput,
+        Prisma.SerialUncheckedCreateWithoutPackageInput
+      >
+    | Prisma.SerialCreateWithoutPackageInput[]
+    | Prisma.SerialUncheckedCreateWithoutPackageInput[];
+  connectOrCreate?:
+    | Prisma.SerialCreateOrConnectWithoutPackageInput
+    | Prisma.SerialCreateOrConnectWithoutPackageInput[];
+  createMany?: Prisma.SerialCreateManyPackageInputEnvelope;
+  connect?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+};
+
+export type SerialUpdateManyWithoutPackageNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.SerialCreateWithoutPackageInput,
+        Prisma.SerialUncheckedCreateWithoutPackageInput
+      >
+    | Prisma.SerialCreateWithoutPackageInput[]
+    | Prisma.SerialUncheckedCreateWithoutPackageInput[];
+  connectOrCreate?:
+    | Prisma.SerialCreateOrConnectWithoutPackageInput
+    | Prisma.SerialCreateOrConnectWithoutPackageInput[];
+  upsert?:
+    | Prisma.SerialUpsertWithWhereUniqueWithoutPackageInput
+    | Prisma.SerialUpsertWithWhereUniqueWithoutPackageInput[];
+  createMany?: Prisma.SerialCreateManyPackageInputEnvelope;
+  set?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+  disconnect?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+  delete?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+  connect?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+  update?:
+    | Prisma.SerialUpdateWithWhereUniqueWithoutPackageInput
+    | Prisma.SerialUpdateWithWhereUniqueWithoutPackageInput[];
+  updateMany?:
+    | Prisma.SerialUpdateManyWithWhereWithoutPackageInput
+    | Prisma.SerialUpdateManyWithWhereWithoutPackageInput[];
+  deleteMany?: Prisma.SerialScalarWhereInput | Prisma.SerialScalarWhereInput[];
+};
+
+export type SerialUncheckedUpdateManyWithoutPackageNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.SerialCreateWithoutPackageInput,
+        Prisma.SerialUncheckedCreateWithoutPackageInput
+      >
+    | Prisma.SerialCreateWithoutPackageInput[]
+    | Prisma.SerialUncheckedCreateWithoutPackageInput[];
+  connectOrCreate?:
+    | Prisma.SerialCreateOrConnectWithoutPackageInput
+    | Prisma.SerialCreateOrConnectWithoutPackageInput[];
+  upsert?:
+    | Prisma.SerialUpsertWithWhereUniqueWithoutPackageInput
+    | Prisma.SerialUpsertWithWhereUniqueWithoutPackageInput[];
+  createMany?: Prisma.SerialCreateManyPackageInputEnvelope;
+  set?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+  disconnect?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+  delete?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+  connect?: Prisma.SerialWhereUniqueInput | Prisma.SerialWhereUniqueInput[];
+  update?:
+    | Prisma.SerialUpdateWithWhereUniqueWithoutPackageInput
+    | Prisma.SerialUpdateWithWhereUniqueWithoutPackageInput[];
+  updateMany?:
+    | Prisma.SerialUpdateManyWithWhereWithoutPackageInput
+    | Prisma.SerialUpdateManyWithWhereWithoutPackageInput[];
+  deleteMany?: Prisma.SerialScalarWhereInput | Prisma.SerialScalarWhereInput[];
+};
+
 export type SerialCreateNestedOneWithoutBillingRecordsInput = {
   create?: Prisma.XOR<
     Prisma.SerialCreateWithoutBillingRecordsInput,
@@ -1639,11 +1812,14 @@ export type SerialCreateWithoutDoctorInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutSerialsInput;
   patient: Prisma.PatientCreateNestedOneWithoutSerialsInput;
   handler?: Prisma.UserCreateNestedOneWithoutHandlerSerialsInput;
   createdBy?: Prisma.UserCreateNestedOneWithoutCreatedSerialsInput;
@@ -1676,7 +1852,10 @@ export type SerialUncheckedCreateWithoutDoctorInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -1726,11 +1905,14 @@ export type SerialCreateWithoutHandlerInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutSerialsInput;
   patient: Prisma.PatientCreateNestedOneWithoutSerialsInput;
   doctor?: Prisma.UserCreateNestedOneWithoutDoctorSerialsInput;
   createdBy?: Prisma.UserCreateNestedOneWithoutCreatedSerialsInput;
@@ -1763,7 +1945,10 @@ export type SerialUncheckedCreateWithoutHandlerInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -1813,11 +1998,14 @@ export type SerialCreateWithoutCreatedByInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutSerialsInput;
   patient: Prisma.PatientCreateNestedOneWithoutSerialsInput;
   doctor?: Prisma.UserCreateNestedOneWithoutDoctorSerialsInput;
   handler?: Prisma.UserCreateNestedOneWithoutHandlerSerialsInput;
@@ -1850,7 +2038,10 @@ export type SerialUncheckedCreateWithoutCreatedByInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -1935,7 +2126,10 @@ export type SerialScalarWhereInput = {
   notes?: Prisma.StringNullableFilter<"Serial"> | string | null;
   fee?: Prisma.FloatFilter<"Serial"> | number;
   paidAmount?: Prisma.FloatFilter<"Serial"> | number;
+  refundedAmount?: Prisma.FloatFilter<"Serial"> | number;
+  discountAmount?: Prisma.FloatFilter<"Serial"> | number;
   isPackageCovered?: Prisma.BoolFilter<"Serial"> | boolean;
+  packageId?: Prisma.StringNullableFilter<"Serial"> | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFilter<"Serial"> | $Enums.PaymentStatus;
   paymentMethod?:
@@ -2032,11 +2226,14 @@ export type SerialCreateWithoutPatientInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutSerialsInput;
   doctor?: Prisma.UserCreateNestedOneWithoutDoctorSerialsInput;
   handler?: Prisma.UserCreateNestedOneWithoutHandlerSerialsInput;
   createdBy?: Prisma.UserCreateNestedOneWithoutCreatedSerialsInput;
@@ -2069,7 +2266,10 @@ export type SerialUncheckedCreateWithoutPatientInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   doctorId?: string | null;
@@ -2121,6 +2321,127 @@ export type SerialUpdateManyWithWhereWithoutPatientInput = {
   >;
 };
 
+export type SerialCreateWithoutPackageInput = {
+  id?: string;
+  serialNumber: number;
+  serialCode?: string | null;
+  date: Date | string;
+  timeSlot?: string | null;
+  hourlySlot?: $Enums.HourlySlot;
+  gender?: $Enums.Gender;
+  status?: $Enums.SerialStatus;
+  type?: $Enums.VisitType;
+  priority?: $Enums.Priority;
+  roomNo?: string | null;
+  toldTime?: Date | string | null;
+  scheduledTime?: Date | string | null;
+  inTime?: Date | string | null;
+  latenessMinutes?: number;
+  punctualityStatus?: $Enums.PunctualityStatus;
+  queuePriorityScore?: number;
+  therapyStartTime?: Date | string | null;
+  outTime?: Date | string | null;
+  restTime?: Date | string | null;
+  assignedTreatmentPlan?: string | null;
+  isReport?: boolean;
+  notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  patient: Prisma.PatientCreateNestedOneWithoutSerialsInput;
+  doctor?: Prisma.UserCreateNestedOneWithoutDoctorSerialsInput;
+  handler?: Prisma.UserCreateNestedOneWithoutHandlerSerialsInput;
+  createdBy?: Prisma.UserCreateNestedOneWithoutCreatedSerialsInput;
+  billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutSerialInput;
+};
+
+export type SerialUncheckedCreateWithoutPackageInput = {
+  id?: string;
+  serialNumber: number;
+  serialCode?: string | null;
+  date: Date | string;
+  timeSlot?: string | null;
+  hourlySlot?: $Enums.HourlySlot;
+  gender?: $Enums.Gender;
+  status?: $Enums.SerialStatus;
+  type?: $Enums.VisitType;
+  priority?: $Enums.Priority;
+  roomNo?: string | null;
+  toldTime?: Date | string | null;
+  scheduledTime?: Date | string | null;
+  inTime?: Date | string | null;
+  latenessMinutes?: number;
+  punctualityStatus?: $Enums.PunctualityStatus;
+  queuePriorityScore?: number;
+  therapyStartTime?: Date | string | null;
+  outTime?: Date | string | null;
+  restTime?: Date | string | null;
+  assignedTreatmentPlan?: string | null;
+  isReport?: boolean;
+  notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
+  patientId: string;
+  doctorId?: string | null;
+  handlerId?: string | null;
+  createdById?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutSerialInput;
+};
+
+export type SerialCreateOrConnectWithoutPackageInput = {
+  where: Prisma.SerialWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.SerialCreateWithoutPackageInput,
+    Prisma.SerialUncheckedCreateWithoutPackageInput
+  >;
+};
+
+export type SerialCreateManyPackageInputEnvelope = {
+  data:
+    Prisma.SerialCreateManyPackageInput | Prisma.SerialCreateManyPackageInput[];
+};
+
+export type SerialUpsertWithWhereUniqueWithoutPackageInput = {
+  where: Prisma.SerialWhereUniqueInput;
+  update: Prisma.XOR<
+    Prisma.SerialUpdateWithoutPackageInput,
+    Prisma.SerialUncheckedUpdateWithoutPackageInput
+  >;
+  create: Prisma.XOR<
+    Prisma.SerialCreateWithoutPackageInput,
+    Prisma.SerialUncheckedCreateWithoutPackageInput
+  >;
+};
+
+export type SerialUpdateWithWhereUniqueWithoutPackageInput = {
+  where: Prisma.SerialWhereUniqueInput;
+  data: Prisma.XOR<
+    Prisma.SerialUpdateWithoutPackageInput,
+    Prisma.SerialUncheckedUpdateWithoutPackageInput
+  >;
+};
+
+export type SerialUpdateManyWithWhereWithoutPackageInput = {
+  where: Prisma.SerialScalarWhereInput;
+  data: Prisma.XOR<
+    Prisma.SerialUpdateManyMutationInput,
+    Prisma.SerialUncheckedUpdateManyWithoutPackageInput
+  >;
+};
+
 export type SerialCreateWithoutBillingRecordsInput = {
   id?: string;
   serialNumber: number;
@@ -2147,11 +2468,14 @@ export type SerialCreateWithoutBillingRecordsInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutSerialsInput;
   patient: Prisma.PatientCreateNestedOneWithoutSerialsInput;
   doctor?: Prisma.UserCreateNestedOneWithoutDoctorSerialsInput;
   handler?: Prisma.UserCreateNestedOneWithoutHandlerSerialsInput;
@@ -2184,7 +2508,10 @@ export type SerialUncheckedCreateWithoutBillingRecordsInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -2260,6 +2587,8 @@ export type SerialUpdateWithoutBillingRecordsInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
@@ -2269,6 +2598,7 @@ export type SerialUpdateWithoutBillingRecordsInput = {
     | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  package?: Prisma.PatientPackageUpdateOneWithoutSerialsNestedInput;
   patient?: Prisma.PatientUpdateOneRequiredWithoutSerialsNestedInput;
   doctor?: Prisma.UserUpdateOneWithoutDoctorSerialsNestedInput;
   handler?: Prisma.UserUpdateOneWithoutHandlerSerialsNestedInput;
@@ -2312,7 +2642,10 @@ export type SerialUncheckedUpdateWithoutBillingRecordsInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -2353,7 +2686,10 @@ export type SerialCreateManyDoctorInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -2389,7 +2725,10 @@ export type SerialCreateManyHandlerInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -2425,7 +2764,10 @@ export type SerialCreateManyCreatedByInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   patientId: string;
@@ -2472,6 +2814,8 @@ export type SerialUpdateWithoutDoctorInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
@@ -2481,6 +2825,7 @@ export type SerialUpdateWithoutDoctorInput = {
     | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  package?: Prisma.PatientPackageUpdateOneWithoutSerialsNestedInput;
   patient?: Prisma.PatientUpdateOneRequiredWithoutSerialsNestedInput;
   handler?: Prisma.UserUpdateOneWithoutHandlerSerialsNestedInput;
   createdBy?: Prisma.UserUpdateOneWithoutCreatedSerialsNestedInput;
@@ -2524,7 +2869,10 @@ export type SerialUncheckedUpdateWithoutDoctorInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -2576,7 +2924,10 @@ export type SerialUncheckedUpdateManyWithoutDoctorInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -2627,6 +2978,8 @@ export type SerialUpdateWithoutHandlerInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
@@ -2636,6 +2989,7 @@ export type SerialUpdateWithoutHandlerInput = {
     | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  package?: Prisma.PatientPackageUpdateOneWithoutSerialsNestedInput;
   patient?: Prisma.PatientUpdateOneRequiredWithoutSerialsNestedInput;
   doctor?: Prisma.UserUpdateOneWithoutDoctorSerialsNestedInput;
   createdBy?: Prisma.UserUpdateOneWithoutCreatedSerialsNestedInput;
@@ -2679,7 +3033,10 @@ export type SerialUncheckedUpdateWithoutHandlerInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -2731,7 +3088,10 @@ export type SerialUncheckedUpdateManyWithoutHandlerInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -2782,6 +3142,8 @@ export type SerialUpdateWithoutCreatedByInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
@@ -2791,6 +3153,7 @@ export type SerialUpdateWithoutCreatedByInput = {
     | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  package?: Prisma.PatientPackageUpdateOneWithoutSerialsNestedInput;
   patient?: Prisma.PatientUpdateOneRequiredWithoutSerialsNestedInput;
   doctor?: Prisma.UserUpdateOneWithoutDoctorSerialsNestedInput;
   handler?: Prisma.UserUpdateOneWithoutHandlerSerialsNestedInput;
@@ -2834,7 +3197,10 @@ export type SerialUncheckedUpdateWithoutCreatedByInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -2886,7 +3252,10 @@ export type SerialUncheckedUpdateManyWithoutCreatedByInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -2926,7 +3295,10 @@ export type SerialCreateManyPatientInput = {
   notes?: string | null;
   fee?: number;
   paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
   isPackageCovered?: boolean;
+  packageId?: string | null;
   paymentStatus?: $Enums.PaymentStatus;
   paymentMethod?: $Enums.PaymentMethod | null;
   doctorId?: string | null;
@@ -2973,6 +3345,8 @@ export type SerialUpdateWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
@@ -2982,6 +3356,7 @@ export type SerialUpdateWithoutPatientInput = {
     | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  package?: Prisma.PatientPackageUpdateOneWithoutSerialsNestedInput;
   doctor?: Prisma.UserUpdateOneWithoutDoctorSerialsNestedInput;
   handler?: Prisma.UserUpdateOneWithoutHandlerSerialsNestedInput;
   createdBy?: Prisma.UserUpdateOneWithoutCreatedSerialsNestedInput;
@@ -3025,7 +3400,10 @@ export type SerialUncheckedUpdateWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
   paymentMethod?:
@@ -3077,6 +3455,101 @@ export type SerialUncheckedUpdateManyWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   fee?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
+  doctorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  handlerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+};
+
+export type SerialCreateManyPackageInput = {
+  id?: string;
+  serialNumber: number;
+  serialCode?: string | null;
+  date: Date | string;
+  timeSlot?: string | null;
+  hourlySlot?: $Enums.HourlySlot;
+  gender?: $Enums.Gender;
+  status?: $Enums.SerialStatus;
+  type?: $Enums.VisitType;
+  priority?: $Enums.Priority;
+  roomNo?: string | null;
+  toldTime?: Date | string | null;
+  scheduledTime?: Date | string | null;
+  inTime?: Date | string | null;
+  latenessMinutes?: number;
+  punctualityStatus?: $Enums.PunctualityStatus;
+  queuePriorityScore?: number;
+  therapyStartTime?: Date | string | null;
+  outTime?: Date | string | null;
+  restTime?: Date | string | null;
+  assignedTreatmentPlan?: string | null;
+  isReport?: boolean;
+  notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
+  patientId: string;
+  doctorId?: string | null;
+  handlerId?: string | null;
+  createdById?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
+
+export type SerialUpdateWithoutPackageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  serialNumber?: Prisma.IntFieldUpdateOperationsInput | number;
+  serialCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  timeSlot?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  hourlySlot?:
+    Prisma.EnumHourlySlotFieldUpdateOperationsInput | $Enums.HourlySlot;
+  gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender;
+  status?:
+    Prisma.EnumSerialStatusFieldUpdateOperationsInput | $Enums.SerialStatus;
+  type?: Prisma.EnumVisitTypeFieldUpdateOperationsInput | $Enums.VisitType;
+  priority?: Prisma.EnumPriorityFieldUpdateOperationsInput | $Enums.Priority;
+  roomNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  toldTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  scheduledTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  inTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  latenessMinutes?: Prisma.IntFieldUpdateOperationsInput | number;
+  punctualityStatus?:
+    | Prisma.EnumPunctualityStatusFieldUpdateOperationsInput
+    | $Enums.PunctualityStatus;
+  queuePriorityScore?: Prisma.IntFieldUpdateOperationsInput | number;
+  therapyStartTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  outTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  restTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  assignedTreatmentPlan?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isReport?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   paymentStatus?:
     Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
@@ -3084,6 +3557,117 @@ export type SerialUncheckedUpdateManyWithoutPatientInput = {
     | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
     | $Enums.PaymentMethod
     | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  patient?: Prisma.PatientUpdateOneRequiredWithoutSerialsNestedInput;
+  doctor?: Prisma.UserUpdateOneWithoutDoctorSerialsNestedInput;
+  handler?: Prisma.UserUpdateOneWithoutHandlerSerialsNestedInput;
+  createdBy?: Prisma.UserUpdateOneWithoutCreatedSerialsNestedInput;
+  billingRecords?: Prisma.BillingRecordUpdateManyWithoutSerialNestedInput;
+};
+
+export type SerialUncheckedUpdateWithoutPackageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  serialNumber?: Prisma.IntFieldUpdateOperationsInput | number;
+  serialCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  timeSlot?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  hourlySlot?:
+    Prisma.EnumHourlySlotFieldUpdateOperationsInput | $Enums.HourlySlot;
+  gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender;
+  status?:
+    Prisma.EnumSerialStatusFieldUpdateOperationsInput | $Enums.SerialStatus;
+  type?: Prisma.EnumVisitTypeFieldUpdateOperationsInput | $Enums.VisitType;
+  priority?: Prisma.EnumPriorityFieldUpdateOperationsInput | $Enums.Priority;
+  roomNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  toldTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  scheduledTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  inTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  latenessMinutes?: Prisma.IntFieldUpdateOperationsInput | number;
+  punctualityStatus?:
+    | Prisma.EnumPunctualityStatusFieldUpdateOperationsInput
+    | $Enums.PunctualityStatus;
+  queuePriorityScore?: Prisma.IntFieldUpdateOperationsInput | number;
+  therapyStartTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  outTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  restTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  assignedTreatmentPlan?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isReport?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string;
+  doctorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  handlerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutSerialNestedInput;
+};
+
+export type SerialUncheckedUpdateManyWithoutPackageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  serialNumber?: Prisma.IntFieldUpdateOperationsInput | number;
+  serialCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  timeSlot?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  hourlySlot?:
+    Prisma.EnumHourlySlotFieldUpdateOperationsInput | $Enums.HourlySlot;
+  gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender;
+  status?:
+    Prisma.EnumSerialStatusFieldUpdateOperationsInput | $Enums.SerialStatus;
+  type?: Prisma.EnumVisitTypeFieldUpdateOperationsInput | $Enums.VisitType;
+  priority?: Prisma.EnumPriorityFieldUpdateOperationsInput | $Enums.Priority;
+  roomNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  toldTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  scheduledTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  inTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  latenessMinutes?: Prisma.IntFieldUpdateOperationsInput | number;
+  punctualityStatus?:
+    | Prisma.EnumPunctualityStatusFieldUpdateOperationsInput
+    | $Enums.PunctualityStatus;
+  queuePriorityScore?: Prisma.IntFieldUpdateOperationsInput | number;
+  therapyStartTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  outTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  restTime?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  assignedTreatmentPlan?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isReport?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string;
   doctorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   handlerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
@@ -3159,7 +3743,10 @@ export type SerialSelect<
     notes?: boolean;
     fee?: boolean;
     paidAmount?: boolean;
+    refundedAmount?: boolean;
+    discountAmount?: boolean;
     isPackageCovered?: boolean;
+    packageId?: boolean;
     paymentStatus?: boolean;
     paymentMethod?: boolean;
     patientId?: boolean;
@@ -3168,6 +3755,7 @@ export type SerialSelect<
     createdById?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    package?: boolean | Prisma.Serial$packageArgs<ExtArgs>;
     patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
     doctor?: boolean | Prisma.Serial$doctorArgs<ExtArgs>;
     handler?: boolean | Prisma.Serial$handlerArgs<ExtArgs>;
@@ -3208,7 +3796,10 @@ export type SerialSelectCreateManyAndReturn<
     notes?: boolean;
     fee?: boolean;
     paidAmount?: boolean;
+    refundedAmount?: boolean;
+    discountAmount?: boolean;
     isPackageCovered?: boolean;
+    packageId?: boolean;
     paymentStatus?: boolean;
     paymentMethod?: boolean;
     patientId?: boolean;
@@ -3217,6 +3808,7 @@ export type SerialSelectCreateManyAndReturn<
     createdById?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    package?: boolean | Prisma.Serial$packageArgs<ExtArgs>;
     patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
     doctor?: boolean | Prisma.Serial$doctorArgs<ExtArgs>;
     handler?: boolean | Prisma.Serial$handlerArgs<ExtArgs>;
@@ -3255,7 +3847,10 @@ export type SerialSelectUpdateManyAndReturn<
     notes?: boolean;
     fee?: boolean;
     paidAmount?: boolean;
+    refundedAmount?: boolean;
+    discountAmount?: boolean;
     isPackageCovered?: boolean;
+    packageId?: boolean;
     paymentStatus?: boolean;
     paymentMethod?: boolean;
     patientId?: boolean;
@@ -3264,6 +3859,7 @@ export type SerialSelectUpdateManyAndReturn<
     createdById?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    package?: boolean | Prisma.Serial$packageArgs<ExtArgs>;
     patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
     doctor?: boolean | Prisma.Serial$doctorArgs<ExtArgs>;
     handler?: boolean | Prisma.Serial$handlerArgs<ExtArgs>;
@@ -3298,7 +3894,10 @@ export type SerialSelectScalar = {
   notes?: boolean;
   fee?: boolean;
   paidAmount?: boolean;
+  refundedAmount?: boolean;
+  discountAmount?: boolean;
   isPackageCovered?: boolean;
+  packageId?: boolean;
   paymentStatus?: boolean;
   paymentMethod?: boolean;
   patientId?: boolean;
@@ -3338,7 +3937,10 @@ export type SerialOmit<
   | "notes"
   | "fee"
   | "paidAmount"
+  | "refundedAmount"
+  | "discountAmount"
   | "isPackageCovered"
+  | "packageId"
   | "paymentStatus"
   | "paymentMethod"
   | "patientId"
@@ -3353,6 +3955,7 @@ export type SerialInclude<
   ExtArgs extends runtime.Types.Extensions.InternalArgs =
     runtime.Types.Extensions.DefaultArgs,
 > = {
+  package?: boolean | Prisma.Serial$packageArgs<ExtArgs>;
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
   doctor?: boolean | Prisma.Serial$doctorArgs<ExtArgs>;
   handler?: boolean | Prisma.Serial$handlerArgs<ExtArgs>;
@@ -3364,6 +3967,7 @@ export type SerialIncludeCreateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs =
     runtime.Types.Extensions.DefaultArgs,
 > = {
+  package?: boolean | Prisma.Serial$packageArgs<ExtArgs>;
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
   doctor?: boolean | Prisma.Serial$doctorArgs<ExtArgs>;
   handler?: boolean | Prisma.Serial$handlerArgs<ExtArgs>;
@@ -3373,6 +3977,7 @@ export type SerialIncludeUpdateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs =
     runtime.Types.Extensions.DefaultArgs,
 > = {
+  package?: boolean | Prisma.Serial$packageArgs<ExtArgs>;
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
   doctor?: boolean | Prisma.Serial$doctorArgs<ExtArgs>;
   handler?: boolean | Prisma.Serial$handlerArgs<ExtArgs>;
@@ -3385,6 +3990,7 @@ export type $SerialPayload<
 > = {
   name: "Serial";
   objects: {
+    package: Prisma.$PatientPackagePayload<ExtArgs> | null;
     patient: Prisma.$PatientPayload<ExtArgs>;
     doctor: Prisma.$UserPayload<ExtArgs> | null;
     handler: Prisma.$UserPayload<ExtArgs> | null;
@@ -3418,7 +4024,10 @@ export type $SerialPayload<
       notes: string | null;
       fee: number;
       paidAmount: number;
+      refundedAmount: number;
+      discountAmount: number;
       isPackageCovered: boolean;
+      packageId: string | null;
       paymentStatus: $Enums.PaymentStatus;
       paymentMethod: $Enums.PaymentMethod | null;
       patientId: string;
@@ -3977,6 +4586,19 @@ export interface Prisma__SerialClient<
   GlobalOmitOptions = {},
 > extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise";
+  package<T extends Prisma.Serial$packageArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.Serial$packageArgs<ExtArgs>>,
+  ): Prisma.Prisma__PatientPackageClient<
+    runtime.Types.Result.GetResult<
+      Prisma.$PatientPackagePayload<ExtArgs>,
+      T,
+      "findUniqueOrThrow",
+      GlobalOmitOptions
+    > | null,
+    null,
+    ExtArgs,
+    GlobalOmitOptions
+  >;
   patient<T extends Prisma.PatientDefaultArgs<ExtArgs> = {}>(
     args?: Prisma.Subset<T, Prisma.PatientDefaultArgs<ExtArgs>>,
   ): Prisma.Prisma__PatientClient<
@@ -4102,7 +4724,10 @@ export interface SerialFieldRefs {
   readonly notes: Prisma.FieldRef<"Serial", "String">;
   readonly fee: Prisma.FieldRef<"Serial", "Float">;
   readonly paidAmount: Prisma.FieldRef<"Serial", "Float">;
+  readonly refundedAmount: Prisma.FieldRef<"Serial", "Float">;
+  readonly discountAmount: Prisma.FieldRef<"Serial", "Float">;
   readonly isPackageCovered: Prisma.FieldRef<"Serial", "Boolean">;
+  readonly packageId: Prisma.FieldRef<"Serial", "String">;
   readonly paymentStatus: Prisma.FieldRef<"Serial", "PaymentStatus">;
   readonly paymentMethod: Prisma.FieldRef<"Serial", "PaymentMethod">;
   readonly patientId: Prisma.FieldRef<"Serial", "String">;
@@ -4566,6 +5191,28 @@ export type SerialDeleteManyArgs<
    * Limit how many Serials to delete.
    */
   limit?: number;
+};
+
+/**
+ * Serial.package
+ */
+export type Serial$packageArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the PatientPackage
+   */
+  select?: Prisma.PatientPackageSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the PatientPackage
+   */
+  omit?: Prisma.PatientPackageOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PatientPackageInclude<ExtArgs> | null;
+  where?: Prisma.PatientPackageWhereInput;
 };
 
 /**

@@ -28,10 +28,18 @@ export type AggregateTreatmentSession = {
 
 export type TreatmentSessionAvgAggregateOutputType = {
   sessionNumber: number | null;
+  fee: number | null;
+  paidAmount: number | null;
+  refundedAmount: number | null;
+  discountAmount: number | null;
 };
 
 export type TreatmentSessionSumAggregateOutputType = {
   sessionNumber: number | null;
+  fee: number | null;
+  paidAmount: number | null;
+  refundedAmount: number | null;
+  discountAmount: number | null;
 };
 
 export type TreatmentSessionMinAggregateOutputType = {
@@ -45,6 +53,14 @@ export type TreatmentSessionMinAggregateOutputType = {
   treatmentPlan: string | null;
   treatmentPerformed: string | null;
   notes: string | null;
+  fee: number | null;
+  paidAmount: number | null;
+  refundedAmount: number | null;
+  discountAmount: number | null;
+  isPackageCovered: boolean | null;
+  packageId: string | null;
+  paymentStatus: $Enums.PaymentStatus | null;
+  paymentMethod: $Enums.PaymentMethod | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -60,6 +76,14 @@ export type TreatmentSessionMaxAggregateOutputType = {
   treatmentPlan: string | null;
   treatmentPerformed: string | null;
   notes: string | null;
+  fee: number | null;
+  paidAmount: number | null;
+  refundedAmount: number | null;
+  discountAmount: number | null;
+  isPackageCovered: boolean | null;
+  packageId: string | null;
+  paymentStatus: $Enums.PaymentStatus | null;
+  paymentMethod: $Enums.PaymentMethod | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };
@@ -75,6 +99,14 @@ export type TreatmentSessionCountAggregateOutputType = {
   treatmentPlan: number;
   treatmentPerformed: number;
   notes: number;
+  fee: number;
+  paidAmount: number;
+  refundedAmount: number;
+  discountAmount: number;
+  isPackageCovered: number;
+  packageId: number;
+  paymentStatus: number;
+  paymentMethod: number;
   createdAt: number;
   updatedAt: number;
   _all: number;
@@ -82,10 +114,18 @@ export type TreatmentSessionCountAggregateOutputType = {
 
 export type TreatmentSessionAvgAggregateInputType = {
   sessionNumber?: true;
+  fee?: true;
+  paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
 };
 
 export type TreatmentSessionSumAggregateInputType = {
   sessionNumber?: true;
+  fee?: true;
+  paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
 };
 
 export type TreatmentSessionMinAggregateInputType = {
@@ -99,6 +139,14 @@ export type TreatmentSessionMinAggregateInputType = {
   treatmentPlan?: true;
   treatmentPerformed?: true;
   notes?: true;
+  fee?: true;
+  paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
+  isPackageCovered?: true;
+  packageId?: true;
+  paymentStatus?: true;
+  paymentMethod?: true;
   createdAt?: true;
   updatedAt?: true;
 };
@@ -114,6 +162,14 @@ export type TreatmentSessionMaxAggregateInputType = {
   treatmentPlan?: true;
   treatmentPerformed?: true;
   notes?: true;
+  fee?: true;
+  paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
+  isPackageCovered?: true;
+  packageId?: true;
+  paymentStatus?: true;
+  paymentMethod?: true;
   createdAt?: true;
   updatedAt?: true;
 };
@@ -129,6 +185,14 @@ export type TreatmentSessionCountAggregateInputType = {
   treatmentPlan?: true;
   treatmentPerformed?: true;
   notes?: true;
+  fee?: true;
+  paidAmount?: true;
+  refundedAmount?: true;
+  discountAmount?: true;
+  isPackageCovered?: true;
+  packageId?: true;
+  paymentStatus?: true;
+  paymentMethod?: true;
   createdAt?: true;
   updatedAt?: true;
   _all?: true;
@@ -242,6 +306,14 @@ export type TreatmentSessionGroupByOutputType = {
   treatmentPlan: string | null;
   treatmentPerformed: string;
   notes: string | null;
+  fee: number;
+  paidAmount: number;
+  refundedAmount: number;
+  discountAmount: number;
+  isPackageCovered: boolean;
+  packageId: string | null;
+  paymentStatus: $Enums.PaymentStatus;
+  paymentMethod: $Enums.PaymentMethod | null;
   createdAt: Date;
   updatedAt: Date;
   _count: TreatmentSessionCountAggregateOutputType | null;
@@ -283,6 +355,18 @@ export type TreatmentSessionWhereInput = {
     Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
   treatmentPerformed?: Prisma.StringFilter<"TreatmentSession"> | string;
   notes?: Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
+  fee?: Prisma.FloatFilter<"TreatmentSession"> | number;
+  paidAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+  refundedAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+  discountAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+  isPackageCovered?: Prisma.BoolFilter<"TreatmentSession"> | boolean;
+  packageId?: Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFilter<"TreatmentSession"> | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.EnumPaymentMethodNullableFilter<"TreatmentSession">
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFilter<"TreatmentSession"> | Date | string;
   updatedAt?: Prisma.DateTimeFilter<"TreatmentSession"> | Date | string;
   patient?: Prisma.XOR<
@@ -293,6 +377,11 @@ export type TreatmentSessionWhereInput = {
     Prisma.UserNullableScalarRelationFilter,
     Prisma.UserWhereInput
   > | null;
+  package?: Prisma.XOR<
+    Prisma.PatientPackageNullableScalarRelationFilter,
+    Prisma.PatientPackageWhereInput
+  > | null;
+  billingRecords?: Prisma.BillingRecordListRelationFilter;
 };
 
 export type TreatmentSessionOrderByWithRelationInput = {
@@ -306,10 +395,20 @@ export type TreatmentSessionOrderByWithRelationInput = {
   treatmentPlan?: Prisma.SortOrderInput | Prisma.SortOrder;
   treatmentPerformed?: Prisma.SortOrder;
   notes?: Prisma.SortOrderInput | Prisma.SortOrder;
+  fee?: Prisma.SortOrder;
+  paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
+  isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrderInput | Prisma.SortOrder;
+  paymentStatus?: Prisma.SortOrder;
+  paymentMethod?: Prisma.SortOrderInput | Prisma.SortOrder;
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
   patient?: Prisma.PatientOrderByWithRelationInput;
   handler?: Prisma.UserOrderByWithRelationInput;
+  package?: Prisma.PatientPackageOrderByWithRelationInput;
+  billingRecords?: Prisma.BillingRecordOrderByRelationAggregateInput;
 };
 
 export type TreatmentSessionWhereUniqueInput = Prisma.AtLeast<
@@ -332,6 +431,18 @@ export type TreatmentSessionWhereUniqueInput = Prisma.AtLeast<
       Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
     treatmentPerformed?: Prisma.StringFilter<"TreatmentSession"> | string;
     notes?: Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
+    fee?: Prisma.FloatFilter<"TreatmentSession"> | number;
+    paidAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+    refundedAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+    discountAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+    isPackageCovered?: Prisma.BoolFilter<"TreatmentSession"> | boolean;
+    packageId?: Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
+    paymentStatus?:
+      Prisma.EnumPaymentStatusFilter<"TreatmentSession"> | $Enums.PaymentStatus;
+    paymentMethod?:
+      | Prisma.EnumPaymentMethodNullableFilter<"TreatmentSession">
+      | $Enums.PaymentMethod
+      | null;
     createdAt?: Prisma.DateTimeFilter<"TreatmentSession"> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<"TreatmentSession"> | Date | string;
     patient?: Prisma.XOR<
@@ -342,6 +453,11 @@ export type TreatmentSessionWhereUniqueInput = Prisma.AtLeast<
       Prisma.UserNullableScalarRelationFilter,
       Prisma.UserWhereInput
     > | null;
+    package?: Prisma.XOR<
+      Prisma.PatientPackageNullableScalarRelationFilter,
+      Prisma.PatientPackageWhereInput
+    > | null;
+    billingRecords?: Prisma.BillingRecordListRelationFilter;
   },
   "id"
 >;
@@ -357,6 +473,14 @@ export type TreatmentSessionOrderByWithAggregationInput = {
   treatmentPlan?: Prisma.SortOrderInput | Prisma.SortOrder;
   treatmentPerformed?: Prisma.SortOrder;
   notes?: Prisma.SortOrderInput | Prisma.SortOrder;
+  fee?: Prisma.SortOrder;
+  paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
+  isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrderInput | Prisma.SortOrder;
+  paymentStatus?: Prisma.SortOrder;
+  paymentMethod?: Prisma.SortOrderInput | Prisma.SortOrder;
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
   _count?: Prisma.TreatmentSessionCountOrderByAggregateInput;
@@ -402,6 +526,25 @@ export type TreatmentSessionScalarWhereWithAggregatesInput = {
     | Prisma.StringNullableWithAggregatesFilter<"TreatmentSession">
     | string
     | null;
+  fee?: Prisma.FloatWithAggregatesFilter<"TreatmentSession"> | number;
+  paidAmount?: Prisma.FloatWithAggregatesFilter<"TreatmentSession"> | number;
+  refundedAmount?:
+    Prisma.FloatWithAggregatesFilter<"TreatmentSession"> | number;
+  discountAmount?:
+    Prisma.FloatWithAggregatesFilter<"TreatmentSession"> | number;
+  isPackageCovered?:
+    Prisma.BoolWithAggregatesFilter<"TreatmentSession"> | boolean;
+  packageId?:
+    | Prisma.StringNullableWithAggregatesFilter<"TreatmentSession">
+    | string
+    | null;
+  paymentStatus?:
+    | Prisma.EnumPaymentStatusWithAggregatesFilter<"TreatmentSession">
+    | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.EnumPaymentMethodNullableWithAggregatesFilter<"TreatmentSession">
+    | $Enums.PaymentMethod
+    | null;
   createdAt?:
     Prisma.DateTimeWithAggregatesFilter<"TreatmentSession"> | Date | string;
   updatedAt?:
@@ -417,10 +560,19 @@ export type TreatmentSessionCreateInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentSessionsInput;
   handler?: Prisma.UserCreateNestedOneWithoutConductedSessionsInput;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutTreatmentSessionsInput;
+  billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutTreatmentSessionInput;
 };
 
 export type TreatmentSessionUncheckedCreateInput = {
@@ -434,8 +586,17 @@ export type TreatmentSessionUncheckedCreateInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  packageId?: string | null;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutTreatmentSessionInput;
 };
 
 export type TreatmentSessionUpdateInput = {
@@ -449,10 +610,23 @@ export type TreatmentSessionUpdateInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentSessionsNestedInput;
   handler?: Prisma.UserUpdateOneWithoutConductedSessionsNestedInput;
+  package?: Prisma.PatientPackageUpdateOneWithoutTreatmentSessionsNestedInput;
+  billingRecords?: Prisma.BillingRecordUpdateManyWithoutTreatmentSessionNestedInput;
 };
 
 export type TreatmentSessionUncheckedUpdateInput = {
@@ -468,8 +642,21 @@ export type TreatmentSessionUncheckedUpdateInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutTreatmentSessionNestedInput;
 };
 
 export type TreatmentSessionCreateManyInput = {
@@ -483,6 +670,14 @@ export type TreatmentSessionCreateManyInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  packageId?: string | null;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 };
@@ -498,6 +693,17 @@ export type TreatmentSessionUpdateManyMutationInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
 };
@@ -515,6 +721,18 @@ export type TreatmentSessionUncheckedUpdateManyInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
 };
@@ -540,12 +758,24 @@ export type TreatmentSessionCountOrderByAggregateInput = {
   treatmentPlan?: Prisma.SortOrder;
   treatmentPerformed?: Prisma.SortOrder;
   notes?: Prisma.SortOrder;
+  fee?: Prisma.SortOrder;
+  paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
+  isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrder;
+  paymentStatus?: Prisma.SortOrder;
+  paymentMethod?: Prisma.SortOrder;
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
 };
 
 export type TreatmentSessionAvgOrderByAggregateInput = {
   sessionNumber?: Prisma.SortOrder;
+  fee?: Prisma.SortOrder;
+  paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
 };
 
 export type TreatmentSessionMaxOrderByAggregateInput = {
@@ -559,6 +789,14 @@ export type TreatmentSessionMaxOrderByAggregateInput = {
   treatmentPlan?: Prisma.SortOrder;
   treatmentPerformed?: Prisma.SortOrder;
   notes?: Prisma.SortOrder;
+  fee?: Prisma.SortOrder;
+  paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
+  isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrder;
+  paymentStatus?: Prisma.SortOrder;
+  paymentMethod?: Prisma.SortOrder;
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
 };
@@ -574,12 +812,29 @@ export type TreatmentSessionMinOrderByAggregateInput = {
   treatmentPlan?: Prisma.SortOrder;
   treatmentPerformed?: Prisma.SortOrder;
   notes?: Prisma.SortOrder;
+  fee?: Prisma.SortOrder;
+  paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
+  isPackageCovered?: Prisma.SortOrder;
+  packageId?: Prisma.SortOrder;
+  paymentStatus?: Prisma.SortOrder;
+  paymentMethod?: Prisma.SortOrder;
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
 };
 
 export type TreatmentSessionSumOrderByAggregateInput = {
   sessionNumber?: Prisma.SortOrder;
+  fee?: Prisma.SortOrder;
+  paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
+  discountAmount?: Prisma.SortOrder;
+};
+
+export type TreatmentSessionNullableScalarRelationFilter = {
+  is?: Prisma.TreatmentSessionWhereInput | null;
+  isNot?: Prisma.TreatmentSessionWhereInput | null;
 };
 
 export type TreatmentSessionCreateNestedManyWithoutHandlerInput = {
@@ -802,6 +1057,144 @@ export type TreatmentSessionUncheckedUpdateManyWithoutPatientNestedInput = {
     | Prisma.TreatmentSessionScalarWhereInput[];
 };
 
+export type TreatmentSessionCreateNestedManyWithoutPackageInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.TreatmentSessionCreateWithoutPackageInput,
+        Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput
+      >
+    | Prisma.TreatmentSessionCreateWithoutPackageInput[]
+    | Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput[];
+  connectOrCreate?:
+    | Prisma.TreatmentSessionCreateOrConnectWithoutPackageInput
+    | Prisma.TreatmentSessionCreateOrConnectWithoutPackageInput[];
+  createMany?: Prisma.TreatmentSessionCreateManyPackageInputEnvelope;
+  connect?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+};
+
+export type TreatmentSessionUncheckedCreateNestedManyWithoutPackageInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.TreatmentSessionCreateWithoutPackageInput,
+        Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput
+      >
+    | Prisma.TreatmentSessionCreateWithoutPackageInput[]
+    | Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput[];
+  connectOrCreate?:
+    | Prisma.TreatmentSessionCreateOrConnectWithoutPackageInput
+    | Prisma.TreatmentSessionCreateOrConnectWithoutPackageInput[];
+  createMany?: Prisma.TreatmentSessionCreateManyPackageInputEnvelope;
+  connect?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+};
+
+export type TreatmentSessionUpdateManyWithoutPackageNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.TreatmentSessionCreateWithoutPackageInput,
+        Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput
+      >
+    | Prisma.TreatmentSessionCreateWithoutPackageInput[]
+    | Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput[];
+  connectOrCreate?:
+    | Prisma.TreatmentSessionCreateOrConnectWithoutPackageInput
+    | Prisma.TreatmentSessionCreateOrConnectWithoutPackageInput[];
+  upsert?:
+    | Prisma.TreatmentSessionUpsertWithWhereUniqueWithoutPackageInput
+    | Prisma.TreatmentSessionUpsertWithWhereUniqueWithoutPackageInput[];
+  createMany?: Prisma.TreatmentSessionCreateManyPackageInputEnvelope;
+  set?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+  disconnect?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+  delete?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+  connect?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+  update?:
+    | Prisma.TreatmentSessionUpdateWithWhereUniqueWithoutPackageInput
+    | Prisma.TreatmentSessionUpdateWithWhereUniqueWithoutPackageInput[];
+  updateMany?:
+    | Prisma.TreatmentSessionUpdateManyWithWhereWithoutPackageInput
+    | Prisma.TreatmentSessionUpdateManyWithWhereWithoutPackageInput[];
+  deleteMany?:
+    | Prisma.TreatmentSessionScalarWhereInput
+    | Prisma.TreatmentSessionScalarWhereInput[];
+};
+
+export type TreatmentSessionUncheckedUpdateManyWithoutPackageNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.TreatmentSessionCreateWithoutPackageInput,
+        Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput
+      >
+    | Prisma.TreatmentSessionCreateWithoutPackageInput[]
+    | Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput[];
+  connectOrCreate?:
+    | Prisma.TreatmentSessionCreateOrConnectWithoutPackageInput
+    | Prisma.TreatmentSessionCreateOrConnectWithoutPackageInput[];
+  upsert?:
+    | Prisma.TreatmentSessionUpsertWithWhereUniqueWithoutPackageInput
+    | Prisma.TreatmentSessionUpsertWithWhereUniqueWithoutPackageInput[];
+  createMany?: Prisma.TreatmentSessionCreateManyPackageInputEnvelope;
+  set?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+  disconnect?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+  delete?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+  connect?:
+    | Prisma.TreatmentSessionWhereUniqueInput
+    | Prisma.TreatmentSessionWhereUniqueInput[];
+  update?:
+    | Prisma.TreatmentSessionUpdateWithWhereUniqueWithoutPackageInput
+    | Prisma.TreatmentSessionUpdateWithWhereUniqueWithoutPackageInput[];
+  updateMany?:
+    | Prisma.TreatmentSessionUpdateManyWithWhereWithoutPackageInput
+    | Prisma.TreatmentSessionUpdateManyWithWhereWithoutPackageInput[];
+  deleteMany?:
+    | Prisma.TreatmentSessionScalarWhereInput
+    | Prisma.TreatmentSessionScalarWhereInput[];
+};
+
+export type TreatmentSessionCreateNestedOneWithoutBillingRecordsInput = {
+  create?: Prisma.XOR<
+    Prisma.TreatmentSessionCreateWithoutBillingRecordsInput,
+    Prisma.TreatmentSessionUncheckedCreateWithoutBillingRecordsInput
+  >;
+  connectOrCreate?: Prisma.TreatmentSessionCreateOrConnectWithoutBillingRecordsInput;
+  connect?: Prisma.TreatmentSessionWhereUniqueInput;
+};
+
+export type TreatmentSessionUpdateOneWithoutBillingRecordsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.TreatmentSessionCreateWithoutBillingRecordsInput,
+    Prisma.TreatmentSessionUncheckedCreateWithoutBillingRecordsInput
+  >;
+  connectOrCreate?: Prisma.TreatmentSessionCreateOrConnectWithoutBillingRecordsInput;
+  upsert?: Prisma.TreatmentSessionUpsertWithoutBillingRecordsInput;
+  disconnect?: Prisma.TreatmentSessionWhereInput | boolean;
+  delete?: Prisma.TreatmentSessionWhereInput | boolean;
+  connect?: Prisma.TreatmentSessionWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.TreatmentSessionUpdateToOneWithWhereWithoutBillingRecordsInput,
+      Prisma.TreatmentSessionUpdateWithoutBillingRecordsInput
+    >,
+    Prisma.TreatmentSessionUncheckedUpdateWithoutBillingRecordsInput
+  >;
+};
+
 export type TreatmentSessionCreateWithoutHandlerInput = {
   id?: string;
   date?: Date | string;
@@ -811,9 +1204,18 @@ export type TreatmentSessionCreateWithoutHandlerInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentSessionsInput;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutTreatmentSessionsInput;
+  billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutTreatmentSessionInput;
 };
 
 export type TreatmentSessionUncheckedCreateWithoutHandlerInput = {
@@ -826,8 +1228,17 @@ export type TreatmentSessionUncheckedCreateWithoutHandlerInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  packageId?: string | null;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutTreatmentSessionInput;
 };
 
 export type TreatmentSessionCreateOrConnectWithoutHandlerInput = {
@@ -892,6 +1303,18 @@ export type TreatmentSessionScalarWhereInput = {
     Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
   treatmentPerformed?: Prisma.StringFilter<"TreatmentSession"> | string;
   notes?: Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
+  fee?: Prisma.FloatFilter<"TreatmentSession"> | number;
+  paidAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+  refundedAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+  discountAmount?: Prisma.FloatFilter<"TreatmentSession"> | number;
+  isPackageCovered?: Prisma.BoolFilter<"TreatmentSession"> | boolean;
+  packageId?: Prisma.StringNullableFilter<"TreatmentSession"> | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFilter<"TreatmentSession"> | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.EnumPaymentMethodNullableFilter<"TreatmentSession">
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFilter<"TreatmentSession"> | Date | string;
   updatedAt?: Prisma.DateTimeFilter<"TreatmentSession"> | Date | string;
 };
@@ -905,9 +1328,18 @@ export type TreatmentSessionCreateWithoutPatientInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
   handler?: Prisma.UserCreateNestedOneWithoutConductedSessionsInput;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutTreatmentSessionsInput;
+  billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutTreatmentSessionInput;
 };
 
 export type TreatmentSessionUncheckedCreateWithoutPatientInput = {
@@ -920,8 +1352,17 @@ export type TreatmentSessionUncheckedCreateWithoutPatientInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  packageId?: string | null;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutTreatmentSessionInput;
 };
 
 export type TreatmentSessionCreateOrConnectWithoutPatientInput = {
@@ -966,6 +1407,226 @@ export type TreatmentSessionUpdateManyWithWhereWithoutPatientInput = {
   >;
 };
 
+export type TreatmentSessionCreateWithoutPackageInput = {
+  id?: string;
+  date?: Date | string;
+  sessionNumber?: number | null;
+  bloodPressure?: string | null;
+  complaint?: string | null;
+  treatmentPlan?: string | null;
+  treatmentPerformed: string;
+  notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  patient: Prisma.PatientCreateNestedOneWithoutTreatmentSessionsInput;
+  handler?: Prisma.UserCreateNestedOneWithoutConductedSessionsInput;
+  billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutTreatmentSessionInput;
+};
+
+export type TreatmentSessionUncheckedCreateWithoutPackageInput = {
+  id?: string;
+  date?: Date | string;
+  sessionNumber?: number | null;
+  patientId: string;
+  handlerId?: string | null;
+  bloodPressure?: string | null;
+  complaint?: string | null;
+  treatmentPlan?: string | null;
+  treatmentPerformed: string;
+  notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutTreatmentSessionInput;
+};
+
+export type TreatmentSessionCreateOrConnectWithoutPackageInput = {
+  where: Prisma.TreatmentSessionWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.TreatmentSessionCreateWithoutPackageInput,
+    Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput
+  >;
+};
+
+export type TreatmentSessionCreateManyPackageInputEnvelope = {
+  data:
+    | Prisma.TreatmentSessionCreateManyPackageInput
+    | Prisma.TreatmentSessionCreateManyPackageInput[];
+};
+
+export type TreatmentSessionUpsertWithWhereUniqueWithoutPackageInput = {
+  where: Prisma.TreatmentSessionWhereUniqueInput;
+  update: Prisma.XOR<
+    Prisma.TreatmentSessionUpdateWithoutPackageInput,
+    Prisma.TreatmentSessionUncheckedUpdateWithoutPackageInput
+  >;
+  create: Prisma.XOR<
+    Prisma.TreatmentSessionCreateWithoutPackageInput,
+    Prisma.TreatmentSessionUncheckedCreateWithoutPackageInput
+  >;
+};
+
+export type TreatmentSessionUpdateWithWhereUniqueWithoutPackageInput = {
+  where: Prisma.TreatmentSessionWhereUniqueInput;
+  data: Prisma.XOR<
+    Prisma.TreatmentSessionUpdateWithoutPackageInput,
+    Prisma.TreatmentSessionUncheckedUpdateWithoutPackageInput
+  >;
+};
+
+export type TreatmentSessionUpdateManyWithWhereWithoutPackageInput = {
+  where: Prisma.TreatmentSessionScalarWhereInput;
+  data: Prisma.XOR<
+    Prisma.TreatmentSessionUpdateManyMutationInput,
+    Prisma.TreatmentSessionUncheckedUpdateManyWithoutPackageInput
+  >;
+};
+
+export type TreatmentSessionCreateWithoutBillingRecordsInput = {
+  id?: string;
+  date?: Date | string;
+  sessionNumber?: number | null;
+  bloodPressure?: string | null;
+  complaint?: string | null;
+  treatmentPlan?: string | null;
+  treatmentPerformed: string;
+  notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  patient: Prisma.PatientCreateNestedOneWithoutTreatmentSessionsInput;
+  handler?: Prisma.UserCreateNestedOneWithoutConductedSessionsInput;
+  package?: Prisma.PatientPackageCreateNestedOneWithoutTreatmentSessionsInput;
+};
+
+export type TreatmentSessionUncheckedCreateWithoutBillingRecordsInput = {
+  id?: string;
+  date?: Date | string;
+  sessionNumber?: number | null;
+  patientId: string;
+  handlerId?: string | null;
+  bloodPressure?: string | null;
+  complaint?: string | null;
+  treatmentPlan?: string | null;
+  treatmentPerformed: string;
+  notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  packageId?: string | null;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
+
+export type TreatmentSessionCreateOrConnectWithoutBillingRecordsInput = {
+  where: Prisma.TreatmentSessionWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.TreatmentSessionCreateWithoutBillingRecordsInput,
+    Prisma.TreatmentSessionUncheckedCreateWithoutBillingRecordsInput
+  >;
+};
+
+export type TreatmentSessionUpsertWithoutBillingRecordsInput = {
+  update: Prisma.XOR<
+    Prisma.TreatmentSessionUpdateWithoutBillingRecordsInput,
+    Prisma.TreatmentSessionUncheckedUpdateWithoutBillingRecordsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.TreatmentSessionCreateWithoutBillingRecordsInput,
+    Prisma.TreatmentSessionUncheckedCreateWithoutBillingRecordsInput
+  >;
+  where?: Prisma.TreatmentSessionWhereInput;
+};
+
+export type TreatmentSessionUpdateToOneWithWhereWithoutBillingRecordsInput = {
+  where?: Prisma.TreatmentSessionWhereInput;
+  data: Prisma.XOR<
+    Prisma.TreatmentSessionUpdateWithoutBillingRecordsInput,
+    Prisma.TreatmentSessionUncheckedUpdateWithoutBillingRecordsInput
+  >;
+};
+
+export type TreatmentSessionUpdateWithoutBillingRecordsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  bloodPressure?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  complaint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPlan?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentSessionsNestedInput;
+  handler?: Prisma.UserUpdateOneWithoutConductedSessionsNestedInput;
+  package?: Prisma.PatientPackageUpdateOneWithoutTreatmentSessionsNestedInput;
+};
+
+export type TreatmentSessionUncheckedUpdateWithoutBillingRecordsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string;
+  handlerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  bloodPressure?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  complaint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPlan?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+};
+
 export type TreatmentSessionCreateManyHandlerInput = {
   id?: string;
   date?: Date | string;
@@ -976,6 +1637,14 @@ export type TreatmentSessionCreateManyHandlerInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  packageId?: string | null;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 };
@@ -991,9 +1660,22 @@ export type TreatmentSessionUpdateWithoutHandlerInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentSessionsNestedInput;
+  package?: Prisma.PatientPackageUpdateOneWithoutTreatmentSessionsNestedInput;
+  billingRecords?: Prisma.BillingRecordUpdateManyWithoutTreatmentSessionNestedInput;
 };
 
 export type TreatmentSessionUncheckedUpdateWithoutHandlerInput = {
@@ -1008,8 +1690,21 @@ export type TreatmentSessionUncheckedUpdateWithoutHandlerInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutTreatmentSessionNestedInput;
 };
 
 export type TreatmentSessionUncheckedUpdateManyWithoutHandlerInput = {
@@ -1024,6 +1719,18 @@ export type TreatmentSessionUncheckedUpdateManyWithoutHandlerInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
 };
@@ -1038,6 +1745,14 @@ export type TreatmentSessionCreateManyPatientInput = {
   treatmentPlan?: string | null;
   treatmentPerformed: string;
   notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  packageId?: string | null;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 };
@@ -1053,9 +1768,22 @@ export type TreatmentSessionUpdateWithoutPatientInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   handler?: Prisma.UserUpdateOneWithoutConductedSessionsNestedInput;
+  package?: Prisma.PatientPackageUpdateOneWithoutTreatmentSessionsNestedInput;
+  billingRecords?: Prisma.BillingRecordUpdateManyWithoutTreatmentSessionNestedInput;
 };
 
 export type TreatmentSessionUncheckedUpdateWithoutPatientInput = {
@@ -1070,8 +1798,21 @@ export type TreatmentSessionUncheckedUpdateWithoutPatientInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutTreatmentSessionNestedInput;
 };
 
 export type TreatmentSessionUncheckedUpdateManyWithoutPatientInput = {
@@ -1086,8 +1827,167 @@ export type TreatmentSessionUncheckedUpdateManyWithoutPatientInput = {
     Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  packageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+};
+
+export type TreatmentSessionCreateManyPackageInput = {
+  id?: string;
+  date?: Date | string;
+  sessionNumber?: number | null;
+  patientId: string;
+  handlerId?: string | null;
+  bloodPressure?: string | null;
+  complaint?: string | null;
+  treatmentPlan?: string | null;
+  treatmentPerformed: string;
+  notes?: string | null;
+  fee?: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  discountAmount?: number;
+  isPackageCovered?: boolean;
+  paymentStatus?: $Enums.PaymentStatus;
+  paymentMethod?: $Enums.PaymentMethod | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
+
+export type TreatmentSessionUpdateWithoutPackageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  bloodPressure?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  complaint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPlan?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentSessionsNestedInput;
+  handler?: Prisma.UserUpdateOneWithoutConductedSessionsNestedInput;
+  billingRecords?: Prisma.BillingRecordUpdateManyWithoutTreatmentSessionNestedInput;
+};
+
+export type TreatmentSessionUncheckedUpdateWithoutPackageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string;
+  handlerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  bloodPressure?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  complaint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPlan?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutTreatmentSessionNestedInput;
+};
+
+export type TreatmentSessionUncheckedUpdateManyWithoutPackageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  sessionNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string;
+  handlerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  bloodPressure?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  complaint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPlan?:
+    Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  treatmentPerformed?: Prisma.StringFieldUpdateOperationsInput | string;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  fee?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  discountAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  isPackageCovered?: Prisma.BoolFieldUpdateOperationsInput | boolean;
+  paymentStatus?:
+    Prisma.EnumPaymentStatusFieldUpdateOperationsInput | $Enums.PaymentStatus;
+  paymentMethod?:
+    | Prisma.NullableEnumPaymentMethodFieldUpdateOperationsInput
+    | $Enums.PaymentMethod
+    | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+};
+
+/**
+ * Count Type TreatmentSessionCountOutputType
+ */
+
+export type TreatmentSessionCountOutputType = {
+  billingRecords: number;
+};
+
+export type TreatmentSessionCountOutputTypeSelect<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  billingRecords?:
+    boolean | TreatmentSessionCountOutputTypeCountBillingRecordsArgs;
+};
+
+/**
+ * TreatmentSessionCountOutputType without action
+ */
+export type TreatmentSessionCountOutputTypeDefaultArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the TreatmentSessionCountOutputType
+   */
+  select?: Prisma.TreatmentSessionCountOutputTypeSelect<ExtArgs> | null;
+};
+
+/**
+ * TreatmentSessionCountOutputType without action
+ */
+export type TreatmentSessionCountOutputTypeCountBillingRecordsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.BillingRecordWhereInput;
 };
 
 export type TreatmentSessionSelect<
@@ -1105,10 +2005,23 @@ export type TreatmentSessionSelect<
     treatmentPlan?: boolean;
     treatmentPerformed?: boolean;
     notes?: boolean;
+    fee?: boolean;
+    paidAmount?: boolean;
+    refundedAmount?: boolean;
+    discountAmount?: boolean;
+    isPackageCovered?: boolean;
+    packageId?: boolean;
+    paymentStatus?: boolean;
+    paymentMethod?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
     patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
     handler?: boolean | Prisma.TreatmentSession$handlerArgs<ExtArgs>;
+    package?: boolean | Prisma.TreatmentSession$packageArgs<ExtArgs>;
+    billingRecords?:
+      boolean | Prisma.TreatmentSession$billingRecordsArgs<ExtArgs>;
+    _count?:
+      boolean | Prisma.TreatmentSessionCountOutputTypeDefaultArgs<ExtArgs>;
   },
   ExtArgs["result"]["treatmentSession"]
 >;
@@ -1128,10 +2041,19 @@ export type TreatmentSessionSelectCreateManyAndReturn<
     treatmentPlan?: boolean;
     treatmentPerformed?: boolean;
     notes?: boolean;
+    fee?: boolean;
+    paidAmount?: boolean;
+    refundedAmount?: boolean;
+    discountAmount?: boolean;
+    isPackageCovered?: boolean;
+    packageId?: boolean;
+    paymentStatus?: boolean;
+    paymentMethod?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
     patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
     handler?: boolean | Prisma.TreatmentSession$handlerArgs<ExtArgs>;
+    package?: boolean | Prisma.TreatmentSession$packageArgs<ExtArgs>;
   },
   ExtArgs["result"]["treatmentSession"]
 >;
@@ -1151,10 +2073,19 @@ export type TreatmentSessionSelectUpdateManyAndReturn<
     treatmentPlan?: boolean;
     treatmentPerformed?: boolean;
     notes?: boolean;
+    fee?: boolean;
+    paidAmount?: boolean;
+    refundedAmount?: boolean;
+    discountAmount?: boolean;
+    isPackageCovered?: boolean;
+    packageId?: boolean;
+    paymentStatus?: boolean;
+    paymentMethod?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
     patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
     handler?: boolean | Prisma.TreatmentSession$handlerArgs<ExtArgs>;
+    package?: boolean | Prisma.TreatmentSession$packageArgs<ExtArgs>;
   },
   ExtArgs["result"]["treatmentSession"]
 >;
@@ -1170,6 +2101,14 @@ export type TreatmentSessionSelectScalar = {
   treatmentPlan?: boolean;
   treatmentPerformed?: boolean;
   notes?: boolean;
+  fee?: boolean;
+  paidAmount?: boolean;
+  refundedAmount?: boolean;
+  discountAmount?: boolean;
+  isPackageCovered?: boolean;
+  packageId?: boolean;
+  paymentStatus?: boolean;
+  paymentMethod?: boolean;
   createdAt?: boolean;
   updatedAt?: boolean;
 };
@@ -1188,6 +2127,14 @@ export type TreatmentSessionOmit<
   | "treatmentPlan"
   | "treatmentPerformed"
   | "notes"
+  | "fee"
+  | "paidAmount"
+  | "refundedAmount"
+  | "discountAmount"
+  | "isPackageCovered"
+  | "packageId"
+  | "paymentStatus"
+  | "paymentMethod"
   | "createdAt"
   | "updatedAt",
   ExtArgs["result"]["treatmentSession"]
@@ -1198,6 +2145,10 @@ export type TreatmentSessionInclude<
 > = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
   handler?: boolean | Prisma.TreatmentSession$handlerArgs<ExtArgs>;
+  package?: boolean | Prisma.TreatmentSession$packageArgs<ExtArgs>;
+  billingRecords?:
+    boolean | Prisma.TreatmentSession$billingRecordsArgs<ExtArgs>;
+  _count?: boolean | Prisma.TreatmentSessionCountOutputTypeDefaultArgs<ExtArgs>;
 };
 export type TreatmentSessionIncludeCreateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs =
@@ -1205,6 +2156,7 @@ export type TreatmentSessionIncludeCreateManyAndReturn<
 > = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
   handler?: boolean | Prisma.TreatmentSession$handlerArgs<ExtArgs>;
+  package?: boolean | Prisma.TreatmentSession$packageArgs<ExtArgs>;
 };
 export type TreatmentSessionIncludeUpdateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs =
@@ -1212,6 +2164,7 @@ export type TreatmentSessionIncludeUpdateManyAndReturn<
 > = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
   handler?: boolean | Prisma.TreatmentSession$handlerArgs<ExtArgs>;
+  package?: boolean | Prisma.TreatmentSession$packageArgs<ExtArgs>;
 };
 
 export type $TreatmentSessionPayload<
@@ -1222,6 +2175,8 @@ export type $TreatmentSessionPayload<
   objects: {
     patient: Prisma.$PatientPayload<ExtArgs>;
     handler: Prisma.$UserPayload<ExtArgs> | null;
+    package: Prisma.$PatientPackagePayload<ExtArgs> | null;
+    billingRecords: Prisma.$BillingRecordPayload<ExtArgs>[];
   };
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
@@ -1235,6 +2190,14 @@ export type $TreatmentSessionPayload<
       treatmentPlan: string | null;
       treatmentPerformed: string;
       notes: string | null;
+      fee: number;
+      paidAmount: number;
+      refundedAmount: number;
+      discountAmount: number;
+      isPackageCovered: boolean;
+      packageId: string | null;
+      paymentStatus: $Enums.PaymentStatus;
+      paymentMethod: $Enums.PaymentMethod | null;
       createdAt: Date;
       updatedAt: Date;
     },
@@ -1836,6 +2799,35 @@ export interface Prisma__TreatmentSessionClient<
     ExtArgs,
     GlobalOmitOptions
   >;
+  package<T extends Prisma.TreatmentSession$packageArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.TreatmentSession$packageArgs<ExtArgs>>,
+  ): Prisma.Prisma__PatientPackageClient<
+    runtime.Types.Result.GetResult<
+      Prisma.$PatientPackagePayload<ExtArgs>,
+      T,
+      "findUniqueOrThrow",
+      GlobalOmitOptions
+    > | null,
+    null,
+    ExtArgs,
+    GlobalOmitOptions
+  >;
+  billingRecords<
+    T extends Prisma.TreatmentSession$billingRecordsArgs<ExtArgs> = {},
+  >(
+    args?: Prisma.Subset<
+      T,
+      Prisma.TreatmentSession$billingRecordsArgs<ExtArgs>
+    >,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$BillingRecordPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1882,6 +2874,14 @@ export interface TreatmentSessionFieldRefs {
   readonly treatmentPlan: Prisma.FieldRef<"TreatmentSession", "String">;
   readonly treatmentPerformed: Prisma.FieldRef<"TreatmentSession", "String">;
   readonly notes: Prisma.FieldRef<"TreatmentSession", "String">;
+  readonly fee: Prisma.FieldRef<"TreatmentSession", "Float">;
+  readonly paidAmount: Prisma.FieldRef<"TreatmentSession", "Float">;
+  readonly refundedAmount: Prisma.FieldRef<"TreatmentSession", "Float">;
+  readonly discountAmount: Prisma.FieldRef<"TreatmentSession", "Float">;
+  readonly isPackageCovered: Prisma.FieldRef<"TreatmentSession", "Boolean">;
+  readonly packageId: Prisma.FieldRef<"TreatmentSession", "String">;
+  readonly paymentStatus: Prisma.FieldRef<"TreatmentSession", "PaymentStatus">;
+  readonly paymentMethod: Prisma.FieldRef<"TreatmentSession", "PaymentMethod">;
   readonly createdAt: Prisma.FieldRef<"TreatmentSession", "DateTime">;
   readonly updatedAt: Prisma.FieldRef<"TreatmentSession", "DateTime">;
 }
@@ -2377,6 +3377,58 @@ export type TreatmentSession$handlerArgs<
    */
   include?: Prisma.UserInclude<ExtArgs> | null;
   where?: Prisma.UserWhereInput;
+};
+
+/**
+ * TreatmentSession.package
+ */
+export type TreatmentSession$packageArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the PatientPackage
+   */
+  select?: Prisma.PatientPackageSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the PatientPackage
+   */
+  omit?: Prisma.PatientPackageOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PatientPackageInclude<ExtArgs> | null;
+  where?: Prisma.PatientPackageWhereInput;
+};
+
+/**
+ * TreatmentSession.billingRecords
+ */
+export type TreatmentSession$billingRecordsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the BillingRecord
+   */
+  select?: Prisma.BillingRecordSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the BillingRecord
+   */
+  omit?: Prisma.BillingRecordOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BillingRecordInclude<ExtArgs> | null;
+  where?: Prisma.BillingRecordWhereInput;
+  orderBy?:
+    | Prisma.BillingRecordOrderByWithRelationInput
+    | Prisma.BillingRecordOrderByWithRelationInput[];
+  cursor?: Prisma.BillingRecordWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?:
+    Prisma.BillingRecordScalarFieldEnum | Prisma.BillingRecordScalarFieldEnum[];
 };
 
 /**

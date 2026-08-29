@@ -42,6 +42,7 @@ import {
   RefreshCw,
   Lock,
   Unlock,
+  Stethoscope,
 } from "lucide-react";
 
 import { compareRoomNumbers } from "@/lib/rooms";
@@ -56,7 +57,7 @@ export function RoomManagementPanel({
 }) {
   const [rooms, setRooms] = React.useState(initialRooms);
   const [filterView, setFilterView] = React.useState<
-    "ALL" | "ACTIVE" | "STAFF_ONLY" | "INACTIVE"
+    "ALL" | "THERAPY" | "DOCTOR_ONLY" | "STAFF_ONLY" | "INACTIVE"
   >("ALL");
   const [isPending, startTransition] = React.useTransition();
   const [errorMessage, setErrorMessage] = React.useState("");
@@ -72,33 +73,47 @@ export function RoomManagementPanel({
     roomNumber: string;
     name: string;
     purpose: string;
+    type: string;
     capacity: number;
     genderPreference: "ALL" | "MALE" | "FEMALE";
     floor: string;
     notes: string;
-    isStaffOnly: boolean;
+    accessLevel: "PUBLIC" | "DOCTOR_ONLY" | "STAFF_ONLY";
   }>({
     roomNumber: "",
     name: "",
     purpose: "Physiotherapy & Modalities",
+    type: "THERAPY_BAY",
     capacity: 2,
     genderPreference: "ALL",
     floor: "2nd Floor",
     notes: "",
-    isStaffOnly: false,
+    accessLevel: "PUBLIC",
   });
 
   // Edit Form State
-  const [editForm, setEditForm] = React.useState({
+  const [editForm, setEditForm] = React.useState<{
+    roomNumber: string;
+    name: string;
+    purpose: string;
+    type: string;
+    capacity: number;
+    genderPreference: "ALL" | "MALE" | "FEMALE";
+    floor: string;
+    notes: string;
+    isActive: boolean;
+    accessLevel: "PUBLIC" | "DOCTOR_ONLY" | "STAFF_ONLY";
+  }>({
     roomNumber: "",
     name: "",
     purpose: "",
+    type: "THERAPY_BAY",
     capacity: 2,
-    genderPreference: "ALL" as "MALE" | "FEMALE" | "ALL",
+    genderPreference: "ALL",
     floor: "2nd Floor",
     notes: "",
     isActive: true,
-    isStaffOnly: false,
+    accessLevel: "PUBLIC",
   });
 
   const loadRooms = React.useCallback(() => {
@@ -133,15 +148,30 @@ export function RoomManagementPanel({
       return;
     }
 
+    const isStaffOnly = createForm.accessLevel === "STAFF_ONLY";
+    const type =
+      createForm.accessLevel === "DOCTOR_ONLY"
+        ? "DOCTOR"
+        : createForm.accessLevel === "STAFF_ONLY"
+          ? "STAFF_ONLY"
+          : "THERAPY_BAY";
+    const purpose =
+      createForm.accessLevel === "DOCTOR_ONLY" &&
+      (!createForm.purpose ||
+        createForm.purpose === "Physiotherapy & Modalities")
+        ? "Doctor Consultation"
+        : createForm.purpose;
+
     const res = await createRoom({
       roomNumber: createForm.roomNumber,
       name: createForm.name,
-      purpose: createForm.purpose,
+      purpose,
+      type,
       capacity: Number(createForm.capacity) || 0,
       genderPreference: createForm.genderPreference,
       floor: createForm.floor,
       notes: createForm.notes,
-      isStaffOnly: createForm.isStaffOnly,
+      isStaffOnly,
     });
 
     if (res.error) {
@@ -155,11 +185,12 @@ export function RoomManagementPanel({
       roomNumber: "",
       name: "",
       purpose: "Physiotherapy & Modalities",
+      type: "THERAPY_BAY",
       capacity: 2,
       genderPreference: "ALL",
       floor: "2nd Floor",
       notes: "",
-      isStaffOnly: false,
+      accessLevel: "PUBLIC",
     });
     loadRooms();
   };
@@ -167,17 +198,29 @@ export function RoomManagementPanel({
   // Open Edit Modal
   const handleOpenEdit = (room: AdminRoom) => {
     setEditingRoom(room);
+    const isDoc =
+      room.type === "DOCTOR" ||
+      room.type === "CONSULTATION" ||
+      (room.purpose && room.purpose.toLowerCase().includes("doctor")) ||
+      (room.purpose && room.purpose.toLowerCase().includes("consultation"));
+    const accessLevel = room.isStaffOnly
+      ? "STAFF_ONLY"
+      : isDoc
+        ? "DOCTOR_ONLY"
+        : "PUBLIC";
+
     setEditForm({
       roomNumber: room.roomNumber,
       name: room.name,
       purpose: room.purpose || "Physiotherapy & Modalities",
+      type: room.type || "THERAPY_BAY",
       capacity: room.capacity !== undefined ? room.capacity : 2,
       genderPreference:
         (room.genderPreference as "ALL" | "MALE" | "FEMALE") || "ALL",
       floor: room.floor || "2nd Floor",
       notes: room.notes || "",
       isActive: room.isActive,
-      isStaffOnly: Boolean(room.isStaffOnly),
+      accessLevel,
     });
     setErrorMessage("");
     setIsEditOpen(true);
@@ -190,16 +233,25 @@ export function RoomManagementPanel({
     setErrorMessage("");
     setSuccessMessage("");
 
+    const isStaffOnly = editForm.accessLevel === "STAFF_ONLY";
+    const type =
+      editForm.accessLevel === "DOCTOR_ONLY"
+        ? "DOCTOR"
+        : editForm.accessLevel === "STAFF_ONLY"
+          ? "STAFF_ONLY"
+          : "THERAPY_BAY";
+
     const res = await updateRoom(editingRoom.id, {
       roomNumber: editForm.roomNumber,
       name: editForm.name,
       purpose: editForm.purpose,
+      type,
       capacity: Number(editForm.capacity) || 0,
       genderPreference: editForm.genderPreference,
       floor: editForm.floor,
       notes: editForm.notes,
       isActive: editForm.isActive,
-      isStaffOnly: editForm.isStaffOnly,
+      isStaffOnly,
     });
 
     if (res.error) {
@@ -237,15 +289,30 @@ export function RoomManagementPanel({
     loadRooms();
   };
 
+  const isDoctorRoom = (r: AdminRoom) =>
+    r.type === "DOCTOR" ||
+    r.type === "CONSULTATION" ||
+    (r.purpose && r.purpose.toLowerCase().includes("doctor")) ||
+    (r.purpose && r.purpose.toLowerCase().includes("consultation"));
+
   const totalRooms = rooms.length;
-  const activeRooms = rooms.filter((r) => r.isActive).length;
+  const doctorRoomsCount = rooms.filter(
+    (r) => r.isActive && isDoctorRoom(r),
+  ).length;
   const staffOnlyCount = rooms.filter((r) => r.isStaffOnly).length;
+  const therapyRoomsCount = rooms.filter(
+    (r) => r.isActive && !r.isStaffOnly && !isDoctorRoom(r),
+  ).length;
   const totalBeds = rooms.reduce((acc, r) => acc + (r.capacity || 0), 0);
 
   const filteredRooms = React.useMemo(() => {
     let list = rooms;
-    if (filterView === "ACTIVE") {
-      list = rooms.filter((r) => r.isActive && !r.isStaffOnly);
+    if (filterView === "THERAPY") {
+      list = rooms.filter(
+        (r) => r.isActive && !r.isStaffOnly && !isDoctorRoom(r),
+      );
+    } else if (filterView === "DOCTOR_ONLY") {
+      list = rooms.filter((r) => r.isActive && isDoctorRoom(r));
     } else if (filterView === "STAFF_ONLY") {
       list = rooms.filter((r) => r.isStaffOnly);
     } else if (filterView === "INACTIVE") {
@@ -260,30 +327,43 @@ export function RoomManagementPanel({
   return (
     <div className="space-y-3 w-full max-w-full min-w-0">
       {/* Top Admin Summary Row (Compact & High Density) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 min-w-0">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 min-w-0">
         <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between text-muted-foreground text-[10px] sm:text-[11px] font-semibold uppercase">
-            <span>Total Chambers</span>
+            <span>Total Rooms</span>
             <DoorOpen className="h-3.5 w-3.5 text-primary" />
           </div>
           <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-foreground">
-            {totalRooms} Rooms
+            {totalRooms}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground">
-            All registered rooms
+            All registered
           </span>
         </Card>
 
         <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-[11px] font-semibold uppercase">
-            <span>Active (Patients)</span>
+            <span>Therapy Bays</span>
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
           </div>
           <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-emerald-600 dark:text-emerald-400">
-            {activeRooms} Active
+            {therapyRoomsCount}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground">
-            Online for appointments
+            Public rehab bays
+          </span>
+        </Card>
+
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
+          <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 text-[10px] sm:text-[11px] font-semibold uppercase">
+            <span>Doctor Chambers</span>
+            <Stethoscope className="h-3.5 w-3.5 text-blue-500" />
+          </div>
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-blue-600 dark:text-blue-400">
+            {doctorRoomsCount}
+          </p>
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground">
+            Consultation rooms
           </span>
         </Card>
 
@@ -293,23 +373,23 @@ export function RoomManagementPanel({
             <Lock className="h-3.5 w-3.5 text-purple-500" />
           </div>
           <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-purple-600 dark:text-purple-400">
-            {staffOnlyCount} Staff
+            {staffOnlyCount}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground">
-            Reserved staff &amp; prep bays
+            Staff &amp; prep bays
           </span>
         </Card>
 
-        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between text-primary text-[10px] sm:text-[11px] font-semibold uppercase">
-            <span>Total Clinic Beds</span>
+            <span>Clinic Beds</span>
             <BedDouble className="h-3.5 w-3.5 text-primary" />
           </div>
           <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-primary">
-            {totalBeds} Beds
+            {totalBeds}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground">
-            Across active chambers
+            Across active bays
           </span>
         </Card>
       </div>
@@ -327,12 +407,20 @@ export function RoomManagementPanel({
           </Button>
           <Button
             size="sm"
-            variant={filterView === "ACTIVE" ? "default" : "outline"}
-            onClick={() => setFilterView("ACTIVE")}
+            variant={filterView === "THERAPY" ? "default" : "outline"}
+            onClick={() => setFilterView("THERAPY")}
             className="text-xs h-7 px-2.5 cursor-pointer font-semibold"
           >
-            Public Patients (
-            {rooms.filter((r) => r.isActive && !r.isStaffOnly).length})
+            Therapy Bays ({therapyRoomsCount})
+          </Button>
+          <Button
+            size="sm"
+            variant={filterView === "DOCTOR_ONLY" ? "default" : "outline"}
+            onClick={() => setFilterView("DOCTOR_ONLY")}
+            className="text-xs h-7 px-2.5 cursor-pointer font-semibold gap-1 text-blue-600 dark:text-blue-400"
+          >
+            <Stethoscope className="h-3 w-3" />
+            <span>Doctor Chambers ({doctorRoomsCount})</span>
           </Button>
           <Button
             size="sm"
@@ -654,20 +742,45 @@ export function RoomManagementPanel({
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Access Level</Label>
                 <Select
-                  value={createForm.isStaffOnly ? "STAFF_ONLY" : "PUBLIC"}
-                  onValueChange={(val) =>
+                  value={createForm.accessLevel}
+                  onValueChange={(val: string | null) => {
+                    if (!val) return;
+                    const level = val as
+                      "PUBLIC" | "DOCTOR_ONLY" | "STAFF_ONLY";
                     setCreateForm({
                       ...createForm,
-                      isStaffOnly: val === "STAFF_ONLY",
-                    })
-                  }
+                      accessLevel: level,
+                      ...(level === "DOCTOR_ONLY"
+                        ? {
+                            type: "DOCTOR",
+                            purpose:
+                              !createForm.purpose ||
+                              createForm.purpose ===
+                                "Physiotherapy & Modalities"
+                                ? "Doctor Consultation"
+                                : createForm.purpose,
+                          }
+                        : level === "STAFF_ONLY"
+                          ? { type: "STAFF_ONLY" }
+                          : { type: "THERAPY_BAY" }),
+                    });
+                  }}
                 >
                   <SelectTrigger className="w-full h-8 text-xs font-medium bg-background border-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Access Level">
+                      {createForm.accessLevel === "DOCTOR_ONLY"
+                        ? "🩺 Doctor Consultation Chamber"
+                        : createForm.accessLevel === "STAFF_ONLY"
+                          ? "🔒 Staff Only"
+                          : "👥 Public Therapy Bay & Staff"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="PUBLIC">
-                      👥 Public Patients &amp; Staff
+                      👥 Public Therapy Bay &amp; Staff
+                    </SelectItem>
+                    <SelectItem value="DOCTOR_ONLY">
+                      🩺 Doctor Consultation Chamber
                     </SelectItem>
                     <SelectItem value="STAFF_ONLY">🔒 Staff Only</SelectItem>
                   </SelectContent>
@@ -690,7 +803,13 @@ export function RoomManagementPanel({
                   }
                 >
                   <SelectTrigger className="w-full h-8 text-xs font-medium bg-background border-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Gender Preference">
+                      {createForm.genderPreference === "MALE"
+                        ? "Male Therapy Bay"
+                        : createForm.genderPreference === "FEMALE"
+                          ? "Female Therapy Bay"
+                          : "All (Unisex)"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All (Unisex)</SelectItem>
@@ -830,20 +949,37 @@ export function RoomManagementPanel({
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Access Level</Label>
                 <Select
-                  value={editForm.isStaffOnly ? "STAFF_ONLY" : "PUBLIC"}
-                  onValueChange={(val) =>
+                  value={editForm.accessLevel}
+                  onValueChange={(val: string | null) => {
+                    if (!val) return;
+                    const level = val as
+                      "PUBLIC" | "DOCTOR_ONLY" | "STAFF_ONLY";
                     setEditForm({
                       ...editForm,
-                      isStaffOnly: val === "STAFF_ONLY",
-                    })
-                  }
+                      accessLevel: level,
+                      ...(level === "DOCTOR_ONLY"
+                        ? { type: "DOCTOR" }
+                        : level === "STAFF_ONLY"
+                          ? { type: "STAFF_ONLY" }
+                          : { type: "THERAPY_BAY" }),
+                    });
+                  }}
                 >
                   <SelectTrigger className="w-full h-8 text-xs font-medium bg-background border-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Access Level">
+                      {editForm.accessLevel === "DOCTOR_ONLY"
+                        ? "🩺 Doctor Consultation Chamber"
+                        : editForm.accessLevel === "STAFF_ONLY"
+                          ? "🔒 Staff Only"
+                          : "👥 Public Therapy Bay & Staff"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="PUBLIC">
-                      👥 Public Patients &amp; Staff
+                      👥 Public Therapy Bay &amp; Staff
+                    </SelectItem>
+                    <SelectItem value="DOCTOR_ONLY">
+                      🩺 Doctor Consultation Chamber
                     </SelectItem>
                     <SelectItem value="STAFF_ONLY">🔒 Staff Only</SelectItem>
                   </SelectContent>
@@ -864,7 +1000,13 @@ export function RoomManagementPanel({
                   }
                 >
                   <SelectTrigger className="w-full h-8 text-xs font-medium bg-background border-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Gender Filter">
+                      {editForm.genderPreference === "MALE"
+                        ? "Male"
+                        : editForm.genderPreference === "FEMALE"
+                          ? "Female"
+                          : "All (Unisex)"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All (Unisex)</SelectItem>
@@ -896,7 +1038,9 @@ export function RoomManagementPanel({
                   }
                 >
                   <SelectTrigger className="w-full h-8 text-xs font-medium bg-background border-input">
-                    <SelectValue />
+                    <SelectValue placeholder="Active Status">
+                      {editForm.isActive ? "Active" : "Inactive / Maintenance"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ACTIVE">Active</SelectItem>

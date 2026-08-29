@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition } from "react";
 import { useRealtime } from "@/hooks/use-realtime";
-import { getDailyCashLedger, auditLedgerEntry } from "@/actions/billing";
+import { getDailyCashLedger } from "@/actions/billing";
 import {
   Card,
   CardHeader,
@@ -13,10 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  ShieldCheck,
   DollarSign,
   Package,
-  CheckCircle2,
+  Receipt,
   CreditCard,
   RefreshCw,
 } from "lucide-react";
@@ -45,15 +44,15 @@ export function AdminLedgerView({ initialLedger }: AdminLedgerViewProps) {
     onRefresh: refreshData,
   });
 
-  const handleAuditApprove = async (recordId: string) => {
-    await auditLedgerEntry(recordId);
-    refreshData();
-  };
-
-  const totalCollected = ledger.reduce(
+  const totalGrossCollected = ledger.reduce(
     (acc, curr) => acc + (curr.paidAmount || 0),
     0,
   );
+  const totalRefunded = ledger.reduce(
+    (acc, curr) => acc + ((curr as any).refundedAmount || 0),
+    0,
+  );
+  const netCashCollected = Math.max(0, totalGrossCollected - totalRefunded);
   const totalActualBill = ledger.reduce(
     (acc, curr) => acc + (curr.actualBill || 0),
     0,
@@ -67,19 +66,34 @@ export function AdminLedgerView({ initialLedger }: AdminLedgerViewProps) {
   return (
     <div className="space-y-3 w-full max-w-full min-w-0">
       {/* Financial Overview Cards (Compact & High Density) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 min-w-0">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-2.5 min-w-0">
         <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground uppercase">
-              Total Desk Cash
+              Net Desk Cash
             </span>
             <DollarSign className="h-3.5 w-3.5 text-primary" />
           </div>
           <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-primary">
-            ৳{totalCollected.toLocaleString()}
+            ৳{netCashCollected.toLocaleString()}
           </p>
           <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
-            Cashier collections (BST)
+            Gross ৳{totalGrossCollected.toLocaleString()}
+          </span>
+        </Card>
+
+        <Card className="p-2 sm:p-2.5 shadow-xs border-border bg-card">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase">
+              Total Refunded
+            </span>
+            <RefreshCw className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+          </div>
+          <p className="text-lg sm:text-xl font-black mt-0.5 font-mono text-rose-600 dark:text-rose-400">
+            ৳{totalRefunded.toLocaleString()}
+          </p>
+          <span className="text-[9px] sm:text-[10px] text-muted-foreground block">
+            Returned to patients
           </span>
         </Card>
 
@@ -129,17 +143,19 @@ export function AdminLedgerView({ initialLedger }: AdminLedgerViewProps) {
         </Card>
       </div>
 
-      {/* CEO Audit Daily Cash Ledger */}
+      {/* Daily Cash Ledger */}
       <Card className="shadow-xs border-border bg-card">
         <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-              <span>CEO Daily Cash Ledger Audit &amp; Sign-off</span>
+              <Receipt className="h-4 w-4 text-primary" />
+              <span>
+                Daily Cash &amp; Payment Ledger (দৈনিক ক্যাশ ও বিলিং লেজার)
+              </span>
             </CardTitle>
             <CardDescription className="text-[11px]">
-              Review cashier receipts, non-payment entries, and grant executive
-              sign-off.
+              Realtime record of desk receipts, payment methods, package claims,
+              and refunds.
             </CardDescription>
           </div>
           <div className="flex items-center gap-1.5">
@@ -168,7 +184,7 @@ export function AdminLedgerView({ initialLedger }: AdminLedgerViewProps) {
                   <th className="p-2 text-right">Cash Received</th>
                   <th className="p-2 text-right">Due / N.P Status</th>
                   <th className="p-2">Cashier</th>
-                  <th className="p-2 text-center">CEO Audit Status</th>
+                  <th className="p-2 text-right">Payment Method</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -226,17 +242,54 @@ export function AdminLedgerView({ initialLedger }: AdminLedgerViewProps) {
                         ৳{item.actualBill.toLocaleString()}
                       </td>
 
-                      <td className="p-3 text-right font-mono font-bold text-primary">
-                        ৳{item.paidAmount.toLocaleString()}
+                      <td className="p-3 text-right font-mono">
+                        {(item as any).refundedAmount > 0 ? (
+                          <div>
+                            <div className="text-muted-foreground line-through text-[11px]">
+                              ৳{item.paidAmount.toLocaleString()}
+                            </div>
+                            <div className="text-[11px] font-black text-rose-600 dark:text-rose-400">
+                              -৳{(item as any).refundedAmount.toLocaleString()}{" "}
+                              (Refund)
+                            </div>
+                            <div className="text-xs font-black text-primary">
+                              Net: ৳
+                              {Math.max(
+                                0,
+                                item.paidAmount -
+                                  ((item as any).refundedAmount || 0),
+                              ).toLocaleString()}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="font-bold text-primary">
+                            ৳{item.paidAmount.toLocaleString()}
+                          </span>
+                        )}
                       </td>
 
                       <td className="p-3 text-right">
-                        {item.isPackageCovered ? (
+                        {(item as any).paymentStatus === "REFUNDED" ? (
+                          <Badge
+                            variant="destructive"
+                            className="text-[10px] font-bold"
+                          >
+                            REFUNDED
+                          </Badge>
+                        ) : (item as any).paymentStatus ===
+                          "PARTIALLY_REFUNDED" ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-bold border-amber-500/40 text-amber-600"
+                          >
+                            PART. REFUND
+                          </Badge>
+                        ) : item.isPackageCovered ? (
                           <Badge
                             variant="secondary"
                             className="text-[10px] font-bold bg-muted"
                           >
-                            N.P (Non-Pay)
+                            N.P (Package Covered)
                           </Badge>
                         ) : item.dueAmount > 0 ? (
                           <span className="font-mono font-bold text-destructive">
@@ -253,26 +306,13 @@ export function AdminLedgerView({ initialLedger }: AdminLedgerViewProps) {
                         {item.cashier?.name || "Reception Desk"}
                       </td>
 
-                      <td className="p-3 text-center">
-                        {item.auditedById ? (
-                          <Badge
-                            variant="default"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-[10px]"
-                          >
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span>Signed by CEO</span>
-                          </Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAuditApprove(item.id)}
-                            className="text-[11px] h-7 px-2.5 cursor-pointer font-bold border-primary/40 text-primary hover:bg-primary/10"
-                          >
-                            <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                            <span>Audit &amp; Approve</span>
-                          </Button>
-                        )}
+                      <td className="p-3 text-right">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-mono font-semibold"
+                        >
+                          {item.paymentMethod || "CASH"}
+                        </Badge>
                       </td>
                     </tr>
                   ))

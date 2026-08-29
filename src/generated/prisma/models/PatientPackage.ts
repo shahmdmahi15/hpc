@@ -30,6 +30,7 @@ export type PatientPackageAvgAggregateOutputType = {
   totalDays: number | null;
   totalAmount: number | null;
   paidAmount: number | null;
+  refundedAmount: number | null;
   dueAmount: number | null;
 };
 
@@ -37,6 +38,7 @@ export type PatientPackageSumAggregateOutputType = {
   totalDays: number | null;
   totalAmount: number | null;
   paidAmount: number | null;
+  refundedAmount: number | null;
   dueAmount: number | null;
 };
 
@@ -46,6 +48,7 @@ export type PatientPackageMinAggregateOutputType = {
   totalDays: number | null;
   totalAmount: number | null;
   paidAmount: number | null;
+  refundedAmount: number | null;
   dueAmount: number | null;
   startDate: Date | null;
   endDate: Date | null;
@@ -62,6 +65,7 @@ export type PatientPackageMaxAggregateOutputType = {
   totalDays: number | null;
   totalAmount: number | null;
   paidAmount: number | null;
+  refundedAmount: number | null;
   dueAmount: number | null;
   startDate: Date | null;
   endDate: Date | null;
@@ -78,6 +82,7 @@ export type PatientPackageCountAggregateOutputType = {
   totalDays: number;
   totalAmount: number;
   paidAmount: number;
+  refundedAmount: number;
   dueAmount: number;
   startDate: number;
   endDate: number;
@@ -93,6 +98,7 @@ export type PatientPackageAvgAggregateInputType = {
   totalDays?: true;
   totalAmount?: true;
   paidAmount?: true;
+  refundedAmount?: true;
   dueAmount?: true;
 };
 
@@ -100,6 +106,7 @@ export type PatientPackageSumAggregateInputType = {
   totalDays?: true;
   totalAmount?: true;
   paidAmount?: true;
+  refundedAmount?: true;
   dueAmount?: true;
 };
 
@@ -109,6 +116,7 @@ export type PatientPackageMinAggregateInputType = {
   totalDays?: true;
   totalAmount?: true;
   paidAmount?: true;
+  refundedAmount?: true;
   dueAmount?: true;
   startDate?: true;
   endDate?: true;
@@ -125,6 +133,7 @@ export type PatientPackageMaxAggregateInputType = {
   totalDays?: true;
   totalAmount?: true;
   paidAmount?: true;
+  refundedAmount?: true;
   dueAmount?: true;
   startDate?: true;
   endDate?: true;
@@ -141,6 +150,7 @@ export type PatientPackageCountAggregateInputType = {
   totalDays?: true;
   totalAmount?: true;
   paidAmount?: true;
+  refundedAmount?: true;
   dueAmount?: true;
   startDate?: true;
   endDate?: true;
@@ -255,6 +265,7 @@ export type PatientPackageGroupByOutputType = {
   totalDays: number;
   totalAmount: number;
   paidAmount: number;
+  refundedAmount: number;
   dueAmount: number;
   startDate: Date;
   endDate: Date | null;
@@ -293,6 +304,7 @@ export type PatientPackageWhereInput = {
   totalDays?: Prisma.IntFilter<"PatientPackage"> | number;
   totalAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
   paidAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
+  refundedAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
   dueAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
   startDate?: Prisma.DateTimeFilter<"PatientPackage"> | Date | string;
   endDate?:
@@ -307,6 +319,8 @@ export type PatientPackageWhereInput = {
     Prisma.PatientScalarRelationFilter,
     Prisma.PatientWhereInput
   >;
+  serials?: Prisma.SerialListRelationFilter;
+  treatmentSessions?: Prisma.TreatmentSessionListRelationFilter;
   billingRecords?: Prisma.BillingRecordListRelationFilter;
 };
 
@@ -316,6 +330,7 @@ export type PatientPackageOrderByWithRelationInput = {
   totalDays?: Prisma.SortOrder;
   totalAmount?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
   dueAmount?: Prisma.SortOrder;
   startDate?: Prisma.SortOrder;
   endDate?: Prisma.SortOrderInput | Prisma.SortOrder;
@@ -325,6 +340,8 @@ export type PatientPackageOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
   patient?: Prisma.PatientOrderByWithRelationInput;
+  serials?: Prisma.SerialOrderByRelationAggregateInput;
+  treatmentSessions?: Prisma.TreatmentSessionOrderByRelationAggregateInput;
   billingRecords?: Prisma.BillingRecordOrderByRelationAggregateInput;
 };
 
@@ -338,6 +355,7 @@ export type PatientPackageWhereUniqueInput = Prisma.AtLeast<
     totalDays?: Prisma.IntFilter<"PatientPackage"> | number;
     totalAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
     paidAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
+    refundedAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
     dueAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
     startDate?: Prisma.DateTimeFilter<"PatientPackage"> | Date | string;
     endDate?:
@@ -352,6 +370,8 @@ export type PatientPackageWhereUniqueInput = Prisma.AtLeast<
       Prisma.PatientScalarRelationFilter,
       Prisma.PatientWhereInput
     >;
+    serials?: Prisma.SerialListRelationFilter;
+    treatmentSessions?: Prisma.TreatmentSessionListRelationFilter;
     billingRecords?: Prisma.BillingRecordListRelationFilter;
   },
   "id"
@@ -363,6 +383,7 @@ export type PatientPackageOrderByWithAggregationInput = {
   totalDays?: Prisma.SortOrder;
   totalAmount?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
   dueAmount?: Prisma.SortOrder;
   startDate?: Prisma.SortOrder;
   endDate?: Prisma.SortOrderInput | Prisma.SortOrder;
@@ -391,6 +412,7 @@ export type PatientPackageScalarWhereWithAggregatesInput = {
   totalDays?: Prisma.IntWithAggregatesFilter<"PatientPackage"> | number;
   totalAmount?: Prisma.FloatWithAggregatesFilter<"PatientPackage"> | number;
   paidAmount?: Prisma.FloatWithAggregatesFilter<"PatientPackage"> | number;
+  refundedAmount?: Prisma.FloatWithAggregatesFilter<"PatientPackage"> | number;
   dueAmount?: Prisma.FloatWithAggregatesFilter<"PatientPackage"> | number;
   startDate?:
     Prisma.DateTimeWithAggregatesFilter<"PatientPackage"> | Date | string;
@@ -417,6 +439,7 @@ export type PatientPackageCreateInput = {
   totalDays?: number;
   totalAmount: number;
   paidAmount?: number;
+  refundedAmount?: number;
   dueAmount?: number;
   startDate?: Date | string;
   endDate?: Date | string | null;
@@ -425,6 +448,8 @@ export type PatientPackageCreateInput = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   patient: Prisma.PatientCreateNestedOneWithoutPackagesInput;
+  serials?: Prisma.SerialCreateNestedManyWithoutPackageInput;
+  treatmentSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutPackageInput;
   billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutPackageInput;
 };
 
@@ -434,6 +459,7 @@ export type PatientPackageUncheckedCreateInput = {
   totalDays?: number;
   totalAmount: number;
   paidAmount?: number;
+  refundedAmount?: number;
   dueAmount?: number;
   startDate?: Date | string;
   endDate?: Date | string | null;
@@ -442,6 +468,8 @@ export type PatientPackageUncheckedCreateInput = {
   patientId: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  serials?: Prisma.SerialUncheckedCreateNestedManyWithoutPackageInput;
+  treatmentSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutPackageInput;
   billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutPackageInput;
 };
 
@@ -451,6 +479,7 @@ export type PatientPackageUpdateInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -461,6 +490,8 @@ export type PatientPackageUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   patient?: Prisma.PatientUpdateOneRequiredWithoutPackagesNestedInput;
+  serials?: Prisma.SerialUpdateManyWithoutPackageNestedInput;
+  treatmentSessions?: Prisma.TreatmentSessionUpdateManyWithoutPackageNestedInput;
   billingRecords?: Prisma.BillingRecordUpdateManyWithoutPackageNestedInput;
 };
 
@@ -470,6 +501,7 @@ export type PatientPackageUncheckedUpdateInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -480,6 +512,8 @@ export type PatientPackageUncheckedUpdateInput = {
   patientId?: Prisma.StringFieldUpdateOperationsInput | string;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  serials?: Prisma.SerialUncheckedUpdateManyWithoutPackageNestedInput;
+  treatmentSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutPackageNestedInput;
   billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutPackageNestedInput;
 };
 
@@ -489,6 +523,7 @@ export type PatientPackageCreateManyInput = {
   totalDays?: number;
   totalAmount: number;
   paidAmount?: number;
+  refundedAmount?: number;
   dueAmount?: number;
   startDate?: Date | string;
   endDate?: Date | string | null;
@@ -505,6 +540,7 @@ export type PatientPackageUpdateManyMutationInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -522,6 +558,7 @@ export type PatientPackageUncheckedUpdateManyInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -544,12 +581,18 @@ export type PatientPackageOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder;
 };
 
+export type PatientPackageNullableScalarRelationFilter = {
+  is?: Prisma.PatientPackageWhereInput | null;
+  isNot?: Prisma.PatientPackageWhereInput | null;
+};
+
 export type PatientPackageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder;
   packageName?: Prisma.SortOrder;
   totalDays?: Prisma.SortOrder;
   totalAmount?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
   dueAmount?: Prisma.SortOrder;
   startDate?: Prisma.SortOrder;
   endDate?: Prisma.SortOrder;
@@ -564,6 +607,7 @@ export type PatientPackageAvgOrderByAggregateInput = {
   totalDays?: Prisma.SortOrder;
   totalAmount?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
   dueAmount?: Prisma.SortOrder;
 };
 
@@ -573,6 +617,7 @@ export type PatientPackageMaxOrderByAggregateInput = {
   totalDays?: Prisma.SortOrder;
   totalAmount?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
   dueAmount?: Prisma.SortOrder;
   startDate?: Prisma.SortOrder;
   endDate?: Prisma.SortOrder;
@@ -589,6 +634,7 @@ export type PatientPackageMinOrderByAggregateInput = {
   totalDays?: Prisma.SortOrder;
   totalAmount?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
   dueAmount?: Prisma.SortOrder;
   startDate?: Prisma.SortOrder;
   endDate?: Prisma.SortOrder;
@@ -603,12 +649,8 @@ export type PatientPackageSumOrderByAggregateInput = {
   totalDays?: Prisma.SortOrder;
   totalAmount?: Prisma.SortOrder;
   paidAmount?: Prisma.SortOrder;
+  refundedAmount?: Prisma.SortOrder;
   dueAmount?: Prisma.SortOrder;
-};
-
-export type PatientPackageNullableScalarRelationFilter = {
-  is?: Prisma.PatientPackageWhereInput | null;
-  isNot?: Prisma.PatientPackageWhereInput | null;
 };
 
 export type PatientPackageCreateNestedManyWithoutPatientInput = {
@@ -721,6 +763,62 @@ export type PatientPackageUncheckedUpdateManyWithoutPatientNestedInput = {
     | Prisma.PatientPackageScalarWhereInput[];
 };
 
+export type PatientPackageCreateNestedOneWithoutSerialsInput = {
+  create?: Prisma.XOR<
+    Prisma.PatientPackageCreateWithoutSerialsInput,
+    Prisma.PatientPackageUncheckedCreateWithoutSerialsInput
+  >;
+  connectOrCreate?: Prisma.PatientPackageCreateOrConnectWithoutSerialsInput;
+  connect?: Prisma.PatientPackageWhereUniqueInput;
+};
+
+export type PatientPackageUpdateOneWithoutSerialsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.PatientPackageCreateWithoutSerialsInput,
+    Prisma.PatientPackageUncheckedCreateWithoutSerialsInput
+  >;
+  connectOrCreate?: Prisma.PatientPackageCreateOrConnectWithoutSerialsInput;
+  upsert?: Prisma.PatientPackageUpsertWithoutSerialsInput;
+  disconnect?: Prisma.PatientPackageWhereInput | boolean;
+  delete?: Prisma.PatientPackageWhereInput | boolean;
+  connect?: Prisma.PatientPackageWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.PatientPackageUpdateToOneWithWhereWithoutSerialsInput,
+      Prisma.PatientPackageUpdateWithoutSerialsInput
+    >,
+    Prisma.PatientPackageUncheckedUpdateWithoutSerialsInput
+  >;
+};
+
+export type PatientPackageCreateNestedOneWithoutTreatmentSessionsInput = {
+  create?: Prisma.XOR<
+    Prisma.PatientPackageCreateWithoutTreatmentSessionsInput,
+    Prisma.PatientPackageUncheckedCreateWithoutTreatmentSessionsInput
+  >;
+  connectOrCreate?: Prisma.PatientPackageCreateOrConnectWithoutTreatmentSessionsInput;
+  connect?: Prisma.PatientPackageWhereUniqueInput;
+};
+
+export type PatientPackageUpdateOneWithoutTreatmentSessionsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.PatientPackageCreateWithoutTreatmentSessionsInput,
+    Prisma.PatientPackageUncheckedCreateWithoutTreatmentSessionsInput
+  >;
+  connectOrCreate?: Prisma.PatientPackageCreateOrConnectWithoutTreatmentSessionsInput;
+  upsert?: Prisma.PatientPackageUpsertWithoutTreatmentSessionsInput;
+  disconnect?: Prisma.PatientPackageWhereInput | boolean;
+  delete?: Prisma.PatientPackageWhereInput | boolean;
+  connect?: Prisma.PatientPackageWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.PatientPackageUpdateToOneWithWhereWithoutTreatmentSessionsInput,
+      Prisma.PatientPackageUpdateWithoutTreatmentSessionsInput
+    >,
+    Prisma.PatientPackageUncheckedUpdateWithoutTreatmentSessionsInput
+  >;
+};
+
 export type EnumPackageStatusFieldUpdateOperationsInput = {
   set?: $Enums.PackageStatus;
 };
@@ -759,6 +857,7 @@ export type PatientPackageCreateWithoutPatientInput = {
   totalDays?: number;
   totalAmount: number;
   paidAmount?: number;
+  refundedAmount?: number;
   dueAmount?: number;
   startDate?: Date | string;
   endDate?: Date | string | null;
@@ -766,6 +865,8 @@ export type PatientPackageCreateWithoutPatientInput = {
   notes?: string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  serials?: Prisma.SerialCreateNestedManyWithoutPackageInput;
+  treatmentSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutPackageInput;
   billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutPackageInput;
 };
 
@@ -775,6 +876,7 @@ export type PatientPackageUncheckedCreateWithoutPatientInput = {
   totalDays?: number;
   totalAmount: number;
   paidAmount?: number;
+  refundedAmount?: number;
   dueAmount?: number;
   startDate?: Date | string;
   endDate?: Date | string | null;
@@ -782,6 +884,8 @@ export type PatientPackageUncheckedCreateWithoutPatientInput = {
   notes?: string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  serials?: Prisma.SerialUncheckedCreateNestedManyWithoutPackageInput;
+  treatmentSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutPackageInput;
   billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutPackageInput;
 };
 
@@ -840,6 +944,7 @@ export type PatientPackageScalarWhereInput = {
   totalDays?: Prisma.IntFilter<"PatientPackage"> | number;
   totalAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
   paidAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
+  refundedAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
   dueAmount?: Prisma.FloatFilter<"PatientPackage"> | number;
   startDate?: Prisma.DateTimeFilter<"PatientPackage"> | Date | string;
   endDate?:
@@ -852,12 +957,13 @@ export type PatientPackageScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"PatientPackage"> | Date | string;
 };
 
-export type PatientPackageCreateWithoutBillingRecordsInput = {
+export type PatientPackageCreateWithoutSerialsInput = {
   id?: string;
   packageName: string;
   totalDays?: number;
   totalAmount: number;
   paidAmount?: number;
+  refundedAmount?: number;
   dueAmount?: number;
   startDate?: Date | string;
   endDate?: Date | string | null;
@@ -866,14 +972,17 @@ export type PatientPackageCreateWithoutBillingRecordsInput = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   patient: Prisma.PatientCreateNestedOneWithoutPackagesInput;
+  treatmentSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutPackageInput;
+  billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutPackageInput;
 };
 
-export type PatientPackageUncheckedCreateWithoutBillingRecordsInput = {
+export type PatientPackageUncheckedCreateWithoutSerialsInput = {
   id?: string;
   packageName: string;
   totalDays?: number;
   totalAmount: number;
   paidAmount?: number;
+  refundedAmount?: number;
   dueAmount?: number;
   startDate?: Date | string;
   endDate?: Date | string | null;
@@ -882,6 +991,224 @@ export type PatientPackageUncheckedCreateWithoutBillingRecordsInput = {
   patientId: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  treatmentSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutPackageInput;
+  billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutPackageInput;
+};
+
+export type PatientPackageCreateOrConnectWithoutSerialsInput = {
+  where: Prisma.PatientPackageWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.PatientPackageCreateWithoutSerialsInput,
+    Prisma.PatientPackageUncheckedCreateWithoutSerialsInput
+  >;
+};
+
+export type PatientPackageUpsertWithoutSerialsInput = {
+  update: Prisma.XOR<
+    Prisma.PatientPackageUpdateWithoutSerialsInput,
+    Prisma.PatientPackageUncheckedUpdateWithoutSerialsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.PatientPackageCreateWithoutSerialsInput,
+    Prisma.PatientPackageUncheckedCreateWithoutSerialsInput
+  >;
+  where?: Prisma.PatientPackageWhereInput;
+};
+
+export type PatientPackageUpdateToOneWithWhereWithoutSerialsInput = {
+  where?: Prisma.PatientPackageWhereInput;
+  data: Prisma.XOR<
+    Prisma.PatientPackageUpdateWithoutSerialsInput,
+    Prisma.PatientPackageUncheckedUpdateWithoutSerialsInput
+  >;
+};
+
+export type PatientPackageUpdateWithoutSerialsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  packageName?: Prisma.StringFieldUpdateOperationsInput | string;
+  totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
+  totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  endDate?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  status?:
+    Prisma.EnumPackageStatusFieldUpdateOperationsInput | $Enums.PackageStatus;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  patient?: Prisma.PatientUpdateOneRequiredWithoutPackagesNestedInput;
+  treatmentSessions?: Prisma.TreatmentSessionUpdateManyWithoutPackageNestedInput;
+  billingRecords?: Prisma.BillingRecordUpdateManyWithoutPackageNestedInput;
+};
+
+export type PatientPackageUncheckedUpdateWithoutSerialsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  packageName?: Prisma.StringFieldUpdateOperationsInput | string;
+  totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
+  totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  endDate?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  status?:
+    Prisma.EnumPackageStatusFieldUpdateOperationsInput | $Enums.PackageStatus;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  treatmentSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutPackageNestedInput;
+  billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutPackageNestedInput;
+};
+
+export type PatientPackageCreateWithoutTreatmentSessionsInput = {
+  id?: string;
+  packageName: string;
+  totalDays?: number;
+  totalAmount: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  dueAmount?: number;
+  startDate?: Date | string;
+  endDate?: Date | string | null;
+  status?: $Enums.PackageStatus;
+  notes?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  patient: Prisma.PatientCreateNestedOneWithoutPackagesInput;
+  serials?: Prisma.SerialCreateNestedManyWithoutPackageInput;
+  billingRecords?: Prisma.BillingRecordCreateNestedManyWithoutPackageInput;
+};
+
+export type PatientPackageUncheckedCreateWithoutTreatmentSessionsInput = {
+  id?: string;
+  packageName: string;
+  totalDays?: number;
+  totalAmount: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  dueAmount?: number;
+  startDate?: Date | string;
+  endDate?: Date | string | null;
+  status?: $Enums.PackageStatus;
+  notes?: string | null;
+  patientId: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  serials?: Prisma.SerialUncheckedCreateNestedManyWithoutPackageInput;
+  billingRecords?: Prisma.BillingRecordUncheckedCreateNestedManyWithoutPackageInput;
+};
+
+export type PatientPackageCreateOrConnectWithoutTreatmentSessionsInput = {
+  where: Prisma.PatientPackageWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.PatientPackageCreateWithoutTreatmentSessionsInput,
+    Prisma.PatientPackageUncheckedCreateWithoutTreatmentSessionsInput
+  >;
+};
+
+export type PatientPackageUpsertWithoutTreatmentSessionsInput = {
+  update: Prisma.XOR<
+    Prisma.PatientPackageUpdateWithoutTreatmentSessionsInput,
+    Prisma.PatientPackageUncheckedUpdateWithoutTreatmentSessionsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.PatientPackageCreateWithoutTreatmentSessionsInput,
+    Prisma.PatientPackageUncheckedCreateWithoutTreatmentSessionsInput
+  >;
+  where?: Prisma.PatientPackageWhereInput;
+};
+
+export type PatientPackageUpdateToOneWithWhereWithoutTreatmentSessionsInput = {
+  where?: Prisma.PatientPackageWhereInput;
+  data: Prisma.XOR<
+    Prisma.PatientPackageUpdateWithoutTreatmentSessionsInput,
+    Prisma.PatientPackageUncheckedUpdateWithoutTreatmentSessionsInput
+  >;
+};
+
+export type PatientPackageUpdateWithoutTreatmentSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  packageName?: Prisma.StringFieldUpdateOperationsInput | string;
+  totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
+  totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  endDate?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  status?:
+    Prisma.EnumPackageStatusFieldUpdateOperationsInput | $Enums.PackageStatus;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  patient?: Prisma.PatientUpdateOneRequiredWithoutPackagesNestedInput;
+  serials?: Prisma.SerialUpdateManyWithoutPackageNestedInput;
+  billingRecords?: Prisma.BillingRecordUpdateManyWithoutPackageNestedInput;
+};
+
+export type PatientPackageUncheckedUpdateWithoutTreatmentSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string;
+  packageName?: Prisma.StringFieldUpdateOperationsInput | string;
+  totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
+  totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  endDate?:
+    Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  status?:
+    Prisma.EnumPackageStatusFieldUpdateOperationsInput | $Enums.PackageStatus;
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  serials?: Prisma.SerialUncheckedUpdateManyWithoutPackageNestedInput;
+  billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutPackageNestedInput;
+};
+
+export type PatientPackageCreateWithoutBillingRecordsInput = {
+  id?: string;
+  packageName: string;
+  totalDays?: number;
+  totalAmount: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  dueAmount?: number;
+  startDate?: Date | string;
+  endDate?: Date | string | null;
+  status?: $Enums.PackageStatus;
+  notes?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  patient: Prisma.PatientCreateNestedOneWithoutPackagesInput;
+  serials?: Prisma.SerialCreateNestedManyWithoutPackageInput;
+  treatmentSessions?: Prisma.TreatmentSessionCreateNestedManyWithoutPackageInput;
+};
+
+export type PatientPackageUncheckedCreateWithoutBillingRecordsInput = {
+  id?: string;
+  packageName: string;
+  totalDays?: number;
+  totalAmount: number;
+  paidAmount?: number;
+  refundedAmount?: number;
+  dueAmount?: number;
+  startDate?: Date | string;
+  endDate?: Date | string | null;
+  status?: $Enums.PackageStatus;
+  notes?: string | null;
+  patientId: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  serials?: Prisma.SerialUncheckedCreateNestedManyWithoutPackageInput;
+  treatmentSessions?: Prisma.TreatmentSessionUncheckedCreateNestedManyWithoutPackageInput;
 };
 
 export type PatientPackageCreateOrConnectWithoutBillingRecordsInput = {
@@ -918,6 +1245,7 @@ export type PatientPackageUpdateWithoutBillingRecordsInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -928,6 +1256,8 @@ export type PatientPackageUpdateWithoutBillingRecordsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   patient?: Prisma.PatientUpdateOneRequiredWithoutPackagesNestedInput;
+  serials?: Prisma.SerialUpdateManyWithoutPackageNestedInput;
+  treatmentSessions?: Prisma.TreatmentSessionUpdateManyWithoutPackageNestedInput;
 };
 
 export type PatientPackageUncheckedUpdateWithoutBillingRecordsInput = {
@@ -936,6 +1266,7 @@ export type PatientPackageUncheckedUpdateWithoutBillingRecordsInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -946,6 +1277,8 @@ export type PatientPackageUncheckedUpdateWithoutBillingRecordsInput = {
   patientId?: Prisma.StringFieldUpdateOperationsInput | string;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  serials?: Prisma.SerialUncheckedUpdateManyWithoutPackageNestedInput;
+  treatmentSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutPackageNestedInput;
 };
 
 export type PatientPackageCreateManyPatientInput = {
@@ -954,6 +1287,7 @@ export type PatientPackageCreateManyPatientInput = {
   totalDays?: number;
   totalAmount: number;
   paidAmount?: number;
+  refundedAmount?: number;
   dueAmount?: number;
   startDate?: Date | string;
   endDate?: Date | string | null;
@@ -969,6 +1303,7 @@ export type PatientPackageUpdateWithoutPatientInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -978,6 +1313,8 @@ export type PatientPackageUpdateWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  serials?: Prisma.SerialUpdateManyWithoutPackageNestedInput;
+  treatmentSessions?: Prisma.TreatmentSessionUpdateManyWithoutPackageNestedInput;
   billingRecords?: Prisma.BillingRecordUpdateManyWithoutPackageNestedInput;
 };
 
@@ -987,6 +1324,7 @@ export type PatientPackageUncheckedUpdateWithoutPatientInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -996,6 +1334,8 @@ export type PatientPackageUncheckedUpdateWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  serials?: Prisma.SerialUncheckedUpdateManyWithoutPackageNestedInput;
+  treatmentSessions?: Prisma.TreatmentSessionUncheckedUpdateManyWithoutPackageNestedInput;
   billingRecords?: Prisma.BillingRecordUncheckedUpdateManyWithoutPackageNestedInput;
 };
 
@@ -1005,6 +1345,7 @@ export type PatientPackageUncheckedUpdateManyWithoutPatientInput = {
   totalDays?: Prisma.IntFieldUpdateOperationsInput | number;
   totalAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   paidAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
+  refundedAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   dueAmount?: Prisma.FloatFieldUpdateOperationsInput | number;
   startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   endDate?:
@@ -1021,6 +1362,8 @@ export type PatientPackageUncheckedUpdateManyWithoutPatientInput = {
  */
 
 export type PatientPackageCountOutputType = {
+  serials: number;
+  treatmentSessions: number;
   billingRecords: number;
 };
 
@@ -1028,6 +1371,9 @@ export type PatientPackageCountOutputTypeSelect<
   ExtArgs extends runtime.Types.Extensions.InternalArgs =
     runtime.Types.Extensions.DefaultArgs,
 > = {
+  serials?: boolean | PatientPackageCountOutputTypeCountSerialsArgs;
+  treatmentSessions?:
+    boolean | PatientPackageCountOutputTypeCountTreatmentSessionsArgs;
   billingRecords?:
     boolean | PatientPackageCountOutputTypeCountBillingRecordsArgs;
 };
@@ -1043,6 +1389,26 @@ export type PatientPackageCountOutputTypeDefaultArgs<
    * Select specific fields to fetch from the PatientPackageCountOutputType
    */
   select?: Prisma.PatientPackageCountOutputTypeSelect<ExtArgs> | null;
+};
+
+/**
+ * PatientPackageCountOutputType without action
+ */
+export type PatientPackageCountOutputTypeCountSerialsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.SerialWhereInput;
+};
+
+/**
+ * PatientPackageCountOutputType without action
+ */
+export type PatientPackageCountOutputTypeCountTreatmentSessionsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.TreatmentSessionWhereInput;
 };
 
 /**
@@ -1065,6 +1431,7 @@ export type PatientPackageSelect<
     totalDays?: boolean;
     totalAmount?: boolean;
     paidAmount?: boolean;
+    refundedAmount?: boolean;
     dueAmount?: boolean;
     startDate?: boolean;
     endDate?: boolean;
@@ -1074,6 +1441,9 @@ export type PatientPackageSelect<
     createdAt?: boolean;
     updatedAt?: boolean;
     patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
+    serials?: boolean | Prisma.PatientPackage$serialsArgs<ExtArgs>;
+    treatmentSessions?:
+      boolean | Prisma.PatientPackage$treatmentSessionsArgs<ExtArgs>;
     billingRecords?:
       boolean | Prisma.PatientPackage$billingRecordsArgs<ExtArgs>;
     _count?: boolean | Prisma.PatientPackageCountOutputTypeDefaultArgs<ExtArgs>;
@@ -1091,6 +1461,7 @@ export type PatientPackageSelectCreateManyAndReturn<
     totalDays?: boolean;
     totalAmount?: boolean;
     paidAmount?: boolean;
+    refundedAmount?: boolean;
     dueAmount?: boolean;
     startDate?: boolean;
     endDate?: boolean;
@@ -1114,6 +1485,7 @@ export type PatientPackageSelectUpdateManyAndReturn<
     totalDays?: boolean;
     totalAmount?: boolean;
     paidAmount?: boolean;
+    refundedAmount?: boolean;
     dueAmount?: boolean;
     startDate?: boolean;
     endDate?: boolean;
@@ -1133,6 +1505,7 @@ export type PatientPackageSelectScalar = {
   totalDays?: boolean;
   totalAmount?: boolean;
   paidAmount?: boolean;
+  refundedAmount?: boolean;
   dueAmount?: boolean;
   startDate?: boolean;
   endDate?: boolean;
@@ -1152,6 +1525,7 @@ export type PatientPackageOmit<
   | "totalDays"
   | "totalAmount"
   | "paidAmount"
+  | "refundedAmount"
   | "dueAmount"
   | "startDate"
   | "endDate"
@@ -1167,6 +1541,9 @@ export type PatientPackageInclude<
     runtime.Types.Extensions.DefaultArgs,
 > = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>;
+  serials?: boolean | Prisma.PatientPackage$serialsArgs<ExtArgs>;
+  treatmentSessions?:
+    boolean | Prisma.PatientPackage$treatmentSessionsArgs<ExtArgs>;
   billingRecords?: boolean | Prisma.PatientPackage$billingRecordsArgs<ExtArgs>;
   _count?: boolean | Prisma.PatientPackageCountOutputTypeDefaultArgs<ExtArgs>;
 };
@@ -1190,6 +1567,8 @@ export type $PatientPackagePayload<
   name: "PatientPackage";
   objects: {
     patient: Prisma.$PatientPayload<ExtArgs>;
+    serials: Prisma.$SerialPayload<ExtArgs>[];
+    treatmentSessions: Prisma.$TreatmentSessionPayload<ExtArgs>[];
     billingRecords: Prisma.$BillingRecordPayload<ExtArgs>[];
   };
   scalars: runtime.Types.Extensions.GetPayloadResult<
@@ -1199,6 +1578,7 @@ export type $PatientPackagePayload<
       totalDays: number;
       totalAmount: number;
       paidAmount: number;
+      refundedAmount: number;
       dueAmount: number;
       startDate: Date;
       endDate: Date | null;
@@ -1783,6 +2163,33 @@ export interface Prisma__PatientPackageClient<
     ExtArgs,
     GlobalOmitOptions
   >;
+  serials<T extends Prisma.PatientPackage$serialsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.PatientPackage$serialsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$SerialPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  treatmentSessions<
+    T extends Prisma.PatientPackage$treatmentSessionsArgs<ExtArgs> = {},
+  >(
+    args?: Prisma.Subset<
+      T,
+      Prisma.PatientPackage$treatmentSessionsArgs<ExtArgs>
+    >,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$TreatmentSessionPayload<ExtArgs>,
+        T,
+        "findMany",
+        GlobalOmitOptions
+      >
+    | Null
+  >;
   billingRecords<
     T extends Prisma.PatientPackage$billingRecordsArgs<ExtArgs> = {},
   >(
@@ -1837,6 +2244,7 @@ export interface PatientPackageFieldRefs {
   readonly totalDays: Prisma.FieldRef<"PatientPackage", "Int">;
   readonly totalAmount: Prisma.FieldRef<"PatientPackage", "Float">;
   readonly paidAmount: Prisma.FieldRef<"PatientPackage", "Float">;
+  readonly refundedAmount: Prisma.FieldRef<"PatientPackage", "Float">;
   readonly dueAmount: Prisma.FieldRef<"PatientPackage", "Float">;
   readonly startDate: Prisma.FieldRef<"PatientPackage", "DateTime">;
   readonly endDate: Prisma.FieldRef<"PatientPackage", "DateTime">;
@@ -2316,6 +2724,66 @@ export type PatientPackageDeleteManyArgs<
    * Limit how many PatientPackages to delete.
    */
   limit?: number;
+};
+
+/**
+ * PatientPackage.serials
+ */
+export type PatientPackage$serialsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the Serial
+   */
+  select?: Prisma.SerialSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the Serial
+   */
+  omit?: Prisma.SerialOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SerialInclude<ExtArgs> | null;
+  where?: Prisma.SerialWhereInput;
+  orderBy?:
+    | Prisma.SerialOrderByWithRelationInput
+    | Prisma.SerialOrderByWithRelationInput[];
+  cursor?: Prisma.SerialWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.SerialScalarFieldEnum | Prisma.SerialScalarFieldEnum[];
+};
+
+/**
+ * PatientPackage.treatmentSessions
+ */
+export type PatientPackage$treatmentSessionsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs =
+    runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the TreatmentSession
+   */
+  select?: Prisma.TreatmentSessionSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the TreatmentSession
+   */
+  omit?: Prisma.TreatmentSessionOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TreatmentSessionInclude<ExtArgs> | null;
+  where?: Prisma.TreatmentSessionWhereInput;
+  orderBy?:
+    | Prisma.TreatmentSessionOrderByWithRelationInput
+    | Prisma.TreatmentSessionOrderByWithRelationInput[];
+  cursor?: Prisma.TreatmentSessionWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?:
+    | Prisma.TreatmentSessionScalarFieldEnum
+    | Prisma.TreatmentSessionScalarFieldEnum[];
 };
 
 /**
