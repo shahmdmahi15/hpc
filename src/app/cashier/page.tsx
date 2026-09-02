@@ -6,10 +6,10 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Administrator Portal | Health And Pain Care Center",
+  title: "Cashier & Accounts Portal | Health And Pain Care Center",
 };
 
-export default async function AdminPage() {
-  const { session } = await requireAuth(Role.ADMIN);
-  return <RolePortalView role={Role.ADMIN} session={session} />;
+export default async function CashierPage() {
+  const { session } = await requireAuth(Role.CASHIER);
+  return <RolePortalView role={Role.CASHIER} session={session} />;
 }

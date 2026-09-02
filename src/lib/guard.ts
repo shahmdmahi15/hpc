@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getRoleDashboard } from "@/proxy";
 import { Role } from "@/generated/prisma/enums";
 
-export async function requireAuth(allowedRoles?: Role[]) {
+export async function requireAuth(allowedRoles?: Role | Role[]) {
   const sessionData = await getCurrentSession();
 
   if (!sessionData) {
@@ -13,10 +13,9 @@ export async function requireAuth(allowedRoles?: Role[]) {
 
   const userRole = sessionData.user.role;
 
-  // If specific roles are specified and the user is neither in that list nor an ADMIN
-  if (allowedRoles && allowedRoles.length > 0) {
-    const hasPermission =
-      userRole === Role.ADMIN || allowedRoles.includes(userRole);
+  if (allowedRoles) {
+    const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    const hasPermission = userRole === Role.ADMIN || roles.includes(userRole);
     if (!hasPermission) {
       redirect(getRoleDashboard(userRole));
     }

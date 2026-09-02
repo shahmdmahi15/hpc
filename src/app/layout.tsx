@@ -141,11 +141,11 @@ export default function RootLayout({
     <html
       suppressHydrationWarning
       lang="en"
-      className={`${poppins.variable} font-sans h-full antialiased`}
+      className={`${poppins.variable} font-sans min-h-screen antialiased`}
     >
       <body
         suppressHydrationWarning
-        className="min-h-full flex flex-col font-sans"
+        className="min-h-screen flex flex-col font-sans"
       >
         <ThemeProvider
           attribute="class"

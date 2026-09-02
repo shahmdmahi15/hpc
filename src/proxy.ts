@@ -7,39 +7,22 @@ export const ROLE_DASHBOARDS: Record<Role, string> = {
   [Role.DOCTOR]: "/doctor",
   [Role.RECEPTIONIST]: "/receptionist",
   [Role.HANDLER]: "/handler",
+  [Role.CASHIER]: "/cashier",
 };
 
-export const PROTECTED_ROUTES = [
-  "/admin",
-  "/doctor",
-  "/receptionist",
-  "/handler",
-];
+export const ROLE_ROUTE_PREFIXES: Record<string, Role> = {
+  "/admin": Role.ADMIN,
+  "/doctor": Role.DOCTOR,
+  "/receptionist": Role.RECEPTIONIST,
+  "/handler": Role.HANDLER,
+  "/cashier": Role.CASHIER,
+};
 
-export function getRoleDashboard(role: Role | string): string {
-  return ROLE_DASHBOARDS[role as Role] || "/";
-}
-
-export function isProtectedRoute(pathname: string): boolean {
-  return PROTECTED_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
-}
-
-export function isAllowedForRole(
-  pathname: string,
-  role: Role | string,
-): boolean {
-  if (role === Role.ADMIN) return true; // Admin has full access to all panels
-  if (pathname === "/doctor" || pathname.startsWith("/doctor/"))
-    return role === Role.DOCTOR;
-  if (pathname === "/receptionist" || pathname.startsWith("/receptionist/"))
-    return role === Role.RECEPTIONIST;
-  if (pathname === "/handler" || pathname.startsWith("/handler/"))
-    return role === Role.HANDLER;
-  if (pathname === "/admin" || pathname.startsWith("/admin/"))
-    return role === Role.ADMIN;
-  return true;
+export function getRoleDashboard(role?: Role | string): string {
+  if (role && role in ROLE_DASHBOARDS) {
+    return ROLE_DASHBOARDS[role as Role];
+  }
+  return "/login";
 }
 
 export function proxy(request: NextRequest) {
@@ -49,8 +32,13 @@ export function proxy(request: NextRequest) {
     request.cookies.get("__Host-SESSION_TOKEN")?.value ||
     request.cookies.get("SESSION_TOKEN")?.value;
 
-  // If accessing protected dashboard routes without session cookie -> redirect to /login
-  if (isProtectedRoute(pathname) && !sessionToken) {
+  // Check if accessing a protected role route (/admin, /doctor, /receptionist, /handler, /cashier)
+  const isProtectedRoleRoute = Object.keys(ROLE_ROUTE_PREFIXES).some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+
+  // 1. Unauthenticated trying to access a protected role route -> redirect to /login
+  if (isProtectedRoleRoute && !sessionToken) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);

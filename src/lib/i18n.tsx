@@ -13,261 +13,197 @@ interface I18nContextType {
 const translations: Record<string, { en: string; bn: string }> = {
   // Navigation & Common Headers
   "nav.dashboard": { en: "Dashboard", bn: "ড্যাশবোর্ড" },
-  "nav.serials": { en: "Daily Serials", bn: "দৈনিক সিরিয়াল" },
-  "nav.patients": { en: "Patients Directory", bn: "রোগীদের তালিকা" },
-  "nav.ledger": { en: "Cash Ledger", bn: "ক্যাশ লেজার" },
-  "nav.chambers": { en: "Chambers & Bays", bn: "কক্ষ ও চেম্বার" },
-  "nav.slot_matrix": {
-    en: "Slot Schedule Matrix",
-    bn: "স্লট শিডিউল ম্যাট্রিক্স",
-  },
-  "nav.kiosk": { en: "Live Waiting Kiosk", bn: "লাইভ ওয়েটিং কিয়স্ক" },
   "nav.profile": { en: "My Profile", bn: "আমার প্রোফাইল" },
-  "nav.users": { en: "Staff & User Access", bn: "স্টাফ ও ইউজার এক্সেস" },
+  "nav.users": { en: "User Management", bn: "ব্যবহারকারী ব্যবস্থাপনা" },
   "nav.sessions": { en: "Active Sessions", bn: "সক্রিয় লগইন সেশন" },
   "nav.logs": { en: "Security Audit Logs", bn: "সিকিউরিটি অডিট লগ" },
-  "nav.packages": { en: "21-30 Day Packages", bn: "২১-৩০ দিনের প্যাকেজ" },
-  "nav.slots": { en: "Booking Slots & Serials", bn: "বুকিং স্লট ও সিরিয়াল" },
   "nav.system_command": {
     en: "System Command Center",
     bn: "সিস্টেম কমান্ড সেন্টার",
   },
-  "nav.front_desk": {
-    en: "Front Desk & Reception",
-    bn: "ফ্রন্ট ডেস্ক ও রিসেপশন",
+  "header.waiting_room": {
+    en: "Waiting Room Display",
+    bn: "ওয়েটিং রুম ডিসপ্লে",
   },
-  "nav.doctor_hub": {
-    en: "Doctor Clinical Workstation",
-    bn: "ডাক্তার ক্লিনিক্যাল হাব",
+  "header.fullscreen": {
+    en: "Toggle Fullscreen",
+    bn: "ফুলস্ক্রিন মোড",
   },
-  "nav.handler_hub": {
-    en: "Care Handler Execution Hub",
-    bn: "কেয়ার হ্যান্ডলার এক্সিকিউশন হাব",
+  "header.operational": {
+    en: "Operational",
+    bn: "সিস্টেম সচল",
   },
-
-  // Receptionist Metrics & Labels
-  "rec.scheduled_today": { en: "Scheduled Today", bn: "আজকের নির্ধারিত" },
-  "rec.waiting_room": { en: "Waiting Room", bn: "ওয়েটিং রুম" },
-  "rec.completed_today": { en: "Completed Today", bn: "আজ সম্পন্ন" },
-  "rec.cash_collection": {
-    en: "Cash Collection (BST)",
-    bn: "ক্যাশ জমা (বিএসটি)",
+  "header.back_login": {
+    en: "Back to Login Portal",
+    bn: "লগইন পোর্টালে ফিরুন",
   },
-  "rec.total_registered": { en: "Total Serials", bn: "মোট সিরিয়াল" },
-  "rec.search_placeholder": {
-    en: "Search ID, Name, Phone...",
-    bn: "আইডি, নাম, ফোন দিয়ে খুঁজুন...",
-  },
-  "rec.new_patient": { en: "New Patient", bn: "নতুন রোগী নিবন্ধন" },
-  "rec.checkin_pay": { en: "Check-In & Pay", bn: "চেক-ইন ও পেমেন্ট" },
-  "rec.send_doctor": { en: "Send to Doctor", bn: "ডাক্তার চেম্বারে পাঠান" },
-  "rec.send_therapy": { en: "Send to Therapy", bn: "থেরাপিতে পাঠান" },
-
-  // Table Columns
-  "col.serial": { en: "Serial", bn: "সিরিয়াল" },
-  "col.date": { en: "Date", bn: "তারিখ" },
-  "col.patient_details": { en: "Patient Details", bn: "রোগীর বিবরণ" },
-  "col.phone": { en: "Phone Number", bn: "ফোন নম্বর" },
-  "col.told_time": { en: "Told Time", bn: "নির্ধারিত সময়" },
-  "col.arrival_status": { en: "Arrival & Status", bn: "উপস্থিতি ও অবস্থা" },
-  "col.billing_payment": { en: "Billing & Payment", bn: "বিল ও পেমেন্ট" },
-  "col.queue_status": { en: "Queue Status", bn: "সিরিয়াল অবস্থা" },
-  "col.action": { en: "Action", bn: "কার্যক্রম" },
-  "col.chamber_bay": { en: "Chamber & Bay", bn: "কক্ষ ও চেম্বার" },
-  "col.time_token": { en: "Time & Token", bn: "সময় ও টোকেন" },
-  "col.service_modality": { en: "Service / Modality", bn: "সেবা ও থেরাপি" },
-  "col.actual_bill": { en: "Actual Bill", bn: "নির্ধারিত বিল" },
-  "col.cash_received": { en: "Cash Received", bn: "প্রাপ্ত ক্যাশ" },
-  "col.due_status": { en: "Due / N.P Status", bn: "বকেয়া / এন.পি" },
-  "col.cashier": { en: "Cashier", bn: "ক্যাশিয়ার" },
-  "col.ceo_audit": { en: "CEO Audit Status", bn: "সিইও অডিট অবস্থা" },
 
   // Buttons & Actions
-  "btn.book_serial": { en: "Book New Serial", bn: "নতুন সিরিয়াল বুক করুন" },
-  "btn.checkin": { en: "Check-In & Payment", bn: "চেক-ইন ও পেমেন্ট" },
   "btn.confirm": { en: "Confirm", bn: "নিশ্চিত করুন" },
   "btn.cancel": { en: "Cancel", bn: "বাতিল" },
   "btn.save": { en: "Save Changes", bn: "সংরক্ষণ করুন" },
   "btn.refresh": { en: "Refresh", bn: "রিফ্রেশ" },
   "btn.delete": { en: "Delete", bn: "মুছে ফেলুন" },
   "btn.edit": { en: "Edit", bn: "সম্পাদনা" },
-  "btn.create_room": { en: "Add Chamber / Room", bn: "নতুন চেম্বার যোগ করুন" },
-  "btn.create_slot": { en: "Add Booking Slot", bn: "নতুন বুকিং স্লট যোগ করুন" },
-  "btn.create_package": {
-    en: "Create 21-30 Day Package",
-    bn: "নতুন ২১-৩০ দিনের প্যাকেজ",
-  },
-  "btn.add_staff": { en: "Add Staff Member", bn: "নতুন স্টাফ অ্যাকাউন্ট" },
-  "btn.free_room": { en: "Free Room", bn: "রুম খালি করুন" },
+  "btn.add_staff": { en: "Add User", bn: "নতুন ব্যবহারকারী" },
   "btn.view_all": { en: "View All", bn: "সব দেখুন" },
   "btn.close": { en: "Close", bn: "বন্ধ করুন" },
 
   // Statuses & Badges
-  "status.waiting": { en: "Waiting", bn: "অপেক্ষমান" },
-  "status.in_consultation": {
-    en: "In Doctor Chamber",
-    bn: "ডাক্তারের চেম্বারে",
-  },
-  "status.in_therapy": { en: "In Therapy Session", bn: "থেরাপি চলছে" },
-  "status.completed": { en: "Completed", bn: "সম্পন্ন" },
-  "status.vacant": { en: "Vacant", bn: "ফাঁকা" },
-  "status.occupied": { en: "Occupied", bn: "ব্যস্ত" },
-  "status.staff_only": { en: "Staff Only", bn: "স্টাফ অনলি" },
   "status.active": { en: "Active", bn: "সক্রিয়" },
   "status.inactive": { en: "Inactive", bn: "নিষ্ক্রিয়" },
-  "status.on_time": { en: "On-Time", bn: "সময়মত" },
-  "status.late": { en: "Late", bn: "দেরি" },
-  "status.np": { en: "Non-Payment (N.P)", bn: "পেমেন্ট ছাড়া (এন.পি)" },
-  "status.paid": { en: "Paid in Cash", bn: "নগদ পরিশোধ" },
+  "status.success": { en: "Success", bn: "সফল" },
+  "status.failure": { en: "Failure", bn: "ব্যর্থ" },
 
-  // Doctor Hub
-  "doc.active_in_chamber": {
-    en: "Currently In Chamber",
-    bn: "বর্তমানে চেম্বারে উপস্থিত",
+  // User Management
+  "user.total_staff": { en: "Total Users", bn: "মোট ব্যবহারকারী" },
+  "user.administrators": { en: "Administrators", bn: "অ্যাডমিনিস্ট্রেটর" },
+  "user.create_new": { en: "Create New User", bn: "নতুন ব্যবহারকারী তৈরি" },
+  "user.reset_password": { en: "Reset Password", bn: "পাসওয়ার্ড রিসেট" },
+  "user.revoke_sessions": {
+    en: "Revoke Active Sessions",
+    bn: "সক্রিয় সেশন বাতিল করুন",
   },
-  "doc.send_handler": { en: "Send to Handler", bn: "হ্যান্ডলারের কাছে পাঠান" },
-  "doc.exam_form": { en: "Clinical Exam Form", bn: "ক্লিনিক্যাল এক্সাম ফর্ম" },
-  "doc.complete_visit": { en: "Complete Visit", bn: "ভিজিট সম্পন্ন করুন" },
-  "doc.chief_complaint": { en: "Chief Complaint", bn: "প্রধান সমস্যা ও লক্ষণ" },
-  "doc.modalities": {
-    en: "Prescribed Modalities",
-    bn: "নির্ধারিত ফিজিওথেরাপি পদ্ধতি",
-  },
+  "user.delete_user": { en: "Delete Account", bn: "অ্যাকাউন্ট মুছুন" },
 
-  // Care Handler Hub
-  "handler.assigned": { en: "Assigned Patients", bn: "বরাদ্দকৃত রোগী" },
-  "handler.active_therapy": { en: "Active In Therapy", bn: "থেরাপিরত রোগী" },
-  "handler.start_therapy": { en: "Start Therapy", bn: "থেরাপি শুরু করুন" },
-  "handler.end_therapy": { en: "End Therapy", bn: "থেরাপি শেষ করুন" },
-  "handler.log_session": { en: "Log Session", bn: "সেশন লিপিবদ্ধ করুন" },
+  // Active Sessions
+  "session.total_active": {
+    en: "Active Logged-in Devices",
+    bn: "সক্রিয় লগইন ডিভাইস",
+  },
+  "session.revoke_all": {
+    en: "Terminate All Other Sessions",
+    bn: "অন্য সকল সেশন বন্ধ করুন",
+  },
+  "session.current": { en: "Current Session", bn: "বর্তমান সেশন" },
+  "session.terminate": { en: "Terminate", bn: "টার্মিনেট করুন" },
 
-  // Room Management
-  "room.total_chambers": { en: "Total Chambers", bn: "মোট চেম্বার" },
-  "room.total_beds": { en: "Total Clinic Beds", bn: "মোট ক্লিনিক বেড" },
-  "room.vacant_rooms": { en: "Vacant Rooms", bn: "খালি চেম্বার" },
-  "room.occupied_rooms": { en: "Occupied Rooms", bn: "ব্যস্ত চেম্বার" },
-  "room.bed_capacity": { en: "Bed Capacity", bn: "বেড ধারণক্ষমতা" },
-  "room.gender_filter": { en: "Gender Preference", bn: "লিঙ্গ অগ্রাধিকার" },
+  // Audit Logs
+  "audit.immutable_trail": {
+    en: "Immutable Security Audit Trail",
+    bn: "অপরিবর্তনীয় সিকিউরিটি অডিট ট্রেল",
+  },
+  "audit.filter_all": { en: "All Events", bn: "সকল ইভেন্ট" },
+  "audit.inspect": { en: "Inspect Record", bn: "রেকর্ড পরিদর্শন" },
 
-  // Patient Registration & Fields
-  "patient.register_title": {
-    en: "Register New Patient",
-    bn: "নতুন রোগী নিবন্ধন",
+  // Login & Authentication Portal
+  "login.title": {
+    en: "Staff Authentication Portal",
+    bn: "স্টাফ অথেনটিকেশন পোর্টাল",
   },
-  "patient.register_desc": {
-    en: "Fill in required patient credentials to generate physical card & profile.",
-    bn: "শারীরিক কার্ড ও প্রোফাইল তৈরির জন্য প্রয়োজনীয় তথ্য পূরণ করুন।",
+  "login.subtitle": {
+    en: "Select your departmental role and enter your security credential",
+    bn: "আপনার ডিপার্টমেন্টাল রোল নির্বাচন করুন এবং সিকিউরিটি পাসওয়ার্ড লিখুন",
   },
-  "patient.id": { en: "Patient 5-Digit ID", bn: "রোগীর ৫-সংখ্যার আইডি" },
-  "patient.name": { en: "Full Name", bn: "পূর্ণ নাম" },
-  "patient.phone": { en: "Phone Number", bn: "ফোন নম্বর" },
-  "patient.age": { en: "Age", bn: "বয়স" },
-  "patient.gender": { en: "Gender", bn: "লিঙ্গ" },
-  "patient.address": { en: "Address / Location", bn: "ঠিকানা / এলাকা" },
-  "patient.occupation": { en: "Occupation", bn: "পেশা" },
-  "patient.notes": {
-    en: "Clinical Remarks / Notes",
-    bn: "ক্লিনিক্যাল মন্তব্য / নোট",
+  "login.badge": {
+    en: "Encrypted Database Security",
+    bn: "এনক্রিপ্টেড ডাটাবেস সিকিউরিটি",
   },
-  "patient.auto_generate": { en: "Auto Generate", bn: "অটো তৈরি করুন" },
-  "patient.save_proceed": {
-    en: "Save & Proceed to Booking",
-    bn: "সংরক্ষণ ও বুকিংয়ে যান",
+  "login.select_role": {
+    en: "Select Department / Role",
+    bn: "ডিপার্টমেন্ট / রোল নির্বাচন করুন",
   },
-
-  // Serial Booking Dialog
-  "booking.schedule_title": {
-    en: "Schedule Patient Serial",
-    bn: "সিরিয়াল বুকিং করুন",
+  "login.required": { en: "required", bn: "আবশ্যক" },
+  "login.password": { en: "Security Password", bn: "সিকিউরিটি পাসওয়ার্ড" },
+  "login.password_placeholder": {
+    en: "Enter authorized password...",
+    bn: "অনুমোদিত পাসওয়ার্ড লিখুন...",
   },
-  "booking.schedule_desc": {
-    en: "Set appointment date and promised arrival time.",
-    bn: "অ্যাপয়েন্টমেন্টের তারিখ এবং আসার নির্ধারিত সময় নির্ধারণ করুন।",
+  "login.password_min": {
+    en: "min 6 characters",
+    bn: "কমপক্ষে ৬ অক্ষর",
   },
-  "booking.date": { en: "Appointment Date", bn: "অ্যাপয়েন্টমেন্টের তারিখ" },
-  "booking.purpose": {
-    en: "Visit Purpose / Type",
-    bn: "ভিজিটের উদ্দেশ্য / ধরন",
+  "login.caps_lock": {
+    en: "Caps Lock is ON",
+    bn: "ক্যাপস লক চালু আছে",
   },
-  "booking.time_slot": {
-    en: "Appointment Time Slot",
-    bn: "অ্যাপয়েন্টমেন্টের সময় স্লট",
+  "login.authenticating": {
+    en: "Authenticating Session...",
+    bn: "সেশন যাচাই করা হচ্ছে...",
   },
-  "booking.assigned_room": {
-    en: "Assigned Room / Therapy Bay",
-    bn: "বরাদ্দকৃত চেম্বার / থেরাপি বে",
+  "login.signin_as": { en: "Sign In as", bn: "লগইন করুন:" },
+  "login.footer": {
+    en: "Health And Pain Care Center • Encrypted Session Security",
+    bn: "হেলথ অ্যান্ড পেইন কেয়ার সেন্টার • এনক্রিপ্টেড সেশন সিকিউরিটি",
   },
-  "booking.desk_remarks": { en: "Desk Remarks", bn: "ডেস্কের মন্তব্য" },
-  "booking.report_session": {
-    en: "Report Review Session (রিপোর্ট)",
-    bn: "রিপোর্ট পর্যালোচনা সেশন",
+  "login.hero_title": {
+    en: "Enterprise Clinical & Staff Access",
+    bn: "এন্টারপ্রাইজ ক্লিনিক্যাল ও স্টাফ এক্সেস",
   },
-  "booking.confirm": {
-    en: "Confirm Serial Booking",
-    bn: "সিরিয়াল বুকিং নিশ্চিত করুন",
+  "login.hero_subtitle": {
+    en: "High-performance clinic operations, authenticated device sessions, and role-based access security.",
+    bn: "উচ্চ ক্ষমতার ক্লিনিক অপারেশন, সিকিউর ডিভাইস সেশন এবং রোল-ভিত্তিক এক্সেস সিকিউরিটি।",
   },
-
-  // Physical Arrival & Payment Dialog
-  "checkin.title": {
-    en: "Record Arrival & Payment",
-    bn: "উপস্থিতি ও পেমেন্ট রেকর্ড",
+  "login.feature_argon": {
+    en: "Argon2id Memory-Hard Cryptographic Hashing",
+    bn: "Argon2id মেমরি-হার্ড ক্রিপ্টোগ্রাফিক হ্যাশিং",
   },
-  "checkin.desc": {
-    en: "Stamps patient check-in time and records payment.",
-    bn: "রোগীর চেক-ইন সময় ও পেমেন্ট রেকর্ড করুন।",
+  "login.feature_session": {
+    en: "Database-backed SHA-256 Session Tokens",
+    bn: "ডাটাবেস সমর্থিত SHA-256 সেশন সিকিউরিটি",
   },
-  "checkin.payment_collection": {
-    en: "Payment Collection",
-    bn: "পেমেন্ট গ্রহণ",
+  "login.feature_rbac": {
+    en: "Role-Based Access Control (5 Departments)",
+    bn: "রোল-ভিত্তিক এক্সেস কন্ট্রোল (৫টি বিভাগ)",
   },
-  "checkin.amount": { en: "Amount (৳)", bn: "টাকার পরিমাণ (৳)" },
-  "checkin.method": { en: "Payment Method", bn: "পেমেন্ট মাধ্যম" },
-  "checkin.mark_np": {
-    en: "Mark as N.P (No Payment Made)",
-    bn: "এন.পি হিসেবে চিহ্নিত করুন (পেমেন্ট ছাড়া)",
-  },
-  "checkin.np_desc": {
-    en: "Check this if patient is on a complimentary visit, package, or pending dues.",
-    bn: "রোগী প্যাকেজ বা বকেয়ায় থাকলে এটি টিক দিন।",
-  },
-  "checkin.confirm": {
-    en: "Confirm Arrival & Save",
-    bn: "উপস্থিতি নিশ্চিত ও সংরক্ষণ",
+  "login.feature_audit": {
+    en: "Real-Time Immutable Audit Logging",
+    bn: "রিয়েল-টাইম অপরিবর্তনীয় অডিট লগিং",
   },
 
-  // Gender & Visit Types
-  "gender.male": { en: "Male (পুরুষ)", bn: "পুরুষ" },
-  "gender.female": { en: "Female (মহিলা)", bn: "মহিলা" },
-  "visit.new_consultation": {
-    en: "New Consultation (নতুন ভিজিট)",
-    bn: "নতুন ভিজিট",
+  // Roles in i18n
+  "role.admin": { en: "Administrator", bn: "অ্যাডমিনিস্ট্রেটর" },
+  "role.admin_desc": {
+    en: "System ops, audit logs, and security controls",
+    bn: "সিস্টেম অপারেশন, অডিট লগ ও সিকিউরিটি",
   },
-  "visit.follow_up": {
-    en: "Follow-up Therapy (চলমান থেরাপি)",
-    bn: "চলমান থেরাপি",
+  "role.doctor": { en: "Pain Care Specialist", bn: "পেইন কেয়ার বিশেষজ্ঞ" },
+  "role.doctor_desc": {
+    en: "Diagnostic plans and clinical doctor portal",
+    bn: "ডায়াগনস্টিক ও ক্লিনিক্যাল ডাক্তার পোর্টাল",
   },
-  "visit.report_review": {
-    en: "Report Review (রিপোর্ট পর্যালোচনা)",
-    bn: "রিপোর্ট পর্যালোচনা",
+  "role.receptionist": {
+    en: "Front Desk Reception",
+    bn: "ফ্রন্ট ডেস্ক রিসেপশন",
   },
-  "visit.therapy_procedure": {
-    en: "Therapy Procedure (থেরাপি পদ্ধতি)",
-    bn: "থেরাপি পদ্ধতি",
+  "role.receptionist_desc": {
+    en: "Client check-in, intake, and scheduling",
+    bn: "রোগী চেক-ইন, বুকিং ও ফ্রন্ট ডেস্ক",
   },
-  "visit.emergency": { en: "Emergency (জরুরী)", bn: "জরুরী" },
-  "payment.cash": { en: "Cash (নগদ)", bn: "নগদ" },
-  "payment.mobile": { en: "bKash / Nagad / Rocket", bn: "বিকাশ / নগদ / রকেট" },
-  "payment.card": { en: "Card (কার্ড)", bn: "কার্ড" },
-  "payment.other": { en: "Other (অন্যান্য)", bn: "অন্যান্য" },
+  "role.handler": {
+    en: "Therapy & Care Handler",
+    bn: "কেয়ার হ্যান্ডলার",
+  },
+  "role.handler_desc": {
+    en: "Triage care, therapy, and mobility support",
+    bn: "কেয়ার ট্রায়াজ, থেরাপি ও সহায়তা",
+  },
+  "role.cashier": {
+    en: "Cashier & Accounts",
+    bn: "ক্যাশিয়ার ও অ্যাকাউন্টস",
+  },
+  "role.cashier_desc": {
+    en: "Billing records, receipts, and cash register",
+    bn: "বিলিং রেকর্ড, রিসিপ্ট ও ক্যাশ রেজিস্টার",
+  },
 };
 
-const I18nContext = React.createContext<I18nContextType>({
-  lang: "en",
-  setLang: () => {},
-  t: (key: string, fallback?: string) => fallback || key,
-});
+function getClientLanguage(): Language {
+  if (typeof window === "undefined") return "en";
+  try {
+    const saved = localStorage.getItem("hpc_lang") as Language;
+    if (saved === "en" || saved === "bn") return saved;
+  } catch {
+    // Ignore localStorage errors
+  }
+  return "en";
+}
 
-function subscribeToLangChanges(callback: () => void) {
+function getServerLanguage(): Language {
+  return "en";
+}
+
+function subscribeLanguageChange(callback: () => void) {
   if (typeof window === "undefined") return () => {};
   window.addEventListener("storage", callback);
   window.addEventListener("hpc_lang_change", callback);
@@ -277,43 +213,33 @@ function subscribeToLangChanges(callback: () => void) {
   };
 }
 
-function getLangSnapshot(): Language {
-  if (typeof window === "undefined") return "en";
-  try {
-    const saved = localStorage.getItem("hpc_lang");
-    if (saved === "en" || saved === "bn") return saved;
-  } catch {
-    // ignore
-  }
-  return "en";
-}
-
-function getLangServerSnapshot(): Language {
-  return "en";
-}
+const I18nContext = React.createContext<I18nContextType>({
+  lang: "en",
+  setLang: () => {},
+  t: (key: string, fallback?: string) => fallback || key,
+});
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const lang = React.useSyncExternalStore(
-    subscribeToLangChanges,
-    getLangSnapshot,
-    getLangServerSnapshot,
+    subscribeLanguageChange,
+    getClientLanguage,
+    getServerLanguage,
   );
 
   const setLang = React.useCallback((newLang: Language) => {
     try {
       localStorage.setItem("hpc_lang", newLang);
-      document.cookie = `hpc_lang=${newLang}; path=/; max-age=31536000`;
       window.dispatchEvent(new Event("hpc_lang_change"));
     } catch {
-      // ignore
+      // Ignore
     }
   }, []);
 
   const t = React.useCallback(
     (key: string, fallback?: string) => {
-      const item = translations[key];
-      if (item) {
-        return item[lang] || fallback || item.en;
+      const entry = translations[key];
+      if (entry && entry[lang]) {
+        return entry[lang];
       }
       return fallback || key;
     },
@@ -331,25 +257,19 @@ export function useI18n() {
   return React.useContext(I18nContext);
 }
 
-export function useLanguage() {
-  return React.useContext(I18nContext);
-}
-
-export function LanguageSwitcher({ className = "" }: { className?: string }) {
+export function LanguageSwitcher({ className }: { className?: string }) {
   const { lang, setLang } = useI18n();
 
   return (
     <div
-      suppressHydrationWarning
-      className={`inline-flex items-center rounded-lg bg-muted/60 p-0.5 border border-border text-[11px] font-bold ${className}`}
+      className={`inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5 text-xs font-medium ${className || ""}`}
     >
       <button
         type="button"
-        suppressHydrationWarning
         onClick={() => setLang("en")}
         className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
           lang === "en"
-            ? "bg-card text-foreground shadow-xs font-black"
+            ? "bg-background text-foreground shadow-xs font-bold"
             : "text-muted-foreground hover:text-foreground"
         }`}
       >
@@ -357,15 +277,14 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
       </button>
       <button
         type="button"
-        suppressHydrationWarning
         onClick={() => setLang("bn")}
         className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
           lang === "bn"
-            ? "bg-card text-foreground shadow-xs font-black"
+            ? "bg-background text-foreground shadow-xs font-bold"
             : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        বাংলা
+        বাং
       </button>
     </div>
   );

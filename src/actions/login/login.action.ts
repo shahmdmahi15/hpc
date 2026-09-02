@@ -10,9 +10,9 @@ import {
   getCurrentSession,
   invalidateSession,
 } from "@/lib/auth";
-import { getRoleDashboard } from "@/proxy";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { getRoleDashboard } from "@/proxy";
 
 import { logAudit } from "@/lib/audit";
 import { AuditAction, AuditStatus } from "@/generated/prisma/enums";
@@ -48,8 +48,8 @@ export async function loginAction(
 
   const { role, password } = validation.data;
 
-  // Find user by role
-  const user = await prisma.user.findFirst({
+  // Find unique account by role
+  const user = await prisma.user.findUnique({
     where: { role },
   });
 
@@ -58,7 +58,7 @@ export async function loginAction(
       action: AuditAction.LOGIN_FAILURE,
       status: AuditStatus.FAILURE,
       details: {
-        reason: "User not found for role",
+        reason: "Account not found for role",
         attemptedRole: role,
       },
     });
@@ -66,7 +66,7 @@ export async function loginAction(
     return {
       success: false,
       message:
-        "No user found with the selected role. Please check system setup.",
+        "No account found with the selected role. Please check system setup.",
     };
   }
 
@@ -81,7 +81,6 @@ export async function loginAction(
       entityId: user.id,
       details: {
         reason: "Invalid password",
-        userName: user.name,
         role: user.role,
       },
     });
@@ -106,7 +105,6 @@ export async function loginAction(
     entity: "Session",
     entityId: session.id,
     details: {
-      userName: user.name,
       role: user.role,
       sessionId: session.id,
     },
@@ -126,7 +124,6 @@ export async function logoutAction(): Promise<void> {
       entity: "Session",
       entityId: current.session.id,
       details: {
-        userName: current.user.name,
         role: current.user.role,
       },
     });
