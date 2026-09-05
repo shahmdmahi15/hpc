@@ -56,7 +56,9 @@ export function UserManagementView({ users }: UserManagementViewProps) {
     activeSessionCount: number;
   } | null>(null);
   const [createPerformerOpen, setCreatePerformerOpen] = React.useState(false);
-  const [defaultPerformerUserId, setDefaultPerformerUserId] = React.useState<string | null>(null);
+  const [defaultPerformerUserId, setDefaultPerformerUserId] = React.useState<
+    string | null
+  >(null);
   const [performerToDelete, setPerformerToDelete] = React.useState<{
     id: string;
     name: string;
@@ -114,7 +116,8 @@ export function UserManagementView({ users }: UserManagementViewProps) {
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10.5px] font-bold">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {totalActiveSessions} Active Session{totalActiveSessions === 1 ? "" : "s"}
+                {totalActiveSessions} Active Session
+                {totalActiveSessions === 1 ? "" : "s"}
               </span>
               {adminPerformers.length > 1 ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[10.5px] font-semibold">
@@ -136,7 +139,8 @@ export function UserManagementView({ users }: UserManagementViewProps) {
               Users &amp; Staff Management
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 max-w-2xl">
-              Zero-trust role accounts with individual station credentials, staff performers, and session invalidation.
+              Zero-trust role accounts with individual station credentials,
+              staff performers, and session invalidation.
             </p>
           </div>
 
@@ -179,7 +183,14 @@ export function UserManagementView({ users }: UserManagementViewProps) {
                 </span>
               </div>
               <p className="text-muted-foreground leading-relaxed text-[11.5px]">
-                In Health &amp; Pain Care Center, each station is represented by exactly one unique user account (<code className="font-mono text-teal-700 dark:text-teal-300 font-semibold">ADMIN, DOCTOR, RECEPTIONIST, HANDLER, CASHIER</code>). Roles cannot be reassigned or duplicated, preventing unauthorized privilege escalation. Administrators can reset passwords or terminate active sessions at any time.
+                In Health &amp; Pain Care Center, each station is represented by
+                exactly one unique user account (
+                <code className="font-mono text-teal-700 dark:text-teal-300 font-semibold">
+                  ADMIN, DOCTOR, RECEPTIONIST, HANDLER, CASHIER
+                </code>
+                ). Roles cannot be reassigned or duplicated, preventing
+                unauthorized privilege escalation. Administrators can reset
+                passwords or terminate active sessions at any time.
               </p>
             </div>
           </div>
@@ -201,7 +212,9 @@ export function UserManagementView({ users }: UserManagementViewProps) {
         </div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
-          <span>Showing {filteredUsers.length} of {users.length} Role Accounts</span>
+          <span>
+            Showing {filteredUsers.length} of {users.length} Role Accounts
+          </span>
         </div>
       </div>
 
@@ -250,10 +263,16 @@ export function UserManagementView({ users }: UserManagementViewProps) {
                     >
                       <span
                         className={`size-1.5 rounded-full ${
-                          isOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/50"
+                          isOnline
+                            ? "bg-emerald-500 animate-pulse"
+                            : "bg-muted-foreground/50"
                         }`}
                       />
-                      <span>{isOnline ? `${user.activeSessionCount} Online` : "Offline"}</span>
+                      <span>
+                        {isOnline
+                          ? `${user.activeSessionCount} Online`
+                          : "Offline"}
+                      </span>
                     </div>
                   </div>
                 </CardHeader>
@@ -298,14 +317,18 @@ export function UserManagementView({ users }: UserManagementViewProps) {
                       <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                         Role Policy
                       </span>
-                      <p className="font-bold text-foreground truncate">Immutable</p>
+                      <p className="font-bold text-foreground truncate">
+                        Immutable
+                      </p>
                     </div>
 
                     <div className="p-2.5 rounded-xl border border-border/60 bg-muted/30 space-y-0.5">
                       <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                         Active Logins
                       </span>
-                      <p className="font-bold text-foreground">{user.activeSessionCount}</p>
+                      <p className="font-bold text-foreground">
+                        {user.activeSessionCount}
+                      </p>
                     </div>
                   </div>
 
@@ -374,7 +397,10 @@ export function UserManagementView({ users }: UserManagementViewProps) {
 
                   {/* Account Age Timestamp */}
                   <div className="flex items-center justify-between text-[10.5px] text-muted-foreground pt-1 border-t border-border/40">
-                    <span className="flex items-center gap-1" suppressHydrationWarning>
+                    <span
+                      className="flex items-center gap-1"
+                      suppressHydrationWarning
+                    >
                       <Calendar className="size-3" />
                       Created: {formatBSTShortDate(user.createdAt)}
                     </span>

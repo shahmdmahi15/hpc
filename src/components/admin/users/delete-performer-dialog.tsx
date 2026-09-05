@@ -37,7 +37,8 @@ export function DeletePerformerDialog({
   performer,
   adminPerformers = [],
 }: DeletePerformerDialogProps) {
-  const [selectedAdminPerformerId, setSelectedAdminPerformerId] = React.useState("");
+  const [selectedAdminPerformerId, setSelectedAdminPerformerId] =
+    React.useState("");
   const [isPending, startTransition] = React.useTransition();
 
   const handleClose = (newOpen: boolean) => {
@@ -52,7 +53,8 @@ export function DeletePerformerDialog({
 
     if (adminPerformers.length > 1 && !selectedAdminPerformerId) {
       toast.error("Administrator selection required", {
-        description: "Please select the administrator authorizing this removal.",
+        description:
+          "Please select the administrator authorizing this removal.",
       });
       return;
     }
@@ -60,7 +62,7 @@ export function DeletePerformerDialog({
     startTransition(async () => {
       const res = await deletePerformerAction(
         performer.id,
-        selectedAdminPerformerId || undefined
+        selectedAdminPerformerId || undefined,
       );
       if (res.success) {
         toast.success("Performer removed", {
@@ -90,7 +92,8 @@ export function DeletePerformerDialog({
                   Remove Staff Performer
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  This will remove the performer profile from the department desk.
+                  This will remove the performer profile from the department
+                  desk.
                 </DialogDescription>
               </div>
             </div>
@@ -103,16 +106,22 @@ export function DeletePerformerDialog({
             <div className="p-3 rounded-xl bg-muted/40 border border-border/70 text-xs space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Staff Member:</span>
-                <span className="font-bold text-foreground">{performer.name}</span>
+                <span className="font-bold text-foreground">
+                  {performer.name}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Phone Number:</span>
-                <span className="font-mono font-semibold text-foreground">{performer.phone}</span>
+                <span className="font-mono font-semibold text-foreground">
+                  {performer.phone}
+                </span>
               </div>
               {performer.roleLabel && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Station Desk:</span>
-                  <span className="font-semibold text-foreground">{performer.roleLabel}</span>
+                  <span className="font-semibold text-foreground">
+                    {performer.roleLabel}
+                  </span>
                 </div>
               )}
             </div>
@@ -128,7 +137,8 @@ export function DeletePerformerDialog({
 
             <p className="text-[11.5px] text-muted-foreground flex items-center gap-1.5 leading-relaxed">
               <AlertTriangle className="size-3.5 text-amber-500 shrink-0" />
-              Existing audit logs and historical records referencing this performer remain intact.
+              Existing audit logs and historical records referencing this
+              performer remain intact.
             </p>
           </div>
         )}

@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { revokeAllUserSessionsAction } from "@/actions/admin/user.action";
-import { AdminPerformerSelect, type AdminPerformer } from "@/components/admin/users/admin-performer-select";
+import {
+  AdminPerformerSelect,
+  type AdminPerformer,
+} from "@/components/admin/users/admin-performer-select";
 import type { Role } from "@/generated/prisma/enums";
 import { toast } from "sonner";
 import { ShieldAlert, Loader2, LogOut } from "lucide-react";
@@ -52,12 +55,17 @@ export function RevokeSessionsDialog({
 
   const handleRevoke = () => {
     if (adminPerformers && adminPerformers.length > 1 && !selectedPerformerId) {
-      toast.error("Please select which administrator staff member is authorizing this session revocation.");
+      toast.error(
+        "Please select which administrator staff member is authorizing this session revocation.",
+      );
       return;
     }
 
     startTransition(async () => {
-      const res = await revokeAllUserSessionsAction(user.id, selectedPerformerId);
+      const res = await revokeAllUserSessionsAction(
+        user.id,
+        selectedPerformerId,
+      );
       if (res.success) {
         toast.success(res.message);
         handleOpenChange(false);
@@ -83,7 +91,8 @@ export function RevokeSessionsDialog({
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Force terminate active logins for{" "}
-                  <span className="font-bold text-foreground">{user.role}</span>.
+                  <span className="font-bold text-foreground">{user.role}</span>
+                  .
                 </DialogDescription>
               </div>
             </div>
@@ -104,10 +113,13 @@ export function RevokeSessionsDialog({
           <div className="p-3.5 rounded-xl border border-border/80 bg-muted/30 text-xs text-muted-foreground space-y-1.5">
             <p>
               This action will invalidate all current session tokens for{" "}
-              <span className="font-bold text-foreground">{user.role}</span> ({user.activeSessionCount} active session{user.activeSessionCount === 1 ? "" : "s"}).
+              <span className="font-bold text-foreground">{user.role}</span> (
+              {user.activeSessionCount} active session
+              {user.activeSessionCount === 1 ? "" : "s"}).
             </p>
             <p className="text-[11px] text-muted-foreground/80">
-              Staff at this station will immediately be prompted to authenticate again.
+              Staff at this station will immediately be prompted to authenticate
+              again.
             </p>
           </div>
         </div>
