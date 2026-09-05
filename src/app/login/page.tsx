@@ -1,4 +1,4 @@
-import { getCurrentSession } from "@/lib/auth";
+import { checkLoginSessionAction } from "@/actions/login/login.action";
 import { redirect } from "next/navigation";
 import { LoginView } from "@/components/login/login-view";
 import type { Metadata } from "next";
@@ -14,10 +14,10 @@ export const metadata: Metadata = {
 };
 
 export default async function LoginPage() {
-  const current = await getCurrentSession();
+  const current = await checkLoginSessionAction();
 
   if (current) {
-    redirect(getRoleDashboard(current.user.role));
+    redirect(getRoleDashboard(current.role));
   }
 
   return <LoginView />;

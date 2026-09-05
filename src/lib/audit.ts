@@ -7,6 +7,7 @@ export interface LogAuditOptions {
   action: AuditAction;
   status?: AuditStatus;
   userId?: string | null;
+  performerId?: string | null;
   entity?: string;
   entityId?: string;
   details?: Record<string, unknown> | string | null;
@@ -48,6 +49,7 @@ export async function logAudit(options: LogAuditOptions): Promise<void> {
         action: options.action,
         status: options.status || AuditStatus.SUCCESS,
         userId: options.userId || null,
+        performerId: options.performerId || null,
         entity: options.entity || null,
         entityId: options.entityId || null,
         details: serializedDetails,

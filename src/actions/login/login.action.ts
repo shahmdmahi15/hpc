@@ -15,7 +15,7 @@ import { revalidatePath } from "next/cache";
 import { getRoleDashboard } from "@/proxy";
 
 import { logAudit } from "@/lib/audit";
-import { AuditAction, AuditStatus } from "@/generated/prisma/enums";
+import { AuditAction, AuditStatus, Role } from "@/generated/prisma/enums";
 
 export async function loginAction(
   prevState: ActionState | undefined,
@@ -132,4 +132,12 @@ export async function logoutAction(): Promise<void> {
   await deleteSessionTokenCookie();
   revalidatePath("/", "layout");
   redirect("/login");
+}
+
+export async function checkLoginSessionAction(): Promise<{
+  role: Role;
+} | null> {
+  const current = await getCurrentSession();
+  if (!current) return null;
+  return { role: current.user.role };
 }

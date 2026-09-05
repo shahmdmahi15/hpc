@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/guard";
+import { verifyPortalAccessAction } from "@/actions/portal/portal-auth.action";
 import { Role } from "@/generated/prisma/enums";
 import { RolePortalView } from "@/components/role-portal-view";
 import type { Metadata } from "next";
@@ -6,10 +6,10 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Front Desk Reception Portal | Health And Pain Care Center",
+  title: "Receptionist Portal | Health And Pain Care Center",
 };
 
 export default async function ReceptionistPage() {
-  const { session } = await requireAuth(Role.RECEPTIONIST);
+  const { session } = await verifyPortalAccessAction(Role.RECEPTIONIST);
   return <RolePortalView role={Role.RECEPTIONIST} session={session} />;
 }

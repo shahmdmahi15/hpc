@@ -28,6 +28,13 @@ enum AuditAction {
   USER_PASSWORD_RESET
   USER_DELETE
   USER_SESSIONS_REVOKED
+  SESSION_REVOKE
+  PERFORMER_CREATE
+  PERFORMER_DELETE
+  ROOM_CREATE
+  ROOM_UPDATE
+  ROOM_STATUS_CHANGE
+  ROOM_DELETE
   PROFILE_UPDATE
   PASSWORD_UPDATE
 }
@@ -35,6 +42,24 @@ enum AuditAction {
 enum AuditStatus {
   SUCCESS
   FAILURE
+}
+
+enum RoomAccessType {
+  PUBLIC
+  STAFF
+  DOCTOR
+}
+
+enum RoomGender {
+  MALE
+  FEMALE
+  COMMON
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
 }
 
 // --------------------------------------------------------
@@ -46,9 +71,9 @@ model User {
   role     Role   @unique
   password String
 
-  // Relations
-  sessions  Session[]
-  auditLogs AuditLog[]
+  sessions   Session[]
+  auditLogs  AuditLog[]
+  performers Performer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,11 +86,11 @@ model Session {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  ipAddress    String?
-  userAgent    String?
-  device       String?
-  browser      String?
-  os           String?
+  ipAddress String?
+  userAgent String?
+  device    String?
+  browser   String?
+  os        String?
 
   expiresAt    DateTime
   revokedAt    DateTime?
@@ -78,12 +103,15 @@ model Session {
 }
 
 model AuditLog {
-  id        String      @id @default(cuid())
-  action    AuditAction
-  status    AuditStatus @default(SUCCESS)
+  id     String      @id @default(cuid())
+  action AuditAction
+  status AuditStatus @default(SUCCESS)
 
-  userId    String?
-  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  performerId String?
+  performer   Performer? @relation(fields: [performerId], references: [id], onDelete: SetNull)
 
   entity    String?
   entityId  String?
@@ -91,9 +119,43 @@ model AuditLog {
   ipAddress String?
   userAgent String?
 
-  createdAt DateTime    @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([performerId])
   @@index([action])
+  @@index([status])
+  @@index([entity])
   @@index([createdAt])
+}
+
+model Performer {
+  id    String @id @default(cuid())
+  name  String
+  phone String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  auditLogs AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([phone])
+}
+
+model Room {
+  id         String         @id @default(cuid())
+  number     String         @unique
+  purpose    String
+  accessType RoomAccessType
+  gender     RoomGender
+  status     RoomStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([number])
 }

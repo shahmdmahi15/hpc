@@ -157,30 +157,30 @@ const translations: Record<string, { en: string; bn: string }> = {
     en: "System ops, audit logs, and security controls",
     bn: "সিস্টেম অপারেশন, অডিট লগ ও সিকিউরিটি",
   },
-  "role.doctor": { en: "Pain Care Specialist", bn: "পেইন কেয়ার বিশেষজ্ঞ" },
+  "role.doctor": { en: "Doctor", bn: "ডাক্তার" },
   "role.doctor_desc": {
     en: "Diagnostic plans and clinical doctor portal",
     bn: "ডায়াগনস্টিক ও ক্লিনিক্যাল ডাক্তার পোর্টাল",
   },
   "role.receptionist": {
-    en: "Front Desk Reception",
-    bn: "ফ্রন্ট ডেস্ক রিসেপশন",
+    en: "Receptionist",
+    bn: "রিসেপশনিস্ট",
   },
   "role.receptionist_desc": {
     en: "Client check-in, intake, and scheduling",
     bn: "রোগী চেক-ইন, বুকিং ও ফ্রন্ট ডেস্ক",
   },
   "role.handler": {
-    en: "Therapy & Care Handler",
-    bn: "কেয়ার হ্যান্ডলার",
+    en: "Handler",
+    bn: "হ্যান্ডলার",
   },
   "role.handler_desc": {
     en: "Triage care, therapy, and mobility support",
     bn: "কেয়ার ট্রায়াজ, থেরাপি ও সহায়তা",
   },
   "role.cashier": {
-    en: "Cashier & Accounts",
-    bn: "ক্যাশিয়ার ও অ্যাকাউন্টস",
+    en: "Cashier",
+    bn: "ক্যাশিয়ার",
   },
   "role.cashier_desc": {
     en: "Billing records, receipts, and cash register",
