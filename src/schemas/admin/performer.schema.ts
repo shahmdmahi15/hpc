@@ -15,7 +15,7 @@ export const createPerformerSchema = z.object({
     .max(20, "Phone number must not exceed 20 characters.")
     .regex(
       /^(?:\+?88)?01[3-9]\d{8}$|^\+?[0-9\s-]{6,20}$/,
-      "Please provide a valid phone number (e.g., 01712345678)."
+      "Please provide a valid phone number (e.g., 01712345678).",
     ),
 });
 

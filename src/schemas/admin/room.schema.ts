@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { RoomAccessType, RoomGender, RoomStatus } from "@/generated/prisma/enums";
+import {
+  RoomAccessType,
+  RoomGender,
+  RoomStatus,
+} from "@/generated/prisma/enums";
 
 export const createRoomSchema = z.object({
   number: z
