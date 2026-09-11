@@ -63,6 +63,16 @@ const ROOM_STATUS_OPTIONS = [
   { value: RoomStatus.MAINTENANCE, label: "Maintenance / Closed" },
 ] as const;
 
+const ACCESS_LABELS: Record<string, string> = Object.fromEntries(
+  ROOM_ACCESS_OPTIONS.map((o) => [o.value, o.label]),
+);
+const GENDER_LABELS: Record<string, string> = Object.fromEntries(
+  ROOM_GENDER_OPTIONS.map((o) => [o.value, o.label]),
+);
+const STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  ROOM_STATUS_OPTIONS.map((o) => [o.value, o.label]),
+);
+
 export function CreateRoomDialog({
   open,
   onOpenChange,
@@ -140,7 +150,7 @@ export function CreateRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[540px] max-h-[92vh] overflow-y-auto p-0 gap-0 border-border/80 shadow-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[92vh] overflow-y-auto p-0 gap-0 border-border/80 shadow-2xl rounded-2xl">
         {/* Header */}
         <div className="p-6 border-b border-border/60 bg-muted/20">
           <DialogHeader>
@@ -240,7 +250,13 @@ export function CreateRoomDialog({
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select access type" />
+                  <SelectValue placeholder="Select access type">
+                    {(val: string | null) =>
+                      val
+                        ? ACCESS_LABELS[String(val)] || String(val)
+                        : "Select access type"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={RoomAccessType.PUBLIC}>
@@ -282,7 +298,13 @@ export function CreateRoomDialog({
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select gender" />
+                  <SelectValue placeholder="Select gender">
+                    {(val: string | null) =>
+                      val
+                        ? GENDER_LABELS[String(val)] || String(val)
+                        : "Select gender"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={RoomGender.COMMON}>
@@ -320,7 +342,13 @@ export function CreateRoomDialog({
               disabled={isPending}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select initial status" />
+                <SelectValue placeholder="Select initial status">
+                  {(val: string | null) =>
+                    val
+                      ? STATUS_LABELS[String(val)] || String(val)
+                      : "Select initial status"
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={RoomStatus.AVAILABLE}>

@@ -37,14 +37,24 @@ export function DeleteRoomDialog({
 }: DeleteRoomDialogProps) {
   const [confirmNumber, setConfirmNumber] = React.useState("");
   const [selectedAdminPerformerId, setSelectedAdminPerformerId] =
-    React.useState("");
+    React.useState<string>(() =>
+      adminPerformers.length === 1 ? adminPerformers[0].id : "",
+    );
   const [error, setError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    if (adminPerformers.length === 1 && !selectedAdminPerformerId) {
+      setSelectedAdminPerformerId(adminPerformers[0].id);
+    }
+  }, [adminPerformers, selectedAdminPerformerId]);
 
   const handleClose = (newOpen: boolean) => {
     if (!newOpen) {
       setConfirmNumber("");
-      setSelectedAdminPerformerId("");
+      setSelectedAdminPerformerId(
+        adminPerformers.length === 1 ? adminPerformers[0].id : "",
+      );
       setError(null);
     }
     onOpenChange(newOpen);
@@ -89,7 +99,7 @@ export function DeleteRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[480px] p-0 gap-0 border-destructive/30 shadow-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl p-0 gap-0 border-destructive/30 shadow-2xl rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-border/60 bg-destructive/5">
           <div className="flex items-center gap-3">

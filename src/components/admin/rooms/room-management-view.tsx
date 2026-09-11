@@ -44,6 +44,10 @@ import {
 import { CreateRoomDialog } from "@/components/admin/rooms/create-room-dialog";
 import { EditRoomDialog } from "@/components/admin/rooms/edit-room-dialog";
 import { DeleteRoomDialog } from "@/components/admin/rooms/delete-room-dialog";
+import {
+  AuthorizeRoomActionDialog,
+  type AuthorizeRoomActionConfig,
+} from "@/components/admin/rooms/authorize-room-action-dialog";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -105,6 +109,11 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
   const [editingRoom, setEditingRoom] = React.useState<Room | null>(null);
   const [deletingRoom, setDeletingRoom] = React.useState<Room | null>(null);
+  const [pendingStatusAction, setPendingStatusAction] =
+    React.useState<AuthorizeRoomActionConfig | null>(null);
+  const [lastPerformerId, setLastPerformerId] = React.useState<string>(() =>
+    adminPerformers.length === 1 ? adminPerformers[0].id : "",
+  );
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
 
   // Filtered rooms
@@ -163,12 +172,9 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
   const handleQuickStatusChange = async (room: Room, newStatus: RoomStatus) => {
     if (room.status === newStatus) return;
 
-    // If multiple admin performers exist, notify user to use Edit dialog for authorization attribution
+    // If multiple admin performers exist, open dedicated performer selection dialog
     if (adminPerformers.length > 1) {
-      toast.info(
-        "Multiple administrators exist. Please use 'Edit Room' to specify authorizer.",
-      );
-      setEditingRoom(room);
+      setPendingStatusAction({ room, targetStatus: newStatus });
       return;
     }
 
@@ -189,7 +195,7 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="space-y-3">
       {/* ---------------------------------------------------- */}
       {/* 1. Header & Quick Actions                            */}
       {/* ---------------------------------------------------- */}
@@ -803,6 +809,15 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
           setDeletingRoom(null);
           router.refresh();
         }}
+      />
+
+      <AuthorizeRoomActionDialog
+        config={pendingStatusAction}
+        isOpen={!!pendingStatusAction}
+        onOpenChange={(open) => !open && setPendingStatusAction(null)}
+        adminPerformers={adminPerformers}
+        defaultPerformerId={lastPerformerId}
+        onSuccess={(performerId) => setLastPerformerId(performerId)}
       />
     </div>
   );

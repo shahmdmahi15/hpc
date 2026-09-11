@@ -196,7 +196,12 @@ export function AuditFilterBar({
           }
         >
           <SelectTrigger className="h-8 rounded-xl border border-border/80 bg-background text-xs font-medium w-[125px] shadow-xs">
-            <SelectValue placeholder="Date Range" />
+            <SelectValue placeholder="Date Range">
+              {(val: string | null) => {
+                const opt = DATE_RANGE_OPTIONS.find((o) => o.value === val);
+                return opt ? opt.label : "Date Range";
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {DATE_RANGE_OPTIONS.map((opt) => (
@@ -219,7 +224,12 @@ export function AuditFilterBar({
           }
         >
           <SelectTrigger className="h-8 rounded-xl border border-border/80 bg-background text-xs font-medium w-[130px] shadow-xs">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="Status">
+              {(val: string | null) => {
+                const opt = AUDIT_STATUS_OPTIONS.find((o) => o.value === val);
+                return opt ? opt.label : "All Statuses";
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {AUDIT_STATUS_OPTIONS.map((opt) => (
@@ -242,7 +252,12 @@ export function AuditFilterBar({
           }
         >
           <SelectTrigger className="h-8 rounded-xl border border-border/80 bg-background text-xs font-medium w-[160px] shadow-xs truncate">
-            <SelectValue placeholder="Action" />
+            <SelectValue placeholder="Action">
+              {(val: string | null) => {
+                const opt = AUDIT_ACTION_OPTIONS.find((o) => o.value === val);
+                return opt ? opt.label : "All Actions";
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {AUDIT_ACTION_OPTIONS.map((opt) => (
@@ -265,7 +280,12 @@ export function AuditFilterBar({
           }
         >
           <SelectTrigger className="h-8 rounded-xl border border-border/80 bg-background text-xs font-medium w-[130px] shadow-xs">
-            <SelectValue placeholder="Station" />
+            <SelectValue placeholder="Station">
+              {(val: string | null) => {
+                const opt = ROLE_OPTIONS.find((o) => o.value === val);
+                return opt ? opt.label : "All Stations";
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {ROLE_OPTIONS.map((opt) => (
@@ -295,7 +315,13 @@ export function AuditFilterBar({
             }
           >
             <SelectTrigger className="h-8 rounded-xl border border-border/80 bg-background text-xs font-medium w-[160px] shadow-xs truncate">
-              <SelectValue placeholder="Performer" />
+              <SelectValue placeholder="Performer">
+                {(val: string | null) => {
+                  if (!val || val === "ALL") return "All Performers";
+                  const p = performers.find((perf) => perf.id === val);
+                  return p ? `${p.name} (${p.phone.slice(-4)})` : "Performer";
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All Performers</SelectItem>

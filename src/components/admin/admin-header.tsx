@@ -2,15 +2,26 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { BrandLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageSwitcher } from "@/lib/i18n";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
-import { logoutAction } from "@/actions/login/login.action";
+import { LanguageSwitcher } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { logoutAction } from "@/actions/login/login.action";
+import {
+  Tv,
+  LogOut,
+  Clock,
+  Wifi,
+  CalendarDays,
+  Shield,
+  Stethoscope,
+  UserCheck,
+  Activity,
+  CreditCard,
+} from "lucide-react";
+import { useLiveClock } from "@/hooks/use-live-clock";
 import type { Session, User } from "@/generated/prisma/client";
-import { Tv, LogOut } from "lucide-react";
 
 interface AdminHeaderProps {
   session?: Session;
@@ -18,63 +29,126 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ session, user }: AdminHeaderProps) {
+  const currentTime = useLiveClock();
+
   return (
-    <header className="sticky top-0 z-20 flex h-14 w-full items-center justify-between gap-3 border-b border-border/60 bg-background/80 px-4 backdrop-blur-md transition-all">
-      {/* Left side: Sidebar Trigger & Breadcrumbs */}
-      <div className="flex items-center gap-2.5">
-        <SidebarTrigger className="h-8 w-8 rounded-lg border border-border/80 hover:bg-muted/80 text-foreground cursor-pointer" />
-        <Separator orientation="vertical" className="h-4 bg-border/80" />
-
-        <div className="flex items-center gap-1.5 text-xs">
-          <Link
-            href="/admin"
-            className="font-semibold text-foreground hover:text-primary transition-colors"
+    <header className="w-full px-3 sm:px-6 py-1.5 border-b border-border/70 bg-card/85 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between gap-2.5 shadow-xs">
+      {/* 1. Left: Brand & Admin Console Identity */}
+      <div className="flex items-center gap-2.5 shrink-0">
+        <BrandLogo size="sm" variant="full" />
+        <div className="hidden md:flex items-center gap-1.5 pl-2.5 border-l border-border/60">
+          <span
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-[10.5px] font-bold tracking-wide uppercase"
+            title={user?.role ? `Logged in as ${user.role}` : "Administrator Console"}
           >
-            HPC Admin
-          </Link>
-          <span className="text-muted-foreground/60">/</span>
-          <span className="font-medium text-muted-foreground">
-            {user?.role ? "Administrator" : "Dashboard"}
-          </span>
-        </div>
-
-        <div className="hidden md:inline-flex items-center gap-1.5 ml-2 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold">
-          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>
-            {session?.ipAddress
-              ? `Online (${session.ipAddress})`
-              : "System Online"}
+            <Shield className="size-3 text-purple-600 dark:text-purple-400" />
+            <span>{user?.role ? `${user.role} Console` : "Admin Console"}</span>
           </span>
         </div>
       </div>
 
-      {/* Right side: Quick utility actions */}
+      {/* 2. Center: Live Digital Clock & Online Status */}
+      <div className="hidden lg:flex items-center gap-3">
+        {/* Live Clock */}
+        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-muted/40 border border-border/60 text-xs font-mono">
+          <Clock className="size-3 text-purple-500 animate-pulse" />
+          <span className="font-bold text-foreground">
+            {currentTime
+              ? currentTime.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })
+              : "--:--:--"}
+          </span>
+          <span className="text-muted-foreground">•</span>
+          <span className="text-muted-foreground flex items-center gap-1 font-sans text-[10.5px]">
+            <CalendarDays className="size-2.5 text-muted-foreground" />
+            {currentTime
+              ? currentTime.toLocaleDateString([], {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "---"}
+          </span>
+        </div>
+
+        {/* System Online Status */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background border border-border/70 text-[11px] font-medium shadow-xs">
+          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+            <Wifi className="size-3" />
+            {session?.ipAddress ? `Online` : "System Online"}
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Right: Utility Controls & Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2">
-        {/* Waiting Room TV Display Link */}
+        {/* Quick Portal Switcher for Admin */}
+        <div className="hidden xl:flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border/60 text-xs mr-1">
+          <Link
+            href="/doctor"
+            title="Doctor Console"
+            className="px-2 py-0.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground text-[11px] font-semibold flex items-center gap-1 transition-all"
+          >
+            <Stethoscope className="size-3 text-sky-500" />
+            <span>Doctor</span>
+          </Link>
+          <Link
+            href="/receptionist"
+            title="Receptionist Desk"
+            className="px-2 py-0.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground text-[11px] font-semibold flex items-center gap-1 transition-all"
+          >
+            <UserCheck className="size-3 text-blue-500" />
+            <span>Reception</span>
+          </Link>
+          <Link
+            href="/handler"
+            title="Therapy Handler Desk"
+            className="px-2 py-0.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground text-[11px] font-semibold flex items-center gap-1 transition-all"
+          >
+            <Activity className="size-3 text-emerald-500" />
+            <span>Handler</span>
+          </Link>
+          <Link
+            href="/cashier"
+            title="Cashier & Billing Desk"
+            className="px-2 py-0.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground text-[11px] font-semibold flex items-center gap-1 transition-all"
+          >
+            <CreditCard className="size-3 text-amber-500" />
+            <span>Cashier</span>
+          </Link>
+        </div>
+
+        {/* Waiting Room TV Display shortcut */}
         <Link
           href="/"
-          target="_blank"
-          title="Open Waiting Room TV in new tab"
-          className="group flex h-8 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground hover:border-primary/40 shadow-xs transition-all cursor-pointer"
+          title="Open Waiting Room Display"
+          className="size-8 flex items-center justify-center rounded-lg border border-border/80 bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer shadow-2xs"
         >
-          <Tv className="size-3.5 text-primary transition-transform group-hover:scale-110" />
-          <span className="hidden sm:inline">Waiting Room TV</span>
+          <Tv className="size-3.5" />
         </Link>
 
-        <FullscreenToggle className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/80 bg-card text-muted-foreground hover:text-foreground hover:bg-muted shadow-xs transition-all cursor-pointer" />
-        <LanguageSwitcher className="h-8 px-1.5 rounded-lg bg-card border-border/80 text-xs shadow-xs" />
+        {/* Language Switcher */}
+        <LanguageSwitcher className="h-7 px-1.5 rounded-lg bg-card border-border/80 text-[11px] shadow-2xs" />
+
+        {/* Fullscreen & Theme */}
+        <FullscreenToggle />
         <ThemeToggle />
 
-        {/* Quick Sign Out */}
+        {/* Logout */}
         <form action={logoutAction}>
           <Button
             type="submit"
-            variant="outline"
-            size="sm"
-            className="h-8 px-2.5 rounded-lg gap-1.5 text-xs font-semibold cursor-pointer hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
+            variant="ghost"
+            size="icon"
+            className="size-8 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+            title="Sign Out"
           >
             <LogOut className="size-3.5" />
-            <span className="hidden md:inline">Sign Out</span>
           </Button>
         </form>
       </div>

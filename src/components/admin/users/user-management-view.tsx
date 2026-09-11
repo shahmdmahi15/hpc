@@ -102,7 +102,7 @@ export function UserManagementView({ users }: UserManagementViewProps) {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="space-y-3">
       {/* ---------------------------------------------------- */}
       {/* 1. Header & Architecture Notice                      */}
       {/* ---------------------------------------------------- */}

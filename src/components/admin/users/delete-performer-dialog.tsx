@@ -79,7 +79,7 @@ export function DeletePerformerDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg md:max-w-xl max-h-[min(90vh,600px)] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl max-h-[min(90vh,600px)] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
         {/* Header Banner */}
         <div className="shrink-0 bg-muted/40 p-5 pb-4 border-b border-border/60">
           <DialogHeader>

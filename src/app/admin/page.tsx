@@ -24,6 +24,7 @@ import {
   ArrowUpRight,
   ScrollText,
   DoorOpen,
+  CalendarClock,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export default async function AdminPage() {
     auditLogCount,
     performerCount,
     roomCount,
+    slotCount,
   } = counts;
 
   const portals = [
@@ -83,11 +85,11 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="space-y-3">
       {/* ---------------------------------------------------- */}
       {/* 1. Welcome & Status Banner                           */}
       {/* ---------------------------------------------------- */}
-      <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-r from-card via-card/95 to-primary/5 p-6 sm:p-8 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-r from-card via-card/95 to-primary/5 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -131,7 +133,7 @@ export default async function AdminPage() {
       {/* ---------------------------------------------------- */}
       {/* 2. System KPI & Metric Cards                         */}
       {/* ---------------------------------------------------- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
         <Card className="border-border/80 bg-card/80 shadow-xs hover:shadow-md transition-shadow">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -228,6 +230,28 @@ export default async function AdminPage() {
               </div>
               <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 group-hover:text-primary transition-colors">
                 <span>View Full Audit Trail</span>
+                <ArrowUpRight className="size-3" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/slots" className="group">
+          <Card className="border-border/80 bg-card/80 shadow-xs group-hover:border-amber-500/40 group-hover:shadow-md transition-all h-full cursor-pointer">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
+                Therapy Slots
+              </CardTitle>
+              <div className="size-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-105 transition-transform">
+                <CalendarClock className="size-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {slotCount}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 group-hover:text-primary transition-colors">
+                <span>Manage Schedule &amp; Quotas</span>
                 <ArrowUpRight className="size-3" />
               </p>
             </CardContent>

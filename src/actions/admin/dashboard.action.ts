@@ -25,6 +25,7 @@ export interface AdminDashboardData {
     auditLogCount: number;
     performerCount: number;
     roomCount: number;
+    slotCount: number;
   };
   recentLogs: RecentAuditLogItem[];
 }
@@ -41,35 +42,47 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
   let auditLogCount = 0;
   let performerCount = 0;
   let roomCount = 0;
-  let rawLogs: any[] = [];
+  let slotCount = 0;
+  let rawLogs: Array<{
+    id: string;
+    action: string;
+    status: string;
+    createdAt: Date;
+    ipAddress: string | null;
+    user: { role: string } | null;
+    performer: { name: string; phone: string } | null;
+  }> = [];
 
   try {
-    const [uCount, sCount, aCount, pCount, rmCount, rLogs] = await Promise.all([
-      prisma.user.count(),
-      prisma.session.count({
-        where: {
-          expiresAt: { gt: new Date() },
-          revokedAt: null,
-        },
-      }),
-      prisma.auditLog.count(),
-      prisma.performer.count(),
-      prisma.room.count(),
-      prisma.auditLog.findMany({
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        include: {
-          user: { select: { role: true } },
-          performer: { select: { name: true, phone: true } },
-        },
-      }),
-    ]);
+    const [uCount, sCount, aCount, pCount, rmCount, slCount, rLogs] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.session.count({
+          where: {
+            expiresAt: { gt: new Date() },
+            revokedAt: null,
+          },
+        }),
+        prisma.auditLog.count(),
+        prisma.performer.count(),
+        prisma.room.count(),
+        prisma.therapySlot.count(),
+        prisma.auditLog.findMany({
+          take: 5,
+          orderBy: { createdAt: "desc" },
+          include: {
+            user: { select: { role: true } },
+            performer: { select: { name: true, phone: true } },
+          },
+        }),
+      ]);
 
     userCount = uCount;
     activeSessionCount = sCount;
     auditLogCount = aCount;
     performerCount = pCount;
     roomCount = rmCount;
+    slotCount = slCount;
     rawLogs = rLogs;
   } catch (error) {
     console.error("[Dashboard Action Error] Failed to query telemetry:", error);
@@ -95,6 +108,7 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
       auditLogCount,
       performerCount,
       roomCount,
+      slotCount,
     },
     recentLogs,
   };

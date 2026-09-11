@@ -77,7 +77,7 @@ export function RevokeSessionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg md:max-w-xl max-h-[min(90vh,600px)] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
+      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl max-h-[min(90vh,600px)] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
         {/* Header Banner */}
         <div className="shrink-0 bg-muted/40 p-5 pb-4 border-b border-border/60">
           <DialogHeader>

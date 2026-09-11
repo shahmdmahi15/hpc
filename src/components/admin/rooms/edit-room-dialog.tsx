@@ -65,6 +65,16 @@ const ROOM_STATUS_OPTIONS = [
   { value: RoomStatus.MAINTENANCE, label: "Maintenance (Out of Service)" },
 ] as const;
 
+const ACCESS_LABELS: Record<string, string> = Object.fromEntries(
+  ROOM_ACCESS_OPTIONS.map((o) => [o.value, o.label]),
+);
+const GENDER_LABELS: Record<string, string> = Object.fromEntries(
+  ROOM_GENDER_OPTIONS.map((o) => [o.value, o.label]),
+);
+const STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  ROOM_STATUS_OPTIONS.map((o) => [o.value, o.label]),
+);
+
 function EditRoomForm({
   room,
   adminPerformers,
@@ -235,7 +245,13 @@ function EditRoomForm({
               disabled={isPending}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select access type" />
+                <SelectValue placeholder="Select access type">
+                  {(val: string | null) =>
+                    val
+                      ? ACCESS_LABELS[String(val)] || String(val)
+                      : "Select access type"
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={RoomAccessType.PUBLIC}>
@@ -276,7 +292,13 @@ function EditRoomForm({
               disabled={isPending}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select gender" />
+                <SelectValue placeholder="Select gender">
+                  {(val: string | null) =>
+                    val
+                      ? GENDER_LABELS[String(val)] || String(val)
+                      : "Select gender"
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={RoomGender.COMMON}>
@@ -314,7 +336,13 @@ function EditRoomForm({
             disabled={isPending}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select operational status" />
+              <SelectValue placeholder="Select operational status">
+                {(val: string | null) =>
+                  val
+                    ? STATUS_LABELS[String(val)] || String(val)
+                    : "Select operational status"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={RoomStatus.AVAILABLE}>

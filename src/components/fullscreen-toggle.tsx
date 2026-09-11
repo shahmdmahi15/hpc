@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Maximize, Minimize } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function FullscreenToggle({ className }: { className?: string }) {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -53,10 +54,10 @@ export function FullscreenToggle({ className }: { className?: string }) {
       aria-label={
         isFullscreen ? "Exit Fullscreen Mode" : "Toggle Fullscreen Mode"
       }
-      className={
-        className ||
-        "p-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
-      }
+      className={cn(
+        "inline-flex items-center justify-center p-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer",
+        className,
+      )}
     >
       {isFullscreen ? (
         <Minimize className="h-4 w-4" />

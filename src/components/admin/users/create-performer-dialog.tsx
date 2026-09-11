@@ -53,7 +53,9 @@ export function CreatePerformerDialog({
     () => defaultUserId || users[0]?.id || "",
   );
   const [selectedAdminPerformerId, setSelectedAdminPerformerId] =
-    React.useState("");
+    React.useState<string>(() =>
+      adminPerformers.length === 1 ? adminPerformers[0].id : "",
+    );
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [fieldErrors, setFieldErrors] = React.useState<
@@ -62,12 +64,20 @@ export function CreatePerformerDialog({
   const [generalError, setGeneralError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
 
+  React.useEffect(() => {
+    if (adminPerformers.length === 1 && !selectedAdminPerformerId) {
+      setSelectedAdminPerformerId(adminPerformers[0].id);
+    }
+  }, [adminPerformers, selectedAdminPerformerId]);
+
   // Reset form when dialog closes or defaultUserId changes
   const handleClose = (newOpen: boolean) => {
     if (!newOpen) {
       setName("");
       setPhone("");
-      setSelectedAdminPerformerId("");
+      setSelectedAdminPerformerId(
+        adminPerformers.length === 1 ? adminPerformers[0].id : "",
+      );
       setFieldErrors({});
       setGeneralError(null);
     }
@@ -152,7 +162,7 @@ export function CreatePerformerDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[min(90vh,760px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[min(90vh,760px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         <form
           onSubmit={handleSubmit}
           className="flex flex-col flex-1 min-h-0 overflow-hidden"

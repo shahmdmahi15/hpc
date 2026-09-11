@@ -201,7 +201,7 @@ export function PasswordResetDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg md:max-w-xl max-h-[min(90vh,760px)] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
+      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl max-h-[min(90vh,760px)] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
         <form
           onSubmit={handleSubmit}
           className="flex flex-col flex-1 min-h-0 overflow-hidden"

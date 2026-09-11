@@ -70,7 +70,7 @@ export function AuditEventDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[min(90vh,760px)] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[min(90vh,760px)] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
         {/* Header Banner */}
         <div className="shrink-0 bg-muted/40 p-5 pb-4 border-b border-border/60">
           <DialogHeader>

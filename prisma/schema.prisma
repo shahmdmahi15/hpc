@@ -37,6 +37,29 @@ enum AuditAction {
   ROOM_DELETE
   PROFILE_UPDATE
   PASSWORD_UPDATE
+
+  // Therapy Slot Management Audits
+  THERAPY_SLOT_CREATE
+  THERAPY_SLOT_UPDATE
+  THERAPY_SLOT_STATUS_CHANGE
+  THERAPY_SLOT_DELETE
+  THERAPY_SLOT_SEED
+
+  // Patient Audits
+  PATIENT_CREATE
+  PATIENT_UPDATE
+
+  // Appointment Audits
+  APPOINTMENT_CREATE
+  APPOINTMENT_UPDATE
+  APPOINTMENT_CANCEL
+  EXTRA_APPOINTMENT_APPROVE
+  EXTRA_APPOINTMENT_REJECT
+
+  // Treatment Plan Audits
+  TREATMENT_PLAN_CREATE
+  TREATMENT_PLAN_UPDATE
+  TREATMENT_PLAN_DELETE
 }
 
 enum AuditStatus {
@@ -62,8 +85,74 @@ enum RoomStatus {
   MAINTENANCE
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+  ALL
+}
+
+enum SlotStatus {
+  OPEN
+  FULL
+  BLOCKED
+  CANCELLED
+}
+
+enum AppointmentType {
+  THERAPY
+  CONSULTATION
+}
+
+enum QueueType {
+  THERAPY
+  CONSULTATION
+}
+
+enum BookingType {
+  REGULAR
+  EXTRA
+}
+
+enum ExtraApprovalStatus {
+  NOT_APPLICABLE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  CALLING
+  IN_CONSULTATION
+  IN_THERAPY
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ClinicalOptionCategory {
+  PAIN_AREA
+  TREATMENT_PLAN
+  PAIN_TYPE
+  AGGRAVATING_FACTOR
+  RELIEVING_FACTOR
+  FUNCTIONAL_LIMITATION
+}
+
 // --------------------------------------------------------
-// USER & AUTHENTICATION
+// USER & AUTHENTICATION (RBAC)
 // --------------------------------------------------------
 
 model User {
@@ -129,6 +218,10 @@ model AuditLog {
   @@index([createdAt])
 }
 
+// --------------------------------------------------------
+// PERFORMER (PERSON IDENTITY)
+// --------------------------------------------------------
+
 model Performer {
   id    String @id @default(cuid())
   name  String
@@ -138,6 +231,14 @@ model Performer {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   auditLogs AuditLog[]
+
+  // Clinical Actions & Approvals
+  approvedAppointmentExtras Appointment[] @relation("AppointmentExtraApprover")
+  doctorAppointments        Appointment[] @relation("DoctorAppointments")
+  conductedAppointments     Appointment[] @relation("PerformerAppointments")
+  bookedAppointments        Appointment[] @relation("AppointmentBooker")
+  medicalRecords            MedicalRecord[]
+  treatmentPlans            TreatmentPlan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -154,8 +255,336 @@ model Room {
   gender     RoomGender
   status     RoomStatus
 
+  therapySlots TherapySlot[]
+  appointments Appointment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([number])
 }
+
+// --------------------------------------------------------
+// THERAPY SLOTS (PREDEFINED MASTER SLOTS)
+// --------------------------------------------------------
+
+model TherapySlot {
+  id String @id @default(cuid())
+
+  label     String   // e.g. "10:00 AM - 11:00 AM"
+  startTime String   // "10:00"
+  endTime   String   // "11:00"
+  order     Int      @default(0)
+
+  status   SlotStatus @default(OPEN)
+  isActive Boolean    @default(true)
+
+  // Operating days of the week ("ALL" or comma-separated "SATURDAY,SUNDAY,...")
+  weekDays String @default("ALL")
+
+  // Therapy room assignment (optional)
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  // Predefined session quotas used daily by patient ticket booking
+  regularMaleCapacity   Int @default(3)
+  regularFemaleCapacity Int @default(3)
+  extraMaleCapacity     Int @default(1)
+  extraFemaleCapacity   Int @default(1)
+
+  // Appointments booked in this therapy slot
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+  @@index([startTime])
+  @@index([status])
+  @@index([isActive])
+  @@index([roomId])
+}
+
+// --------------------------------------------------------
+// PATIENTS & APPOINTMENTS (THERAPY & CONSULTATION)
+// --------------------------------------------------------
+
+model Patient {
+  id             String    @id @default(cuid())
+  mrn            String?   @unique // Medical Record Number
+  name           String
+  phone          String
+  gender         Gender
+  age            Int?
+  dateOfBirth    DateTime?
+  address        String?
+  emergencyPhone String?
+
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  treatmentPlans TreatmentPlan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([phone])
+  @@index([gender])
+}
+
+model Appointment {
+  id String @id @default(cuid())
+
+  // Appointment Type: THERAPY or CONSULTATION
+  type AppointmentType @default(THERAPY)
+
+  // Therapy Slot relation (used when type == THERAPY)
+  therapySlotId String?
+  therapySlot   TherapySlot? @relation(fields: [therapySlotId], references: [id], onDelete: Cascade)
+
+  // Patient relation
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+
+  // Date of appointment (the calendar date for booking tickets)
+  appointmentDate DateTime @default(now())
+
+  // Gender quota consumed
+  gender Gender
+
+  // Regular or Extra
+  bookingType BookingType @default(REGULAR)
+
+  // Extra appointment approval tracking (if bookingType == EXTRA)
+  extraStatus       ExtraApprovalStatus @default(NOT_APPLICABLE)
+  extraReason       String?
+  extraApprovedById String?
+  extraApprovedBy   Performer?          @relation("AppointmentExtraApprover", fields: [extraApprovedById], references: [id], onDelete: SetNull)
+  extraApprovedAt   DateTime?
+  extraApprovalNote String?
+
+  // Assigned Doctor (Performer under Doctor role desk)
+  doctorId String?
+  doctor   Performer? @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: SetNull)
+
+  // Assigned Therapist / Handler / Staff conducting the therapy
+  performerId String?
+  performer   Performer? @relation("PerformerAppointments", fields: [performerId], references: [id], onDelete: SetNull)
+
+  // Staff who booked (Performer under Receptionist/Admin/Doctor desk)
+  bookedById String?
+  bookedBy   Performer? @relation("AppointmentBooker", fields: [bookedById], references: [id], onDelete: SetNull)
+
+  status AppointmentStatus @default(PENDING)
+  notes  String?
+
+  // Billing & Payment tracking
+  feeAmount     Float?
+  paymentStatus String?   @default("PENDING")
+  paidAt        DateTime?
+  paymentMethod String?
+
+  // Patient arrival / told time (e.g. "10:30 AM")
+  toldTime String?
+
+  // Check-in timestamp (marked on the ticket booked date)
+  checkInTime DateTime?
+
+  // Expected / will call time (e.g. "11:30 AM")
+  willCallTime String?
+
+  // Queue assignment upon check-in: THERAPY or CONSULTATION
+  queueId   String?
+  queue     Queue?     @relation(fields: [queueId], references: [id], onDelete: SetNull)
+  queueType QueueType? @default(THERAPY)
+
+  // Direct Room / Chamber assignment (e.g. Doctor consultation room or specific therapy room)
+  roomId String?
+  room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  // Consultation-specific schedule (when type == CONSULTATION)
+  consultationDate DateTime?
+  consultationTime String?
+
+  medicalRecords MedicalRecord[]
+  treatmentPlans TreatmentPlan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([queueType])
+  @@index([queueId])
+  @@index([therapySlotId])
+  @@index([patientId])
+  @@index([gender])
+  @@index([bookingType])
+  @@index([status])
+  @@index([extraStatus])
+  @@index([doctorId])
+  @@index([performerId])
+  @@index([bookedById])
+  @@index([roomId])
+}
+
+// --------------------------------------------------------
+// QUEUE MODEL (THERAPY & CONSULTATION QUEUES)
+// --------------------------------------------------------
+
+model Queue {
+  id          String    @id @default(cuid())
+  name        String    // "Therapy Queue" or "Consultation Queue"
+  type        QueueType @unique
+  description String?
+  isActive    Boolean   @default(true)
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+}
+
+// --------------------------------------------------------
+// CLINICAL CONFIGURATION (DYNAMIC ISSUES & TREATMENTS)
+// --------------------------------------------------------
+
+model ClinicalOption {
+  id          String                 @id @default(cuid())
+  category    ClinicalOptionCategory
+  name        String
+  description String?
+  order       Int                    @default(0)
+  isActive    Boolean                @default(true)
+
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@index([order])
+}
+
+// --------------------------------------------------------
+// MEDICAL RECORDS (PAIN PHYSIOTHERAPY ASSESSMENT & FILES)
+// --------------------------------------------------------
+
+model MedicalRecord {
+  id             String   @id @default(cuid())
+
+  // Patient relation
+  patientId      String
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  // Optional appointment link
+  appointmentId  String?
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  // Attending doctor (Performer)
+  doctorId       String?
+  doctor         Performer?   @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+
+  // Metadata
+  assessmentDate DateTime @default(now())
+  age            Int?
+  occupation     String?
+
+  // Section 2: Pain Details
+  painAreas      String   @default("[]") // JSON string array e.g. ["Neck", "Back"]
+  painSide       String?  // "Right", "Left", "Both", "N/A"
+  duration       String?  // e.g. "2 weeks", "6 months"
+  painTypes      String   @default("[]") // JSON string array e.g. ["Sharp", "Dull", "Radiating"]
+
+  // Section 3: Pain Scale & Triggers
+  vasScore           Int?     @default(0) // Visual Analog Scale 0-10
+  aggravatingFactors String   @default("[]") // JSON string array e.g. ["Movement", "Sitting", "Standing"]
+  relievingFactors   String   @default("[]") // JSON string array e.g. ["Rest", "Medicine", "Heat"]
+
+  // Section 4: History
+  injuryAccident     Boolean? @default(false)
+  injuryDetails      String?
+  postureAdviceGiven Boolean? @default(false)
+  surgeryHistory     Boolean? @default(false)
+  surgeryDetails     String?
+  previousTreatment  String?  // "Medicine", "Physiotherapy", "Both", "None"
+
+  // Section 5: Functional Limitation
+  functionalLimitations String @default("[]") // JSON string array e.g. ["Bending", "Sitting", "Walking"]
+
+  // Section 6: Physical Examination
+  rom                String?  // "Normal", "Restricted"
+  muscleSpasm        Boolean? @default(false)
+  tenderness         Boolean? @default(false)
+  swelling           Boolean? @default(false)
+  physicalExamNotes  String?
+
+  // Section 7: Physiotherapy Diagnosis
+  diagnosis          String?
+
+  // Section 8: Treatment Plan (Dynamic Admin Modalities)
+  treatmentPlans     String   @default("[]") // JSON string array e.g. ["Hot pack", "IFT / TENS", "Ultrasound"]
+  treatmentNotes     String?
+
+  // Section 9: Home Advice
+  exerciseExplained  Boolean? @default(false)
+  homePostureAdvice  Boolean? @default(false)
+
+  // Follow-up & Progress
+  followUpVasScore   Int?     // Pain scale after treatment (0-10)
+  improvement        String?  // Doctor's improvement notes
+  doctorSignature    String?  // Doctor / Therapist name or sign tag
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([doctorId])
+  @@index([assessmentDate])
+}
+
+// --------------------------------------------------------
+// PATIENT TREATMENT PLANS (TODAY & NEXT SESSIONS)
+// --------------------------------------------------------
+
+enum TreatmentPlanType {
+  TODAY
+  NEXT
+}
+
+model TreatmentPlan {
+  id            String            @id @default(cuid())
+  planType      TreatmentPlanType @default(TODAY)
+
+  patientId     String
+  patient       Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  appointmentId String?
+  appointment   Appointment?      @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  doctorId      String?
+  doctor        Performer?        @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+
+  // Dynamic clinical treatment modalities (stored as JSON string array)
+  modalities    String            @default("[]")
+
+  // Instructions, protocol, duration, frequency, home guidelines
+  instructions  String?
+
+  // Target date for this treatment plan (e.g. today or next scheduled visit)
+  targetDate    DateTime?
+
+  isActive      Boolean           @default(true)
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([patientId])
+  @@index([appointmentId])
+  @@index([doctorId])
+  @@index([planType])
+  @@index([createdAt])
+}
+

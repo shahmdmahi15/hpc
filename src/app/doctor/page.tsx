@@ -1,15 +1,25 @@
 import { verifyPortalAccessAction } from "@/actions/portal/portal-auth.action";
 import { Role } from "@/generated/prisma/enums";
-import { RolePortalView } from "@/components/role-portal-view";
+import { getDoctorDashboardDataAction } from "@/actions/doctor/doctor.action";
+import { DoctorDashboardView } from "@/components/doctor/doctor-dashboard-view";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Doctor Portal | Health And Pain Care Center",
+  title: "Doctor Consultation Desk | Health And Pain Care Center",
+  description:
+    "Doctor Consultation Queue, Chamber Callouts, and Patient Care Desk.",
 };
 
 export default async function DoctorPage() {
-  const { session } = await verifyPortalAccessAction(Role.DOCTOR);
-  return <RolePortalView role={Role.DOCTOR} session={session} />;
+  const { user } = await verifyPortalAccessAction(Role.DOCTOR);
+  const initialData = await getDoctorDashboardDataAction();
+
+  return (
+    <DoctorDashboardView
+      initialData={initialData}
+      currentUserRole={user.role}
+    />
+  );
 }

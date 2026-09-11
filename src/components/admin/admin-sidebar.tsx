@@ -41,6 +41,7 @@ import {
   ChevronsUpDown,
   ScrollText,
   DoorOpen,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -147,6 +148,18 @@ export function AdminSidebar({
               >
                 <DoorOpen className="size-4 text-violet-500" />
                 <span className="font-semibold">Rooms</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Therapy Slots Management */}
+            <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+              <SidebarMenuButton
+                render={<Link href="/admin/slots" />}
+                isActive={pathname.startsWith("/admin/slots")}
+                tooltip="Therapy Slot & Capacity Schedule"
+              >
+                <CalendarClock className="size-4 text-amber-500" />
+                <span className="font-semibold">Therapy Slots</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 

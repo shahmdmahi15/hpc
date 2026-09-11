@@ -1,8 +1,6 @@
-import { cookies } from "next/headers";
 import { verifyAdminLayoutAccessAction } from "@/actions/admin/admin-auth.action";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminHeader } from "@/components/admin/admin-header";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AdminTopNav } from "@/components/admin/admin-top-nav";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -18,17 +16,13 @@ export default async function AdminLayout({
 }) {
   const { session, user } = await verifyAdminLayoutAccessAction();
 
-  const cookieStore = await cookies();
-  const sidebarCookie = cookieStore.get("sidebar_state");
-  const defaultOpen = sidebarCookie ? sidebarCookie.value === "true" : true;
-
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
-      <AdminSidebar session={session} user={user} />
-      <SidebarInset className="min-h-screen bg-background flex flex-col">
-        <AdminHeader session={session} user={user} />
-        <main className="flex-1 w-full overflow-x-hidden">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="min-h-screen w-full flex flex-col bg-background text-foreground selection:bg-purple-500/20">
+      <AdminHeader session={session} user={user} />
+      <AdminTopNav />
+      <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
+        {children}
+      </main>
+    </div>
   );
 }
