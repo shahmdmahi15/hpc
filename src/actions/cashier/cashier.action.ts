@@ -46,10 +46,7 @@ export interface CashierDashboardData {
   currentCashier: PerformerModel | null;
 }
 
-import {
-  DEFAULT_THERAPY_FEE,
-  DEFAULT_CONSULTATION_FEE,
-} from "@/lib/billing";
+import { DEFAULT_FEE } from "@/lib/billing";
 
 /**
  * Loads all billing and queue data for the Cashier & Billing Desk.
@@ -80,9 +77,7 @@ export async function getCashierDashboardDataAction(
 
   // Logged in cashier performer identity
   const currentCashier =
-    cashierPerformers.find(
-      (c) => c.id === sessionData.session.userId,
-    ) ||
+    cashierPerformers.find((c) => c.id === sessionData.session.userId) ||
     cashierPerformers[0] ||
     null;
 
@@ -100,11 +95,7 @@ export async function getCashierDashboardDataAction(
   let mfsCollected = 0;
 
   for (const a of paidAppointments) {
-    const fee =
-      a.feeAmount ??
-      (a.type === AppointmentType.CONSULTATION
-        ? DEFAULT_CONSULTATION_FEE
-        : DEFAULT_THERAPY_FEE);
+    const fee = a.feeAmount ?? DEFAULT_FEE;
     totalCollected += fee;
     if (a.paymentMethod === "CASH") cashCollected += fee;
     else if (a.paymentMethod === "CARD") cardCollected += fee;
@@ -114,11 +105,7 @@ export async function getCashierDashboardDataAction(
 
   let pendingCollection = 0;
   for (const a of pendingAppointments) {
-    const fee =
-      a.feeAmount ??
-      (a.type === AppointmentType.CONSULTATION
-        ? DEFAULT_CONSULTATION_FEE
-        : DEFAULT_THERAPY_FEE);
+    const fee = a.feeAmount ?? DEFAULT_FEE;
     pendingCollection += fee;
   }
 
@@ -228,7 +215,8 @@ export async function collectPaymentAction(params: {
     console.error("[Collect Payment Error]:", err);
     return {
       success: false,
-      message: err instanceof Error ? err.message : "Failed to collect payment.",
+      message:
+        err instanceof Error ? err.message : "Failed to collect payment.",
     };
   }
 }

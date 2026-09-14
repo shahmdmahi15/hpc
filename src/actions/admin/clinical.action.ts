@@ -2,7 +2,12 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/guard";
-import { Role, AuditAction, AuditStatus, ClinicalOptionCategory } from "@/generated/prisma/enums";
+import {
+  Role,
+  AuditAction,
+  AuditStatus,
+  ClinicalOptionCategory,
+} from "@/generated/prisma/enums";
 import { logAudit } from "@/lib/audit";
 import {
   createClinicalOptionSchema,
@@ -133,7 +138,10 @@ export async function updateClinicalOptionAction(
       data: {
         category,
         name: name.trim(),
-        description: description !== undefined ? (description?.trim() || null) : existing.description,
+        description:
+          description !== undefined
+            ? description?.trim() || null
+            : existing.description,
         order,
         ...(isActive !== undefined ? { isActive } : {}),
       },

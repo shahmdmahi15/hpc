@@ -29,6 +29,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
+  Receipt,
   X,
 } from "lucide-react";
 import { Gender, BookingType } from "@/generated/prisma/enums";
@@ -706,6 +707,24 @@ export function BookTicketDialog({
                 placeholder="e.g. Patient requires wheelchair assistance"
                 className="h-9 text-xs"
               />
+            </div>
+
+            {/* 6. Instant Billing Breakdown */}
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <div>
+                  <div className="text-xs font-semibold text-foreground">
+                    Ticket Fee
+                  </div>
+                  <div className="text-[10.5px] text-muted-foreground">
+                    Generated as pending due on patient bill
+                  </div>
+                </div>
+              </div>
+              <span className="font-mono font-bold text-xs px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30">
+                ৳500 BDT Due
+              </span>
             </div>
           </div>
 

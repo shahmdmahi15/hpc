@@ -1123,7 +1123,9 @@ function CreateMedicalRecordForm({
           >
             <Save className="size-4" />
             <span>
-              {isSubmitting ? "Saving Assessment File..." : "Save Assessment File"}
+              {isSubmitting
+                ? "Saving Assessment File..."
+                : "Save Assessment File"}
             </span>
           </Button>
         </div>

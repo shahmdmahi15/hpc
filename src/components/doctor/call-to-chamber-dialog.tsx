@@ -3,7 +3,11 @@
 import * as React from "react";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import { updateAppointmentStatusAction } from "@/actions/receptionist/appointment.action";
-import { AppointmentStatus, QueueType, RoomAccessType } from "@/generated/prisma/enums";
+import {
+  AppointmentStatus,
+  QueueType,
+  RoomAccessType,
+} from "@/generated/prisma/enums";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
 import {
   Dialog,
@@ -113,14 +117,8 @@ export function CallToChamberDialog({
 
   // Punctuality info
   const punctuality = React.useMemo(() => {
-    return evaluatePunctuality(
-      appointment.toldTime,
-      appointment.checkInTime,
-    );
-  }, [
-    appointment.toldTime,
-    appointment.checkInTime,
-  ]);
+    return evaluatePunctuality(appointment.toldTime, appointment.checkInTime);
+  }, [appointment.toldTime, appointment.checkInTime]);
 
   const isMale = appointment.gender === "MALE";
 
@@ -169,7 +167,8 @@ export function CallToChamberDialog({
                 Call Patient to Chamber
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Broadcasts call on Waiting Hall TV &amp; changes status to Calling. Mark In Consultation when patient arrives.
+                Broadcasts call on Waiting Hall TV &amp; changes status to
+                Calling. Mark In Consultation when patient arrives.
               </DialogDescription>
             </div>
           </div>
@@ -388,7 +387,10 @@ export function CallToChamberDialog({
             <span>Waiting Room Live Broadcast Preview:</span>
           </div>
           <p className="text-[11px] text-foreground font-sans italic pl-4 border-l-2 border-sky-500/40">
-            &ldquo;Attention please. Patient {appointment.patient?.name || "Patient"}. Please proceed to Room {activeRoom?.number || "Chamber"}{activeDoctor ? ` with ${activeDoctor.name}` : ""}.&rdquo;
+            &ldquo;Attention please. Patient{" "}
+            {appointment.patient?.name || "Patient"}. Please proceed to Room{" "}
+            {activeRoom?.number || "Chamber"}
+            {activeDoctor ? ` with ${activeDoctor.name}` : ""}.&rdquo;
           </p>
         </div>
 

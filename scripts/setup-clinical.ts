@@ -4,7 +4,9 @@ import path from "path";
 const dbPath = path.join(process.cwd(), "hpc.db");
 const db = new Database(dbPath);
 
-console.log("🛠️ Setting up ClinicalOption and MedicalRecord tables in SQLite...");
+console.log(
+  "🛠️ Setting up ClinicalOption and MedicalRecord tables in SQLite...",
+);
 
 // Enable foreign keys
 db.pragma("foreign_keys = ON");
@@ -122,19 +124,72 @@ const DEFAULT_OPTIONS = [
   { category: "FUNCTIONAL_LIMITATION", name: "Climbing stairs", order: 6 },
 
   // Treatment Plans (Physiotherapy Modalities)
-  { category: "TREATMENT_PLAN", name: "Hot pack", description: "Moist heat therapy for muscle relaxation", order: 1 },
-  { category: "TREATMENT_PLAN", name: "IFT / TENS", description: "Interferential therapy / Transcutaneous electrical nerve stimulation", order: 2 },
-  { category: "TREATMENT_PLAN", name: "Ultrasound", description: "Therapeutic ultrasound for deep tissue heating", order: 3 },
-  { category: "TREATMENT_PLAN", name: "Stretching", description: "Targeted musculoskeletal stretching protocols", order: 4 },
-  { category: "TREATMENT_PLAN", name: "Strengthening", description: "Progressive resistive exercise & muscle stabilization", order: 5 },
-  { category: "TREATMENT_PLAN", name: "Posture correction", description: "Ergonomic & postural realignment retraining", order: 6 },
-  { category: "TREATMENT_PLAN", name: "Cervical / Lumbar Traction", description: "Mechanical spine decompressive traction", order: 7 },
-  { category: "TREATMENT_PLAN", name: "Manual Therapy", description: "Joint mobilization and soft tissue manipulation", order: 8 },
-  { category: "TREATMENT_PLAN", name: "Dry Needling", description: "Trigger point release therapy", order: 9 },
-  { category: "TREATMENT_PLAN", name: "Laser Therapy", description: "Low-level laser therapy for tissue repair", order: 10 },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Hot pack",
+    description: "Moist heat therapy for muscle relaxation",
+    order: 1,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "IFT / TENS",
+    description:
+      "Interferential therapy / Transcutaneous electrical nerve stimulation",
+    order: 2,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Ultrasound",
+    description: "Therapeutic ultrasound for deep tissue heating",
+    order: 3,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Stretching",
+    description: "Targeted musculoskeletal stretching protocols",
+    order: 4,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Strengthening",
+    description: "Progressive resistive exercise & muscle stabilization",
+    order: 5,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Posture correction",
+    description: "Ergonomic & postural realignment retraining",
+    order: 6,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Cervical / Lumbar Traction",
+    description: "Mechanical spine decompressive traction",
+    order: 7,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Manual Therapy",
+    description: "Joint mobilization and soft tissue manipulation",
+    order: 8,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Dry Needling",
+    description: "Trigger point release therapy",
+    order: 9,
+  },
+  {
+    category: "TREATMENT_PLAN",
+    name: "Laser Therapy",
+    description: "Low-level laser therapy for tissue repair",
+    order: 10,
+  },
 ];
 
-const checkStmt = db.prepare(`SELECT count(*) as count FROM "ClinicalOption" WHERE category = ? AND name = ?`);
+const checkStmt = db.prepare(
+  `SELECT count(*) as count FROM "ClinicalOption" WHERE category = ? AND name = ?`,
+);
 const insertStmt = db.prepare(`
   INSERT INTO "ClinicalOption" ("id", "category", "name", "description", "order", "isActive", "createdAt", "updatedAt")
   VALUES (?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))
@@ -144,11 +199,22 @@ let insertedCount = 0;
 for (const opt of DEFAULT_OPTIONS) {
   const existing = checkStmt.get(opt.category, opt.name) as { count: number };
   if (existing.count === 0) {
-    const id = "opt_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
-    insertStmt.run(id, opt.category, opt.name, opt.description || null, opt.order);
+    const id =
+      "opt_" +
+      Math.random().toString(36).substring(2, 11) +
+      Date.now().toString(36);
+    insertStmt.run(
+      id,
+      opt.category,
+      opt.name,
+      opt.description || null,
+      opt.order,
+    );
     insertedCount++;
   }
 }
 
-console.log(`🎉 Clinical options seeded! (${insertedCount} new items inserted)`);
+console.log(
+  `🎉 Clinical options seeded! (${insertedCount} new items inserted)`,
+);
 db.close();

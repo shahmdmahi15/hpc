@@ -23,6 +23,7 @@ import {
 import { logAudit } from "@/lib/audit";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 import { isSlotActiveOnDay, type DayKey } from "@/lib/weekdays";
+import { DEFAULT_FEE } from "@/lib/billing";
 import { revalidatePath } from "next/cache";
 import type {
   TherapySlotModel,
@@ -56,6 +57,7 @@ export async function bookTherapyTicketAction(
       Role.ADMIN,
       Role.DOCTOR,
       Role.HANDLER,
+      Role.CASHIER,
     ]);
     const validation = bookTherapyTicketSchema.safeParse(data);
 
@@ -186,6 +188,8 @@ export async function bookTherapyTicketAction(
         bookedById: bookedById || undefined,
         toldTime: toldTime || undefined,
         notes: notes || undefined,
+        feeAmount: DEFAULT_FEE,
+        paymentStatus: "PENDING",
       },
       include: {
         patient: true,
@@ -212,6 +216,7 @@ export async function bookTherapyTicketAction(
         toldTime: toldTime || undefined,
         bookingType: finalBookingType,
         gender: patient.gender,
+        feeAmount: DEFAULT_FEE,
       },
     });
 
@@ -228,18 +233,21 @@ export async function bookTherapyTicketAction(
       bookingType: finalBookingType,
       extraStatus: appointment.extraStatus,
       status: appointment.status,
+      feeAmount: appointment.feeAmount,
+      paymentStatus: appointment.paymentStatus,
     });
 
     revalidatePath("/receptionist");
     revalidatePath("/doctor");
     revalidatePath("/handler");
+    revalidatePath("/cashier");
 
     return {
       success: true,
       message:
         finalBookingType === BookingType.EXTRA
-          ? `Standby extra ticket booked for ${patient.name} (${slot.label}) & submitted for Doctor approval.`
-          : `Appointment booked for ${patient.name} (${slot.label}).`,
+          ? `Standby extra ticket booked for ${patient.name} (${slot.label}) & submitted for Doctor approval. Bill: ৳${DEFAULT_FEE} BDT Due.`
+          : `Appointment booked for ${patient.name} (${slot.label}). Bill: ৳${DEFAULT_FEE} BDT Due.`,
       appointment,
     };
   } catch (error: unknown) {
@@ -269,6 +277,7 @@ export async function updateAppointmentStatusAction(
       Role.ADMIN,
       Role.DOCTOR,
       Role.HANDLER,
+      Role.CASHIER,
     ]);
 
     const appointment = await prisma.appointment.findUnique({
@@ -575,7 +584,13 @@ export interface ReceptionistDashboardData {
 export async function getReceptionistDashboardDataAction(
   dateStr?: string,
 ): Promise<ReceptionistDashboardData> {
-  await requireAuth([Role.RECEPTIONIST, Role.ADMIN, Role.DOCTOR, Role.HANDLER]);
+  await requireAuth([
+    Role.RECEPTIONIST,
+    Role.ADMIN,
+    Role.DOCTOR,
+    Role.HANDLER,
+    Role.CASHIER,
+  ]);
 
   // Date parsing (local calendar date)
   const now = new Date();
@@ -850,6 +865,7 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       Role.ADMIN,
       Role.DOCTOR,
       Role.HANDLER,
+      Role.CASHIER,
     ]);
 
     if (!input.patientId) {
@@ -959,6 +975,8 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           toldTime: input.toldTime || undefined,
           notes: input.notes || undefined,
           bookedById: input.performerId || undefined,
+          feeAmount: DEFAULT_FEE,
+          paymentStatus: "PENDING",
         },
         include: { patient: true, therapySlot: true, queue: true },
       });
@@ -986,10 +1004,13 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       status: AppointmentStatus.CHECKED_IN,
       queueType: input.queueType,
       checkInTime: now,
+      paymentStatus: updatedAppointment.paymentStatus,
+      feeAmount: updatedAppointment.feeAmount,
       date: updatedAppointment.appointmentDate.toISOString().split("T")[0],
     });
 
     revalidatePath("/receptionist");
+    revalidatePath("/cashier");
     revalidatePath("/");
 
     return {

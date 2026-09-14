@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Clinical Options & Treatments | Admin",
-  description: "Configure dynamic pain areas, physical symptoms, and physiotherapy treatment plans.",
+  description:
+    "Configure dynamic pain areas, physical symptoms, and physiotherapy treatment plans.",
 };
 
 export default async function AdminClinicalPage() {

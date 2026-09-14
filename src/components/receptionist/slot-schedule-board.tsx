@@ -68,12 +68,7 @@ function formatCheckInTime(
   }
 }
 
-function formatLocalDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
 
 export function SlotScheduleBoard({
   slots,
@@ -87,41 +82,18 @@ export function SlotScheduleBoard({
 }: SlotScheduleBoardProps) {
   const [filterQuery, setFilterQuery] = React.useState("");
 
-  const handleSetToday = () => {
-    onSelectDate(formatLocalDate(new Date()));
-  };
-
-  const isToday = selectedDate === formatLocalDate(new Date());
-
   return (
     <div className="space-y-3">
       {/* ---------------------------------------------------- */}
       {/* 1. Date Navigation & Filter Bar                      */}
       {/* ---------------------------------------------------- */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-card border border-border/70 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-xl bg-card border border-border/70 shadow-2xs">
         {/* Date Navigator */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Button
-            variant={isToday ? "secondary" : "outline"}
-            size="sm"
-            className="h-7 text-xs px-2.5 rounded-lg font-semibold cursor-pointer border-border/80 shadow-2xs"
-            onClick={handleSetToday}
-          >
-            Today
-          </Button>
-
-          <div className="flex items-center gap-1.5">
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => e.target.value && onSelectDate(e.target.value)}
-              className="h-7 text-xs font-mono w-[130px] bg-background cursor-pointer"
-            />
-            <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold">
-              {dayOfWeek}
-            </span>
-          </div>
-        </div>
+        <DashboardDateSelector
+          selectedDate={selectedDate}
+          dayOfWeek={dayOfWeek}
+          onSelectDate={onSelectDate}
+        />
 
         {/* Live Filter Search */}
         <div className="relative w-full sm:w-64">
@@ -489,6 +461,21 @@ export function SlotScheduleBoard({
                                           title="Patient Told Arrival Time"
                                         >
                                           Told: {apt.toldTime}
+                                        </span>
+                                      )}
+                                      {apt.paymentStatus === "PAID" ? (
+                                        <span
+                                          className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold shrink-0"
+                                          title="Bill Cleared"
+                                        >
+                                          ৳{apt.feeAmount ?? 500} Paid
+                                        </span>
+                                      ) : (
+                                        <span
+                                          className="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold shrink-0"
+                                          title="Bill Due"
+                                        >
+                                          ৳{apt.feeAmount ?? 500} Due
                                         </span>
                                       )}
                                     </div>

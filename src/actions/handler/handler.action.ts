@@ -71,9 +71,7 @@ export async function getHandlerDashboardDataAction(
 
   // Current logged-in Handler identity
   const currentHandler =
-    handlerPerformers.find(
-      (h) => h.id === sessionData.session.userId,
-    ) ||
+    handlerPerformers.find((h) => h.id === sessionData.session.userId) ||
     handlerPerformers[0] ||
     null;
 

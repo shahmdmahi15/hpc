@@ -17,9 +17,7 @@ export default async function HomePage() {
     getCurrentSession(),
   ]);
 
-  const currentUser = sessionData
-    ? { role: sessionData.user.role }
-    : null;
+  const currentUser = sessionData ? { role: sessionData.user.role } : null;
 
   return (
     <WaitingRoomLiveQueueView

@@ -33,6 +33,7 @@ export async function createPatientAction(
       Role.ADMIN,
       Role.DOCTOR,
       Role.HANDLER,
+      Role.CASHIER,
     ]);
     const validation = createPatientSchema.safeParse(data);
 
@@ -118,9 +119,7 @@ export async function createPatientAction(
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to register patient.",
+        error instanceof Error ? error.message : "Failed to register patient.",
     };
   }
 }
@@ -137,6 +136,7 @@ export async function updatePatientAction(
       Role.ADMIN,
       Role.DOCTOR,
       Role.HANDLER,
+      Role.CASHIER,
     ]);
     const validation = updatePatientSchema.safeParse(data);
 
@@ -148,8 +148,16 @@ export async function updatePatientAction(
       };
     }
 
-    const { id, name, phone, gender, age, dateOfBirth, address, emergencyPhone } =
-      validation.data;
+    const {
+      id,
+      name,
+      phone,
+      gender,
+      age,
+      dateOfBirth,
+      address,
+      emergencyPhone,
+    } = validation.data;
 
     // Verify patient exists
     const existing = await prisma.patient.findUnique({
@@ -261,6 +269,7 @@ export async function searchPatientsAction(query: string) {
       Role.ADMIN,
       Role.DOCTOR,
       Role.HANDLER,
+      Role.CASHIER,
     ]);
 
     if (!query || query.trim().length === 0) {
@@ -299,6 +308,7 @@ export async function getRecentPatientsAction(limit = 10) {
       Role.ADMIN,
       Role.DOCTOR,
       Role.HANDLER,
+      Role.CASHIER,
     ]);
     return await prisma.patient.findMany({
       take: limit,
@@ -339,6 +349,7 @@ export async function getPatientsListAction(params?: {
       Role.ADMIN,
       Role.DOCTOR,
       Role.HANDLER,
+      Role.CASHIER,
     ]);
     const query = params?.query?.trim();
     const gender =

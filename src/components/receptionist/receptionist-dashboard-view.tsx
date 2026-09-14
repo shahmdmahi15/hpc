@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, Users, UserPlus, Ticket, Activity, Plus } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
+import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
 
 interface ReceptionistDashboardViewProps {
   initialData: ReceptionistDashboardData;
@@ -80,12 +81,18 @@ export function ReceptionistDashboardView({
   }, [data.appointments]);
 
   // Transitions & Refresh
-  const [, startTransition] = React.useTransition();
+  const [isPending, startTransition] = React.useTransition();
 
-  const refreshData = React.useCallback((targetDate: string) => {
+  const selectedDateRef = React.useRef(selectedDate);
+  React.useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
+  const refreshData = React.useCallback((targetDate?: string) => {
     startTransition(async () => {
       try {
-        const fresh = await getReceptionistDashboardDataAction(targetDate);
+        const dateToFetch = targetDate || selectedDateRef.current;
+        const fresh = await getReceptionistDashboardDataAction(dateToFetch);
         setData(fresh);
       } catch (error) {
         console.error("[Refresh Dashboard Error]:", error);
@@ -96,15 +103,16 @@ export function ReceptionistDashboardView({
   // 100% Offline Real-time SSE Subscription
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
+      const type = (event?.type || "").toUpperCase();
       // If appointment, patient, or slot changed, refresh schedule and patients
       if (
-        event.type === "APPOINTMENT_CREATED" ||
-        event.type === "APPOINTMENT_UPDATED" ||
-        event.type === "APPOINTMENT_CANCELLED" ||
-        event.type === "PATIENT_CREATED" ||
-        event.type === "SLOT_UPDATED"
+        type === "APPOINTMENT_CREATED" ||
+        type === "APPOINTMENT_UPDATED" ||
+        type === "APPOINTMENT_CANCELLED" ||
+        type === "PATIENT_CREATED" ||
+        type === "SLOT_UPDATED"
       ) {
-        refreshData(selectedDate);
+        refreshData(selectedDateRef.current);
       }
     },
   });
@@ -289,8 +297,17 @@ export function ReceptionistDashboardView({
       <main className="flex-1 p-2.5 sm:p-4 max-w-[1600px] w-full mx-auto space-y-3">
         <Tabs defaultValue="slots" className="w-full space-y-3">
           {/* Tabs Navigation & Quick Actions Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1.5 border-b border-border/50">
-            <TabsList className="h-8.5 p-0.5 bg-muted/60 border border-border/70 rounded-lg">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 pb-1.5 border-b border-border/50">
+            <div className="flex flex-wrap items-center gap-2">
+              <DashboardDateSelector
+                selectedDate={selectedDate}
+                dayOfWeek={data.dayOfWeek}
+                onSelectDate={handleSelectDate}
+                onRefresh={() => refreshData(selectedDate)}
+                isRefreshing={isPending}
+              />
+
+              <TabsList className="h-8.5 p-0.5 bg-muted/60 border border-border/70 rounded-lg">
               <TabsTrigger
                 value="slots"
                 className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-active:bg-background data-active:text-primary data-active:shadow-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
@@ -324,6 +341,7 @@ export function ReceptionistDashboardView({
                 </span>
               </TabsTrigger>
             </TabsList>
+            </div>
 
             {/* Contextual Actions Bar */}
             <div className="flex items-center gap-2 flex-wrap">

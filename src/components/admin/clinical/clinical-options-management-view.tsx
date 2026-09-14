@@ -45,28 +45,32 @@ const CATEGORY_TABS: {
     label: "Treatment Modalities",
     shortLabel: "Treatments",
     icon: Stethoscope,
-    description: "Dynamic physiotherapy interventions (Hot pack, IFT/TENS, Ultrasound, etc.)",
+    description:
+      "Dynamic physiotherapy interventions (Hot pack, IFT/TENS, Ultrasound, etc.)",
   },
   {
     key: ClinicalOptionCategory.PAIN_AREA,
     label: "Pain Areas",
     shortLabel: "Pain Areas",
     icon: Flame,
-    description: "Anatomical pain regions (Neck, Shoulder, Back, Knee, Heel, etc.)",
+    description:
+      "Anatomical pain regions (Neck, Shoulder, Back, Knee, Heel, etc.)",
   },
   {
     key: ClinicalOptionCategory.PAIN_TYPE,
     label: "Pain Characteristics",
     shortLabel: "Pain Types",
     icon: Activity,
-    description: "Pain sensation descriptors (Sharp, Dull, Burning, Radiating, etc.)",
+    description:
+      "Pain sensation descriptors (Sharp, Dull, Burning, Radiating, etc.)",
   },
   {
     key: ClinicalOptionCategory.AGGRAVATING_FACTOR,
     label: "Aggravating Factors",
     shortLabel: "Increases With",
     icon: AlertCircle,
-    description: "Activities or postures that increase pain (Movement, Sitting, etc.)",
+    description:
+      "Activities or postures that increase pain (Movement, Sitting, etc.)",
   },
   {
     key: ClinicalOptionCategory.RELIEVING_FACTOR,
@@ -80,22 +84,26 @@ const CATEGORY_TABS: {
     label: "Functional Limitations",
     shortLabel: "Difficulty In",
     icon: TrendingUp,
-    description: "Everyday physical activity restrictions (Bending, Walking, Lifting, etc.)",
+    description:
+      "Everyday physical activity restrictions (Bending, Walking, Lifting, etc.)",
   },
 ];
 
 export function ClinicalOptionsManagementView({
   initialOptions,
 }: ClinicalOptionsManagementViewProps) {
-  const [options, setOptions] = React.useState<ClinicalOptionModel[]>(initialOptions);
-  const [selectedCategory, setSelectedCategory] = React.useState<ClinicalOptionCategory>(
-    ClinicalOptionCategory.TREATMENT_PLAN,
-  );
+  const [options, setOptions] =
+    React.useState<ClinicalOptionModel[]>(initialOptions);
+  const [selectedCategory, setSelectedCategory] =
+    React.useState<ClinicalOptionCategory>(
+      ClinicalOptionCategory.TREATMENT_PLAN,
+    );
   const [searchQuery, setSearchQuery] = React.useState("");
 
   // Dialog states
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-  const [editingOption, setEditingOption] = React.useState<ClinicalOptionModel | null>(null);
+  const [editingOption, setEditingOption] =
+    React.useState<ClinicalOptionModel | null>(null);
 
   const [, startTransition] = React.useTransition();
 
@@ -151,7 +159,9 @@ export function ClinicalOptionsManagementView({
     }
   };
 
-  const activeCategoryMeta = CATEGORY_TABS.find((t) => t.key === selectedCategory)!;
+  const activeCategoryMeta = CATEGORY_TABS.find(
+    (t) => t.key === selectedCategory,
+  )!;
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -167,7 +177,8 @@ export function ClinicalOptionsManagementView({
             </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configure dynamic pain areas, physical symptoms, and physiotherapy treatment plans for doctors.
+            Configure dynamic pain areas, physical symptoms, and physiotherapy
+            treatment plans for doctors.
           </p>
         </div>
 
@@ -214,7 +225,9 @@ export function ClinicalOptionsManagementView({
                 </span>
               </div>
               <div className="truncate">
-                <div className="text-xs tracking-tight truncate">{tab.shortLabel}</div>
+                <div className="text-xs tracking-tight truncate">
+                  {tab.shortLabel}
+                </div>
               </div>
             </button>
           );
@@ -254,7 +267,9 @@ export function ClinicalOptionsManagementView({
             <div className="size-9 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
               <Sparkles className="size-4" />
             </div>
-            <p className="text-xs font-semibold text-foreground">No options found</p>
+            <p className="text-xs font-semibold text-foreground">
+              No options found
+            </p>
             <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
               {searchQuery
                 ? "No matching items for your search term."
@@ -308,7 +323,9 @@ export function ClinicalOptionsManagementView({
                     onClick={() => handleToggleStatus(opt)}
                     title={opt.isActive ? "Disable option" : "Enable option"}
                     className={`p-1 rounded hover:bg-muted transition-colors cursor-pointer ${
-                      opt.isActive ? "text-emerald-600" : "text-muted-foreground"
+                      opt.isActive
+                        ? "text-emerald-600"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {opt.isActive ? (

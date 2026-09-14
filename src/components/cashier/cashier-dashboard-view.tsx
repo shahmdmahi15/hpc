@@ -7,8 +7,7 @@ import {
   collectPaymentAction,
 } from "@/actions/cashier/cashier.action";
 import {
-  DEFAULT_CONSULTATION_FEE,
-  DEFAULT_THERAPY_FEE,
+  DEFAULT_FEE,
   QUICK_BILLING_PRESETS,
 } from "@/lib/billing";
 import {
@@ -52,10 +51,15 @@ import {
   Phone,
   Clock,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  RotateCw,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
+
+import { DashboardDateSelector, formatLocalDate } from "@/components/ui/dashboard-date-selector";
 
 interface CashierDashboardViewProps {
   initialData: CashierDashboardData;
@@ -120,37 +124,51 @@ export function CashierDashboardView({
     initialData.cashierPerformers,
   ]);
 
-  // Transition refresh
-  const [, startTransition] = React.useTransition();
+  // Transition refresh with ref to always use current selected date
+  const [isPending, startTransition] = React.useTransition();
+
+  const selectedDateRef = React.useRef(selectedDate);
+  React.useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
 
   const refreshData = React.useCallback(
     (targetDate?: string) => {
       startTransition(async () => {
         try {
-          const fresh = await getCashierDashboardDataAction(
-            targetDate || selectedDate,
-          );
+          const dateToFetch = targetDate || selectedDateRef.current;
+          const fresh = await getCashierDashboardDataAction(dateToFetch);
           setData(fresh);
         } catch (err) {
           console.error("[Cashier Dashboard Refresh Error]:", err);
         }
       });
     },
-    [selectedDate],
+    [],
   );
 
   // Realtime offline SSE synchronization
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
+      const type = (event?.type || "").toUpperCase();
       if (
-        event.type === "APPOINTMENT_CREATED" ||
-        event.type === "APPOINTMENT_UPDATED" ||
-        event.type === "APPOINTMENT_CANCELLED"
+        type === "APPOINTMENT_CREATED" ||
+        type === "APPOINTMENT_UPDATED" ||
+        type === "APPOINTMENT_CANCELLED" ||
+        type === "SLOT_UPDATED"
       ) {
-        refreshData();
+        refreshData(selectedDateRef.current);
+        if (type === "APPOINTMENT_CREATED") {
+          toast.info(
+            `New Ticket Booked: ${event.data?.patientName || "Patient"} • ৳${event.data?.feeAmount ?? DEFAULT_FEE} Due on Bill`,
+            { id: `ticket-${event.data?.id || Date.now()}` },
+          );
+        }
       }
     },
   });
+
+  const isToday = selectedDate === formatLocalDate(new Date());
 
   // Date selection change
   const handleSelectDate = (newDate: string) => {
@@ -224,11 +242,7 @@ export function CashierDashboardView({
   // Open payment dialog
   const handleOpenPaymentModal = (appointment: AppointmentWithRelations) => {
     setCollectingAppointment(appointment);
-    const initialFee =
-      appointment.feeAmount ??
-      (appointment.type === AppointmentType.CONSULTATION
-        ? DEFAULT_CONSULTATION_FEE
-        : DEFAULT_THERAPY_FEE);
+    const initialFee = appointment.feeAmount ?? DEFAULT_FEE;
     setPaymentAmount(initialFee);
     setPaymentMethod("CASH");
     setPaymentNotes("");
@@ -312,33 +326,47 @@ export function CashierDashboardView({
 
       {/* 2. Main Workspace */}
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
-        {/* Top Control Bar: Search & Financial Badges */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-card/60 backdrop-blur-xl p-2 px-3 rounded-xl border border-border/80 shadow-xs">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search bills by patient, phone, ticket..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-7.5 text-xs rounded-lg bg-background border-border/80 focus-visible:ring-amber-500"
+        {/* Top Control Bar: Date Selector, Search & Financial Badges */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 bg-card/60 backdrop-blur-xl p-2.5 px-3 rounded-xl border border-border/80 shadow-xs">
+          {/* Left: Date Navigator & Live Search */}
+          <div className="flex flex-wrap items-center gap-2 flex-1">
+            {/* Cashier Payment Date Selector */}
+            <DashboardDateSelector
+              selectedDate={selectedDate}
+              dayOfWeek={data.dayOfWeek}
+              onSelectDate={handleSelectDate}
+              onRefresh={() => refreshData(selectedDate)}
+              isRefreshing={isPending}
             />
+
+            {/* Live Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search bills by patient, phone, ticket..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-xs rounded-lg bg-background border-border/80 focus-visible:ring-amber-500"
+              />
+            </div>
           </div>
 
+          {/* Right: Financial Badges */}
           <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
             {/* Total Collected */}
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
-              <Banknote className="size-3" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+              <Banknote className="size-3.5" />
               <span>
-                Collected Today: ৳
+                {isToday ? "Collected Today:" : "Collected:"} ৳
                 {data.billingStats.totalCollected.toLocaleString()}
               </span>
             </div>
 
             {/* Pending Due */}
             {data.billingStats.pendingCollection > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[11px] animate-pulse">
-                <AlertCircle className="size-3" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[11px] animate-pulse">
+                <AlertCircle className="size-3.5" />
                 <span>
                   Pending: ৳
                   {data.billingStats.pendingCollection.toLocaleString()}
@@ -347,19 +375,19 @@ export function CashierDashboardView({
             )}
 
             {/* Paid Count */}
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[11px]">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[11px]">
               <CheckCircle2 className="size-3 text-emerald-500" />
               <span>Paid: {data.billingStats.paidCount}</span>
             </div>
 
             {/* Pending Count */}
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[11px]">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[11px]">
               <Clock className="size-3 text-amber-500" />
               <span>Unpaid: {data.billingStats.pendingCount}</span>
             </div>
 
             {/* Breakdown Chips */}
-            <div className="hidden xl:flex items-center gap-1.5 pl-1.5 border-l border-border/60 text-[10.5px]">
+            <div className="hidden 2xl:flex items-center gap-1.5 pl-1.5 border-l border-border/60 text-[10.5px]">
               <span className="text-muted-foreground font-sans">Cash:</span>
               <span className="font-bold text-foreground">
                 ৳{data.billingStats.cashCollected}
@@ -427,6 +455,21 @@ export function CashierDashboardView({
 
           {/* TAB 1: PENDING BILLS */}
           <TabsContent value="pending" className="mt-0 space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pb-1 border-b border-border/40">
+              <span className="flex items-center gap-1.5">
+                <Clock className="size-3.5 text-amber-500" />
+                <span>
+                  Pending Bills for{" "}
+                  <strong className="text-foreground font-semibold">
+                    {isToday ? "Today" : selectedDate} ({data.dayOfWeek})
+                  </strong>
+                  : {filteredPending.length} ticket{filteredPending.length === 1 ? "" : "s"}
+                </span>
+              </span>
+              <span className="font-mono text-amber-700 dark:text-amber-300 font-bold text-xs bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                Total Due: ৳{data.billingStats.pendingCollection.toLocaleString()}
+              </span>
+            </div>
             {filteredPending.length === 0 ? (
               <div className="p-8 text-center rounded-xl border border-dashed border-border bg-card/40">
                 <CheckCircle2 className="size-8 text-emerald-500/60 mx-auto mb-2" />
@@ -440,11 +483,7 @@ export function CashierDashboardView({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {filteredPending.map((item) => {
-                  const estimatedFee =
-                    item.feeAmount ??
-                    (item.type === AppointmentType.CONSULTATION
-                      ? DEFAULT_CONSULTATION_FEE
-                      : DEFAULT_THERAPY_FEE);
+                  const estimatedFee = item.feeAmount ?? DEFAULT_FEE;
 
                   return (
                     <div
@@ -464,8 +503,8 @@ export function CashierDashboardView({
                               {item.type}
                             </Badge>
                           </div>
-                          <span className="text-[10.5px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.2 rounded-md">
-                            UNPAID
+                          <span className="text-[10.5px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md">
+                            ৳{estimatedFee} DUE
                           </span>
                         </div>
 
@@ -492,8 +531,8 @@ export function CashierDashboardView({
                               ? `${formatTime12h(item.therapySlot.startTime)} - ${formatTime12h(item.therapySlot.endTime)}`
                               : item.room?.number || "General Chamber"}
                           </span>
-                          <span className="font-mono font-bold text-sm text-foreground">
-                            ৳{estimatedFee}
+                          <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400">
+                            ৳{estimatedFee} Due
                           </span>
                         </div>
                       </div>
@@ -505,7 +544,7 @@ export function CashierDashboardView({
                           className="w-full h-7.5 text-xs font-semibold gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer"
                         >
                           <CreditCard className="size-3.5" />
-                          <span>Collect ৳{estimatedFee}</span>
+                          <span>Collect ৳{estimatedFee} Bill</span>
                         </Button>
                       </div>
                     </div>
@@ -517,6 +556,21 @@ export function CashierDashboardView({
 
           {/* TAB 2: PAID INVOICES */}
           <TabsContent value="paid" className="mt-0 space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pb-1 border-b border-border/40">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="size-3.5 text-emerald-500" />
+                <span>
+                  Settled Invoices for{" "}
+                  <strong className="text-foreground font-semibold">
+                    {isToday ? "Today" : selectedDate} ({data.dayOfWeek})
+                  </strong>
+                  : {filteredPaid.length} payment{filteredPaid.length === 1 ? "" : "s"}
+                </span>
+              </span>
+              <span className="font-mono text-emerald-700 dark:text-emerald-300 font-bold text-xs bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                Total Settled: ৳{data.billingStats.totalCollected.toLocaleString()}
+              </span>
+            </div>
             {filteredPaid.length === 0 ? (
               <div className="p-8 text-center rounded-xl border border-dashed border-border bg-card/40">
                 <Receipt className="size-8 text-muted-foreground/40 mx-auto mb-2" />

@@ -39,7 +39,9 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
         <div className="hidden md:flex items-center gap-1.5 pl-2.5 border-l border-border/60">
           <span
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-[10.5px] font-bold tracking-wide uppercase"
-            title={user?.role ? `Logged in as ${user.role}` : "Administrator Console"}
+            title={
+              user?.role ? `Logged in as ${user.role}` : "Administrator Console"
+            }
           >
             <Shield className="size-3 text-purple-600 dark:text-purple-400" />
             <span>{user?.role ? `${user.role} Console` : "Admin Console"}</span>

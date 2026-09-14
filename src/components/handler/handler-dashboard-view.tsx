@@ -14,6 +14,7 @@ import { HandlerHeader } from "@/components/handler/handler-header";
 import { HandlerQueueCard } from "@/components/handler/handler-queue-card";
 import { HandlerExtraSlotsTab } from "@/components/handler/handler-extra-slots-tab";
 import { SlotScheduleBoard } from "@/components/receptionist/slot-schedule-board";
+import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
 import { PatientDirectoryView } from "@/components/receptionist/patient-directory-view";
 import { CreatePatientDialog } from "@/components/receptionist/create-patient-dialog";
 import { BookTicketDialog } from "@/components/receptionist/book-ticket-dialog";
@@ -83,22 +84,25 @@ export function HandlerDashboardView({
   const [searchQuery, setSearchQuery] = React.useState("");
 
   // Refresh data transition
-  const [, startTransition] = React.useTransition();
+  const [isPending, startTransition] = React.useTransition();
+  const selectedDateRef = React.useRef(selectedDate);
+  React.useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
 
   const refreshData = React.useCallback(
     (targetDate?: string) => {
+      const dateToFetch = targetDate || selectedDateRef.current;
       startTransition(async () => {
         try {
-          const fresh = await getHandlerDashboardDataAction(
-            targetDate || selectedDate,
-          );
+          const fresh = await getHandlerDashboardDataAction(dateToFetch);
           setData(fresh);
         } catch (err) {
           console.error("[Handler Dashboard Refresh Error]:", err);
         }
       });
     },
-    [selectedDate],
+    [],
   );
 
   // 100% Offline Real-Time SSE Subscription
@@ -111,7 +115,7 @@ export function HandlerDashboardView({
         event.type === "PATIENT_CREATED" ||
         event.type === "SLOT_UPDATED"
       ) {
-        refreshData(selectedDate);
+        refreshData(selectedDateRef.current);
       }
     },
   });
@@ -253,68 +257,80 @@ export function HandlerDashboardView({
 
         {/* Tabs for Handler Desk Navigation */}
         <Tabs defaultValue="queue" className="w-full space-y-2.5">
-          <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
-            <TabsTrigger
-              value="queue"
-              className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <Activity className="size-3 text-emerald-500" />
-              <span>Therapy Queue</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
-                {data.therapyQueue.length}
-              </span>
-            </TabsTrigger>
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 pb-1 border-b border-border/50">
+            <div className="flex flex-wrap items-center gap-2">
+              <DashboardDateSelector
+                selectedDate={selectedDate}
+                dayOfWeek={data.dayOfWeek}
+                onSelectDate={handleSelectDate}
+                onRefresh={() => refreshData(selectedDate)}
+                isRefreshing={isPending}
+              />
 
-            <TabsTrigger
-              value="booking"
-              className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <Clock className="size-3 text-primary" />
-              <span>Book Slots</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                {data.slots.length}
-              </span>
-            </TabsTrigger>
+              <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
+                <TabsTrigger
+                  value="queue"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                >
+                  <Activity className="size-3 text-emerald-500" />
+                  <span>Therapy Queue</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
+                    {data.therapyQueue.length}
+                  </span>
+                </TabsTrigger>
 
-            <TabsTrigger
-              value="extra-slots"
-              className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <AlertCircle className="size-3 text-amber-500" />
-              <span>Extra Slots</span>
-              {data.extraSlots.length > 0 ? (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold">
-                  {data.extraSlots.length}
-                </span>
-              ) : (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
-                  0
-                </span>
-              )}
-            </TabsTrigger>
+                <TabsTrigger
+                  value="booking"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                >
+                  <Clock className="size-3 text-primary" />
+                  <span>Book Slots</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                    {data.slots.length}
+                  </span>
+                </TabsTrigger>
 
-            <TabsTrigger
-              value="patients"
-              className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <Users className="size-3 text-indigo-500" />
-              <span>Patients</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
-                {data.patients.length}
-              </span>
-            </TabsTrigger>
+                <TabsTrigger
+                  value="extra-slots"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                >
+                  <AlertCircle className="size-3 text-amber-500" />
+                  <span>Extra Slots</span>
+                  {data.extraSlots.length > 0 ? (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold">
+                      {data.extraSlots.length}
+                    </span>
+                  ) : (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
+                      0
+                    </span>
+                  )}
+                </TabsTrigger>
 
-            <TabsTrigger
-              value="completed"
-              className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-            >
-              <CheckCircle2 className="size-3 text-primary" />
-              <span>Completed Today</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                {data.completedTherapy.length}
-              </span>
-            </TabsTrigger>
-          </TabsList>
+                <TabsTrigger
+                  value="patients"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                >
+                  <Users className="size-3 text-indigo-500" />
+                  <span>Patients</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
+                    {data.patients.length}
+                  </span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="completed"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                >
+                  <CheckCircle2 className="size-3 text-primary" />
+                  <span>Completed Today</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                    {data.completedTherapy.length}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
 
           {/* 1. Therapy Queue Tab */}
           <TabsContent value="queue" className="space-y-2 outline-none">
@@ -327,8 +343,9 @@ export function HandlerDashboardView({
                   Therapy Queue is Clear
                 </h3>
                 <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
-                  No patients are waiting in the Physical Therapy queue right now.
-                  Checked-in patients from reception will appear here in real-time.
+                  No patients are waiting in the Physical Therapy queue right
+                  now. Checked-in patients from reception will appear here in
+                  real-time.
                 </p>
               </div>
             ) : (
@@ -389,7 +406,8 @@ export function HandlerDashboardView({
                   No Completed Therapy Sessions Yet
                 </h3>
                 <p className="text-[11px] text-muted-foreground">
-                  Finished physical therapy sessions for today will be logged here.
+                  Finished physical therapy sessions for today will be logged
+                  here.
                 </p>
               </div>
             ) : (
@@ -402,12 +420,17 @@ export function HandlerDashboardView({
                       <th className="py-2 px-2.5 text-[11px]">Phone</th>
                       <th className="py-2 px-2.5 text-[11px]">Slot / Room</th>
                       <th className="py-2 px-2.5 text-[11px]">Told / In</th>
-                      <th className="py-2 px-3 text-right text-[11px]">Status</th>
+                      <th className="py-2 px-3 text-right text-[11px]">
+                        Status
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {data.completedTherapy.map((a) => (
-                      <tr key={a.id} className="hover:bg-muted/20 transition-colors">
+                      <tr
+                        key={a.id}
+                        className="hover:bg-muted/20 transition-colors"
+                      >
                         <td className="py-1.5 px-3 font-bold text-foreground">
                           {a.patient?.name || "Patient"}
                         </td>

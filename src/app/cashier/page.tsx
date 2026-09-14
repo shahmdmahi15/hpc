@@ -14,5 +14,7 @@ export default async function CashierPage() {
   const { user } = await verifyPortalAccessAction(Role.CASHIER);
   const data = await getCashierDashboardDataAction();
 
-  return <CashierDashboardView initialData={data} currentUserRole={user.role} />;
+  return (
+    <CashierDashboardView initialData={data} currentUserRole={user.role} />
+  );
 }

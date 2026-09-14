@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  reviewExtraSlotAction,
-} from "@/actions/doctor/doctor.action";
+import { reviewExtraSlotAction } from "@/actions/doctor/doctor.action";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import { ExtraApprovalStatus } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
@@ -248,7 +246,8 @@ export function ExtraSlotsApprovalTab({
                       <div className="flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
                         <Clock className="size-3 text-primary/70" />
                         <span>
-                          {apt.therapySlot.startTime} - {apt.therapySlot.endTime}
+                          {apt.therapySlot.startTime} -{" "}
+                          {apt.therapySlot.endTime}
                         </span>
                       </div>
                     )}
@@ -261,7 +260,8 @@ export function ExtraSlotsApprovalTab({
                       <span>Receptionist Reason:</span>
                     </div>
                     <p className="text-xs text-foreground/90 italic">
-                      &ldquo;{apt.extraReason || "No specific note provided"}&rdquo;
+                      &ldquo;{apt.extraReason || "No specific note provided"}
+                      &rdquo;
                     </p>
                   </div>
                 </div>
@@ -317,7 +317,9 @@ export function ExtraSlotsApprovalTab({
                   <th className="py-2 px-3 text-[11px]">Patient</th>
                   <th className="py-2 px-2.5 text-[11px]">Slot & Time</th>
                   <th className="py-2 px-2.5 text-[11px]">Receptionist Note</th>
-                  <th className="py-2 px-2.5 text-[11px]">Doctor Note & Reviewer</th>
+                  <th className="py-2 px-2.5 text-[11px]">
+                    Doctor Note & Reviewer
+                  </th>
                   <th className="py-2 px-3 text-right text-[11px]">Decision</th>
                 </tr>
               </thead>

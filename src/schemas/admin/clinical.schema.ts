@@ -27,8 +27,12 @@ export const updateClinicalOptionSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export type CreateClinicalOptionInput = z.infer<typeof createClinicalOptionSchema>;
-export type UpdateClinicalOptionInput = z.infer<typeof updateClinicalOptionSchema>;
+export type CreateClinicalOptionInput = z.infer<
+  typeof createClinicalOptionSchema
+>;
+export type UpdateClinicalOptionInput = z.infer<
+  typeof updateClinicalOptionSchema
+>;
 
 export interface ClinicalActionState {
   success: boolean;

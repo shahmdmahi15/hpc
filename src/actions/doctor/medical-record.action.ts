@@ -2,7 +2,12 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/guard";
-import { Role, AuditAction, AuditStatus, ClinicalOptionCategory } from "@/generated/prisma/enums";
+import {
+  Role,
+  AuditAction,
+  AuditStatus,
+  ClinicalOptionCategory,
+} from "@/generated/prisma/enums";
 import { logAudit } from "@/lib/audit";
 import {
   createMedicalRecordSchema,
@@ -78,7 +83,13 @@ export async function getActiveClinicalConfigAction(): Promise<{
         painTypes: ["Sharp", "Dull", "Burning", "Radiating"],
         aggravatingFactors: ["Movement", "Sitting", "Standing", "Walking"],
         relievingFactors: ["Rest", "Medicine", "Heat"],
-        functionalLimitations: ["Bending", "Sitting", "Standing", "Walking", "Lifting"],
+        functionalLimitations: [
+          "Bending",
+          "Sitting",
+          "Standing",
+          "Walking",
+          "Lifting",
+        ],
         treatmentPlans: [
           { name: "Hot pack" },
           { name: "IFT / TENS" },
@@ -128,7 +139,7 @@ export async function createMedicalRecordAction(
         patientId: val.patientId,
         appointmentId: val.appointmentId || null,
         doctorId: val.doctorId || null,
-        age: val.age !== undefined ? val.age : (patient.age || null),
+        age: val.age !== undefined ? val.age : patient.age || null,
         occupation: val.occupation || null,
 
         // Section 2: Pain Details
@@ -172,7 +183,8 @@ export async function createMedicalRecordAction(
         homePostureAdvice: val.homePostureAdvice,
 
         // Follow-up & Progress
-        followUpVasScore: val.followUpVasScore !== undefined ? val.followUpVasScore : null,
+        followUpVasScore:
+          val.followUpVasScore !== undefined ? val.followUpVasScore : null,
         improvement: val.improvement || null,
         doctorSignature: val.doctorSignature || null,
       },
@@ -239,9 +251,15 @@ export async function getPatientMedicalHistoryAction(patientId: string) {
         ...rec,
         painAreasList: safeJsonParse<string[]>(rec.painAreas, []),
         painTypesList: safeJsonParse<string[]>(rec.painTypes, []),
-        aggravatingFactorsList: safeJsonParse<string[]>(rec.aggravatingFactors, []),
+        aggravatingFactorsList: safeJsonParse<string[]>(
+          rec.aggravatingFactors,
+          [],
+        ),
         relievingFactorsList: safeJsonParse<string[]>(rec.relievingFactors, []),
-        functionalLimitationsList: safeJsonParse<string[]>(rec.functionalLimitations, []),
+        functionalLimitationsList: safeJsonParse<string[]>(
+          rec.functionalLimitations,
+          [],
+        ),
         treatmentPlansList: safeJsonParse<string[]>(rec.treatmentPlans, []),
       })),
     };

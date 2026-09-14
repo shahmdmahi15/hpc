@@ -26,7 +26,9 @@ export const createMedicalRecordSchema = z.object({
   postureAdviceGiven: z.boolean().default(false),
   surgeryHistory: z.boolean().default(false),
   surgeryDetails: z.string().trim().max(250).optional(),
-  previousTreatment: z.enum(["Medicine", "Physiotherapy", "Both", "None"]).optional(),
+  previousTreatment: z
+    .enum(["Medicine", "Physiotherapy", "Both", "None"])
+    .optional(),
 
   // Section 5: Functional Limitation
   functionalLimitations: z.array(z.string()).default([]),
@@ -55,7 +57,9 @@ export const createMedicalRecordSchema = z.object({
   doctorSignature: z.string().trim().max(100).optional(),
 });
 
-export type CreateMedicalRecordInput = z.infer<typeof createMedicalRecordSchema>;
+export type CreateMedicalRecordInput = z.infer<
+  typeof createMedicalRecordSchema
+>;
 
 export interface MedicalRecordActionState {
   success: boolean;

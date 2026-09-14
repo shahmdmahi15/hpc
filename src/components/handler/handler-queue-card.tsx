@@ -7,10 +7,7 @@ import {
   updateAppointmentWillCallTimeAction,
   switchQueueAction,
 } from "@/actions/receptionist/appointment.action";
-import {
-  AppointmentStatus,
-  QueueType,
-} from "@/generated/prisma/enums";
+import { AppointmentStatus, QueueType } from "@/generated/prisma/enums";
 import { evaluatePunctuality, formatTime12h } from "@/lib/queue-punctuality";
 import { Button } from "@/components/ui/button";
 import {
@@ -215,7 +212,8 @@ export function HandlerQueueCard({
         </div>
 
         {/* Room / Chamber Tag */}
-        {(appointment.room?.number || appointment.therapySlot?.room?.number) && (
+        {(appointment.room?.number ||
+          appointment.therapySlot?.room?.number) && (
           <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-muted/60 text-muted-foreground border border-border text-[10px] font-mono font-semibold">
             <DoorOpen className="size-2.5 text-emerald-500" />
             <span>

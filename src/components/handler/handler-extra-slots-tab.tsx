@@ -2,7 +2,10 @@
 
 import * as React from "react";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
-import { ExtraApprovalStatus, AppointmentStatus } from "@/generated/prisma/enums";
+import {
+  ExtraApprovalStatus,
+  AppointmentStatus,
+} from "@/generated/prisma/enums";
 import {
   AlertCircle,
   CheckCircle2,
@@ -127,12 +130,9 @@ export function HandlerExtraSlotsTab({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
           {filteredSlots.map((apt) => {
-            const isPending =
-              apt.extraStatus === ExtraApprovalStatus.PENDING;
-            const isApproved =
-              apt.extraStatus === ExtraApprovalStatus.APPROVED;
-            const isRejected =
-              apt.extraStatus === ExtraApprovalStatus.REJECTED;
+            const isPending = apt.extraStatus === ExtraApprovalStatus.PENDING;
+            const isApproved = apt.extraStatus === ExtraApprovalStatus.APPROVED;
+            const isRejected = apt.extraStatus === ExtraApprovalStatus.REJECTED;
             const isCheckedIn =
               apt.status === AppointmentStatus.CHECKED_IN ||
               apt.status === AppointmentStatus.IN_THERAPY;
@@ -219,7 +219,9 @@ export function HandlerExtraSlotsTab({
                         <strong className="text-foreground/80 font-semibold">
                           Receptionist:
                         </strong>{" "}
-                        <span className="italic">&ldquo;{apt.extraReason}&rdquo;</span>
+                        <span className="italic">
+                          &ldquo;{apt.extraReason}&rdquo;
+                        </span>
                       </span>
                     </div>
                   )}
@@ -250,9 +252,7 @@ export function HandlerExtraSlotsTab({
                 <div className="pt-1 border-t border-border/40 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
                   <span>
                     Status:{" "}
-                    <strong className="text-foreground">
-                      {apt.status}
-                    </strong>
+                    <strong className="text-foreground">{apt.status}</strong>
                   </span>
                   {isCheckedIn && (
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5">

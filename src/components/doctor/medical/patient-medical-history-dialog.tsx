@@ -85,7 +85,9 @@ export function PatientMedicalHistoryDialog({
 }: PatientMedicalHistoryDialogProps) {
   const [records, setRecords] = React.useState<ParsedRecord[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [expandedRecordId, setExpandedRecordId] = React.useState<string | null>(null);
+  const [expandedRecordId, setExpandedRecordId] = React.useState<string | null>(
+    null,
+  );
 
   React.useEffect(() => {
     let ignore = false;
@@ -132,7 +134,8 @@ export function PatientMedicalHistoryDialog({
                   Patient Medical Checkup History &amp; Files
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Complete timeline of clinical evaluations, pain progression, and prescribed treatment modalities.
+                  Complete timeline of clinical evaluations, pain progression,
+                  and prescribed treatment modalities.
                 </DialogDescription>
               </div>
             </div>
@@ -168,21 +171,27 @@ export function PatientMedicalHistoryDialog({
           {patient && (
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 pt-2 text-xs font-mono text-muted-foreground border-t border-border/50 bg-background/50 p-2 rounded-lg">
               <div>
-                <strong className="text-foreground">Patient:</strong> {patient.name}
+                <strong className="text-foreground">Patient:</strong>{" "}
+                {patient.name}
               </div>
               <div>
                 <strong className="text-foreground">ID / MRN:</strong>{" "}
                 {patient.mrn || patient.id.slice(-6).toUpperCase()}
               </div>
               <div>
-                <strong className="text-foreground">Gender:</strong> {patient.gender}
+                <strong className="text-foreground">Gender:</strong>{" "}
+                {patient.gender}
               </div>
               <div>
-                <strong className="text-foreground">Phone:</strong> {patient.phone || "---"}
+                <strong className="text-foreground">Phone:</strong>{" "}
+                {patient.phone || "---"}
               </div>
               <div className="col-span-2 sm:col-span-1 flex items-center gap-1.5">
                 <strong className="text-foreground">Total Files:</strong>
-                <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] font-bold px-2 py-0"
+                >
                   {records.length} {records.length === 1 ? "Record" : "Records"}
                 </Badge>
               </div>
@@ -195,7 +204,9 @@ export function PatientMedicalHistoryDialog({
           {isLoading ? (
             <div className="py-16 text-center text-xs text-muted-foreground space-y-3">
               <div className="size-7 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="font-semibold">Loading medical assessment history...</p>
+              <p className="font-semibold">
+                Loading medical assessment history...
+              </p>
             </div>
           ) : records.length === 0 ? (
             <div className="py-16 text-center space-y-3 border-2 border-dashed border-border/80 rounded-2xl p-6 max-w-lg mx-auto">
@@ -203,9 +214,12 @@ export function PatientMedicalHistoryDialog({
                 <FileText className="size-6" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-bold text-foreground">No previous medical files found</p>
+                <p className="text-sm font-bold text-foreground">
+                  No previous medical files found
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  This patient does not have any saved physiotherapy assessments or checkups yet.
+                  This patient does not have any saved physiotherapy assessments
+                  or checkups yet.
                 </p>
               </div>
               {onNewRecordRequested && (
@@ -226,12 +240,15 @@ export function PatientMedicalHistoryDialog({
             <div className="space-y-3.5">
               {records.map((rec, index) => {
                 const isExpanded = expandedRecordId === rec.id;
-                const recDate = new Date(rec.assessmentDate).toLocaleDateString("en-GB", {
-                  weekday: "short",
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                });
+                const recDate = new Date(rec.assessmentDate).toLocaleDateString(
+                  "en-GB",
+                  {
+                    weekday: "short",
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  },
+                );
 
                 return (
                   <div
@@ -244,7 +261,9 @@ export function PatientMedicalHistoryDialog({
                   >
                     {/* Collapsible Record Summary Header */}
                     <div
-                      onClick={() => setExpandedRecordId(isExpanded ? null : rec.id)}
+                      onClick={() =>
+                        setExpandedRecordId(isExpanded ? null : rec.id)
+                      }
                       className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer select-none bg-muted/20 hover:bg-muted/40 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -260,7 +279,10 @@ export function PatientMedicalHistoryDialog({
                             </span>
 
                             {rec.diagnosis && (
-                              <Badge variant="outline" className="text-xs font-bold py-0.5 bg-background border-border">
+                              <Badge
+                                variant="outline"
+                                className="text-xs font-bold py-0.5 bg-background border-border"
+                              >
                                 {rec.diagnosis}
                               </Badge>
                             )}
@@ -280,11 +302,11 @@ export function PatientMedicalHistoryDialog({
                               </span>
                             )}
                             {rec.painAreasList.length > 0 && (
-                              <span>• Area: {rec.painAreasList.join(", ")}</span>
+                              <span>
+                                • Area: {rec.painAreasList.join(", ")}
+                              </span>
                             )}
-                            {rec.occupation && (
-                              <span>• {rec.occupation}</span>
-                            )}
+                            {rec.occupation && <span>• {rec.occupation}</span>}
                           </div>
                         </div>
                       </div>
@@ -334,21 +356,33 @@ export function PatientMedicalHistoryDialog({
                               </span>
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
                                 <div>
-                                  <span className="text-muted-foreground block text-[10px]">Areas:</span>
+                                  <span className="text-muted-foreground block text-[10px]">
+                                    Areas:
+                                  </span>
                                   <span className="font-bold text-foreground">
                                     {rec.painAreasList.join(", ") || "None"}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-muted-foreground block text-[10px]">Side:</span>
-                                  <span className="font-bold text-foreground">{rec.painSide || "---"}</span>
+                                  <span className="text-muted-foreground block text-[10px]">
+                                    Side:
+                                  </span>
+                                  <span className="font-bold text-foreground">
+                                    {rec.painSide || "---"}
+                                  </span>
                                 </div>
                                 <div>
-                                  <span className="text-muted-foreground block text-[10px]">Duration:</span>
-                                  <span className="font-bold text-foreground">{rec.duration || "---"}</span>
+                                  <span className="text-muted-foreground block text-[10px]">
+                                    Duration:
+                                  </span>
+                                  <span className="font-bold text-foreground">
+                                    {rec.duration || "---"}
+                                  </span>
                                 </div>
                                 <div>
-                                  <span className="text-muted-foreground block text-[10px]">Character:</span>
+                                  <span className="text-muted-foreground block text-[10px]">
+                                    Character:
+                                  </span>
                                   <span className="font-bold text-foreground">
                                     {rec.painTypesList.join(", ") || "---"}
                                   </span>
@@ -368,7 +402,8 @@ export function PatientMedicalHistoryDialog({
                                     Increases with:
                                   </span>
                                   <span className="text-foreground">
-                                    {rec.aggravatingFactorsList.join(", ") || "None recorded"}
+                                    {rec.aggravatingFactorsList.join(", ") ||
+                                      "None recorded"}
                                   </span>
                                 </div>
                                 <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
@@ -376,7 +411,8 @@ export function PatientMedicalHistoryDialog({
                                     Reduces with:
                                   </span>
                                   <span className="text-foreground">
-                                    {rec.relievingFactorsList.join(", ") || "None recorded"}
+                                    {rec.relievingFactorsList.join(", ") ||
+                                      "None recorded"}
                                   </span>
                                 </div>
                               </div>
@@ -392,13 +428,17 @@ export function PatientMedicalHistoryDialog({
                                   <div>
                                     Injury/Accident:{" "}
                                     <strong className="text-foreground">
-                                      {rec.injuryAccident ? `Yes (${rec.injuryDetails || "Documented"})` : "No"}
+                                      {rec.injuryAccident
+                                        ? `Yes (${rec.injuryDetails || "Documented"})`
+                                        : "No"}
                                     </strong>
                                   </div>
                                   <div>
                                     Surgery:{" "}
                                     <strong className="text-foreground">
-                                      {rec.surgeryHistory ? `Yes (${rec.surgeryDetails || "Documented"})` : "No"}
+                                      {rec.surgeryHistory
+                                        ? `Yes (${rec.surgeryDetails || "Documented"})`
+                                        : "No"}
                                     </strong>
                                   </div>
                                   <div>
@@ -425,7 +465,9 @@ export function PatientMedicalHistoryDialog({
                                       </span>
                                     ))
                                   ) : (
-                                    <span className="text-muted-foreground text-xs">None noted</span>
+                                    <span className="text-muted-foreground text-xs">
+                                      None noted
+                                    </span>
                                   )}
                                 </div>
                               </div>
@@ -442,20 +484,36 @@ export function PatientMedicalHistoryDialog({
                               </span>
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
                                 <div className="p-1.5 rounded-lg bg-muted/40 border border-border/40 text-center">
-                                  <span className="text-[10px] text-muted-foreground block">ROM</span>
-                                  <strong className="text-foreground">{rec.rom || "Normal"}</strong>
+                                  <span className="text-[10px] text-muted-foreground block">
+                                    ROM
+                                  </span>
+                                  <strong className="text-foreground">
+                                    {rec.rom || "Normal"}
+                                  </strong>
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-muted/40 border border-border/40 text-center">
-                                  <span className="text-[10px] text-muted-foreground block">Spasm</span>
-                                  <strong className="text-foreground">{rec.muscleSpasm ? "Yes" : "No"}</strong>
+                                  <span className="text-[10px] text-muted-foreground block">
+                                    Spasm
+                                  </span>
+                                  <strong className="text-foreground">
+                                    {rec.muscleSpasm ? "Yes" : "No"}
+                                  </strong>
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-muted/40 border border-border/40 text-center">
-                                  <span className="text-[10px] text-muted-foreground block">Tenderness</span>
-                                  <strong className="text-foreground">{rec.tenderness ? "Yes" : "No"}</strong>
+                                  <span className="text-[10px] text-muted-foreground block">
+                                    Tenderness
+                                  </span>
+                                  <strong className="text-foreground">
+                                    {rec.tenderness ? "Yes" : "No"}
+                                  </strong>
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-muted/40 border border-border/40 text-center">
-                                  <span className="text-[10px] text-muted-foreground block">Swelling</span>
-                                  <strong className="text-foreground">{rec.swelling ? "Yes" : "No"}</strong>
+                                  <span className="text-[10px] text-muted-foreground block">
+                                    Swelling
+                                  </span>
+                                  <strong className="text-foreground">
+                                    {rec.swelling ? "Yes" : "No"}
+                                  </strong>
                                 </div>
                               </div>
                               {rec.physicalExamNotes && (
@@ -492,7 +550,8 @@ export function PatientMedicalHistoryDialog({
 
                               {rec.treatmentNotes && (
                                 <p className="text-xs text-foreground pt-1 bg-background/60 p-2 rounded-lg border border-border/40">
-                                  <strong>Protocol:</strong> {rec.treatmentNotes}
+                                  <strong>Protocol:</strong>{" "}
+                                  {rec.treatmentNotes}
                                 </p>
                               )}
                             </div>
@@ -519,14 +578,21 @@ export function PatientMedicalHistoryDialog({
 
                               {rec.improvement && (
                                 <div className="text-[11px] pt-1">
-                                  <span className="text-muted-foreground">Improvement:</span>{" "}
-                                  <strong className="text-foreground">{rec.improvement}</strong>
+                                  <span className="text-muted-foreground">
+                                    Improvement:
+                                  </span>{" "}
+                                  <strong className="text-foreground">
+                                    {rec.improvement}
+                                  </strong>
                                 </div>
                               )}
 
                               {rec.doctorSignature && (
                                 <div className="text-[11px] font-mono text-muted-foreground pt-1 border-t border-border/40">
-                                  Signed by: <strong className="text-foreground">{rec.doctorSignature}</strong>
+                                  Signed by:{" "}
+                                  <strong className="text-foreground">
+                                    {rec.doctorSignature}
+                                  </strong>
                                 </div>
                               )}
                             </div>

@@ -11,9 +11,7 @@ import {
   AuditAction,
   AuditStatus,
 } from "@/generated/prisma/enums";
-import type {
-  AppointmentWithRelations,
-} from "@/actions/receptionist/appointment.action";
+import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
 import { logAudit } from "@/lib/audit";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
@@ -78,23 +76,18 @@ export async function getDoctorDashboardDataAction(
 
   // Find logged-in doctor's performer record
   const currentDoctor =
-    doctorPerformers.find(
-      (doc) => doc.id === sessionData.session.userId,
-    ) ||
+    doctorPerformers.find((doc) => doc.id === sessionData.session.userId) ||
     doctorPerformers[0] ||
     null;
 
   // Active in-consultation session
   const activeConsultation =
-    appointments.find(
-      (a) => a.status === AppointmentStatus.IN_CONSULTATION,
-    ) || null;
+    appointments.find((a) => a.status === AppointmentStatus.IN_CONSULTATION) ||
+    null;
 
   // Currently being called into chamber
   const callingAppointment =
-    appointments.find(
-      (a) => a.status === AppointmentStatus.CALLING,
-    ) || null;
+    appointments.find((a) => a.status === AppointmentStatus.CALLING) || null;
 
   // Consultation Queue (Checked in, Calling, or In-Consultation)
   const consultationQueue = appointments.filter(
@@ -273,9 +266,7 @@ export async function reviewExtraSlotAction(params: {
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Failed to review extra slot.",
+        error instanceof Error ? error.message : "Failed to review extra slot.",
     };
   }
 }
