@@ -16,6 +16,8 @@ import {
   Megaphone,
   Stethoscope,
   Activity,
+  LogOut,
+  FileText,
 } from "lucide-react";
 import {
   AppointmentStatus,
@@ -41,6 +43,7 @@ interface SlotScheduleBoardProps {
   onSelectDate: (date: string) => void;
   onBookSlot: (slotId: string) => void;
   onCheckIn: (appointmentId: string) => Promise<void>;
+  onCheckOut?: (appointmentId: string) => Promise<void>;
   onCancelAppointment: (appointmentId: string) => Promise<void>;
 }
 
@@ -78,6 +81,7 @@ export function SlotScheduleBoard({
   onSelectDate,
   onBookSlot,
   onCheckIn,
+  onCheckOut,
   onCancelAppointment,
 }: SlotScheduleBoardProps) {
   const [filterQuery, setFilterQuery] = React.useState("");
@@ -482,6 +486,15 @@ export function SlotScheduleBoard({
                                     <span className="text-[9.5px] text-muted-foreground font-mono block">
                                       {apt.patient?.phone}
                                     </span>
+                                    {apt.routingNote && (
+                                      <div
+                                        className="text-[9px] text-muted-foreground flex items-center gap-1 mt-0.5 italic truncate max-w-[220px]"
+                                        title={apt.routingNote}
+                                      >
+                                        <FileText className="size-2.5 text-primary shrink-0" />
+                                        <span>Note: {apt.routingNote}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
@@ -523,26 +536,62 @@ export function SlotScheduleBoard({
                                           : "In Therapy"}
                                       </span>
                                     </span>
-                                  ) : isCompleted ? (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/80 text-[9.5px] font-medium">
-                                      <CheckCircle2 className="size-2.5 text-muted-foreground" />
-                                      <span>Done</span>
+                                  ) : apt.checkOutTime ? (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-[9.5px] font-bold shadow-2xs">
+                                      <LogOut className="size-2.5 text-indigo-600 dark:text-indigo-400" />
+                                      <span>Checked Out</span>
+                                      <span className="font-mono text-[9px] font-bold text-indigo-800 dark:text-indigo-200">
+                                        • {formatCheckInTime(apt.checkOutTime)}
+                                      </span>
                                     </span>
+                                  ) : isCompleted ? (
+                                    <div className="flex items-center gap-1">
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/80 text-[9.5px] font-medium">
+                                        <CheckCircle2 className="size-2.5 text-muted-foreground" />
+                                        <span>Done</span>
+                                      </span>
+                                      {onCheckOut && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-5.5 text-[9.5px] px-1.5 gap-1 cursor-pointer border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-semibold"
+                                          onClick={() => onCheckOut(apt.id)}
+                                          title="Mark Patient Checked Out for the Day"
+                                        >
+                                          <LogOut className="size-2.5 text-indigo-500" />
+                                          <span>Check Out</span>
+                                        </Button>
+                                      )}
+                                    </div>
                                   ) : isCancelled ? (
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[9.5px] font-medium">
                                       <X className="size-2.5" />
                                       <span>Cancelled</span>
                                     </span>
                                   ) : isCheckedIn ? (
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[9.5px] font-bold shadow-2xs">
-                                      <CheckCircle2 className="size-2.5 text-emerald-600 dark:text-emerald-400" />
-                                      <span>Checked In</span>
-                                      {apt.checkInTime && (
-                                        <span className="font-mono text-[9px] font-bold text-emerald-800 dark:text-emerald-200">
-                                          • {formatCheckInTime(apt.checkInTime)}
-                                        </span>
+                                    <div className="flex items-center gap-1">
+                                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[9.5px] font-bold shadow-2xs">
+                                        <CheckCircle2 className="size-2.5 text-emerald-600 dark:text-emerald-400" />
+                                        <span>Checked In</span>
+                                        {apt.checkInTime && (
+                                          <span className="font-mono text-[9px] font-bold text-emerald-800 dark:text-emerald-200">
+                                            • {formatCheckInTime(apt.checkInTime)}
+                                          </span>
+                                        )}
+                                      </span>
+                                      {onCheckOut && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-5.5 text-[9.5px] px-1.5 gap-1 cursor-pointer border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-semibold"
+                                          onClick={() => onCheckOut(apt.id)}
+                                          title="Mark Patient Checked Out for the Day"
+                                        >
+                                          <LogOut className="size-2.5 text-indigo-500" />
+                                          <span>Check Out</span>
+                                        </Button>
                                       )}
-                                    </span>
+                                    </div>
                                   ) : isExtraPending ? (
                                     <span
                                       className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9.5px] font-semibold"

@@ -23,13 +23,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Volume2,
   DoorOpen,
-  Activity,
   Phone,
   Clock,
   Check,
   User,
   Radio,
-  Sparkles,
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -56,20 +54,20 @@ export function CallToTherapyRoomDialog({
   defaultRoomId,
   onSuccess,
 }: CallToTherapyRoomDialogProps) {
-  // 1. Strictly filter rooms: RoomAccessType.PUBLIC and RoomStatus.AVAILABLE
-  const publicAvailableRooms = React.useMemo(() => {
+  // 1. Strictly filter rooms: RoomAccessType.THERAPY and RoomStatus.AVAILABLE
+  const therapyAvailableRooms = React.useMemo(() => {
     return rooms.filter((r) => {
       return (
-        r.accessType === RoomAccessType.PUBLIC &&
+        r.accessType === RoomAccessType.THERAPY &&
         r.status === RoomStatus.AVAILABLE
       );
     });
   }, [rooms]);
 
-  // First available public room
-  const firstPublicRoom = React.useMemo(() => {
-    return publicAvailableRooms[0] || null;
-  }, [publicAvailableRooms]);
+  // First available therapy room
+  const firstTherapyRoom = React.useMemo(() => {
+    return therapyAvailableRooms[0] || null;
+  }, [therapyAvailableRooms]);
 
   // Handler Performers
   const firstHandler = React.useMemo(() => {
@@ -80,12 +78,12 @@ export function CallToTherapyRoomDialog({
   const initialRoomId = React.useMemo(() => {
     if (
       defaultRoomId &&
-      publicAvailableRooms.some((r) => r.id === defaultRoomId)
+      therapyAvailableRooms.some((r) => r.id === defaultRoomId)
     ) {
       return defaultRoomId;
     }
-    return firstPublicRoom?.id || "";
-  }, [defaultRoomId, publicAvailableRooms, firstPublicRoom]);
+    return firstTherapyRoom?.id || "";
+  }, [defaultRoomId, therapyAvailableRooms, firstTherapyRoom]);
 
   // Performer auto-selection rule: If single performer, automatically select it!
   const initialHandlerId = React.useMemo(() => {
@@ -116,17 +114,10 @@ export function CallToTherapyRoomDialog({
   // Active room entity
   const activeRoom = React.useMemo(() => {
     return (
-      publicAvailableRooms.find((r) => r.id === selectedRoomId) ||
-      firstPublicRoom
+      therapyAvailableRooms.find((r) => r.id === selectedRoomId) ||
+      firstTherapyRoom
     );
-  }, [publicAvailableRooms, selectedRoomId, firstPublicRoom]);
-
-  // Active handler entity
-  const activeHandler = React.useMemo(() => {
-    return (
-      handlers.find((h) => h.id === selectedHandlerId) || firstHandler
-    );
-  }, [handlers, selectedHandlerId, firstHandler]);
+  }, [therapyAvailableRooms, selectedRoomId, firstTherapyRoom]);
 
   // Punctuality info
   const punctuality = React.useMemo(() => {
@@ -137,7 +128,7 @@ export function CallToTherapyRoomDialog({
 
   const handleConfirmCall = async () => {
     if (!selectedRoomId) {
-      toast.error("Please select an available public therapy room.");
+      toast.error("Please select an available therapy room.");
       return;
     }
 
@@ -184,12 +175,12 @@ export function CallToTherapyRoomDialog({
                     variant="outline"
                     className="text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                   >
-                    Public Room
+                    Therapy Room
                   </Badge>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Announce patient on waiting room TV screens and call into an
-                  available public therapy room.
+                  available therapy room.
                 </DialogDescription>
               </div>
             </div>
@@ -251,33 +242,33 @@ export function CallToTherapyRoomDialog({
             </div>
           </div>
 
-          {/* Section 1: Public Available Therapy Rooms */}
+          {/* Section 1: Therapy Available Rooms */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <DoorOpen className="size-3.5 text-emerald-500" />
-                <span>Select Available Public Room</span>
+                <span>Select Available Therapy Room</span>
                 <span className="text-rose-500">*</span>
               </label>
               <span className="text-[11px] font-mono text-muted-foreground">
-                {publicAvailableRooms.length} Available
+                {therapyAvailableRooms.length} Available
               </span>
             </div>
 
-            {publicAvailableRooms.length === 0 ? (
+            {therapyAvailableRooms.length === 0 ? (
               <div className="rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-4 text-center space-y-1">
                 <AlertCircle className="size-5 text-amber-500 mx-auto" />
                 <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                  No Public Therapy Rooms Available
+                  No Therapy Rooms Available
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  All public rooms are currently occupied or in maintenance.
-                  Wait for an active session to complete or check room status.
+                  No rooms with Access Type &apos;Therapy&apos; are currently available.
+                  Configure therapy rooms in Room Management or wait for an active session to complete.
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {publicAvailableRooms.map((r) => {
+                {therapyAvailableRooms.map((r) => {
                   const isSelected = selectedRoomId === r.id;
                   return (
                     <button
@@ -423,7 +414,7 @@ export function CallToTherapyRoomDialog({
             type="button"
             size="sm"
             onClick={handleConfirmCall}
-            disabled={isCalling || publicAvailableRooms.length === 0}
+            disabled={isCalling || therapyAvailableRooms.length === 0}
             className="h-8 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs cursor-pointer gap-1.5"
           >
             <Volume2 className="size-3.5" />

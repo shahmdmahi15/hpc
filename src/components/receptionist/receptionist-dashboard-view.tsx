@@ -7,6 +7,7 @@ import {
   type AppointmentWithRelations,
   getReceptionistDashboardDataAction,
   updateAppointmentStatusAction,
+  checkOutPatientAction,
   switchQueueAction,
 } from "@/actions/receptionist/appointment.action";
 import {
@@ -195,6 +196,30 @@ export function ReceptionistDashboardView({
     });
   };
 
+  // Patient Check Out: mark visit completed for the day
+  const handleCheckOut = async (appointmentId: string) => {
+    const apt = findAppointment(appointmentId);
+    if (data.receptionistPerformers.length > 1) {
+      setPendingAction({
+        actionType: "CHECK_OUT",
+        appointmentId,
+        patientName: apt?.patient?.name,
+        slotLabel: apt?.therapySlot?.label,
+      });
+      return;
+    }
+
+    const performerId =
+      lastPerformerId || (data.receptionistPerformers[0]?.id ?? "");
+    const res = await checkOutPatientAction(appointmentId, performerId);
+    if (res.success) {
+      toast.success(res.message);
+      refreshData(selectedDate);
+    } else {
+      toast.error(res.message);
+    }
+  };
+
   // Quick Cancel
   const handleCancelAppointment = async (appointmentId: string) => {
     if (data.receptionistPerformers.length > 1) {
@@ -241,6 +266,13 @@ export function ReceptionistDashboardView({
           AppointmentStatus.CHECKED_IN,
           performerId,
           queueType,
+        );
+        break;
+      }
+      case "CHECK_OUT": {
+        res = await checkOutPatientAction(
+          actionConfig.appointmentId,
+          performerId,
         );
         break;
       }
@@ -442,6 +474,7 @@ export function ReceptionistDashboardView({
               onSelectDate={handleSelectDate}
               onBookSlot={handleBookSlot}
               onCheckIn={handleCheckIn}
+              onCheckOut={handleCheckOut}
               onCancelAppointment={handleCancelAppointment}
             />
           </TabsContent>

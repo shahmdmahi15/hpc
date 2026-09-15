@@ -142,6 +142,14 @@ export async function createMedicalRecordAction(
         age: val.age !== undefined ? val.age : patient.age || null,
         occupation: val.occupation || null,
 
+        // Episode File Metadata & Billing
+        fileNumber: `FILE-${Date.now().toString().slice(-6)}`,
+        title:
+          (val.painAreas && val.painAreas.length > 0
+            ? val.painAreas.join(", ")
+            : val.diagnosis) || "Care Episode File",
+        status: "ACTIVE",
+
         // Section 2: Pain Details
         painAreas: JSON.stringify(val.painAreas || []),
         painSide: val.painSide || null,
@@ -193,6 +201,17 @@ export async function createMedicalRecordAction(
         doctor: true,
       },
     });
+
+    // If created on an appointment, link the appointment to this file and sync billing across Patient, Appointment, and File models
+    if (val.appointmentId) {
+      await prisma.appointment.update({
+        where: { id: val.appointmentId },
+        data: { medicalRecordId: created.id },
+      });
+
+      const { syncBillingForAppointment } = await import("@/lib/billing-sync");
+      await syncBillingForAppointment(val.appointmentId);
+    }
 
     await logAudit({
       userId: sessionData.user.id,

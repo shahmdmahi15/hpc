@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
+import type { PatientModel } from "@/generated/prisma/models";
 import { requireAuth } from "@/lib/guard";
 import {
   Role,
@@ -320,18 +321,7 @@ export async function getRecentPatientsAction(limit = 10) {
   }
 }
 
-export type PatientWithStats = {
-  id: string;
-  mrn: string | null;
-  name: string;
-  phone: string;
-  gender: Gender;
-  age: number | null;
-  dateOfBirth: Date | null;
-  address: string | null;
-  emergencyPhone: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+export type PatientWithStats = PatientModel & {
   _count?: { appointments: number };
 };
 

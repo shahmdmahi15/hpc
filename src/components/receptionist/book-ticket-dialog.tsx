@@ -127,6 +127,9 @@ export function BookTicketDialog({
   const [toldMinute, setToldMinute] = React.useState("00");
   const [toldPeriod, setToldPeriod] = React.useState<"AM" | "PM">("AM");
 
+  // Editable Ticket Fee (0 to any amount)
+  const [feeAmount, setFeeAmount] = React.useState<number>(500);
+
   // Sync props on dialog open (render-time adjustment)
   const [prevOpen, setPrevOpen] = React.useState(isOpen);
   if (isOpen !== prevOpen) {
@@ -141,6 +144,7 @@ export function BookTicketDialog({
         setSlotId(slots[0].id);
       }
       setAppointmentDate(selectedDate);
+      setFeeAmount(500);
       setBookedById(
         activePerformerId || (performers.length === 1 ? performers[0].id : ""),
       );
@@ -280,6 +284,7 @@ export function BookTicketDialog({
         toldTime,
         notes: notes || undefined,
         bookedById: bookedById || undefined,
+        feeAmount,
       });
 
       if (res.success && res.appointment) {
@@ -709,22 +714,72 @@ export function BookTicketDialog({
               />
             </div>
 
-            {/* 6. Instant Billing Breakdown */}
-            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Receipt className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-semibold text-foreground">
-                    Ticket Fee
-                  </div>
-                  <div className="text-[10.5px] text-muted-foreground">
-                    Generated as pending due on patient bill
-                  </div>
-                </div>
+            {/* 6. Editable Ticket Fee */}
+            <div className="p-3 rounded-xl bg-card border border-border/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Receipt className="size-3.5 text-amber-500" />
+                  <span>Initial Ticket Fee (BDT)</span>
+                  <span className="text-rose-500">*</span>
+                </Label>
+                <span
+                  className={`font-mono font-bold text-xs px-2 py-0.5 rounded-md border ${
+                    feeAmount === 0
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                      : "bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30"
+                  }`}
+                >
+                  {feeAmount === 0
+                    ? "৳0 BDT (Free / Complimentary)"
+                    : `৳${feeAmount} BDT Due`}
+                </span>
               </div>
-              <span className="font-mono font-bold text-xs px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30">
-                ৳500 BDT Due
-              </span>
+
+              {/* Preset Chips */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { label: "৳0 (Free)", value: 0 },
+                  { label: "৳300", value: 300 },
+                  { label: "৳500 (Std)", value: 500 },
+                  { label: "৳800", value: 800 },
+                  { label: "৳1000", value: 1000 },
+                ].map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => setFeeAmount(preset.value)}
+                    className={`px-2 py-1 rounded-lg text-xs font-mono font-semibold transition-all border cursor-pointer ${
+                      feeAmount === preset.value
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                        : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/70"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Fee Input */}
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground font-mono">
+                  ৳
+                </span>
+                <Input
+                  type="number"
+                  min={0}
+                  step={10}
+                  value={isNaN(feeAmount) ? "" : feeAmount}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setFeeAmount(isNaN(val) ? 0 : Math.max(0, val));
+                  }}
+                  placeholder="Enter fee amount (0 to any amount)"
+                  className="pl-7 h-9 text-xs font-mono font-bold"
+                />
+              </div>
+              <p className="text-[10.5px] text-muted-foreground">
+                Set custom ticket fee from 0 to any amount. 0 BDT marks the ticket as free/complimentary with zero due.
+              </p>
             </div>
           </div>
 

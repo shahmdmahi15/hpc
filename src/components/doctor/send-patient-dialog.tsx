@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Send,
@@ -30,6 +31,8 @@ import {
   Loader2,
   Clock,
   Save,
+  FileText,
+  Timer,
 } from "lucide-react";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import {
@@ -42,6 +45,7 @@ import {
 } from "@/actions/doctor/treatment-plan.action";
 import { toast } from "sonner";
 import { DEFAULT_FEE } from "@/lib/billing";
+import { formatTime12h } from "@/lib/queue-punctuality";
 
 interface SendPatientDialogProps {
   isOpen: boolean;
@@ -103,6 +107,9 @@ function SendPatientDialogContent({
   const [routingDestination, setRoutingDestination] = React.useState<
     "CASHIER" | "HANDLER" | "RECEPTIONIST" | null
   >(null);
+  const [routingNote, setRoutingNote] = React.useState<string>(
+    appointment.routingNote || "",
+  );
 
   // Today's Treatment Plan state
   const [todayPlan, setTodayPlan] = React.useState<TreatmentPlanRecord | null>(
@@ -182,6 +189,7 @@ function SendPatientDialogContent({
         destination,
         feeAmount: Number(dueAmount),
         performerId: doctorId,
+        routingNote: routingNote.trim() || undefined,
       });
 
       if (res.success) {
@@ -475,7 +483,98 @@ function SendPatientDialogContent({
               </div>
             </div>
 
-            {/* 4. Three Primary Destination Routing Cards */}
+            {/* 4. Optional Routing / Department Note */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-card/60 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <FileText className="size-3.5 text-primary" />
+                  <span>Transfer / Routing Note</span>
+                  <span className="text-[10.5px] font-normal text-muted-foreground">(Optional)</span>
+                </label>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  {routingNote.length}/250
+                </span>
+              </div>
+              <Textarea
+                placeholder="e.g. Advised 5 days physical therapy (traction + hot pack); collect consultation fee at cashier counter..."
+                value={routingNote}
+                onChange={(e) => setRoutingNote(e.target.value.slice(0, 250))}
+                className="min-h-16 text-xs resize-none"
+              />
+            </div>
+
+            {/* 5. Clinical Journey Lifecycle Timestamps (All 7 Recorded Times) */}
+            <div className="p-3.5 rounded-xl border border-border/80 bg-card/40 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                  <Timer className="size-3.5 text-primary" />
+                  <span>Appointment Lifecycle Journey</span>
+                </div>
+                <span className="text-[10.5px] text-muted-foreground">
+                  7 Visit Checkpoints
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5 text-center">
+                {/* 1. Told Time */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/60">
+                  <div className="text-[9.5px] uppercase font-bold text-muted-foreground">1. Told Time</div>
+                  <div className="text-xs font-bold font-mono text-foreground mt-0.5">
+                    {appointment.toldTime || "—"}
+                  </div>
+                </div>
+
+                {/* 2. Check In Time */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/60">
+                  <div className="text-[9.5px] uppercase font-bold text-muted-foreground">2. Check In</div>
+                  <div className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {appointment.checkInTime ? formatTime12h(appointment.checkInTime) : "—"}
+                  </div>
+                </div>
+
+                {/* 3. In Consultation */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/60">
+                  <div className="text-[9.5px] uppercase font-bold text-muted-foreground">3. In Consult</div>
+                  <div className="text-xs font-bold font-mono text-sky-600 dark:text-sky-400 mt-0.5">
+                    {appointment.inConsultationTime ? formatTime12h(appointment.inConsultationTime) : (appointment.status === "IN_CONSULTATION" ? "Active Now" : "—")}
+                  </div>
+                </div>
+
+                {/* 4. Out Consultation */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/60">
+                  <div className="text-[9.5px] uppercase font-bold text-muted-foreground">4. Out Consult</div>
+                  <div className="text-xs font-bold font-mono text-sky-700 dark:text-sky-300 mt-0.5">
+                    {appointment.outConsultationTime ? formatTime12h(appointment.outConsultationTime) : "Upon Send"}
+                  </div>
+                </div>
+
+                {/* 5. In Therapy */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/60">
+                  <div className="text-[9.5px] uppercase font-bold text-muted-foreground">5. In Therapy</div>
+                  <div className="text-xs font-bold font-mono text-purple-600 dark:text-purple-400 mt-0.5">
+                    {appointment.inTherapyTime ? formatTime12h(appointment.inTherapyTime) : "—"}
+                  </div>
+                </div>
+
+                {/* 6. Out Therapy */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/60">
+                  <div className="text-[9.5px] uppercase font-bold text-muted-foreground">6. Out Therapy</div>
+                  <div className="text-xs font-bold font-mono text-purple-700 dark:text-purple-300 mt-0.5">
+                    {appointment.outTherapyTime ? formatTime12h(appointment.outTherapyTime) : "—"}
+                  </div>
+                </div>
+
+                {/* 7. Check Out Time */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/60">
+                  <div className="text-[9.5px] uppercase font-bold text-muted-foreground">7. Check Out</div>
+                  <div className="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">
+                    {appointment.checkOutTime ? formatTime12h(appointment.checkOutTime) : "Pending"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 6. Three Primary Destination Routing Cards */}
             <div className="space-y-2 pt-1">
               <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-1">
                 Select Patient Destination

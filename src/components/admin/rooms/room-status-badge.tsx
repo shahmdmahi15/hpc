@@ -11,11 +11,8 @@ import {
   Users,
   Stethoscope,
   Globe,
-  User,
   Activity,
   AlertTriangle,
-  Clock,
-  CheckCircle2,
 } from "lucide-react";
 
 export function RoomStatusBadge({ status }: { status: RoomStatus }) {
@@ -71,6 +68,20 @@ export function RoomAccessBadge({
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
           <Stethoscope className="size-3 text-purple-500" />
           Doctor Console
+        </span>
+      );
+    case RoomAccessType.THERAPY:
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20">
+          <Activity className="size-3 text-teal-500" />
+          Therapy Room
+        </span>
+      );
+    case RoomAccessType.PRIVATE:
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+          <DoorOpen className="size-3 text-amber-500" />
+          Private / VIP
         </span>
       );
     default:

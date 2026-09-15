@@ -24,6 +24,7 @@ import { logAudit } from "@/lib/audit";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 import { isSlotActiveOnDay, type DayKey } from "@/lib/weekdays";
 import { DEFAULT_FEE } from "@/lib/billing";
+import { syncBillingForAppointment } from "@/lib/billing-sync";
 import { revalidatePath } from "next/cache";
 import type {
   TherapySlotModel,
@@ -77,6 +78,7 @@ export async function bookTherapyTicketAction(
       toldTime,
       notes,
       bookedById,
+      feeAmount,
     } = validation.data;
 
     // 1. Date window resolution
@@ -167,7 +169,14 @@ export async function bookTherapyTicketAction(
       };
     }
 
-    // 5. Create Appointment in atomic transaction
+    // 5. Calculate fee to charge (allows 0 to any amount)
+    const feeToCharge =
+      typeof feeAmount === "number" && !isNaN(feeAmount) && feeAmount >= 0
+        ? feeAmount
+        : DEFAULT_FEE;
+    const isFree = feeToCharge === 0;
+
+    // 6. Create Appointment in atomic transaction
     const appointment = await prisma.appointment.create({
       data: {
         type: AppointmentType.THERAPY,
@@ -188,8 +197,10 @@ export async function bookTherapyTicketAction(
         bookedById: bookedById || undefined,
         toldTime: toldTime || undefined,
         notes: notes || undefined,
-        feeAmount: DEFAULT_FEE,
-        paymentStatus: "PENDING",
+        feeAmount: feeToCharge,
+        paidAmount: isFree ? 0 : 0,
+        dueAmount: isFree ? 0 : feeToCharge,
+        paymentStatus: isFree ? "PAID" : "PENDING",
       },
       include: {
         patient: true,
@@ -201,7 +212,10 @@ export async function bookTherapyTicketAction(
       },
     });
 
-    // 6. Audit Logging
+    // Synchronize billing across Patient, Appointment, and File models
+    await syncBillingForAppointment(appointment.id);
+
+    // 7. Audit Logging
     await logAudit({
       userId: sessionData.user.id,
       performerId: bookedById || undefined,
@@ -216,7 +230,7 @@ export async function bookTherapyTicketAction(
         toldTime: toldTime || undefined,
         bookingType: finalBookingType,
         gender: patient.gender,
-        feeAmount: DEFAULT_FEE,
+        feeAmount: feeToCharge,
       },
     });
 
@@ -359,11 +373,44 @@ export async function updateAppointmentStatusAction(
       checkInTime = null;
     }
 
+    const now = new Date();
+    let inConsultationTimeUpdate: Date | undefined;
+    let inTherapyTimeUpdate: Date | undefined;
+    let outConsultationTimeUpdate: Date | undefined;
+    let outTherapyTimeUpdate: Date | undefined;
+
+    if (newStatus === AppointmentStatus.IN_CONSULTATION) {
+      if (!appointment.inConsultationTime) {
+        inConsultationTimeUpdate = now;
+      }
+    } else if (newStatus === AppointmentStatus.IN_THERAPY) {
+      if (!appointment.inTherapyTime) {
+        inTherapyTimeUpdate = now;
+      }
+    } else if (newStatus === AppointmentStatus.COMPLETED) {
+      if (
+        appointment.status === AppointmentStatus.IN_CONSULTATION &&
+        !appointment.outConsultationTime
+      ) {
+        outConsultationTimeUpdate = now;
+      }
+      if (
+        appointment.status === AppointmentStatus.IN_THERAPY &&
+        !appointment.outTherapyTime
+      ) {
+        outTherapyTimeUpdate = now;
+      }
+    }
+
     const updated = await prisma.appointment.update({
       where: { id: appointmentId },
       data: {
         status: newStatus,
         ...(checkInTime !== undefined ? { checkInTime } : {}),
+        ...(inConsultationTimeUpdate ? { inConsultationTime: inConsultationTimeUpdate } : {}),
+        ...(inTherapyTimeUpdate ? { inTherapyTime: inTherapyTimeUpdate } : {}),
+        ...(outConsultationTimeUpdate ? { outConsultationTime: outConsultationTimeUpdate } : {}),
+        ...(outTherapyTimeUpdate ? { outTherapyTime: outTherapyTimeUpdate } : {}),
         ...(assignedQueueType !== undefined
           ? { queueType: assignedQueueType, queueId }
           : {}),
@@ -1260,3 +1307,131 @@ export async function updateAppointmentWillCallTimeAction(
     };
   }
 }
+
+/**
+ * Marks a patient checked out for the day once their therapy / consultation has ended.
+ * Releases any currently held room, stamps checkOutTime, logs audit, and broadcasts real-time update.
+ */
+export async function checkOutPatientAction(
+  appointmentId: string,
+  performerId?: string,
+): Promise<{
+  success: boolean;
+  message: string;
+  appointment?: AppointmentWithRelations;
+}> {
+  try {
+    const sessionData = await requireAuth([
+      Role.RECEPTIONIST,
+      Role.ADMIN,
+      Role.DOCTOR,
+      Role.HANDLER,
+      Role.CASHIER,
+    ]);
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: { patient: true, room: true },
+    });
+
+    if (!appointment) {
+      return { success: false, message: "Appointment record not found." };
+    }
+
+    // Release room if currently occupied/held by this appointment
+    if (appointment.roomId) {
+      const activeCount = await prisma.appointment.count({
+        where: {
+          roomId: appointment.roomId,
+          status: {
+            in: [
+              AppointmentStatus.IN_CONSULTATION,
+              AppointmentStatus.IN_THERAPY,
+              AppointmentStatus.CALLING,
+            ],
+          },
+          id: { not: appointment.id },
+        },
+      });
+
+      if (activeCount === 0) {
+        await prisma.room
+          .update({
+            where: { id: appointment.roomId },
+            data: { status: RoomStatus.AVAILABLE },
+          })
+          .catch((err) => console.error("[Release Room Error]:", err));
+
+        emitRealtimeEvent("ROOM_UPDATED", {
+          id: appointment.roomId,
+          status: RoomStatus.AVAILABLE,
+          number: appointment.room?.number || null,
+        });
+      }
+    }
+
+    const now = new Date();
+    const updated = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        checkOutTime: now,
+        status:
+          appointment.status === AppointmentStatus.CHECKED_IN ||
+          appointment.status === AppointmentStatus.CALLING ||
+          appointment.status === AppointmentStatus.IN_CONSULTATION ||
+          appointment.status === AppointmentStatus.IN_THERAPY
+            ? AppointmentStatus.COMPLETED
+            : appointment.status,
+      },
+      include: {
+        patient: true,
+        therapySlot: { include: { room: true } },
+        room: true,
+        bookedBy: true,
+        extraApprovedBy: true,
+        queue: true,
+      },
+    });
+
+    await logAudit({
+      userId: sessionData.user.id,
+      performerId: performerId || null,
+      action: AuditAction.APPOINTMENT_UPDATE,
+      entity: "Appointment",
+      entityId: updated.id,
+      status: AuditStatus.SUCCESS,
+      details: {
+        action: "PATIENT_CHECKOUT",
+        patientName: updated.patient.name,
+        checkOutTime: now.toISOString(),
+      },
+    });
+
+    emitRealtimeEvent("APPOINTMENT_UPDATED", {
+      id: updated.id,
+      status: updated.status,
+      checkOutTime: now.toISOString(),
+      date: updated.appointmentDate.toISOString().split("T")[0],
+    });
+
+    revalidatePath("/receptionist");
+    revalidatePath("/doctor");
+    revalidatePath("/handler");
+    revalidatePath("/cashier");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      message: `${updated.patient.name} has been successfully checked out.`,
+      appointment: updated,
+    };
+  } catch (err) {
+    console.error("[CheckOut Patient Error]:", err);
+    return {
+      success: false,
+      message:
+        err instanceof Error ? err.message : "Failed to check out patient.",
+    };
+  }
+}
+

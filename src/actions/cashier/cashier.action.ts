@@ -6,7 +6,6 @@ import {
   Role,
   AuditAction,
   AuditStatus,
-  AppointmentType,
 } from "@/generated/prisma/enums";
 import type {
   AppointmentWithRelations,
@@ -162,11 +161,18 @@ export async function collectPaymentAction(params: {
       return { success: false, message: "Appointment record not found." };
     }
 
+    const feeAmount = appointment.feeAmount ?? params.amount;
+    const paidAmount = params.amount;
+    const dueAmount = Math.max(0, feeAmount - paidAmount);
+    const paymentStatus = dueAmount === 0 ? "PAID" : "PARTIAL";
+
     const updated = await prisma.appointment.update({
       where: { id: params.appointmentId },
       data: {
-        feeAmount: params.amount,
-        paymentStatus: "PAID",
+        feeAmount,
+        paidAmount,
+        dueAmount,
+        paymentStatus,
         paidAt: new Date(),
         paymentMethod: params.paymentMethod,
         notes: params.notes || appointment.notes,
@@ -177,6 +183,10 @@ export async function collectPaymentAction(params: {
         room: true,
       },
     });
+
+    // Synchronize billing across Patient, Appointment, and File models
+    const { syncBillingForAppointment } = await import("@/lib/billing-sync");
+    await syncBillingForAppointment(updated.id);
 
     await logAudit({
       userId: sessionData.user.id,

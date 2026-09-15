@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { BookingType } from "@/generated/prisma/enums";
+import type { AppointmentModel } from "@/generated/prisma/models";
 
 export const bookTherapyTicketSchema = z.object({
   patientId: z.string().min(1, "Please select or register a patient."),
@@ -12,6 +13,11 @@ export const bookTherapyTicketSchema = z.object({
   toldTime: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   bookedById: z.string().trim().optional(),
+  feeAmount: z.coerce
+    .number()
+    .min(0, "Fee cannot be negative.")
+    .default(500)
+    .optional(),
 });
 
 export type BookTherapyTicketInput = z.infer<typeof bookTherapyTicketSchema>;
@@ -19,6 +25,6 @@ export type BookTherapyTicketInput = z.infer<typeof bookTherapyTicketSchema>;
 export interface TicketActionState {
   success: boolean;
   message: string;
-  appointment?: any;
+  appointment?: AppointmentModel;
   fieldErrors?: Record<string, string[]>;
 }

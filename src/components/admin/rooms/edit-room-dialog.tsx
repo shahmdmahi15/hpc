@@ -35,6 +35,8 @@ import {
   Stethoscope,
   Users,
   Globe,
+  Activity,
+  DoorOpen,
   Loader2,
   AlertCircle,
 } from "lucide-react";
@@ -48,9 +50,11 @@ interface EditRoomDialogProps {
 }
 
 const ROOM_ACCESS_OPTIONS = [
+  { value: RoomAccessType.THERAPY, label: "Therapy Room (Physical Therapy)" },
   { value: RoomAccessType.PUBLIC, label: "Public (All Visitors)" },
   { value: RoomAccessType.STAFF, label: "Staff Only" },
   { value: RoomAccessType.DOCTOR, label: "Doctor Console" },
+  { value: RoomAccessType.PRIVATE, label: "Private / VIP" },
 ] as const;
 
 const ROOM_GENDER_OPTIONS = [
@@ -254,6 +258,12 @@ function EditRoomForm({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={RoomAccessType.THERAPY}>
+                  <div className="flex items-center gap-2">
+                    <Activity className="size-3.5 text-teal-500" />
+                    <span>Therapy Room (Physical Therapy)</span>
+                  </div>
+                </SelectItem>
                 <SelectItem value={RoomAccessType.PUBLIC}>
                   <div className="flex items-center gap-2">
                     <Globe className="size-3.5 text-emerald-500" />
@@ -270,6 +280,12 @@ function EditRoomForm({
                   <div className="flex items-center gap-2">
                     <Stethoscope className="size-3.5 text-purple-500" />
                     <span>Doctor Console</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value={RoomAccessType.PRIVATE}>
+                  <div className="flex items-center gap-2">
+                    <DoorOpen className="size-3.5 text-amber-500" />
+                    <span>Private / VIP</span>
                   </div>
                 </SelectItem>
               </SelectContent>

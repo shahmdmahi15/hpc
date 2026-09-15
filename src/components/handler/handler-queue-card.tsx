@@ -18,9 +18,8 @@ import {
   Activity,
   Volume2,
   Send,
-  Sparkles,
   Stethoscope,
-  CheckCircle2,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
@@ -44,7 +43,6 @@ export function HandlerQueueCard({
   todayPlan,
   performerId,
   selectedRoomId,
-  selectedRoomNumber,
   handlers = [],
   rooms = [],
   onRefresh,
@@ -168,6 +166,13 @@ export function HandlerQueueCard({
                 {appointment.patient?.name || "Patient"}
               </h4>
 
+              {appointment.routingOrigin === "DOCTOR" && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[9.5px] font-bold">
+                  <Stethoscope className="size-2.5" />
+                  From Doctor
+                </span>
+              )}
+
               {isInTherapy && (
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-emerald-500 text-white text-[9.5px] font-bold uppercase animate-pulse">
                   <Activity className="size-2.5" />
@@ -205,6 +210,17 @@ export function HandlerQueueCard({
             </span>
           )}
         </div>
+
+        {/* Transfer Routing Note Banner */}
+        {appointment.routingNote && (
+          <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[10px] text-blue-900 dark:text-blue-200 flex items-start gap-1.5">
+            <FileText className="size-3 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <span className="font-bold mr-1">Transfer Note:</span>
+              <span className="italic">{appointment.routingNote}</span>
+            </div>
+          </div>
+        )}
 
         {/* 2. Today's Treatment Plan Pill Banner */}
         <div className="p-1.5 rounded-lg bg-muted/25 border border-border/50 space-y-1">

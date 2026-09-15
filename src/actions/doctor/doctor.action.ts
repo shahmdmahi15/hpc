@@ -24,6 +24,7 @@ import {
   getReceptionistDashboardDataAction,
 } from "@/actions/receptionist/appointment.action";
 import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
+import { syncBillingForAppointment } from "@/lib/billing-sync";
 import { revalidatePath } from "next/cache";
 
 export interface DoctorDashboardData {
@@ -339,6 +340,7 @@ export interface RoutePatientParams {
   feeAmount?: number;
   performerId?: string;
   notes?: string;
+  routingNote?: string;
   nextPlan?: {
     modalities: string[];
     instructions?: string;
@@ -487,6 +489,33 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       paymentStatus = "PENDING";
     }
 
+    // Determine routing origin
+    const routingOrigin =
+      params.destination === "HANDLER"
+        ? "DOCTOR"
+        : params.destination === "DOCTOR"
+          ? "THERAPY"
+          : appointment.routingOrigin;
+
+    const routeTime = new Date();
+    // If leaving consultation, stamp outConsultationTime
+    const outConsultationTime =
+      appointment.status === AppointmentStatus.IN_CONSULTATION ||
+      appointment.queueType === QueueType.CONSULTATION ||
+      params.destination === "HANDLER" ||
+      (routingOrigin === "DOCTOR" && !appointment.outConsultationTime)
+        ? routeTime
+        : appointment.outConsultationTime;
+
+    // If leaving therapy, stamp outTherapyTime
+    const outTherapyTime =
+      appointment.status === AppointmentStatus.IN_THERAPY ||
+      appointment.queueType === QueueType.THERAPY ||
+      params.destination === "DOCTOR" ||
+      (routingOrigin === "THERAPY" && !appointment.outTherapyTime)
+        ? routeTime
+        : appointment.outTherapyTime;
+
     // Reset willCallTime to null whenever routing to a new queue or desk
     const updated = await prisma.appointment.update({
       where: { id: params.appointmentId },
@@ -494,7 +523,21 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         status: newStatus,
         queueType: targetQueueType,
         queueId: targetQueueId,
+        routingOrigin,
+        routedAt: routeTime,
+        routingNote:
+          params.routingNote !== undefined
+            ? params.routingNote
+            : appointment.routingNote,
+        outConsultationTime,
+        outTherapyTime,
         feeAmount: feeToSet,
+        paidAmount:
+          paymentStatus === "PAID" ? feeToSet : (appointment.paidAmount ?? 0),
+        dueAmount:
+          paymentStatus === "PAID"
+            ? 0
+            : Math.max(0, feeToSet - (appointment.paidAmount ?? 0)),
         paymentStatus,
         willCallTime: null,
         roomId:
@@ -512,6 +555,9 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         queue: true,
       },
     });
+
+    // Synchronize billing across Patient, Appointment, and File models
+    await syncBillingForAppointment(updated.id);
 
     // Optionally assign next day treatment plan if provided
     if (
@@ -564,6 +610,8 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         previousStatus: appointment.status,
         newStatus,
         queueType: targetQueueType,
+        routingNote: updated.routingNote,
+        routedAt: updated.routedAt ? updated.routedAt.toISOString() : null,
       },
     });
 
@@ -575,6 +623,12 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       feeAmount: updated.feeAmount,
       paymentStatus: updated.paymentStatus,
       checkInTime: updated.checkInTime,
+      inConsultationTime: updated.inConsultationTime,
+      outConsultationTime: updated.outConsultationTime,
+      inTherapyTime: updated.inTherapyTime,
+      outTherapyTime: updated.outTherapyTime,
+      routingNote: updated.routingNote,
+      routedAt: updated.routedAt,
       willCallTime: null,
       slotId: updated.therapySlotId,
       roomId: updated.roomId,

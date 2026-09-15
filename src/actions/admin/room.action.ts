@@ -30,6 +30,8 @@ export interface RoomStats {
   publicCount: number;
   staffCount: number;
   doctorCount: number;
+  therapyCount?: number;
+  privateCount?: number;
 }
 
 export interface AdminRoomsPageData {
@@ -67,6 +69,10 @@ export async function getAdminRoomsPageDataAction(): Promise<AdminRoomsPageData>
     staffCount: rooms.filter((r) => r.accessType === RoomAccessType.STAFF)
       .length,
     doctorCount: rooms.filter((r) => r.accessType === RoomAccessType.DOCTOR)
+      .length,
+    therapyCount: rooms.filter((r) => r.accessType === RoomAccessType.THERAPY)
+      .length,
+    privateCount: rooms.filter((r) => r.accessType === RoomAccessType.PRIVATE)
       .length,
   };
 

@@ -26,12 +26,14 @@ import {
   PlayCircle,
   XCircle,
   DoorOpen,
+  LogOut,
 } from "lucide-react";
 import type { RoomModel } from "@/generated/prisma/models";
 import { toast } from "sonner";
 
 export type ReceptionistActionType =
   | "CHECK_IN"
+  | "CHECK_OUT"
   | "CANCEL"
   | "START_SERVICE"
   | "COMPLETE"
@@ -163,6 +165,16 @@ function AuthorizeReceptionistActionDialogBody({
     description = "Assign waiting queue and confirm patient arrival at clinic.";
     confirmLabel = "Confirm Check-In";
     confirmVariant = "default";
+  } else if (config.actionType === "CHECK_OUT") {
+    dialogIcon = <LogOut className="size-5" />;
+    iconContainerClass =
+      "bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400";
+    title = "Authorize Patient Check-Out";
+    description =
+      "Mark patient visit completed for the day and record check-out timestamp.";
+    confirmLabel = "Confirm Check-Out";
+    confirmVariant = "default";
+    confirmButtonClass = "bg-indigo-600 hover:bg-indigo-700 text-white";
   } else if (config.actionType === "CANCEL") {
     dialogIcon = <AlertTriangle className="size-5" />;
     iconContainerClass =

@@ -25,6 +25,8 @@ import {
   Send,
   Activity,
   CalendarCheck2,
+  User,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
@@ -175,7 +177,20 @@ export function DoctorQueueCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 flex-wrap">
+          {appointment.routingOrigin === "THERAPY" && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[9.5px] font-bold shrink-0">
+              <Activity className="size-2.5" />
+              From Therapy
+            </span>
+          )}
+          {appointment.routingOrigin === "DOCTOR" && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[9.5px] font-bold shrink-0">
+              <User className="size-2.5" />
+              From Doctor
+            </span>
+          )}
+
           {/* Status badge */}
           <span
             className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-bold border flex items-center gap-1 ${
@@ -216,6 +231,17 @@ export function DoctorQueueCard({
           </span>
         </div>
       </div>
+
+      {/* Transfer Routing Note Banner */}
+      {appointment.routingNote && (
+        <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[10px] text-purple-900 dark:text-purple-200 flex items-start gap-1.5">
+          <FileText className="size-3 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <span className="font-bold mr-1">Transfer Note:</span>
+            <span className="italic">{appointment.routingNote}</span>
+          </div>
+        </div>
+      )}
 
       {/* Middle: Phone & Time Breakdown */}
       <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground pt-0.5 border-t border-border/40">

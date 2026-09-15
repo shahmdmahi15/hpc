@@ -80,9 +80,11 @@ const STATUS_OPTIONS = [
 
 const ACCESS_OPTIONS = [
   { value: "ALL", label: "All Access" },
+  { value: RoomAccessType.THERAPY, label: "Therapy" },
   { value: RoomAccessType.PUBLIC, label: "Public" },
   { value: RoomAccessType.STAFF, label: "Staff Only" },
   { value: RoomAccessType.DOCTOR, label: "Doctor" },
+  { value: RoomAccessType.PRIVATE, label: "Private / VIP" },
 ] as const;
 
 const GENDER_OPTIONS = [

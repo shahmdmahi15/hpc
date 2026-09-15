@@ -69,8 +69,10 @@ enum AuditStatus {
 
 enum RoomAccessType {
   PUBLIC
-  STAFF
+  PRIVATE
   DOCTOR
+  STAFF
+  THERAPY
 }
 
 enum RoomGender {
@@ -320,6 +322,11 @@ model Patient {
   address        String?
   emergencyPhone String?
 
+  // Lifetime Billing Telemetry
+  totalBill      Float     @default(0)
+  totalPaid      Float     @default(0)
+  totalDue       Float     @default(0)
+
   appointments   Appointment[]
   medicalRecords MedicalRecord[]
   treatmentPlans TreatmentPlan[]
@@ -381,6 +388,8 @@ model Appointment {
 
   // Billing & Payment tracking
   feeAmount     Float?
+  paidAmount    Float?    @default(0)
+  dueAmount     Float?    @default(0)
   paymentStatus String?   @default("PENDING")
   paidAt        DateTime?
   paymentMethod String?
@@ -391,8 +400,26 @@ model Appointment {
   // Check-in timestamp (marked on the ticket booked date)
   checkInTime DateTime?
 
+  // Consultation lifecycle timestamps
+  inConsultationTime  DateTime?
+  outConsultationTime DateTime?
+
+  // Therapy lifecycle timestamps
+  inTherapyTime  DateTime?
+  outTherapyTime DateTime?
+
+  // Checkout timestamp (marked upon completing day visit)
+  checkOutTime DateTime?
+
   // Expected / will call time (e.g. "11:30 AM")
   willCallTime String?
+
+  // Routing origin tracking (e.g. "DOCTOR", "THERAPY")
+  routingOrigin String?
+
+  // Routing / Transfer Note & Timestamp
+  routingNote String?
+  routedAt    DateTime?
 
   // Queue assignment upon check-in: THERAPY or CONSULTATION
   queueId   String?
@@ -402,6 +429,10 @@ model Appointment {
   // Direct Room / Chamber assignment (e.g. Doctor consultation room or specific therapy room)
   roomId String?
   room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  // Care Episode / Medical File relation
+  medicalRecordId String?
+  medicalFile     MedicalRecord? @relation("AppointmentMedicalFile", fields: [medicalRecordId], references: [id], onDelete: SetNull)
 
   // Consultation-specific schedule (when type == CONSULTATION)
   consultationDate DateTime?
@@ -418,6 +449,7 @@ model Appointment {
   @@index([queueId])
   @@index([therapySlotId])
   @@index([patientId])
+  @@index([medicalRecordId])
   @@index([gender])
   @@index([bookingType])
   @@index([status])
@@ -486,7 +518,14 @@ model MedicalRecord {
   doctorId       String?
   doctor         Performer?   @relation(fields: [doctorId], references: [id], onDelete: SetNull)
 
-  // Metadata
+  // Metadata & Care Episode File tracking
+  fileNumber     String?   // e.g. "FILE-2026-001"
+  title          String?   // Episode Issue name e.g. "Back Pain & Knee Pain"
+  status         String?   @default("ACTIVE") // ACTIVE, RESOLVED, CLOSED
+  totalBill      Float     @default(0)
+  totalPaid      Float     @default(0)
+  totalDue       Float     @default(0)
+
   assessmentDate DateTime @default(now())
   age            Int?
   occupation     String?
@@ -536,6 +575,9 @@ model MedicalRecord {
   improvement        String?  // Doctor's improvement notes
   doctorSignature    String?  // Doctor / Therapist name or sign tag
 
+  // All session appointments conducted under this care episode file
+  fileAppointments   Appointment[] @relation("AppointmentMedicalFile")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -543,6 +585,8 @@ model MedicalRecord {
   @@index([appointmentId])
   @@index([doctorId])
   @@index([assessmentDate])
+  @@index([fileNumber])
+  @@index([status])
 }
 
 // --------------------------------------------------------
