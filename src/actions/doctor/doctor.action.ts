@@ -10,6 +10,8 @@ import {
   ExtraApprovalStatus,
   AuditAction,
   AuditStatus,
+  RoomStatus,
+  TreatmentPlanType,
 } from "@/generated/prisma/enums";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
@@ -21,6 +23,7 @@ import {
   type PatientWithCount,
   getReceptionistDashboardDataAction,
 } from "@/actions/receptionist/appointment.action";
+import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
 import { revalidatePath } from "next/cache";
 
 export interface DoctorDashboardData {
@@ -33,6 +36,7 @@ export interface DoctorDashboardData {
   stats: ReceptionistDashboardData["stats"];
   consultationQueue: AppointmentWithRelations[];
   therapyQueue: AppointmentWithRelations[];
+  todayPlansByPatientId?: Record<string, TreatmentPlanRecord>;
   activeConsultation: AppointmentWithRelations | null;
   callingAppointment: AppointmentWithRelations | null;
   completedConsultations: AppointmentWithRelations[];
@@ -40,6 +44,7 @@ export interface DoctorDashboardData {
   decidedExtraSlots: AppointmentWithRelations[];
   rooms: RoomModel[];
   doctorPerformers: PerformerModel[];
+  handlerPerformers: PerformerModel[];
   receptionistPerformers: ReceptionistDashboardData["receptionistPerformers"];
   currentDoctor: PerformerModel | null;
 }
@@ -64,13 +69,18 @@ export async function getDoctorDashboardDataAction(
   const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const targetDateStr = dateStr || todayIso;
 
-  const [receptionistData, doctorPerformers] = await Promise.all([
-    getReceptionistDashboardDataAction(targetDateStr),
-    prisma.performer.findMany({
-      where: { user: { role: Role.DOCTOR } },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const [receptionistData, doctorPerformers, handlerPerformers] =
+    await Promise.all([
+      getReceptionistDashboardDataAction(targetDateStr),
+      prisma.performer.findMany({
+        where: { user: { role: Role.DOCTOR } },
+        orderBy: { name: "asc" },
+      }),
+      prisma.performer.findMany({
+        where: { user: { role: Role.HANDLER } },
+        orderBy: { name: "asc" },
+      }),
+    ]);
 
   const appointments = receptionistData.appointments || [];
 
@@ -98,11 +108,12 @@ export async function getDoctorDashboardDataAction(
         a.status === AppointmentStatus.IN_CONSULTATION),
   );
 
-  // Therapy Queue (Checked in or In-Therapy)
+  // Therapy Queue (Checked in, Calling, or In-Therapy)
   const therapyQueue = appointments.filter(
     (a) =>
       a.queueType === QueueType.THERAPY &&
       (a.status === AppointmentStatus.CHECKED_IN ||
+        a.status === AppointmentStatus.CALLING ||
         a.status === AppointmentStatus.IN_THERAPY),
   );
 
@@ -128,6 +139,55 @@ export async function getDoctorDashboardDataAction(
         a.extraStatus === ExtraApprovalStatus.REJECTED),
   );
 
+  // Fetch today's treatment plans for all patients in therapy queue
+  const therapyPatientIds = Array.from(
+    new Set(therapyQueue.map((a) => a.patientId).filter(Boolean)),
+  ) as string[];
+
+  const activeTodayPlans =
+    therapyPatientIds.length > 0
+      ? await prisma.treatmentPlan.findMany({
+          where: {
+            patientId: { in: therapyPatientIds },
+            planType: TreatmentPlanType.TODAY,
+            isActive: true,
+          },
+          include: {
+            doctor: { select: { id: true, name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
+
+  const todayPlansByPatientId: Record<string, TreatmentPlanRecord> = {};
+  for (const plan of activeTodayPlans) {
+    if (!todayPlansByPatientId[plan.patientId]) {
+      let modalities: string[] = [];
+      try {
+        modalities =
+          typeof plan.modalities === "string"
+            ? JSON.parse(plan.modalities)
+            : [];
+      } catch {
+        modalities = [];
+      }
+      todayPlansByPatientId[plan.patientId] = {
+        id: plan.id,
+        planType: plan.planType,
+        patientId: plan.patientId,
+        appointmentId: plan.appointmentId || null,
+        doctorId: plan.doctorId || null,
+        doctorName: plan.doctor?.name || null,
+        modalities,
+        instructions: plan.instructions || null,
+        targetDate: plan.targetDate ? plan.targetDate.toISOString() : null,
+        isActive: plan.isActive,
+        createdAt: plan.createdAt.toISOString(),
+        updatedAt: plan.updatedAt.toISOString(),
+      };
+    }
+  }
+
   return {
     selectedDate: targetDateStr,
     dayOfWeek: receptionistData.dayOfWeek,
@@ -138,6 +198,7 @@ export async function getDoctorDashboardDataAction(
     stats: receptionistData.stats,
     consultationQueue,
     therapyQueue,
+    todayPlansByPatientId,
     activeConsultation,
     callingAppointment,
     completedConsultations,
@@ -145,6 +206,7 @@ export async function getDoctorDashboardDataAction(
     decidedExtraSlots,
     rooms: receptionistData.rooms,
     doctorPerformers,
+    handlerPerformers,
     receptionistPerformers: receptionistData.receptionistPerformers,
     currentDoctor,
   };
@@ -267,6 +329,372 @@ export async function reviewExtraSlotAction(params: {
       success: false,
       message:
         error instanceof Error ? error.message : "Failed to review extra slot.",
+    };
+  }
+}
+
+export interface RoutePatientParams {
+  appointmentId: string;
+  destination: "CASHIER" | "HANDLER" | "RECEPTIONIST" | "DOCTOR";
+  feeAmount?: number;
+  performerId?: string;
+  notes?: string;
+  nextPlan?: {
+    modalities: string[];
+    instructions?: string;
+    targetDate?: string;
+  };
+}
+
+/**
+ * Routes an active consultation or therapy patient to their next clinical destination:
+ * 1. CASHIER: Marks session completed, updates fee due, releases room, routes to cashier counter.
+ * 2. HANDLER: Transfers patient to Physical Therapy queue (status: CHECKED_IN, willCallTime cleared), updates fee due, releases room.
+ * 3. DOCTOR: Transfers patient to Doctor Consultation queue (status: CHECKED_IN, willCallTime cleared), updates fee due, releases room.
+ * 4. RECEPTIONIST: Marks session completed, releases room, routes back to front desk.
+ * Always resets willCallTime to null so fresh call time can be assigned.
+ */
+export async function routePatientAction(params: RoutePatientParams): Promise<{
+  success: boolean;
+  message: string;
+  appointment?: AppointmentWithRelations;
+}> {
+  try {
+    const sessionData = await requireAuth([
+      Role.DOCTOR,
+      Role.HANDLER,
+      Role.ADMIN,
+    ]);
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: params.appointmentId },
+      include: {
+        patient: true,
+        therapySlot: { include: { room: true } },
+        room: true,
+        bookedBy: true,
+        extraApprovedBy: true,
+        queue: true,
+      },
+    });
+
+    if (!appointment) {
+      return { success: false, message: "Appointment record not found." };
+    }
+
+    const feeToSet =
+      typeof params.feeAmount === "number" &&
+      !isNaN(params.feeAmount) &&
+      params.feeAmount >= 0
+        ? params.feeAmount
+        : (appointment.feeAmount ?? 500);
+
+    let newStatus = appointment.status;
+    let targetQueueType = appointment.queueType;
+    let targetQueueId = appointment.queueId;
+    let destinationLabel = "";
+
+    if (params.destination === "CASHIER") {
+      destinationLabel = "Cashier Counter";
+      newStatus = AppointmentStatus.COMPLETED;
+    } else if (params.destination === "HANDLER") {
+      destinationLabel = "Therapy Queue";
+      newStatus = AppointmentStatus.CHECKED_IN;
+      targetQueueType = QueueType.THERAPY;
+
+      // Ensure Therapy Queue record exists
+      let queueRecord = await prisma.queue.findUnique({
+        where: { type: QueueType.THERAPY },
+      });
+      if (!queueRecord) {
+        queueRecord = await prisma.queue.create({
+          data: {
+            type: QueueType.THERAPY,
+            name: "Therapy Queue",
+            description: "Queue for physical therapy patients",
+          },
+        });
+      }
+      targetQueueId = queueRecord.id;
+    } else if (params.destination === "DOCTOR") {
+      destinationLabel = "Doctor Consultation Queue";
+      newStatus = AppointmentStatus.CHECKED_IN;
+      targetQueueType = QueueType.CONSULTATION;
+
+      // Ensure Consultation Queue record exists
+      let queueRecord = await prisma.queue.findUnique({
+        where: { type: QueueType.CONSULTATION },
+      });
+      if (!queueRecord) {
+        queueRecord = await prisma.queue.create({
+          data: {
+            type: QueueType.CONSULTATION,
+            name: "Consultation Queue",
+            description: "Queue for doctor consultation patients",
+          },
+        });
+      }
+      targetQueueId = queueRecord.id;
+    } else if (params.destination === "RECEPTIONIST") {
+      destinationLabel = "Reception Desk";
+      newStatus = AppointmentStatus.COMPLETED;
+    }
+
+    // Release chamber / therapy room if currently occupying or calling
+    if (
+      appointment.roomId &&
+      (appointment.status === AppointmentStatus.IN_CONSULTATION ||
+        appointment.status === AppointmentStatus.IN_THERAPY ||
+        appointment.status === AppointmentStatus.CALLING)
+    ) {
+      const activeCount = await prisma.appointment.count({
+        where: {
+          roomId: appointment.roomId,
+          status: {
+            in: [
+              AppointmentStatus.IN_CONSULTATION,
+              AppointmentStatus.IN_THERAPY,
+              AppointmentStatus.CALLING,
+            ],
+          },
+          id: { not: appointment.id },
+        },
+      });
+
+      if (activeCount === 0) {
+        await prisma.room
+          .update({
+            where: { id: appointment.roomId },
+            data: { status: RoomStatus.AVAILABLE },
+          })
+          .catch((err) => console.error("[Release Room Error]:", err));
+
+        emitRealtimeEvent("ROOM_UPDATED", {
+          id: appointment.roomId,
+          status: RoomStatus.AVAILABLE,
+          number: appointment.room?.number || null,
+        });
+      }
+    }
+
+    // Determine payment status
+    let paymentStatus = appointment.paymentStatus || "PENDING";
+    if (
+      appointment.paymentStatus === "PAID" &&
+      feeToSet > (appointment.feeAmount ?? 0)
+    ) {
+      // Fee was increased beyond what was already paid
+      paymentStatus = "PENDING";
+    }
+
+    // Reset willCallTime to null whenever routing to a new queue or desk
+    const updated = await prisma.appointment.update({
+      where: { id: params.appointmentId },
+      data: {
+        status: newStatus,
+        queueType: targetQueueType,
+        queueId: targetQueueId,
+        feeAmount: feeToSet,
+        paymentStatus,
+        willCallTime: null,
+        roomId:
+          params.destination === "HANDLER" || params.destination === "DOCTOR"
+            ? null
+            : appointment.roomId,
+        notes: params.notes !== undefined ? params.notes : appointment.notes,
+      },
+      include: {
+        patient: true,
+        therapySlot: { include: { room: true } },
+        room: true,
+        bookedBy: true,
+        extraApprovedBy: true,
+        queue: true,
+      },
+    });
+
+    // Optionally assign next day treatment plan if provided
+    if (
+      params.nextPlan &&
+      Array.isArray(params.nextPlan.modalities) &&
+      params.nextPlan.modalities.length > 0
+    ) {
+      try {
+        await prisma.treatmentPlan.updateMany({
+          where: {
+            patientId: appointment.patientId,
+            planType: TreatmentPlanType.NEXT,
+            isActive: true,
+          },
+          data: { isActive: false },
+        });
+
+        await prisma.treatmentPlan.create({
+          data: {
+            patientId: appointment.patientId,
+            appointmentId: appointment.id,
+            planType: TreatmentPlanType.NEXT,
+            doctorId: params.performerId || null,
+            modalities: JSON.stringify(params.nextPlan.modalities),
+            instructions: params.nextPlan.instructions || null,
+            targetDate: params.nextPlan.targetDate
+              ? new Date(params.nextPlan.targetDate)
+              : null,
+            isActive: true,
+          },
+        });
+      } catch (tpErr) {
+        console.error("[Persist Next Day Plan Error]:", tpErr);
+      }
+    }
+
+    // Audit Logging
+    await logAudit({
+      userId: sessionData.user.id,
+      performerId: params.performerId || null,
+      action: AuditAction.APPOINTMENT_UPDATE,
+      entity: "Appointment",
+      entityId: updated.id,
+      status: AuditStatus.SUCCESS,
+      details: {
+        action: `PATIENT_ROUTED_TO_${params.destination}`,
+        destination: params.destination,
+        patientName: updated.patient.name,
+        feeAmount: feeToSet,
+        previousStatus: appointment.status,
+        newStatus,
+        queueType: targetQueueType,
+      },
+    });
+
+    // Real-time notification broadcast
+    emitRealtimeEvent("APPOINTMENT_UPDATED", {
+      id: updated.id,
+      status: updated.status,
+      queueType: updated.queueType,
+      feeAmount: updated.feeAmount,
+      paymentStatus: updated.paymentStatus,
+      checkInTime: updated.checkInTime,
+      willCallTime: null,
+      slotId: updated.therapySlotId,
+      roomId: updated.roomId,
+      date: updated.appointmentDate.toISOString().split("T")[0],
+    });
+
+    if (params.destination === "HANDLER") {
+      emitRealtimeEvent("SLOT_UPDATED", {
+        slotId: updated.therapySlotId || "",
+        date: updated.appointmentDate.toISOString().split("T")[0],
+      });
+    }
+
+    revalidatePath("/doctor");
+    revalidatePath("/cashier");
+    revalidatePath("/handler");
+    revalidatePath("/receptionist");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      message: `${updated.patient.name} has been routed to ${destinationLabel} with due amount ৳${feeToSet.toLocaleString()}.`,
+      appointment: updated,
+    };
+  } catch (error: unknown) {
+    console.error("[Route Patient Error]:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to route patient.",
+    };
+  }
+}
+
+/**
+ * Quick updates the fee/due amount for an appointment.
+ */
+export async function updateAppointmentFeeAction(params: {
+  appointmentId: string;
+  feeAmount: number;
+  performerId?: string;
+}): Promise<{
+  success: boolean;
+  message: string;
+  appointment?: AppointmentWithRelations;
+}> {
+  try {
+    const sessionData = await requireAuth([
+      Role.DOCTOR,
+      Role.ADMIN,
+      Role.CASHIER,
+      Role.RECEPTIONIST,
+    ]);
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: params.appointmentId },
+      include: { patient: true },
+    });
+
+    if (!appointment) {
+      return { success: false, message: "Appointment record not found." };
+    }
+
+    const updated = await prisma.appointment.update({
+      where: { id: params.appointmentId },
+      data: {
+        feeAmount: params.feeAmount,
+        paymentStatus:
+          appointment.paymentStatus === "PAID" &&
+          params.feeAmount > (appointment.feeAmount ?? 0)
+            ? "PENDING"
+            : (appointment.paymentStatus || "PENDING"),
+      },
+      include: {
+        patient: true,
+        therapySlot: { include: { room: true } },
+        room: true,
+        bookedBy: true,
+        extraApprovedBy: true,
+        queue: true,
+      },
+    });
+
+    await logAudit({
+      userId: sessionData.user.id,
+      performerId: params.performerId || null,
+      action: AuditAction.APPOINTMENT_UPDATE,
+      entity: "Appointment",
+      entityId: updated.id,
+      status: AuditStatus.SUCCESS,
+      details: {
+        action: "FEE_UPDATED",
+        previousFee: appointment.feeAmount,
+        newFee: params.feeAmount,
+        patientName: updated.patient.name,
+      },
+    });
+
+    emitRealtimeEvent("APPOINTMENT_UPDATED", {
+      id: updated.id,
+      feeAmount: updated.feeAmount,
+      paymentStatus: updated.paymentStatus,
+      date: updated.appointmentDate.toISOString().split("T")[0],
+    });
+
+    revalidatePath("/doctor");
+    revalidatePath("/cashier");
+    revalidatePath("/receptionist");
+
+    return {
+      success: true,
+      message: `Due amount updated to ৳${params.feeAmount.toLocaleString()}.`,
+      appointment: updated,
+    };
+  } catch (error: unknown) {
+    console.error("[Update Appointment Fee Error]:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to update fee amount.",
     };
   }
 }

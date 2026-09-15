@@ -150,7 +150,7 @@ export async function getPatientTreatmentPlansAction(
 export async function createTreatmentPlanAction(
   rawInput: CreateTreatmentPlanInput,
 ): Promise<TreatmentPlanActionState> {
-  const session = await requireAuth([Role.DOCTOR, Role.ADMIN]);
+  const session = await requireAuth([Role.DOCTOR, Role.HANDLER, Role.ADMIN]);
 
   const parsed = createTreatmentPlanSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -223,6 +223,7 @@ export async function createTreatmentPlanAction(
     });
 
     revalidatePath("/doctor");
+    revalidatePath("/handler");
     return {
       success: true,
       message: `${planType === TreatmentPlanType.TODAY ? "Today's" : "Next"} Treatment Plan created successfully.`,
@@ -252,7 +253,7 @@ export async function createTreatmentPlanAction(
 export async function updateTreatmentPlanAction(
   rawInput: UpdateTreatmentPlanInput,
 ): Promise<TreatmentPlanActionState> {
-  const session = await requireAuth([Role.DOCTOR, Role.ADMIN]);
+  const session = await requireAuth([Role.DOCTOR, Role.HANDLER, Role.ADMIN]);
 
   const parsed = updateTreatmentPlanSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -312,6 +313,7 @@ export async function updateTreatmentPlanAction(
     });
 
     revalidatePath("/doctor");
+    revalidatePath("/handler");
     return {
       success: true,
       message: `${existing.planType === TreatmentPlanType.TODAY ? "Today's" : "Next"} Treatment Plan updated successfully.`,

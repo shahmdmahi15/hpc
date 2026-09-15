@@ -417,23 +417,33 @@ export async function updateAppointmentStatusAction(
       },
     );
 
-    // If calling doctor into consultation room, broadcast dedicated DOCTOR_CALLED chime & banner event
+    // If calling into room (consultation or therapy), broadcast DOCTOR_CALLED chime & banner event
     if (
       newStatus === AppointmentStatus.CALLING ||
-      newStatus === AppointmentStatus.IN_CONSULTATION
+      newStatus === AppointmentStatus.IN_CONSULTATION ||
+      newStatus === AppointmentStatus.IN_THERAPY
     ) {
       emitRealtimeEvent("DOCTOR_CALLED", {
         appointmentId: updated.id,
         patientName: updated.patient.name,
         gender: updated.gender,
-        roomNumber: assignedRoomNumber || "Chamber",
-        roomPurpose: updated.room?.purpose || "Doctor Consultation",
+        roomNumber: assignedRoomNumber || "Room",
+        roomPurpose:
+          updated.room?.purpose ||
+          (updated.queueType === QueueType.THERAPY
+            ? "Physical Therapy"
+            : "Doctor Consultation"),
         timestamp: new Date().toISOString(),
       });
     }
 
-    // If patient is in consultation, mark chamber room as OCCUPIED
-    if (newStatus === AppointmentStatus.IN_CONSULTATION && updated.roomId) {
+    // If patient is calling, in consultation, or in therapy, mark room as OCCUPIED
+    if (
+      (newStatus === AppointmentStatus.IN_CONSULTATION ||
+        newStatus === AppointmentStatus.IN_THERAPY ||
+        newStatus === AppointmentStatus.CALLING) &&
+      updated.roomId
+    ) {
       await prisma.room
         .update({
           where: { id: updated.roomId },
@@ -448,7 +458,7 @@ export async function updateAppointmentStatusAction(
       });
     }
 
-    // If consultation completed or cancelled, release room back to AVAILABLE
+    // If consultation/therapy completed or cancelled, release room back to AVAILABLE
     if (
       (newStatus === AppointmentStatus.COMPLETED ||
         newStatus === AppointmentStatus.CANCELLED) &&
@@ -457,7 +467,13 @@ export async function updateAppointmentStatusAction(
       const activeOccupying = await prisma.appointment.count({
         where: {
           roomId: updated.roomId,
-          status: AppointmentStatus.IN_CONSULTATION,
+          status: {
+            in: [
+              AppointmentStatus.IN_CONSULTATION,
+              AppointmentStatus.IN_THERAPY,
+              AppointmentStatus.CALLING,
+            ],
+          },
           id: { not: updated.id },
         },
       });
@@ -1071,20 +1087,28 @@ export async function switchQueueAction(
       data: {
         queueId: queueRecord.id,
         queueType: targetQueueType,
+        willCallTime: null,
       },
       include: { patient: true, queue: true, room: true },
     });
 
-    // If appointment had occupied a chamber room and is switched away, release it back to AVAILABLE
+    // If appointment had occupied a room and is switched away, release it back to AVAILABLE
     if (
       previous?.roomId &&
-      previous.status === AppointmentStatus.IN_CONSULTATION &&
-      targetQueueType !== QueueType.CONSULTATION
+      (previous.status === AppointmentStatus.IN_CONSULTATION ||
+        previous.status === AppointmentStatus.IN_THERAPY ||
+        previous.status === AppointmentStatus.CALLING)
     ) {
       const activeCount = await prisma.appointment.count({
         where: {
           roomId: previous.roomId,
-          status: AppointmentStatus.IN_CONSULTATION,
+          status: {
+            in: [
+              AppointmentStatus.IN_CONSULTATION,
+              AppointmentStatus.IN_THERAPY,
+              AppointmentStatus.CALLING,
+            ],
+          },
           id: { not: appointmentId },
         },
       });
@@ -1120,6 +1144,7 @@ export async function switchQueueAction(
       status: updated.status,
       queueType: targetQueueType,
       checkInTime: updated.checkInTime,
+      willCallTime: null,
       date: updated.appointmentDate.toISOString().split("T")[0],
     });
 

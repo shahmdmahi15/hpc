@@ -7,6 +7,7 @@ import {
   AppointmentStatus,
   QueueType,
   BookingType,
+  TreatmentPlanType,
 } from "@/generated/prisma/enums";
 import type {
   AppointmentWithRelations,
@@ -16,12 +17,16 @@ import type {
 } from "@/actions/receptionist/appointment.action";
 import { getReceptionistDashboardDataAction } from "@/actions/receptionist/appointment.action";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
+import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
 
 export interface HandlerDashboardData {
   selectedDate: string;
   dayOfWeek: string;
   appointments: AppointmentWithRelations[];
   therapyQueue: AppointmentWithRelations[];
+  callingTherapyAppointment: AppointmentWithRelations | null;
+  activeTherapyAppointment: AppointmentWithRelations | null;
+  todayPlansByPatientId: Record<string, TreatmentPlanRecord>;
   completedTherapy: AppointmentWithRelations[];
   slots: SlotWithTelemetry[];
   patients: PatientWithCount[];
@@ -39,7 +44,9 @@ export interface HandlerDashboardData {
 
 /**
  * Loads all clinical data for the Physical Therapy Handler Desk:
- * - Therapy Queue (waiting and currently undergoing physical therapy)
+ * - Therapy Queue (waiting, calling, and currently undergoing physical therapy)
+ * - Today's prescribed treatment plans mapped by patient ID
+ * - Active in-therapy appointment and currently calling appointment
  * - Today's completed therapy sessions
  * - Slots Schedule Board with real-time capacity and ticket booking
  * - Standby Extra Slots monitoring & doctor approval status
@@ -75,13 +82,70 @@ export async function getHandlerDashboardDataAction(
     handlerPerformers[0] ||
     null;
 
-  // Therapy Queue (Checked In or currently in Therapy session)
+  // Therapy Queue (Checked In, Calling, or currently in Therapy session)
   const therapyQueue = appointments.filter(
     (a) =>
       a.queueType === QueueType.THERAPY &&
       (a.status === AppointmentStatus.CHECKED_IN ||
+        a.status === AppointmentStatus.CALLING ||
         a.status === AppointmentStatus.IN_THERAPY),
   );
+
+  // Calling & Active In-Therapy appointments
+  const callingTherapyAppointment =
+    therapyQueue.find((a) => a.status === AppointmentStatus.CALLING) || null;
+
+  const activeTherapyAppointment =
+    therapyQueue.find((a) => a.status === AppointmentStatus.IN_THERAPY) || null;
+
+  // Fetch today's treatment plans for all patients in therapy queue
+  const patientIds = Array.from(
+    new Set(therapyQueue.map((a) => a.patientId).filter(Boolean)),
+  ) as string[];
+
+  const activePlans =
+    patientIds.length > 0
+      ? await prisma.treatmentPlan.findMany({
+          where: {
+            patientId: { in: patientIds },
+            planType: TreatmentPlanType.TODAY,
+            isActive: true,
+          },
+          include: {
+            doctor: { select: { id: true, name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
+
+  const todayPlansByPatientId: Record<string, TreatmentPlanRecord> = {};
+  for (const plan of activePlans) {
+    if (!todayPlansByPatientId[plan.patientId]) {
+      let modalities: string[] = [];
+      try {
+        modalities =
+          typeof plan.modalities === "string"
+            ? JSON.parse(plan.modalities)
+            : [];
+      } catch {
+        modalities = [];
+      }
+      todayPlansByPatientId[plan.patientId] = {
+        id: plan.id,
+        planType: plan.planType,
+        patientId: plan.patientId,
+        appointmentId: plan.appointmentId || null,
+        doctorId: plan.doctorId || null,
+        doctorName: plan.doctor?.name || null,
+        modalities,
+        instructions: plan.instructions || null,
+        targetDate: plan.targetDate ? plan.targetDate.toISOString() : null,
+        isActive: plan.isActive,
+        createdAt: plan.createdAt.toISOString(),
+        updatedAt: plan.updatedAt.toISOString(),
+      };
+    }
+  }
 
   // Completed Therapy Sessions today
   const completedTherapy = appointments.filter(
@@ -108,6 +172,9 @@ export async function getHandlerDashboardDataAction(
     dayOfWeek: receptionistData.dayOfWeek,
     appointments,
     therapyQueue,
+    callingTherapyAppointment,
+    activeTherapyAppointment,
+    todayPlansByPatientId,
     completedTherapy,
     slots: receptionistData.slots,
     patients: receptionistData.patients,

@@ -8,6 +8,7 @@ import {
 import {
   updateAppointmentStatusAction,
   type PatientWithCount,
+  type AppointmentWithRelations,
 } from "@/actions/receptionist/appointment.action";
 import { AppointmentStatus, QueueType, Role } from "@/generated/prisma/enums";
 import { HandlerHeader } from "@/components/handler/handler-header";
@@ -20,6 +21,7 @@ import { CreatePatientDialog } from "@/components/receptionist/create-patient-di
 import { BookTicketDialog } from "@/components/receptionist/book-ticket-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Activity,
   Search,
@@ -28,10 +30,15 @@ import {
   Clock,
   Users,
   Play,
+  Volume2,
+  DoorOpen,
+  Send,
+  Phone,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
+import { HandlerSendPatientDialog } from "@/components/handler/handler-send-patient-dialog";
 
 interface HandlerDashboardViewProps {
   initialData: HandlerDashboardData;
@@ -55,6 +62,12 @@ export function HandlerDashboardView({
   >();
   const [preselectedPatient, setPreselectedPatient] =
     React.useState<PatientWithCount | null>(null);
+
+  // Send Patient dialog from Spotlight banner
+  const [spotlightSendAppointment, setSpotlightSendAppointment] =
+    React.useState<AppointmentWithRelations | null>(null);
+  const [isSpotlightActionLoading, setIsSpotlightActionLoading] =
+    React.useState(false);
 
   // Handler Performer identity
   const selectedHandlerId = React.useMemo(() => {
@@ -113,7 +126,9 @@ export function HandlerDashboardView({
         event.type === "APPOINTMENT_UPDATED" ||
         event.type === "APPOINTMENT_CANCELLED" ||
         event.type === "PATIENT_CREATED" ||
-        event.type === "SLOT_UPDATED"
+        event.type === "SLOT_UPDATED" ||
+        event.type === "ROOM_UPDATED" ||
+        event.type === "DOCTOR_CALLED"
       ) {
         refreshData(selectedDateRef.current);
       }
@@ -170,6 +185,33 @@ export function HandlerDashboardView({
     }
   };
 
+  // Start Calling Consultation from Spotlight Banner
+  const handleStartCallingTherapy = async () => {
+    if (!data.callingTherapyAppointment) return;
+    setIsSpotlightActionLoading(true);
+    try {
+      const res = await updateAppointmentStatusAction(
+        data.callingTherapyAppointment.id,
+        AppointmentStatus.IN_THERAPY,
+        selectedHandlerId,
+        QueueType.THERAPY,
+        data.callingTherapyAppointment.roomId || selectedRoomId,
+      );
+      if (res.success) {
+        toast.success(
+          `Therapy session started for ${data.callingTherapyAppointment.patient?.name || "Patient"}.`,
+        );
+        refreshData(selectedDate);
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to start therapy session.");
+    } finally {
+      setIsSpotlightActionLoading(false);
+    }
+  };
+
   // Cancel Ticket from schedule board
   const handleCancelAppointment = async (appointmentId: string) => {
     try {
@@ -205,6 +247,12 @@ export function HandlerDashboardView({
     (a) => a.status === AppointmentStatus.IN_THERAPY,
   ).length;
 
+  const callingApt = data.callingTherapyAppointment;
+  const activeApt = data.activeTherapyAppointment;
+  const activePlan = activeApt
+    ? data.todayPlansByPatientId?.[activeApt.patientId]
+    : null;
+
   return (
     <div className="min-h-screen w-full flex flex-col bg-background text-foreground selection:bg-emerald-500/20">
       {/* 1. Full-Width Handler Header */}
@@ -215,121 +263,265 @@ export function HandlerDashboardView({
 
       {/* 2. Main Workspace */}
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
-        {/* Top Control Bar: Search & Status Badges */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-card/60 backdrop-blur-xl p-2 px-3 rounded-xl border border-border/80 shadow-xs">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search therapy queue by name or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-7.5 text-xs rounded-lg bg-background border-border/80 focus-visible:ring-emerald-500"
+        {/* Top Control Bar: Date Selector, Search & Status Indicators */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 bg-card/60 backdrop-blur-xl p-2.5 px-3 rounded-xl border border-border/80 shadow-xs">
+          {/* Left: Date Navigator & Live Search */}
+          <div className="flex flex-wrap items-center gap-2 flex-1">
+            <DashboardDateSelector
+              selectedDate={selectedDate}
+              dayOfWeek={data.dayOfWeek}
+              onSelectDate={handleSelectDate}
+              onRefresh={() => refreshData(selectedDate)}
+              isRefreshing={isPending}
             />
+
+            {/* Live Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search therapy queue by name or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-xs rounded-lg bg-background border-border/80 focus-visible:ring-emerald-500"
+              />
+            </div>
           </div>
 
+          {/* Right: Status Badges */}
           <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
-              <Activity className="size-3" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+              <Activity className="size-3.5" />
               <span>Therapy Waiting: {data.therapyQueue.length}</span>
             </div>
 
             {inTherapyCount > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-700 dark:text-sky-300 font-bold text-[11px] animate-pulse">
-                <Play className="size-3" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-700 dark:text-sky-300 font-bold text-[11px] animate-pulse">
+                <Play className="size-3.5" />
                 <span>In Therapy: {inTherapyCount}</span>
               </div>
             )}
 
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[11px]">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[11px]">
               <CheckCircle2 className="size-3 text-emerald-500" />
               <span>Completed Today: {data.completedTherapy.length}</span>
             </div>
 
             {data.pendingExtraSlots.length > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[11px] animate-pulse">
-                <AlertCircle className="size-3" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[11px] animate-pulse">
+                <AlertCircle className="size-3.5" />
                 <span>Extra Standby: {data.pendingExtraSlots.length}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Tabs for Handler Desk Navigation */}
-        <Tabs defaultValue="queue" className="w-full space-y-2.5">
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 pb-1 border-b border-border/50">
-            <div className="flex flex-wrap items-center gap-2">
-              <DashboardDateSelector
-                selectedDate={selectedDate}
-                dayOfWeek={data.dayOfWeek}
-                onSelectDate={handleSelectDate}
-                onRefresh={() => refreshData(selectedDate)}
-                isRefreshing={isPending}
-              />
-
-              <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
-                <TabsTrigger
-                  value="queue"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <Activity className="size-3 text-emerald-500" />
-                  <span>Therapy Queue</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
-                    {data.therapyQueue.length}
+        {/* Calling Spotlight Banner (If a patient is being called into a public therapy room) */}
+        {callingApt && (
+          <div className="relative overflow-hidden rounded-xl border border-amber-500/50 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-emerald-500/10 p-3 px-4 shadow-sm backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10.5px] font-black uppercase tracking-wider shadow-xs animate-pulse">
+                    <span className="size-1.5 rounded-full bg-white" />
+                    Calling To Therapy Room
                   </span>
-                </TabsTrigger>
 
-                <TabsTrigger
-                  value="booking"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <Clock className="size-3 text-primary" />
-                  <span>Book Slots</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                    {data.slots.length}
-                  </span>
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="extra-slots"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <AlertCircle className="size-3 text-amber-500" />
-                  <span>Extra Slots</span>
-                  {data.extraSlots.length > 0 ? (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold">
-                      {data.extraSlots.length}
-                    </span>
-                  ) : (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
-                      0
+                  {(callingApt.room?.number ||
+                    callingApt.therapySlot?.room?.number) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-md bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30 text-[11px] font-bold font-mono">
+                      <DoorOpen className="size-3" />
+                      <span>
+                        Room{" "}
+                        {callingApt.room?.number ||
+                          callingApt.therapySlot?.room?.number}
+                      </span>
                     </span>
                   )}
-                </TabsTrigger>
+                </div>
 
-                <TabsTrigger
-                  value="patients"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <Users className="size-3 text-indigo-500" />
-                  <span>Patients</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
-                    {data.patients.length}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground">
+                    {callingApt.patient?.name || "Patient"}
+                  </h2>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-muted text-muted-foreground border border-border">
+                    {callingApt.gender === "MALE" ? "Male" : "Female"}
                   </span>
-                </TabsTrigger>
+                  <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                    <Phone className="size-2.5 opacity-60" />
+                    <span>{callingApt.patient?.phone || "No phone"}</span>
+                  </span>
+                  <span className="text-muted-foreground text-xs">•</span>
+                  <span className="text-xs text-amber-700 dark:text-amber-300 font-semibold">
+                    Announced on TV screens. When patient arrives in therapy
+                    room, click Mark In Therapy.
+                  </span>
+                </div>
+              </div>
 
-                <TabsTrigger
-                  value="completed"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap">
+                <Button
+                  size="sm"
+                  onClick={handleStartCallingTherapy}
+                  disabled={isSpotlightActionLoading}
+                  className="h-7.5 px-3 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer gap-1.5"
                 >
-                  <CheckCircle2 className="size-3 text-primary" />
-                  <span>Completed Today</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                    {data.completedTherapy.length}
-                  </span>
-                </TabsTrigger>
-              </TabsList>
+                  <Play className="size-3.5" />
+                  <span>Mark In Therapy</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSpotlightSendAppointment(callingApt)}
+                  className="h-7.5 px-2.5 text-xs font-semibold border-border cursor-pointer gap-1"
+                >
+                  <Send className="size-3" />
+                  <span>Send Patient</span>
+                </Button>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Active In-Therapy Spotlight Banner */}
+        {activeApt && (
+          <div className="relative overflow-hidden rounded-xl border border-emerald-500/50 bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-sky-500/10 p-3 px-4 shadow-sm backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10.5px] font-black uppercase tracking-wider shadow-xs">
+                    <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                    Now In Therapy
+                  </span>
+
+                  {(activeApt.room?.number ||
+                    activeApt.therapySlot?.room?.number) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-md bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30 text-[11px] font-bold font-mono">
+                      <DoorOpen className="size-3" />
+                      <span>
+                        Room{" "}
+                        {activeApt.room?.number ||
+                          activeApt.therapySlot?.room?.number}
+                      </span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground">
+                    {activeApt.patient?.name || "Patient"}
+                  </h2>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-muted text-muted-foreground border border-border">
+                    {activeApt.gender === "MALE" ? "Male" : "Female"}
+                  </span>
+                  <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                    <Phone className="size-2.5 opacity-60" />
+                    <span>{activeApt.patient?.phone || "No phone"}</span>
+                  </span>
+                  {activePlan && activePlan.modalities.length > 0 && (
+                    <>
+                      <span className="text-muted-foreground text-xs">•</span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {activePlan.modalities.slice(0, 4).map((m, i) => (
+                          <span
+                            key={i}
+                            className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-900 dark:text-emerald-100 text-[10px] font-bold"
+                          >
+                            {m}
+                          </span>
+                        ))}
+                        {activePlan.modalities.length > 4 && (
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            +{activePlan.modalities.length - 4} more
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* In-Therapy Actions */}
+              <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap">
+                <Button
+                  size="sm"
+                  onClick={() => setSpotlightSendAppointment(activeApt)}
+                  className="h-7.5 px-3 rounded-lg font-bold text-xs bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer gap-1.5"
+                >
+                  <Send className="size-3.5" />
+                  <span>Send Patient</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tabs for Handler Desk Navigation */}
+        <Tabs defaultValue="queue" className="w-full space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
+            <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
+              <TabsTrigger
+                value="queue"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <Activity className="size-3 text-emerald-500" />
+                <span>Therapy Queue</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
+                  {data.therapyQueue.length}
+                </span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="booking"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <Clock className="size-3 text-primary" />
+                <span>Book Slots</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                  {data.slots.length}
+                </span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="extra-slots"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <AlertCircle className="size-3 text-amber-500" />
+                <span>Extra Slots</span>
+                {data.extraSlots.length > 0 ? (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold">
+                    {data.extraSlots.length}
+                  </span>
+                ) : (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
+                    0
+                  </span>
+                )}
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="patients"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <Users className="size-3 text-indigo-500" />
+                <span>Patients</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
+                  {data.patients.length}
+                </span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="completed"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+              >
+                <CheckCircle2 className="size-3 text-primary" />
+                <span>Completed Today</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                  {data.completedTherapy.length}
+                </span>
+              </TabsTrigger>
+            </TabsList>
           </div>
 
           {/* 1. Therapy Queue Tab */}
@@ -354,9 +546,14 @@ export function HandlerDashboardView({
                   <HandlerQueueCard
                     key={appointment.id}
                     appointment={appointment}
+                    todayPlan={
+                      data.todayPlansByPatientId?.[appointment.patientId]
+                    }
                     performerId={selectedHandlerId}
                     selectedRoomId={selectedRoomId}
                     selectedRoomNumber={selectedRoom?.number}
+                    handlers={data.handlerPerformers}
+                    rooms={data.rooms}
                     onRefresh={() => refreshData(selectedDate)}
                   />
                 ))}
@@ -501,6 +698,28 @@ export function HandlerDashboardView({
         onOpenRegisterPatient={() => {
           setIsBookTicketOpen(false);
           setIsNewPatientOpen(true);
+        }}
+      />
+
+      {/* 4. Global Send Patient Dialog (from Spotlight Banners) */}
+      <HandlerSendPatientDialog
+        isOpen={Boolean(spotlightSendAppointment)}
+        onOpenChange={(open) => {
+          if (!open) setSpotlightSendAppointment(null);
+        }}
+        appointment={spotlightSendAppointment}
+        todayPlan={
+          spotlightSendAppointment
+            ? data.todayPlansByPatientId?.[
+                spotlightSendAppointment.patientId
+              ]
+            : null
+        }
+        handlers={data.handlerPerformers}
+        defaultHandlerId={selectedHandlerId}
+        onSuccess={() => {
+          setSpotlightSendAppointment(null);
+          refreshData(selectedDate);
         }}
       />
     </div>

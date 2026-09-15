@@ -7,7 +7,6 @@ import {
 } from "@/actions/doctor/doctor.action";
 import {
   updateAppointmentStatusAction,
-  switchQueueAction,
   type PatientWithCount,
 } from "@/actions/receptionist/appointment.action";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/generated/prisma/enums";
 import { DoctorHeader } from "@/components/doctor/doctor-header";
 import { DoctorQueueCard } from "@/components/doctor/doctor-queue-card";
+import { HandlerQueueCard } from "@/components/handler/handler-queue-card";
 import { SlotScheduleBoard } from "@/components/receptionist/slot-schedule-board";
 import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
 import { PatientDirectoryView } from "@/components/receptionist/patient-directory-view";
@@ -269,53 +269,6 @@ export function DoctorDashboardView({
     }
   };
 
-  // Complete Active Consultation Session
-  const handleCompleteActiveSession = async () => {
-    if (!activeConsultation) return;
-    setIsFinishingSession(true);
-    try {
-      const res = await updateAppointmentStatusAction(
-        activeConsultation.id,
-        AppointmentStatus.COMPLETED,
-        selectedDoctorId,
-        QueueType.CONSULTATION,
-      );
-      if (res.success) {
-        toast.success(
-          `Consultation completed for ${activeConsultation.patient?.name}.`,
-        );
-        refreshData(selectedDate);
-      } else {
-        toast.error(res.message);
-      }
-    } finally {
-      setIsFinishingSession(false);
-    }
-  };
-
-  // Transfer Active Consultation to Therapy
-  const handleTransferActiveToTherapy = async () => {
-    if (!activeConsultation) return;
-    setIsFinishingSession(true);
-    try {
-      const res = await switchQueueAction(
-        activeConsultation.id,
-        QueueType.THERAPY,
-        selectedDoctorId,
-      );
-      if (res.success) {
-        toast.success(
-          `${activeConsultation.patient?.name} transferred to Therapy Queue.`,
-        );
-        refreshData(selectedDate);
-      } else {
-        toast.error(res.message);
-      }
-    } finally {
-      setIsFinishingSession(false);
-    }
-  };
-
   return (
     <div className="min-h-screen w-full flex flex-col bg-background text-foreground selection:bg-sky-500/20">
       {/* 1. Full-Width Doctor Header (NO SIDEBAR) */}
@@ -505,33 +458,46 @@ export function DoctorDashboardView({
           </div>
         )}
 
-        {/* Top Control Bar: Search & Counts */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-card/60 backdrop-blur-xl p-2 px-3 rounded-xl border border-border/80 shadow-xs">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search by patient name or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-7.5 text-xs rounded-lg bg-background border-border/80 focus-visible:ring-sky-500"
+        {/* Top Control Bar: Date Selector, Search & Status Badges */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 bg-card/60 backdrop-blur-xl p-2.5 px-3 rounded-xl border border-border/80 shadow-xs">
+          {/* Left: Date Navigator & Live Search */}
+          <div className="flex flex-wrap items-center gap-2 flex-1">
+            <DashboardDateSelector
+              selectedDate={selectedDate}
+              dayOfWeek={data.dayOfWeek}
+              onSelectDate={handleSelectDate}
+              onRefresh={() => refreshData(selectedDate)}
+              isRefreshing={isPending}
             />
+
+            {/* Live Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search queue by patient name or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-xs rounded-lg bg-background border-border/80 focus-visible:ring-sky-500"
+              />
+            </div>
           </div>
 
+          {/* Right: Status Badges */}
           <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 font-bold text-[11px]">
-              <Stethoscope className="size-3" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 font-bold text-[11px]">
+              <Stethoscope className="size-3.5" />
               <span>Consultation Waiting: {data.consultationQueue.length}</span>
             </div>
 
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
-              <CheckCircle2 className="size-3" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+              <CheckCircle2 className="size-3.5" />
               <span>Completed: {data.completedConsultations.length}</span>
             </div>
 
             {data.pendingExtraSlots.length > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[11px] animate-pulse">
-                <AlertCircle className="size-3" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[11px] animate-pulse">
+                <AlertCircle className="size-3.5" />
                 <span>Extra Requests: {data.pendingExtraSlots.length}</span>
               </div>
             )}
@@ -540,19 +506,10 @@ export function DoctorDashboardView({
 
         {/* Tabs for Doctor Navigation */}
         <Tabs defaultValue="consultation" className="w-full space-y-2.5">
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 pb-1 border-b border-border/50">
-            <div className="flex flex-wrap items-center gap-2">
-              <DashboardDateSelector
-                selectedDate={selectedDate}
-                dayOfWeek={data.dayOfWeek}
-                onSelectDate={handleSelectDate}
-                onRefresh={() => refreshData(selectedDate)}
-                isRefreshing={isPending}
-              />
-
-              <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
-                <TabsTrigger
-                  value="consultation"
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
+            <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
+              <TabsTrigger
+                value="consultation"
                   className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
                 >
                   <Stethoscope className="size-3 text-sky-500" />
@@ -624,7 +581,6 @@ export function DoctorDashboardView({
                 </TabsTrigger>
               </TabsList>
             </div>
-          </div>
 
           {/* 1. Consultation Queue Tab */}
           <TabsContent value="consultation" className="space-y-2 outline-none">
@@ -676,14 +632,17 @@ export function DoctorDashboardView({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
                 {filteredTherapyQueue.map((appointment) => (
-                  <DoctorQueueCard
+                  <HandlerQueueCard
                     key={appointment.id}
                     appointment={appointment}
+                    todayPlan={
+                      data.todayPlansByPatientId?.[appointment.patientId]
+                    }
                     performerId={selectedDoctorId}
                     selectedRoomId={selectedRoomId}
                     selectedRoomNumber={selectedRoom?.number}
+                    handlers={data.handlerPerformers || []}
                     rooms={data.rooms}
-                    doctors={data.doctorPerformers}
                     onRefresh={() => refreshData(selectedDate)}
                   />
                 ))}
@@ -858,9 +817,12 @@ export function DoctorDashboardView({
         isOpen={isSendPatientOpen}
         onOpenChange={setIsSendPatientOpen}
         appointment={activeConsultation}
+        doctorId={selectedDoctorId}
         onSuccess={() => refreshData(selectedDate)}
-        onComplete={handleCompleteActiveSession}
-        onTransferToTherapy={handleTransferActiveToTherapy}
+        onOpenTreatmentPlan={(tab) => {
+          setTreatmentPlanTab(tab);
+          setIsTreatmentPlanOpen(true);
+        }}
       />
 
       {/* 6. Treatment Plan Dialog */}

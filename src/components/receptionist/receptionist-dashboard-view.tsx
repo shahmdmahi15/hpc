@@ -27,8 +27,9 @@ import {
 import { QueueManagementTab } from "@/components/receptionist/queue-management-tab";
 import { AddToQueueDialog } from "@/components/receptionist/add-to-queue-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, UserPlus, Ticket, Activity, Plus } from "lucide-react";
+import { Clock, Users, UserPlus, Ticket, Activity, Plus, Search } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
@@ -79,6 +80,20 @@ export function ReceptionistDashboardView({
         a.status === AppointmentStatus.IN_CONSULTATION,
     ).length;
   }, [data.appointments]);
+
+  // Search filter
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const filteredAppointments = React.useMemo(() => {
+    if (!searchQuery.trim()) return data.appointments || [];
+    const q = searchQuery.toLowerCase().trim();
+    return (data.appointments || []).filter((a) => {
+      const pName = (a.patient?.name || "").toLowerCase();
+      const pPhone = (a.patient?.phone || "").toLowerCase();
+      const mrn = (a.patient?.mrn || "").toLowerCase();
+      return pName.includes(q) || pPhone.includes(q) || mrn.includes(q);
+    });
+  }, [data.appointments, searchQuery]);
 
   // Transitions & Refresh
   const [isPending, startTransition] = React.useTransition();
@@ -293,24 +308,59 @@ export function ReceptionistDashboardView({
         currentUserRole={currentUserRole}
       />
 
-      {/* 2. Main Desk Workspace with Shadcn Tabs */}
-      <main className="flex-1 p-2.5 sm:p-4 max-w-[1600px] w-full mx-auto space-y-3">
-        <Tabs defaultValue="slots" className="w-full space-y-3">
-          {/* Tabs Navigation & Quick Actions Bar */}
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 pb-1.5 border-b border-border/50">
-            <div className="flex flex-wrap items-center gap-2">
-              <DashboardDateSelector
-                selectedDate={selectedDate}
-                dayOfWeek={data.dayOfWeek}
-                onSelectDate={handleSelectDate}
-                onRefresh={() => refreshData(selectedDate)}
-                isRefreshing={isPending}
-              />
+      {/* 2. Main Desk Workspace */}
+      <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
+        {/* Top Control Bar: Date Selector, Search & Live Desk Badges */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 bg-card/60 backdrop-blur-xl p-2.5 px-3 rounded-xl border border-border/80 shadow-xs">
+          {/* Left: Date Navigator & Live Search */}
+          <div className="flex flex-wrap items-center gap-2 flex-1">
+            <DashboardDateSelector
+              selectedDate={selectedDate}
+              dayOfWeek={data.dayOfWeek}
+              onSelectDate={handleSelectDate}
+              onRefresh={() => refreshData(selectedDate)}
+              isRefreshing={isPending}
+            />
 
-              <TabsList className="h-8.5 p-0.5 bg-muted/60 border border-border/70 rounded-lg">
+            {/* Live Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search queue by patient, phone, ticket..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-xs rounded-lg bg-background border-border/80 focus-visible:ring-primary"
+              />
+            </div>
+          </div>
+
+          {/* Right: Desk Badges */}
+          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
+              <Activity className="size-3.5" />
+              <span>Live Queue: {activeQueueCount}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 font-bold text-[11px]">
+              <Clock className="size-3.5" />
+              <span>Therapy Slots: {data.slots.length}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[11px]">
+              <Users className="size-3.5 text-indigo-500" />
+              <span>Patients: {data.totalPatientsCount}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs for Receptionist Desk Navigation */}
+        <Tabs defaultValue="slots" className="w-full space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
+            <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
               <TabsTrigger
                 value="slots"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-active:bg-background data-active:text-primary data-active:shadow-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
               >
                 <Clock className="size-3.5" />
                 <span>Therapy Slots</span>
@@ -321,7 +371,7 @@ export function ReceptionistDashboardView({
 
               <TabsTrigger
                 value="queue"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-active:bg-background data-active:text-primary data-active:shadow-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
               >
                 <Activity className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Live Queue</span>
@@ -332,7 +382,7 @@ export function ReceptionistDashboardView({
 
               <TabsTrigger
                 value="patients"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-active:bg-background data-active:text-primary data-active:shadow-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
               >
                 <Users className="size-3.5" />
                 <span>Directory</span>
@@ -341,7 +391,6 @@ export function ReceptionistDashboardView({
                 </span>
               </TabsTrigger>
             </TabsList>
-            </div>
 
             {/* Contextual Actions Bar */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -403,7 +452,7 @@ export function ReceptionistDashboardView({
             className="outline-none focus:outline-none space-y-6 m-0"
           >
             <QueueManagementTab
-              appointments={data.appointments || []}
+              appointments={filteredAppointments}
               performers={data.receptionistPerformers}
               rooms={data.rooms || []}
               lastPerformerId={lastPerformerId}

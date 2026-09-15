@@ -5,9 +5,8 @@ import type { AppointmentWithRelations } from "@/actions/receptionist/appointmen
 import {
   updateAppointmentStatusAction,
   updateAppointmentWillCallTimeAction,
-  switchQueueAction,
 } from "@/actions/receptionist/appointment.action";
-import { AppointmentStatus, QueueType } from "@/generated/prisma/enums";
+import { AppointmentStatus } from "@/generated/prisma/enums";
 import { evaluatePunctuality, formatTime12h } from "@/lib/queue-punctuality";
 import { Button } from "@/components/ui/button";
 import {
@@ -110,51 +109,6 @@ export function DoctorQueueCard({
     const h12 = hours % 12 || 12;
     const mStr = String(minutes).padStart(2, "0");
     setCallTimeInput(`${h12}:${mStr} ${ampm}`);
-  };
-
-  // Complete consultation
-  const handleCompleteConsultation = async () => {
-    setIsActionLoading(true);
-    try {
-      const res = await updateAppointmentStatusAction(
-        appointment.id,
-        AppointmentStatus.COMPLETED,
-        performerId,
-        QueueType.CONSULTATION,
-      );
-      if (res.success) {
-        toast.success(
-          `Consultation completed for ${appointment.patient?.name}.`,
-        );
-        onRefresh();
-      } else {
-        toast.error(res.message);
-      }
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  // Transfer to Therapy Queue
-  const handleTransferToTherapy = async () => {
-    setIsActionLoading(true);
-    try {
-      const res = await switchQueueAction(
-        appointment.id,
-        QueueType.THERAPY,
-        performerId,
-      );
-      if (res.success) {
-        toast.success(
-          `${appointment.patient?.name} transferred to Therapy Queue.`,
-        );
-        onRefresh();
-      } else {
-        toast.error(res.message);
-      }
-    } finally {
-      setIsActionLoading(false);
-    }
   };
 
   const handleStartConsultation = async () => {
@@ -531,9 +485,12 @@ export function DoctorQueueCard({
         isOpen={isSendDialogOpen}
         onOpenChange={setIsSendDialogOpen}
         appointment={appointment}
+        doctorId={performerId}
         onSuccess={onRefresh}
-        onComplete={handleCompleteConsultation}
-        onTransferToTherapy={handleTransferToTherapy}
+        onOpenTreatmentPlan={(tab) => {
+          setTreatmentPlanTab(tab);
+          setIsTreatmentPlanOpen(true);
+        }}
       />
 
       {/* Treatment Plan Dialog */}
