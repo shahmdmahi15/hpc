@@ -31,6 +31,7 @@ import {
   Check,
   FileText,
   Timer,
+  KeyRound,
 } from "lucide-react";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import type { PerformerModel } from "@/generated/prisma/models";
@@ -136,6 +137,7 @@ function HandlerSendPatientDialogContent({
 
   const [selectedHandlerId, setSelectedHandlerId] =
     React.useState<string>(initialHandlerId);
+  const [handlerPin, setHandlerPin] = React.useState<string>("");
 
   // Synchronize handler selection if handlers prop updates or has 1 handler
   const [prevHandlers, setPrevHandlers] = React.useState(handlers);
@@ -234,11 +236,17 @@ function HandlerSendPatientDialogContent({
         selectedHandlerId ||
         (handlers.length === 1 ? handlers[0].id : undefined);
 
+      if (effectivePerformerId && handlers.length > 0 && !handlerPin) {
+        toast.error("Please enter your 4-digit Therapist PIN.");
+        return;
+      }
+
       const res = await routePatientAction({
         appointmentId: appointment.id,
         destination,
         feeAmount: Number(dueAmount),
         performerId: effectivePerformerId,
+        pin: handlerPin || undefined,
         routingNote: routingNote.trim() || undefined,
         nextPlan: nextPlanData,
       });
@@ -447,6 +455,32 @@ function HandlerSendPatientDialogContent({
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Handler Performer PIN Code */}
+          {handlers.length > 0 && (
+            <div className="space-y-1.5 p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 mt-2">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                  <KeyRound className="size-3.5 text-emerald-500" />
+                  <span>Therapist 4-Digit PIN</span>
+                </label>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  Required for desk verification
+                </span>
+              </div>
+              <Input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="Enter your 4-digit PIN"
+                value={handlerPin}
+                onChange={(e) =>
+                  setHandlerPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                }
+                className="font-mono text-center tracking-widest text-base font-bold h-9 bg-background"
+              />
             </div>
           )}
         </div>

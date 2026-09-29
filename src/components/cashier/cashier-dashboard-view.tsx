@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
+import type { CashierDashboardData } from "@/actions/cashier/cashier.action";
 import {
-  type CashierDashboardData,
   getCashierDashboardDataAction,
   collectPaymentAction,
 } from "@/actions/cashier/cashier.action";
@@ -10,11 +10,11 @@ import {
   DEFAULT_FEE,
   QUICK_BILLING_PRESETS,
 } from "@/lib/billing";
-import {
-  type AppointmentWithRelations,
-  type PatientWithCount,
-  updateAppointmentStatusAction,
+import type {
+  AppointmentWithRelations,
+  PatientWithCount,
 } from "@/actions/receptionist/appointment.action";
+import { updateAppointmentStatusAction } from "@/actions/receptionist/appointment.action";
 import {
   AppointmentStatus,
   AppointmentType,
@@ -26,6 +26,7 @@ import { SlotScheduleBoard } from "@/components/receptionist/slot-schedule-board
 import { PatientDirectoryView } from "@/components/receptionist/patient-directory-view";
 import { CreatePatientDialog } from "@/components/receptionist/create-patient-dialog";
 import { BookTicketDialog } from "@/components/receptionist/book-ticket-dialog";
+import { ThermalReceiptDialog } from "@/components/print/thermal-receipt-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,10 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCw,
+  Calculator,
+  KeyRound,
 } from "lucide-react";
+import { CashDrawerCloseoutDialog } from "@/components/cashier/cash-drawer-closeout-dialog";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
@@ -86,11 +90,13 @@ export function CashierDashboardView({
     "CASH" | "CARD" | "MFS"
   >("CASH");
   const [paymentNotes, setPaymentNotes] = React.useState<string>("");
+  const [cashierPin, setCashierPin] = React.useState<string>("");
   const [isSubmittingPayment, setIsSubmittingPayment] = React.useState(false);
 
   // Receipt modal state after payment
   const [receiptAppointment, setReceiptAppointment] =
     React.useState<AppointmentWithRelations | null>(null);
+  const [isCloseoutOpen, setIsCloseoutOpen] = React.useState(false);
 
   // Dialogs for booking & patients
   const [isNewPatientOpen, setIsNewPatientOpen] = React.useState(false);
@@ -246,6 +252,7 @@ export function CashierDashboardView({
     setPaymentAmount(initialFee);
     setPaymentMethod("CASH");
     setPaymentNotes("");
+    setCashierPin("");
   };
 
   // Submit payment
@@ -256,6 +263,11 @@ export function CashierDashboardView({
       return;
     }
 
+    if (currentCashierId && initialData.cashierPerformers.length > 0 && !cashierPin) {
+      toast.error("Please enter your 4-digit Cashier PIN.");
+      return;
+    }
+
     setIsSubmittingPayment(true);
     try {
       const res = await collectPaymentAction({
@@ -263,6 +275,7 @@ export function CashierDashboardView({
         amount: paymentAmount,
         paymentMethod,
         performerId: currentCashierId || undefined,
+        pin: cashierPin || undefined,
         notes: paymentNotes.trim() || undefined,
       });
 
@@ -403,6 +416,18 @@ export function CashierDashboardView({
                 ৳{data.billingStats.mfsCollected}
               </span>
             </div>
+
+            {/* Daily Shift Closeout Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsCloseoutOpen(true)}
+              className="h-7.5 px-2.5 text-xs font-bold gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer shadow-2xs"
+              title="Daily Shift Register Closeout & Cash Count"
+            >
+              <Calculator className="size-3.5 text-amber-500" />
+              <span>Shift Closeout</span>
+            </Button>
           </div>
         </div>
 
@@ -802,6 +827,32 @@ export function CashierDashboardView({
                 </div>
               ) : null}
 
+              {/* Cashier Performer PIN Code */}
+              {initialData.cashierPerformers.length > 0 && (
+                <div className="space-y-1.5 p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                      <KeyRound className="size-3.5 text-amber-500" />
+                      <span>Authorizing Cashier 4-Digit PIN</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      Required for desk verification
+                    </span>
+                  </div>
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="Enter your 4-digit PIN"
+                    value={cashierPin}
+                    onChange={(e) =>
+                      setCashierPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                    }
+                    className="font-mono text-center tracking-widest text-base font-bold h-9 bg-background"
+                  />
+                </div>
+              )}
+
               {/* Amount Selection & Presets */}
               <div className="space-y-1.5">
                 <label className="font-semibold text-foreground text-xs">
@@ -933,92 +984,24 @@ export function CashierDashboardView({
         </DialogContent>
       </Dialog>
 
-      {/* Receipt Dialog */}
-      <Dialog
-        open={Boolean(receiptAppointment)}
+      {/* Professional Thermal POS Receipt Dialog */}
+      <ThermalReceiptDialog
+        isOpen={Boolean(receiptAppointment)}
         onOpenChange={(open) => {
           if (!open) setReceiptAppointment(null);
         }}
-      >
-        <DialogContent className="w-[95vw] sm:max-w-md md:max-w-lg p-5 space-y-4 rounded-2xl shadow-2xl border-border/80">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Receipt className="size-4 text-emerald-500" />
-                <span>Payment Receipt</span>
-              </span>
-              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px]">
-                PAID
-              </Badge>
-            </DialogTitle>
-          </DialogHeader>
+        appointment={receiptAppointment}
+        cashierName={data.currentCashier?.name || "Cashier Desk"}
+      />
 
-          {receiptAppointment && (
-            <div className="p-3 rounded-lg border border-border/80 bg-muted/20 space-y-2 text-xs font-mono">
-              <div className="text-center pb-2 border-b border-border/60">
-                <div className="font-bold text-sm text-foreground font-sans">
-                  Health &amp; Pain Care Center
-                </div>
-                <div className="text-[10px] text-muted-foreground font-sans">
-                  Official Patient Billing Receipt
-                </div>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Ticket:</span>
-                <span className="font-bold text-foreground">
-                  #{receiptAppointment.id.slice(-4).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Patient:</span>
-                <span className="font-bold text-foreground font-sans">
-                  {receiptAppointment.patient?.name || "Patient"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Phone:</span>
-                <span>{receiptAppointment.patient?.phone || "---"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Service:</span>
-                <span>{receiptAppointment.type}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Payment Method:</span>
-                <span>{receiptAppointment.paymentMethod || "CASH"}</span>
-              </div>
-              <div className="flex justify-between pt-1.5 border-t border-border/60 text-sm font-bold">
-                <span>Amount Paid:</span>
-                <span className="text-emerald-600 dark:text-emerald-400">
-                  ৳{receiptAppointment.feeAmount ?? paymentAmount}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="pt-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (typeof window !== "undefined") window.print();
-              }}
-              className="h-8 text-xs gap-1.5"
-            >
-              <Printer className="size-3.5" />
-              <span>Print</span>
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setReceiptAppointment(null)}
-              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Daily Shift Closeout & Drawer Reconcile Modal */}
+      <CashDrawerCloseoutDialog
+        isOpen={isCloseoutOpen}
+        onOpenChange={setIsCloseoutOpen}
+        selectedDate={selectedDate}
+        cashierName={data.currentCashier?.name || "Cashier Desk"}
+        stats={data.billingStats}
+      />
 
       {/* Register Patient Dialog */}
       <CreatePatientDialog

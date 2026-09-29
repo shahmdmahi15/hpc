@@ -53,6 +53,7 @@ export function CreatePatientDialog({
   const [address, setAddress] = React.useState("");
   const [emergencyPhone, setEmergencyPhone] = React.useState("");
   const [performerId, setPerformerId] = React.useState(defaultPerformerId);
+  const [performerPin, setPerformerPin] = React.useState("");
   const [proceedToBooking, setProceedToBooking] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
@@ -64,6 +65,7 @@ export function CreatePatientDialog({
       } else if (performers.length === 1) {
         setPerformerId(performers[0].id);
       }
+      setPerformerPin("");
     }
   }, [isOpen, defaultPerformerId, performers]);
 
@@ -74,6 +76,7 @@ export function CreatePatientDialog({
     setAge("");
     setAddress("");
     setEmergencyPhone("");
+    setPerformerPin("");
     setProceedToBooking(true);
     setErrors({});
   };
@@ -82,6 +85,12 @@ export function CreatePatientDialog({
     e.preventDefault();
     setIsSubmitting(true);
     setErrors({});
+
+    if (performerId && performers.length > 0 && !performerPin) {
+      toast.error("Please enter your 4-digit receptionist PIN.");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const res = await createPatientAction({
@@ -92,6 +101,7 @@ export function CreatePatientDialog({
         address: address || undefined,
         emergencyPhone: emergencyPhone || undefined,
         performerId: performerId || undefined,
+        pin: performerPin || undefined,
       });
 
       if (res.success && res.patient) {
@@ -114,7 +124,7 @@ export function CreatePatientDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl max-h-[min(92vh,720px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[min(90vh,680px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         <DialogHeader className="p-5 pb-4 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary">
@@ -137,153 +147,162 @@ export function CreatePatientDialog({
           className="flex flex-col flex-1 overflow-hidden"
         >
           <div className="p-5 overflow-y-auto space-y-4 flex-1">
-            {/* Full Name */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center gap-1.5">
-                <User className="size-3.5 text-primary" />
-                <span>Patient Full Name *</span>
-              </Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Mohammad Rahim"
-                required
-                className="h-9 text-xs"
-                disabled={isSubmitting}
-              />
-              {errors.name && (
-                <p className="text-[11px] text-destructive">{errors.name[0]}</p>
-              )}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left Column: Demographics & Contact */}
+              <div className="space-y-3.5">
+                {/* Full Name */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <User className="size-3.5 text-primary" />
+                    <span>Patient Full Name *</span>
+                  </Label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Mohammad Rahim"
+                    required
+                    className="h-9 text-xs"
+                    disabled={isSubmitting}
+                  />
+                  {errors.name && (
+                    <p className="text-[11px] text-destructive">{errors.name[0]}</p>
+                  )}
+                </div>
 
-            {/* Phone & Age row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5">
-                  <Phone className="size-3.5 text-primary" />
-                  <span>Contact Phone *</span>
-                </Label>
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. 01712345678"
-                  required
-                  className="h-9 text-xs font-mono"
-                  disabled={isSubmitting}
-                />
-                {errors.phone && (
-                  <p className="text-[11px] text-destructive">
-                    {errors.phone[0]}
-                  </p>
+                {/* Phone & Age row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <Phone className="size-3.5 text-primary" />
+                      <span>Contact Phone *</span>
+                    </Label>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 01712345678"
+                      required
+                      className="h-9 text-xs font-mono"
+                      disabled={isSubmitting}
+                    />
+                    {errors.phone && (
+                      <p className="text-[11px] text-destructive">
+                        {errors.phone[0]}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <Calendar className="size-3.5 text-primary" />
+                      <span>Age (Years)</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      placeholder="e.g. 35"
+                      className="h-9 text-xs font-mono"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+
+                {/* Emergency Phone */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <HeartHandshake className="size-3.5 text-muted-foreground" />
+                    <span>Emergency / Guardian Phone</span>
+                  </Label>
+                  <Input
+                    value={emergencyPhone}
+                    onChange={(e) => setEmergencyPhone(e.target.value)}
+                    placeholder="e.g. 01812345678"
+                    className="h-9 text-xs font-mono"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Gender Quota, Address & Attribution */}
+              <div className="space-y-3.5">
+                {/* Gender Selection */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">
+                    Patient Gender *{" "}
+                    <span className="text-[10.5px] font-normal text-muted-foreground">
+                      (Required for slot quota matching)
+                    </span>
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGender(Gender.MALE)}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                        gender === Gender.MALE
+                          ? "border-sky-500 bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-1 ring-sky-500"
+                          : "border-border/70 bg-card hover:bg-muted/40 text-foreground"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="size-2 rounded-full bg-sky-500" />
+                        Male
+                      </span>
+                      <span className="text-[10px] font-mono font-normal text-muted-foreground">
+                        Quota
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setGender(Gender.FEMALE)}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                        gender === Gender.FEMALE
+                          ? "border-pink-500 bg-pink-500/10 text-pink-700 dark:text-pink-300 ring-1 ring-pink-500"
+                          : "border-border/70 bg-card hover:bg-muted/40 text-foreground"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="size-2 rounded-full bg-pink-500" />
+                        Female
+                      </span>
+                      <span className="text-[10px] font-mono font-normal text-muted-foreground">
+                        Quota
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <MapPin className="size-3.5 text-muted-foreground" />
+                    <span>Area / Address</span>
+                  </Label>
+                  <Input
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g. Chanchra, Jashore"
+                    className="h-9 text-xs"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {/* Performer Attribution */}
+                {performers && performers.length > 0 && (
+                  <ReceptionistPerformerSelect
+                    performers={performers}
+                    selectedPerformerId={performerId}
+                    onSelectPerformerId={setPerformerId}
+                    pin={performerPin}
+                    onPinChange={setPerformerPin}
+                    disabled={isSubmitting}
+                    label="Authorizing Desk Performer"
+                  />
                 )}
               </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5">
-                  <Calendar className="size-3.5 text-primary" />
-                  <span>Age (Years)</span>
-                </Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={120}
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  placeholder="e.g. 35"
-                  className="h-9 text-xs font-mono"
-                  disabled={isSubmitting}
-                />
-              </div>
             </div>
-
-            {/* Gender Selection (Crucial for therapy slot quotas) */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Patient Gender *{" "}
-                <span className="text-[10.5px] font-normal text-muted-foreground">
-                  (Used for slot quotas)
-                </span>
-              </Label>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setGender(Gender.MALE)}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                    gender === Gender.MALE
-                      ? "border-sky-500 bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-1 ring-sky-500"
-                      : "border-border/70 bg-card hover:bg-muted/40 text-foreground"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="size-2 rounded-full bg-sky-500" />
-                    Male Patient
-                  </span>
-                  <span className="text-[10px] font-mono font-normal text-muted-foreground">
-                    Male Quota
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setGender(Gender.FEMALE)}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                    gender === Gender.FEMALE
-                      ? "border-pink-500 bg-pink-500/10 text-pink-700 dark:text-pink-300 ring-1 ring-pink-500"
-                      : "border-border/70 bg-card hover:bg-muted/40 text-foreground"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="size-2 rounded-full bg-pink-500" />
-                    Female Patient
-                  </span>
-                  <span className="text-[10px] font-mono font-normal text-muted-foreground">
-                    Female Quota
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Address & Emergency Contact */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5">
-                  <MapPin className="size-3.5 text-muted-foreground" />
-                  <span>Area / Address</span>
-                </Label>
-                <Input
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. Dhanmondi, Dhaka"
-                  className="h-9 text-xs"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5">
-                  <HeartHandshake className="size-3.5 text-muted-foreground" />
-                  <span>Emergency / Guardian Phone</span>
-                </Label>
-                <Input
-                  value={emergencyPhone}
-                  onChange={(e) => setEmergencyPhone(e.target.value)}
-                  placeholder="e.g. 01812345678"
-                  className="h-9 text-xs font-mono"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-
-            {/* Receptionist Performer Attribution */}
-            {performers && performers.length > 0 && (
-              <ReceptionistPerformerSelect
-                performers={performers}
-                selectedPerformerId={performerId}
-                onSelectPerformerId={setPerformerId}
-                disabled={isSubmitting}
-                label="Authorizing Receptionist / Desk Staff"
-              />
-            )}
 
             {/* Checkbox: Immediately proceed to book ticket */}
             <div className="pt-2 border-t border-border/50">

@@ -25,7 +25,14 @@ import {
   ScrollText,
   DoorOpen,
   CalendarClock,
+  Download,
+  Database,
+  TrendingUp,
+  Wallet,
+  CircleDollarSign,
+  FileSpreadsheet,
 } from "lucide-react";
+import { AdminExportButton } from "@/components/admin/admin-export-button";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +45,13 @@ export default async function AdminPage() {
     performerCount,
     roomCount,
     slotCount,
+    patientCount,
+    todayAppointmentsCount,
+    todayConsultationCount,
+    todayTherapyCount,
+    todayCollected,
+    todayDue,
+    totalLifetimeRevenue,
   } = counts;
 
   const portals = [
@@ -85,7 +99,7 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* ---------------------------------------------------- */}
       {/* 1. Welcome & Status Banner                           */}
       {/* ---------------------------------------------------- */}
@@ -112,14 +126,27 @@ export default async function AdminPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <a
+              href="/api/admin/backup"
+              download
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              title="Download offline snapshot of SQLite database"
+            >
+              <Database className="size-3.5" />
+              <span>Backup Database (.db)</span>
+              <Download className="size-3" />
+            </a>
+
+            <AdminExportButton />
+
             <Link
               href="/"
               target="_blank"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border/80 bg-card hover:bg-muted text-foreground text-xs font-semibold shadow-xs transition-all"
             >
               <Tv className="size-3.5 text-primary" />
-              <span>Launch Waiting Room TV</span>
+              <span>Waiting Hall TV</span>
               <ArrowUpRight className="size-3 text-muted-foreground" />
             </Link>
           </div>
@@ -131,7 +158,93 @@ export default async function AdminPage() {
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* 2. System KPI & Metric Cards                         */}
+      {/* 2. Today's Financial & Clinical Operations KPI       */}
+      {/* ---------------------------------------------------- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <Card className="border-border/80 bg-card/80 shadow-xs border-l-4 border-l-emerald-500">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Today's Collections
+            </CardTitle>
+            <div className="size-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <CircleDollarSign className="size-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              ৳{todayCollected.toLocaleString()}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                Paid Today
+              </span>
+              <span>• Lifetime: ৳{totalLifetimeRevenue.toLocaleString()}</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 bg-card/80 shadow-xs border-l-4 border-l-amber-500">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Today's Pending Due
+            </CardTitle>
+            <div className="size-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <Wallet className="size-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              ৳{todayDue.toLocaleString()}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {todayDue > 0 ? "Outstanding balance to collect" : "All cleared today"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 bg-card/80 shadow-xs border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Today's Patient Visits
+            </CardTitle>
+            <div className="size-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
+              <TrendingUp className="size-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {todayAppointmentsCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              <span className="text-blue-600 dark:text-blue-400 font-semibold">{todayConsultationCount} Doctor</span>
+              {" • "}
+              <span className="text-purple-600 dark:text-purple-400 font-semibold">{todayTherapyCount} Therapy</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 bg-card/80 shadow-xs border-l-4 border-l-teal-500">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Total Registered Patients
+            </CardTitle>
+            <div className="size-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-500">
+              <Users className="size-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {patientCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Unique Medical Record Numbers (MRN)
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ---------------------------------------------------- */}
+      {/* 3. System Infrastructure & Security Telemetry        */}
       {/* ---------------------------------------------------- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
         <Card className="border-border/80 bg-card/80 shadow-xs hover:shadow-md transition-shadow">

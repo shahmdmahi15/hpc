@@ -19,6 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Volume2,
@@ -29,6 +30,7 @@ import {
   User,
   Radio,
   AlertCircle,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { evaluatePunctuality, formatTime12h } from "@/lib/queue-punctuality";
@@ -99,6 +101,7 @@ export function CallToTherapyRoomDialog({
   const [selectedHandlerId, setSelectedHandlerId] = React.useState<string>(
     () => initialHandlerId,
   );
+  const [handlerPin, setHandlerPin] = React.useState<string>("");
   const [isCalling, setIsCalling] = React.useState(false);
 
   // Sync state when dialog opens
@@ -108,6 +111,7 @@ export function CallToTherapyRoomDialog({
     if (isOpen) {
       setSelectedRoomId(initialRoomId);
       setSelectedHandlerId(initialHandlerId);
+      setHandlerPin("");
     }
   }
 
@@ -132,6 +136,11 @@ export function CallToTherapyRoomDialog({
       return;
     }
 
+    if (selectedHandlerId && handlers.length > 0 && !handlerPin) {
+      toast.error("Please enter your 4-digit Therapist PIN.");
+      return;
+    }
+
     setIsCalling(true);
     try {
       const res = await updateAppointmentStatusAction(
@@ -140,6 +149,7 @@ export function CallToTherapyRoomDialog({
         selectedHandlerId || undefined,
         QueueType.THERAPY,
         selectedRoomId,
+        handlerPin || undefined,
       );
 
       if (res.success) {
@@ -160,7 +170,7 @@ export function CallToTherapyRoomDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl max-h-[92vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         {/* Header */}
         <DialogHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 bg-emerald-500/5">
           <div className="flex items-center justify-between gap-3">
@@ -381,6 +391,32 @@ export function CallToTherapyRoomDialog({
               </div>
             )}
           </div>
+
+          {/* Handler Performer PIN Code */}
+          {handlers.length > 0 && (
+            <div className="space-y-1.5 p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                  <KeyRound className="size-3.5 text-emerald-500" />
+                  <span>Therapist 4-Digit PIN</span>
+                </label>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  Required for desk verification
+                </span>
+              </div>
+              <Input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="Enter your 4-digit PIN"
+                value={handlerPin}
+                onChange={(e) =>
+                  setHandlerPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+                }
+                className="font-mono text-center tracking-widest text-base font-bold h-9 bg-background"
+              />
+            </div>
+          )}
 
           {/* Announcement Preview Box */}
           <div className="p-3 rounded-xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent flex items-center gap-3">

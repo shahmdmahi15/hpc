@@ -2,21 +2,24 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ROLES, type RoleConfig } from "@/components/login/role-config";
 import { PasswordResetDialog } from "@/components/admin/users/password-reset-dialog";
 import { RevokeSessionsDialog } from "@/components/admin/users/revoke-sessions-dialog";
 import { CreatePerformerDialog } from "@/components/admin/users/create-performer-dialog";
+import { CreateAccountDialog } from "@/components/admin/users/create-account-dialog";
 import { DeletePerformerDialog } from "@/components/admin/users/delete-performer-dialog";
+import { deleteUserAccountAction } from "@/actions/admin/user.action";
 import { Role } from "@/generated/prisma/enums";
 import { formatBSTShortDate } from "@/lib/date";
 import { toast } from "sonner";
 import {
   Users,
   ShieldCheck,
-  ShieldAlert,
+  Shield,
+  Stethoscope,
   KeyRound,
   Lock,
   Search,
@@ -25,18 +28,33 @@ import {
   Check,
   UserPlus,
   Phone,
+  Mail,
   Trash2,
+  Building2,
+  UserCheck,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 
 export interface UserAccountData {
   id: string;
   role: Role;
+  name?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   activeSessionCount: number;
   totalSessionCount: number;
   lastAccessAt: Date | string | null;
-  performers: { id: string; name: string; phone: string }[];
+  performers: {
+    id: string;
+    name: string;
+    email?: string | null;
+    whatsapp?: string;
+    phone: string;
+    pin: string;
+  }[];
 }
 
 interface UserManagementViewProps {
@@ -44,6 +62,7 @@ interface UserManagementViewProps {
 }
 
 export function UserManagementView({ users }: UserManagementViewProps) {
+  const [activeTab, setActiveTab] = React.useState<"accounts" | "desks">("accounts");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
   const [selectedUserForReset, setSelectedUserForReset] = React.useState<{
@@ -55,10 +74,9 @@ export function UserManagementView({ users }: UserManagementViewProps) {
     role: Role;
     activeSessionCount: number;
   } | null>(null);
+  const [createAccountOpen, setCreateAccountOpen] = React.useState(false);
   const [createPerformerOpen, setCreatePerformerOpen] = React.useState(false);
-  const [defaultPerformerUserId, setDefaultPerformerUserId] = React.useState<
-    string | null
-  >(null);
+  const [defaultPerformerUserId, setDefaultPerformerUserId] = React.useState<string | null>(null);
   const [performerToDelete, setPerformerToDelete] = React.useState<{
     id: string;
     name: string;
@@ -66,10 +84,18 @@ export function UserManagementView({ users }: UserManagementViewProps) {
     roleLabel?: string;
   } | null>(null);
 
-  // Extract all registered admin performers for authorization workflows
-  const adminPerformers = React.useMemo(() => {
-    const adminUser = users.find((u) => u.role === Role.ADMIN);
-    return adminUser?.performers || [];
+  // Split users into independent practitioner/admin accounts and station desk accounts
+  const individualAccounts = React.useMemo(() => {
+    return users.filter((u) => u.role === Role.ADMIN || u.role === Role.DOCTOR);
+  }, [users]);
+
+  const deskStationAccounts = React.useMemo(() => {
+    return users.filter(
+      (u) =>
+        u.role === Role.RECEPTIONIST ||
+        u.role === Role.HANDLER ||
+        u.role === Role.CASHIER,
+    );
   }, [users]);
 
   // Total active sessions tally
@@ -77,32 +103,57 @@ export function UserManagementView({ users }: UserManagementViewProps) {
     return users.reduce((acc, u) => acc + u.activeSessionCount, 0);
   }, [users]);
 
-  // Filter users by search
-  const filteredUsers = React.useMemo(() => {
-    if (!searchQuery.trim()) return users;
+  // Filter individual accounts by search
+  const filteredAccounts = React.useMemo(() => {
+    if (!searchQuery.trim()) return individualAccounts;
     const q = searchQuery.toLowerCase();
-    return users.filter((u) => {
-      const config = ROLES.find((r) => r.value === u.role);
-      return (
+    return individualAccounts.filter(
+      (u) =>
         u.role.toLowerCase().includes(q) ||
-        u.id.toLowerCase().includes(q) ||
-        config?.defaultLabel.toLowerCase().includes(q) ||
-        config?.defaultDesc.toLowerCase().includes(q) ||
-        u.performers.some((p) => p.name.toLowerCase().includes(q))
-      );
-    });
-  }, [users, searchQuery]);
+        (u.name && u.name.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.whatsapp && u.whatsapp.toLowerCase().includes(q)),
+    );
+  }, [individualAccounts, searchQuery]);
+
+  // Filter desk stations by search
+  const filteredDesks = React.useMemo(() => {
+    if (!searchQuery.trim()) return deskStationAccounts;
+    const q = searchQuery.toLowerCase();
+    return deskStationAccounts.filter(
+      (u) =>
+        u.role.toLowerCase().includes(q) ||
+        u.performers.some(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            (p.whatsapp && p.whatsapp.toLowerCase().includes(q)) ||
+            (p.email && p.email.toLowerCase().includes(q)),
+        ),
+    );
+  }, [deskStationAccounts, searchQuery]);
 
   const handleCopyId = (id: string) => {
     navigator.clipboard.writeText(id).then(() => {
       setCopiedId(id);
-      toast.success("Full User ID copied to clipboard!");
+      toast.success("Account ID copied to clipboard!");
       setTimeout(() => setCopiedId(null), 2000);
     });
   };
 
+  const handleDeleteAccount = async (account: UserAccountData) => {
+    if (!confirm(`Are you sure you want to delete the ${account.role} account for ${account.name || account.email}?`)) {
+      return;
+    }
+    const res = await deleteUserAccountAction(account.id);
+    if (res.success) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+    }
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* ---------------------------------------------------- */}
       {/* 1. Header & Architecture Notice                      */}
       {/* ---------------------------------------------------- */}
@@ -112,39 +163,36 @@ export function UserManagementView({ users }: UserManagementViewProps) {
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold">
                 <Users className="size-3.5" />
-                Station Credentials Control
+                Access &amp; Identity Control
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10.5px] font-bold">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {totalActiveSessions} Active Session
-                {totalActiveSessions === 1 ? "" : "s"}
+                {totalActiveSessions} Active Session{totalActiveSessions === 1 ? "" : "s"}
               </span>
-              {adminPerformers.length > 1 ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[10.5px] font-semibold">
-                  <ShieldAlert className="size-3" />
-                  Multi-Admin Audit Active ({adminPerformers.length} staff)
-                </span>
-              ) : adminPerformers.length === 1 ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10.5px] font-semibold">
-                  <ShieldCheck className="size-3" />
-                  Acting: {adminPerformers[0].name}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/80 text-[10.5px] font-semibold">
-                  Root Administrator Mode
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-[10.5px] font-semibold">
+                <ShieldCheck className="size-3" />
+                4-Digit Staff PIN Security
+              </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Users &amp; Staff Management
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 max-w-2xl">
-              Zero-trust role accounts with individual station credentials,
-              staff performers, and session invalidation.
+              Independent accounts for Admins &amp; Doctors • Shared Station Desks with 4-digit PIN verification for Receptionists, Handlers, and Cashiers.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setCreateAccountOpen(true)}
+              className="rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs bg-sky-600 hover:bg-sky-700 text-white"
+            >
+              <UserPlus className="size-3.5" />
+              <span>Add Admin / Doctor</span>
+            </Button>
+
             <Button
               type="button"
               size="sm"
@@ -154,348 +202,467 @@ export function UserManagementView({ users }: UserManagementViewProps) {
               }}
               className="rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
             >
-              <UserPlus className="size-3.5" />
-              <span>Add Performer</span>
+              <UserCheck className="size-3.5" />
+              <span>Add Desk Performer</span>
             </Button>
 
             <Link
               href="/admin"
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-border/80 bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors"
             >
-              <span>Back to Dashboard</span>
+              <span>Back</span>
             </Link>
           </div>
         </div>
 
-        {/* Zero-Trust Architecture Notice Banner */}
-        <div className="relative overflow-hidden rounded-2xl border border-teal-500/20 bg-teal-500/5 p-4 text-xs text-foreground">
-          <div className="flex items-start gap-3">
-            <div className="size-8 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0 mt-0.5">
-              <ShieldCheck className="size-4" />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h2 className="font-bold text-teal-900 dark:text-teal-200">
-                  Immutable Role Hierarchy &bull; Single-Account Zero Trust
-                </h2>
-                <span className="px-1.5 py-0.2 rounded-md bg-teal-500/15 text-teal-700 dark:text-teal-300 text-[10px] font-mono font-bold">
-                  role @unique
-                </span>
+        {/* System Architecture Explanation Banner */}
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 p-4 text-xs text-foreground">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex items-start gap-2.5">
+              <div className="size-7 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Stethoscope className="size-3.5" />
               </div>
-              <p className="text-muted-foreground leading-relaxed text-[11.5px]">
-                In Health &amp; Pain Care Center, each station is represented by
-                exactly one unique user account (
-                <code className="font-mono text-teal-700 dark:text-teal-300 font-semibold">
-                  ADMIN, DOCTOR, RECEPTIONIST, HANDLER, CASHIER
-                </code>
-                ). Roles cannot be reassigned or duplicated, preventing
-                unauthorized privilege escalation. Administrators can reset
-                passwords or terminate active sessions at any time.
-              </p>
+              <div className="space-y-0.5">
+                <h2 className="font-bold text-sky-900 dark:text-sky-200">
+                  Individual Accounts: ADMIN &amp; DOCTOR
+                </h2>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Multiple independent accounts allowed. Log in directly with personal Email/WhatsApp and password. No performers needed.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5">
+              <div className="size-7 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Building2 className="size-3.5" />
+              </div>
+              <div className="space-y-0.5">
+                <h2 className="font-bold text-amber-900 dark:text-amber-200">
+                  Shared Desks: RECEPTIONIST, HANDLER, CASHIER
+                </h2>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Single shared desk account. Rotating staff members authorize actions at the desk using their personal 4-digit security PIN.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* 2. Search & Overview Metrics                         */}
+      {/* 2. Navigation Tabs & Search Bar                     */}
       {/* ---------------------------------------------------- */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/60 border border-border/80 w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab("accounts")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "accounts"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Stethoscope className="size-3.5 text-sky-500" />
+            <span>Admins &amp; Doctors ({individualAccounts.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("desks")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "desks"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Building2 className="size-3.5 text-amber-500" />
+            <span>Station Desks &amp; Performers ({deskStationAccounts.length})</span>
+          </button>
+        </div>
+
+        {/* Search */}
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by role, ID, or station name..."
+            placeholder={
+              activeTab === "accounts"
+                ? "Search by name, email, whatsapp..."
+                : "Search desk or staff performer..."
+            }
             className="pl-8 text-xs rounded-xl h-9 bg-card border-border/80"
           />
         </div>
-
-        <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
-          <span>
-            Showing {filteredUsers.length} of {users.length} Role Accounts
-          </span>
-        </div>
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* 3. Role Accounts Cards Grid                          */}
+      {/* 3. Tab 1: Admins & Doctors (Independent Accounts)   */}
       {/* ---------------------------------------------------- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredUsers.map((user) => {
-          const roleConfig: RoleConfig =
-            ROLES.find((r) => r.value === user.role) || ROLES[0];
-          const RoleIcon = roleConfig.icon;
-          const isOnline = user.activeSessionCount > 0;
+      {activeTab === "accounts" && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAccounts.map((user) => {
+              const roleConfig: RoleConfig =
+                ROLES.find((r) => r.value === user.role) || ROLES[0];
+              const RoleIcon = roleConfig.icon;
+              const isOnline = user.activeSessionCount > 0;
 
-          return (
-            <Card
-              key={user.id}
-              className="relative overflow-hidden border-border/80 bg-card shadow-xs hover:shadow-md hover:border-primary/40 transition-all flex flex-col justify-between"
-            >
-              <div>
-                {/* Card Top Row: Icon, Title & Online Badge */}
-                <CardHeader className="pb-3 border-b border-border/60">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`size-10 rounded-xl border flex items-center justify-center shadow-xs shrink-0 ${roleConfig.color}`}
-                      >
-                        <RoleIcon className="size-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <CardTitle className="text-base font-bold text-foreground leading-tight truncate">
-                          {roleConfig.defaultLabel}
-                        </CardTitle>
-                        <p className="text-[10.5px] font-mono text-muted-foreground uppercase tracking-wider font-semibold truncate">
-                          ROLE &bull; {user.role}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Live Status Badge */}
-                    <div
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shrink-0 ${
-                        isOnline
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                          : "bg-muted text-muted-foreground border-border"
-                      }`}
-                    >
-                      <span
-                        className={`size-1.5 rounded-full ${
-                          isOnline
-                            ? "bg-emerald-500 animate-pulse"
-                            : "bg-muted-foreground/50"
-                        }`}
-                      />
-                      <span>
-                        {isOnline
-                          ? `${user.activeSessionCount} Online`
-                          : "Offline"}
-                      </span>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                {/* Card Body */}
-                <CardContent className="pt-3.5 space-y-3 text-xs">
-                  {/* Dedicated Full ID Bar with 1-Click Copy */}
-                  <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-muted/40 border border-border/60 text-[11px] font-mono">
-                    <div className="flex items-center gap-1.5 overflow-hidden min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground select-none shrink-0">
-                        ID:
-                      </span>
-                      <span
-                        className="text-foreground font-semibold select-all truncate"
-                        title={user.id}
-                      >
-                        {user.id}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyId(user.id)}
-                      className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
-                      title="Copy full User ID"
-                    >
-                      {copiedId === user.id ? (
-                        <Check className="size-3.5 text-emerald-500" />
-                      ) : (
-                        <Copy className="size-3.5" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-muted-foreground text-[11.5px] leading-relaxed min-h-[2rem] flex items-center">
-                    {roleConfig.defaultDesc}
-                  </p>
-
-                  {/* Account Metadata Specs */}
-                  <div className="grid grid-cols-2 gap-2 pt-0.5">
-                    <div className="p-2.5 rounded-xl border border-border/60 bg-muted/30 space-y-0.5">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Role Policy
-                      </span>
-                      <p className="font-bold text-foreground truncate">
-                        Immutable
-                      </p>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl border border-border/60 bg-muted/30 space-y-0.5">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Active Logins
-                      </span>
-                      <p className="font-bold text-foreground">
-                        {user.activeSessionCount}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Assigned Clinical Performers / Staff */}
-                  <div className="space-y-2 pt-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                        <Users className="size-3" />
-                        Assigned Staff ({user.performers?.length || 0})
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDefaultPerformerUserId(user.id);
-                          setCreatePerformerOpen(true);
-                        }}
-                        className="text-[10.5px] font-semibold text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
-                      >
-                        <UserPlus className="size-3" />
-                        <span>Add Staff</span>
-                      </button>
-                    </div>
-
-                    {user.performers && user.performers.length > 0 ? (
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                        {user.performers.map((p) => (
+              return (
+                <Card
+                  key={user.id}
+                  className="relative overflow-hidden border-border/80 bg-card shadow-xs hover:shadow-md hover:border-primary/40 transition-all flex flex-col justify-between rounded-2xl"
+                >
+                  <div>
+                    {/* Top Row */}
+                    <CardHeader className="p-4 pb-3 border-b border-border/60">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <div
-                            key={p.id}
-                            className="group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-muted/40 border border-border/50 text-[11px] hover:bg-muted/70 transition-colors"
+                            className={`size-9 rounded-xl border flex items-center justify-center shrink-0 ${roleConfig.color}`}
                           >
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-foreground truncate leading-tight">
-                                {p.name}
-                              </p>
-                              <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <Phone className="size-2.5 text-muted-foreground/70 shrink-0" />
-                                <span>{p.phone}</span>
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPerformerToDelete({
-                                  id: p.id,
-                                  name: p.name,
-                                  phone: p.phone,
-                                  roleLabel: roleConfig.defaultLabel,
-                                })
-                              }
-                              className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer shrink-0"
-                              title="Remove performer"
-                            >
-                              <Trash2 className="size-3" />
-                            </button>
+                            <RoleIcon className="size-4" />
                           </div>
-                        ))}
+                          <div className="min-w-0">
+                            <CardTitle className="text-sm font-bold text-foreground leading-tight truncate">
+                              {user.name || roleConfig.defaultLabel}
+                            </CardTitle>
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-semibold">
+                              {user.role}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                            isOnline
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-muted/80 text-muted-foreground border border-border"
+                          }`}
+                        >
+                          <span
+                            className={`size-1.5 rounded-full ${
+                              isOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"
+                            }`}
+                          />
+                          {isOnline ? `${user.activeSessionCount} Active` : "Offline"}
+                        </span>
                       </div>
-                    ) : (
-                      <div className="px-3 py-2 rounded-lg bg-muted/20 border border-dashed border-border/70 text-center">
-                        <p className="text-[11px] text-muted-foreground">
-                          No staff assigned to this desk yet.
-                        </p>
+                    </CardHeader>
+
+                    {/* Account Contact & Credentials */}
+                    <CardContent className="p-4 space-y-2 text-xs">
+                      {user.email && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="size-3.5 shrink-0 text-sky-500" />
+                          <span className="font-mono text-foreground truncate select-all">
+                            {user.email}
+                          </span>
+                        </div>
+                      )}
+
+                      {user.whatsapp && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="size-3.5 shrink-0 text-emerald-500" />
+                          <span className="font-mono text-foreground select-all">
+                            {user.whatsapp}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-border/40 text-[10.5px] text-muted-foreground flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="size-3" />
+                          Added {formatBSTShortDate(user.createdAt)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyId(user.id)}
+                          className="font-mono text-[9.5px] hover:text-foreground inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          {copiedId === user.id ? (
+                            <Check className="size-2.5 text-emerald-500" />
+                          ) : (
+                            <Copy className="size-2.5" />
+                          )}
+                          <span>ID: {user.id.slice(-6)}</span>
+                        </button>
                       </div>
+                    </CardContent>
+                  </div>
+
+                  {/* Account Actions */}
+                  <div className="p-3 pt-0 flex items-center justify-between gap-1.5 border-t border-border/40 mt-auto bg-muted/10">
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() =>
+                        setSelectedUserForReset({ id: user.id, role: user.role })
+                      }
+                      className="rounded-lg h-7 text-[11px] gap-1 cursor-pointer"
+                    >
+                      <KeyRound className="size-3 text-amber-500" />
+                      <span>Reset Password</span>
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {user.activeSessionCount > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() =>
+                            setSelectedUserForRevoke({
+                              id: user.id,
+                              role: user.role,
+                              activeSessionCount: user.activeSessionCount,
+                            })
+                          }
+                          className="rounded-lg h-7 text-[10px] text-destructive hover:bg-destructive/10 cursor-pointer"
+                          title="Revoke Active Sessions"
+                        >
+                          Revoke
+                        </Button>
+                      )}
+
+                      {/* Can delete non-primary accounts */}
+                      {individualAccounts.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => handleDeleteAccount(user)}
+                          className="rounded-lg h-7 px-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                          title="Delete Account"
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {filteredAccounts.length === 0 && (
+            <div className="p-8 text-center border rounded-2xl bg-card text-muted-foreground text-xs space-y-2">
+              <p>No doctor or admin accounts found matching your search.</p>
+              <Button
+                size="sm"
+                onClick={() => setCreateAccountOpen(true)}
+                className="rounded-xl text-xs gap-1.5"
+              >
+                <UserPlus className="size-3.5" />
+                <span>Add Doctor Account</span>
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* 4. Tab 2: Station Desks & Multi-Staff Performers    */}
+      {/* ---------------------------------------------------- */}
+      {activeTab === "desks" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {filteredDesks.map((desk) => {
+              const roleConfig: RoleConfig =
+                ROLES.find((r) => r.value === desk.role) || ROLES[0];
+              const RoleIcon = roleConfig.icon;
+              const isOnline = desk.activeSessionCount > 0;
+
+              return (
+                <Card
+                  key={desk.id}
+                  className="border-border/80 bg-card shadow-xs rounded-2xl flex flex-col justify-between overflow-hidden"
+                >
+                  <div>
+                    {/* Desk Card Header */}
+                    <CardHeader className="p-4 pb-3 border-b border-border/60 bg-muted/20">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`size-9 rounded-xl border flex items-center justify-center shrink-0 ${roleConfig.color}`}
+                          >
+                            <RoleIcon className="size-4" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-sm font-bold text-foreground leading-tight">
+                              {roleConfig.defaultLabel} Desk
+                            </CardTitle>
+                            <p className="text-[10px] text-muted-foreground">
+                              Shared Physical Station
+                            </p>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isOnline
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-muted text-muted-foreground border border-border"
+                          }`}
+                        >
+                          <span
+                            className={`size-1.5 rounded-full ${
+                              isOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/60"
+                            }`}
+                          />
+                          {isOnline ? "Station Online" : "Station Idle"}
+                        </span>
+                      </div>
+                    </CardHeader>
+
+                    {/* Desk Performers List */}
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-foreground flex items-center gap-1.5">
+                          <UserCheck className="size-3.5 text-primary" />
+                          Authorized Staff ({desk.performers.length})
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => {
+                            setDefaultPerformerUserId(desk.id);
+                            setCreatePerformerOpen(true);
+                          }}
+                          className="h-6 text-[10.5px] font-semibold text-primary hover:bg-primary/10 gap-1 rounded-lg cursor-pointer"
+                        >
+                          <UserPlus className="size-3" />
+                          <span>Add Staff</span>
+                        </Button>
+                      </div>
+
+                      {desk.performers.length > 0 ? (
+                        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                          {desk.performers.map((perf) => (
+                            <div
+                              key={perf.id}
+                              className="p-2 rounded-xl border border-border/70 bg-background/60 flex items-center justify-between gap-2 text-xs"
+                            >
+                              <div className="min-w-0">
+                                <p className="font-bold text-foreground truncate">
+                                  {perf.name}
+                                </p>
+                                <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground mt-0.5">
+                                  <span className="flex items-center gap-0.5 truncate">
+                                    <Phone className="size-2.5" />
+                                    {perf.whatsapp || perf.phone}
+                                  </span>
+                                  <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/20">
+                                    PIN: {perf.pin}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPerformerToDelete({
+                                    id: perf.id,
+                                    name: perf.name,
+                                    phone: perf.whatsapp || perf.phone,
+                                    roleLabel: roleConfig.defaultLabel,
+                                  })
+                                }
+                                className="text-muted-foreground hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-colors cursor-pointer"
+                                title="Remove staff member"
+                              >
+                                <Trash2 className="size-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-3 text-center rounded-xl bg-muted/30 border border-dashed border-border/80 text-[11px] text-muted-foreground">
+                          No staff performers registered for this desk yet.
+                        </div>
+                      )}
+                    </CardContent>
+                  </div>
+
+                  {/* Desk Password & Station Actions */}
+                  <div className="p-3 pt-2 border-t border-border/50 bg-muted/10 flex items-center justify-between text-xs">
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() =>
+                        setSelectedUserForReset({ id: desk.id, role: desk.role })
+                      }
+                      className="rounded-lg h-7 text-[11px] gap-1 cursor-pointer"
+                    >
+                      <Lock className="size-3 text-muted-foreground" />
+                      <span>Station Password</span>
+                    </Button>
+
+                    {desk.activeSessionCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() =>
+                          setSelectedUserForRevoke({
+                            id: desk.id,
+                            role: desk.role,
+                            activeSessionCount: desk.activeSessionCount,
+                          })
+                        }
+                        className="rounded-lg h-7 text-[10px] text-destructive hover:bg-destructive/10 cursor-pointer"
+                      >
+                        Terminate Sessions
+                      </Button>
                     )}
                   </div>
-
-                  {/* Account Age Timestamp */}
-                  <div className="flex items-center justify-between text-[10.5px] text-muted-foreground pt-1 border-t border-border/40">
-                    <span
-                      className="flex items-center gap-1"
-                      suppressHydrationWarning
-                    >
-                      <Calendar className="size-3" />
-                      Created: {formatBSTShortDate(user.createdAt)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Lock className="size-3 text-emerald-500" />
-                      Argon2id Protected
-                    </span>
-                  </div>
-                </CardContent>
-              </div>
-
-              {/* Card Footer Actions */}
-              <div className="p-4 pt-2 border-t border-border/60 flex items-center justify-between gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setSelectedUserForRevoke({
-                      id: user.id,
-                      role: user.role,
-                      activeSessionCount: user.activeSessionCount,
-                    })
-                  }
-                  disabled={user.activeSessionCount === 0}
-                  className="rounded-xl text-xs font-semibold h-8 px-2.5 cursor-pointer hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 disabled:opacity-40"
-                  title="Terminate all active sessions for this account"
-                >
-                  Revoke
-                </Button>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() =>
-                    setSelectedUserForReset({
-                      id: user.id,
-                      role: user.role,
-                    })
-                  }
-                  className="rounded-xl text-xs font-semibold h-8 px-3 gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <KeyRound className="size-3.5" />
-                  <span>Reset Password</span>
-                </Button>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ---------------------------------------------------- */}
-      {/* 4. Password Reset Dialog Modal                       */}
+      {/* 5. Dialogs: Account Creation, Performer, Reset, etc. */}
       {/* ---------------------------------------------------- */}
-      <PasswordResetDialog
-        key={`password-reset-${selectedUserForReset?.id || "none"}`}
-        open={!!selectedUserForReset}
-        onOpenChange={(open) => !open && setSelectedUserForReset(null)}
-        user={selectedUserForReset}
-        adminPerformers={adminPerformers}
+      <CreateAccountDialog
+        open={createAccountOpen}
+        onOpenChange={setCreateAccountOpen}
       />
 
-      {/* ---------------------------------------------------- */}
-      {/* 5. Revoke Sessions Confirmation Modal                */}
-      {/* ---------------------------------------------------- */}
-      <RevokeSessionsDialog
-        key={`revoke-sessions-${selectedUserForRevoke?.id || "none"}`}
-        open={!!selectedUserForRevoke}
-        onOpenChange={(open) => !open && setSelectedUserForRevoke(null)}
-        user={selectedUserForRevoke}
-        adminPerformers={adminPerformers}
-      />
-
-      {/* ---------------------------------------------------- */}
-      {/* 6. Create Staff Performer Modal                      */}
-      {/* ---------------------------------------------------- */}
       <CreatePerformerDialog
-        key={`create-performer-${defaultPerformerUserId || "default"}`}
         open={createPerformerOpen}
         onOpenChange={setCreatePerformerOpen}
-        users={users.map((u) => ({ id: u.id, role: u.role }))}
+        users={deskStationAccounts.map((u) => ({ id: u.id, role: u.role }))}
         defaultUserId={defaultPerformerUserId}
-        adminPerformers={adminPerformers}
       />
 
-      {/* ---------------------------------------------------- */}
-      {/* 7. Delete Staff Performer Modal                      */}
-      {/* ---------------------------------------------------- */}
-      <DeletePerformerDialog
-        key={`delete-performer-${performerToDelete?.id || "none"}`}
-        open={!!performerToDelete}
-        onOpenChange={(open) => !open && setPerformerToDelete(null)}
-        performer={performerToDelete}
-        adminPerformers={adminPerformers}
-      />
+      {selectedUserForReset && (
+        <PasswordResetDialog
+          open={!!selectedUserForReset}
+          onOpenChange={(open) => !open && setSelectedUserForReset(null)}
+          user={selectedUserForReset}
+          adminPerformers={[]}
+        />
+      )}
+
+      {selectedUserForRevoke && (
+        <RevokeSessionsDialog
+          open={!!selectedUserForRevoke}
+          onOpenChange={(open) => !open && setSelectedUserForRevoke(null)}
+          user={selectedUserForRevoke}
+          adminPerformers={[]}
+        />
+      )}
+
+      {performerToDelete && (
+        <DeletePerformerDialog
+          open={!!performerToDelete}
+          onOpenChange={(open) => !open && setPerformerToDelete(null)}
+          performer={performerToDelete}
+          adminPerformers={[]}
+        />
+      )}
     </div>
   );
 }

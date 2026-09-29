@@ -62,6 +62,7 @@ interface AuthorizeReceptionistActionDialogProps {
     performerId: string,
     queueType?: QueueType,
     roomId?: string,
+    pin?: string,
   ) => Promise<boolean>;
 }
 
@@ -111,12 +112,14 @@ function AuthorizeReceptionistActionDialogBody({
     performerId: string,
     queueType?: QueueType,
     roomId?: string,
+    pin?: string,
   ) => Promise<boolean>;
 }) {
   const [selectedPerformerId, setSelectedPerformerId] = React.useState<string>(
     () =>
       defaultPerformerId || (performers.length === 1 ? performers[0].id : ""),
   );
+  const [performerPin, setPerformerPin] = React.useState<string>("");
   const [selectedQueueType, setSelectedQueueType] = React.useState<QueueType>(
     () => config.defaultQueueType || QueueType.THERAPY,
   );
@@ -245,6 +248,11 @@ function AuthorizeReceptionistActionDialogBody({
       return;
     }
 
+    if (selectedPerformerId && performers.length > 0 && !performerPin) {
+      toast.error("Please enter your 4-digit receptionist PIN.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const success = await onConfirm(
@@ -254,6 +262,7 @@ function AuthorizeReceptionistActionDialogBody({
         config.actionType === "START_SERVICE" && isConsult
           ? selectedRoomId
           : undefined,
+        performerPin || undefined,
       );
       if (success) {
         onOpenChange(false);
@@ -452,6 +461,8 @@ function AuthorizeReceptionistActionDialogBody({
           performers={performers}
           selectedPerformerId={selectedPerformerId}
           onSelectPerformerId={setSelectedPerformerId}
+          pin={performerPin}
+          onPinChange={setPerformerPin}
           disabled={isSubmitting}
           label="Authorizing Receptionist"
         />

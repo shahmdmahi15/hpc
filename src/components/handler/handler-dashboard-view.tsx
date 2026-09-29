@@ -1,15 +1,13 @@
 "use client";
 
 import * as React from "react";
-import {
-  type HandlerDashboardData,
-  getHandlerDashboardDataAction,
-} from "@/actions/handler/handler.action";
-import {
-  updateAppointmentStatusAction,
-  type PatientWithCount,
-  type AppointmentWithRelations,
+import type { HandlerDashboardData } from "@/actions/handler/handler.action";
+import { getHandlerDashboardDataAction } from "@/actions/handler/handler.action";
+import type {
+  PatientWithCount,
+  AppointmentWithRelations,
 } from "@/actions/receptionist/appointment.action";
+import { updateAppointmentStatusAction } from "@/actions/receptionist/appointment.action";
 import { AppointmentStatus, QueueType, Role } from "@/generated/prisma/enums";
 import { HandlerHeader } from "@/components/handler/handler-header";
 import { HandlerQueueCard } from "@/components/handler/handler-queue-card";
@@ -39,6 +37,7 @@ import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
 import { HandlerSendPatientDialog } from "@/components/handler/handler-send-patient-dialog";
+import { ModalityTimersWidget } from "@/components/handler/modality-timers-widget";
 
 interface HandlerDashboardViewProps {
   initialData: HandlerDashboardData;
@@ -454,6 +453,15 @@ export function HandlerDashboardView({
                 </Button>
               </div>
             </div>
+
+            {/* Live Modality Countdown Timers */}
+            <ModalityTimersWidget
+              modalities={
+                activePlan?.modalities && activePlan.modalities.length > 0
+                  ? activePlan.modalities
+                  : ["Hot Pack (Spinal)", "IFT / TENS", "Ultrasound Therapy"]
+              }
+            />
           </div>
         )}
 

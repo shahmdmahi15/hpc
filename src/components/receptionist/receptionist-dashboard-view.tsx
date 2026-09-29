@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import type {
+  ReceptionistDashboardData,
+  PatientWithCount,
+  AppointmentWithRelations,
+} from "@/actions/receptionist/appointment.action";
 import {
-  type ReceptionistDashboardData,
-  type PatientWithCount,
-  type AppointmentWithRelations,
   getReceptionistDashboardDataAction,
   updateAppointmentStatusAction,
   checkOutPatientAction,
@@ -254,6 +256,7 @@ export function ReceptionistDashboardView({
     performerId: string,
     queueType?: QueueType,
     roomId?: string,
+    pin?: string,
   ): Promise<boolean> => {
     setLastPerformerId(performerId);
 
@@ -266,6 +269,8 @@ export function ReceptionistDashboardView({
           AppointmentStatus.CHECKED_IN,
           performerId,
           queueType,
+          undefined,
+          pin,
         );
         break;
       }
@@ -273,6 +278,7 @@ export function ReceptionistDashboardView({
         res = await checkOutPatientAction(
           actionConfig.appointmentId,
           performerId,
+          pin,
         );
         break;
       }
@@ -282,6 +288,9 @@ export function ReceptionistDashboardView({
           actionConfig.appointmentId,
           AppointmentStatus.CANCELLED,
           performerId,
+          undefined,
+          undefined,
+          pin,
         );
         break;
       }
@@ -297,6 +306,7 @@ export function ReceptionistDashboardView({
           performerId,
           undefined,
           roomId,
+          pin,
         );
         break;
       }
@@ -305,6 +315,9 @@ export function ReceptionistDashboardView({
           actionConfig.appointmentId,
           AppointmentStatus.COMPLETED,
           performerId,
+          undefined,
+          undefined,
+          pin,
         );
         break;
       }
@@ -315,6 +328,7 @@ export function ReceptionistDashboardView({
           actionConfig.appointmentId,
           targetQueue,
           performerId,
+          pin,
         );
         break;
       }

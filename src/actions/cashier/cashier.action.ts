@@ -18,6 +18,7 @@ import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
 import { logAudit } from "@/lib/audit";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 import { revalidatePath } from "next/cache";
+import { DEFAULT_FEE } from "@/lib/billing";
 
 export interface CashierDashboardData {
   selectedDate: string;
@@ -44,8 +45,6 @@ export interface CashierDashboardData {
   doctorPerformers: PerformerModel[];
   currentCashier: PerformerModel | null;
 }
-
-import { DEFAULT_FEE } from "@/lib/billing";
 
 /**
  * Loads all billing and queue data for the Cashier & Billing Desk.
@@ -76,7 +75,7 @@ export async function getCashierDashboardDataAction(
 
   // Logged in cashier performer identity
   const currentCashier =
-    cashierPerformers.find((c) => c.id === sessionData.session.userId) ||
+    cashierPerformers.find((c) => c.userId === sessionData.session.userId) ||
     cashierPerformers[0] ||
     null;
 
@@ -143,6 +142,7 @@ export async function collectPaymentAction(params: {
   amount: number;
   paymentMethod: "CASH" | "CARD" | "MFS";
   performerId?: string;
+  pin?: string;
   notes?: string;
 }) {
   try {
@@ -151,6 +151,18 @@ export async function collectPaymentAction(params: {
       Role.ADMIN,
       Role.RECEPTIONIST,
     ]);
+
+    // Verify cashier 4-digit PIN if performerId is supplied
+    if (params.performerId) {
+      const { verifyPerformerPin } = await import("@/lib/performer-auth");
+      const pinRes = await verifyPerformerPin(params.performerId, params.pin);
+      if (!pinRes.success) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit PIN for cashier.",
+        };
+      }
+    }
 
     const appointment = await prisma.appointment.findUnique({
       where: { id: params.appointmentId },

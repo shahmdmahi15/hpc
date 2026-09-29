@@ -18,6 +18,7 @@ import {
   type PatientActionState,
 } from "@/schemas/receptionist/patient.schema";
 import { logAudit } from "@/lib/audit";
+import { verifyPerformerPin } from "@/lib/performer-auth";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 import { revalidatePath } from "next/cache";
 
@@ -44,6 +45,19 @@ export async function createPatientAction(
         message: "Please correct the invalid patient information.",
         fieldErrors: validation.error.flatten().fieldErrors,
       };
+    }
+
+    if (validation.data.performerId && validation.data.pin) {
+      const pinRes = await verifyPerformerPin(
+        validation.data.performerId,
+        validation.data.pin,
+      );
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit staff PIN.",
+        };
+      }
     }
 
     const { name, phone, gender, age, dateOfBirth, address, emergencyPhone } =
@@ -147,6 +161,19 @@ export async function updatePatientAction(
         message: "Please correct the invalid patient information.",
         fieldErrors: validation.error.flatten().fieldErrors,
       };
+    }
+
+    if (validation.data.performerId && validation.data.pin) {
+      const pinRes = await verifyPerformerPin(
+        validation.data.performerId,
+        validation.data.pin,
+      );
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit staff PIN.",
+        };
+      }
     }
 
     const {

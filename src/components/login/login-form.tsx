@@ -195,7 +195,59 @@ export function LoginForm({
             )}
           </div>
 
-          {/* 2. Password Input Field */}
+          {/* 2. Identifier (Email or WhatsApp) - Only required for Admin & Doctor individual accounts */}
+          {(selectedRole === Role.ADMIN || selectedRole === Role.DOCTOR) ? (
+            <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="identifier"
+                  className="text-[11px] font-semibold flex items-center gap-1 text-muted-foreground"
+                >
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  <span>
+                    {selectedRole === Role.DOCTOR
+                      ? "Doctor Email or WhatsApp"
+                      : "Administrator Email or WhatsApp"}
+                  </span>
+                </Label>
+                <span className="text-[10px] text-muted-foreground/70 font-normal">
+                  Personal Account
+                </span>
+              </div>
+
+              <Input
+                id="identifier"
+                name="identifier"
+                type="text"
+                placeholder={
+                  selectedRole === Role.DOCTOR
+                    ? "e.g. dr.farhan@hpc.com or +8801700000002"
+                    : "e.g. admin@hpc.com or +8801700000001"
+                }
+                required
+                autoComplete="username"
+                disabled={isPending}
+                className="h-9 sm:h-9.5 px-3 text-xs rounded-xl bg-background/60 border-border/80 focus-visible:ring-primary/30"
+              />
+
+              {state?.fieldErrors?.identifier && (
+                <p className="text-[11px] text-destructive font-medium">
+                  {state.fieldErrors.identifier[0]}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="p-2 rounded-xl bg-muted/40 border border-border/60 text-[11px] flex items-center justify-between text-muted-foreground">
+              <span className="font-medium">
+                Shared {currentRoleLabel} Desk Station
+              </span>
+              <span className="text-[10px] font-mono bg-background/80 px-2 py-0.5 rounded border border-border/60">
+                Staff PIN Authorized at Desk
+              </span>
+            </div>
+          )}
+
+          {/* 3. Password Input Field */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label
@@ -203,7 +255,11 @@ export function LoginForm({
                 className="text-[11px] font-semibold flex items-center gap-1 text-muted-foreground"
               >
                 <KeyRound className="h-3 w-3 text-muted-foreground" />
-                <span>{t("login.password", "Security Password")}</span>
+                <span>
+                  {selectedRole === Role.ADMIN || selectedRole === Role.DOCTOR
+                    ? t("login.password", "Account Password")
+                    : t("login.password", "Desk Station Password")}
+                </span>
               </Label>
               <div className="flex items-center gap-1.5">
                 <kbd className="hidden sm:inline-block px-1.5 py-0.2 rounded border border-border/60 bg-muted/40 text-[9.5px] font-mono text-muted-foreground">

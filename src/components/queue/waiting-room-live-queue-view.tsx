@@ -142,7 +142,7 @@ export function WaitingRoomLiveQueueView({
     }
   }, [getAudioContext]);
 
-  // Broadcast both audible chime and clear speech synthesis voice announcement
+  // Broadcast both audible chime and clear speech synthesis voice announcement (bilingual EN + BN)
   const playAnnouncementSound = React.useCallback(
     (announcement: DoctorCallAnnouncement) => {
       // 1. Trigger resonant airport/hospital chime
@@ -154,12 +154,34 @@ export function WaitingRoomLiveQueueView({
           window.speechSynthesis.cancel();
           setTimeout(() => {
             try {
-              const text = `Attention please. Patient ${announcement.patientName}. Please proceed to Room ${announcement.roomNumber}.`;
-              const utterance = new SpeechSynthesisUtterance(text);
-              utterance.rate = 0.88; // steady clear cadence
-              utterance.pitch = 1.0;
-              utterance.volume = 1.0;
-              window.speechSynthesis.speak(utterance);
+              const voices = window.speechSynthesis.getVoices();
+              const bnVoice = voices.find(
+                (v) =>
+                  v.lang.toLowerCase().startsWith("bn") ||
+                  v.name.toLowerCase().includes("bangla") ||
+                  v.name.toLowerCase().includes("bengali"),
+              );
+
+              const enText = `Attention please. Patient ${announcement.patientName}. Please proceed to Room ${announcement.roomNumber}.`;
+              const enUtterance = new SpeechSynthesisUtterance(enText);
+              enUtterance.rate = 0.9;
+              enUtterance.pitch = 1.0;
+              enUtterance.volume = 1.0;
+
+              if (bnVoice) {
+                const bnText = `দয়া করে মনোযোগ দিন। রোগী ${announcement.patientName}, রুম নম্বর ${announcement.roomNumber}-এ আসুন।`;
+                const bnUtterance = new SpeechSynthesisUtterance(bnText);
+                bnUtterance.voice = bnVoice;
+                bnUtterance.lang = "bn-BD";
+                bnUtterance.rate = 0.88;
+                bnUtterance.volume = 1.0;
+
+                enUtterance.onend = () => {
+                  window.speechSynthesis.speak(bnUtterance);
+                };
+              }
+
+              window.speechSynthesis.speak(enUtterance);
             } catch (e) {
               console.warn("[Speech Synthesis Error]:", e);
             }
@@ -226,6 +248,15 @@ export function WaitingRoomLiveQueueView({
               return item;
             }),
           );
+          if (
+            (d.status === "IN_CONSULTATION" ||
+              d.status === "IN_THERAPY" ||
+              d.status === "COMPLETED" ||
+              d.status === "CANCELLED") &&
+            activeAnnouncement?.appointmentId === d.id
+          ) {
+            setActiveAnnouncement(null);
+          }
         }
         refreshQueue();
       }

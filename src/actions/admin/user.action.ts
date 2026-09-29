@@ -4,27 +4,215 @@ import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/guard";
 import { Role, AuditAction, AuditStatus } from "@/generated/prisma/enums";
 import {
+  createAccountSchema,
+  deleteUserAccountSchema,
   resetPasswordSchema,
   type UserActionState,
 } from "@/schemas/admin/user.schema";
 import { hashPassword } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
-import { resolveActingAdminPerformer } from "@/actions/admin/admin-performer-guard";
 
 /**
- * Resets the password for a designated role user account.
- * Accessible only to verified Administrator sessions.
- * Enforces mandatory admin performer selection if multiple admin staff exist.
+ * Creates a new independent Administrator or Doctor user account.
+ * (Receptionist, Handler, and Cashier use shared desk accounts managed with performers).
+ */
+export async function createUserAccountAction(
+  prevState: UserActionState | undefined,
+  formData: FormData,
+): Promise<UserActionState> {
+  const { user: adminUser } = await requireAuth(Role.ADMIN);
+
+  const rawData = {
+    role: formData.get("role") as Role,
+    name: formData.get("name")?.toString() || "",
+    email: formData.get("email")?.toString() || "",
+    whatsapp: formData.get("whatsapp")?.toString() || "",
+    password: formData.get("password")?.toString() || "",
+  };
+
+  const validation = createAccountSchema.safeParse(rawData);
+  if (!validation.success) {
+    return {
+      success: false,
+      message: "Please fix the validation errors below.",
+      fieldErrors: validation.error.flatten().fieldErrors,
+    };
+  }
+
+  const { role, name, email, whatsapp, password } = validation.data;
+
+  try {
+    // Check if email already in use
+    const existingEmail = await prisma.user.findFirst({
+      where: { email },
+    });
+    if (existingEmail) {
+      return {
+        success: false,
+        message: `An account with email "${email}" already exists.`,
+        fieldErrors: {
+          email: ["Email is already registered in the system."],
+        },
+      };
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    const newUser = await prisma.user.create({
+      data: {
+        role,
+        name,
+        email,
+        whatsapp,
+        password: hashedPassword,
+      },
+    });
+
+    await logAudit({
+      action: AuditAction.USER_CREATE,
+      status: AuditStatus.SUCCESS,
+      userId: adminUser.id,
+      entity: "User",
+      entityId: newUser.id,
+      details: {
+        createdRole: role,
+        name,
+        email,
+        whatsapp,
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
+      },
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/admin/audit");
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: `Successfully created ${role} account for ${name} (${email}).`,
+    };
+  } catch (error) {
+    console.error("[User Action Error] Failed to create user account:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred while creating the user account.",
+    };
+  }
+}
+
+/**
+ * Deletes an independent Admin or Doctor user account.
+ * (Shared desk accounts cannot be deleted to maintain system integrity).
+ */
+export async function deleteUserAccountAction(
+  userId: string,
+): Promise<UserActionState> {
+  const { user: adminUser } = await requireAuth(Role.ADMIN);
+
+  const validation = deleteUserAccountSchema.safeParse({ userId });
+  if (!validation.success) {
+    return {
+      success: false,
+      message: "Invalid user account identifier.",
+    };
+  }
+
+  if (userId === adminUser.id) {
+    return {
+      success: false,
+      message: "You cannot delete your own active administrator account.",
+    };
+  }
+
+  try {
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!target) {
+      return {
+        success: false,
+        message: "User account not found or already deleted.",
+      };
+    }
+
+    if (
+      target.role === Role.RECEPTIONIST ||
+      target.role === Role.HANDLER ||
+      target.role === Role.CASHIER
+    ) {
+      return {
+        success: false,
+        message: `The ${target.role} desk station account cannot be deleted. Manage individual desk staff performers instead.`,
+      };
+    }
+
+    // If target is ADMIN, check that at least one other admin account remains
+    if (target.role === Role.ADMIN) {
+      const adminCount = await prisma.user.count({
+        where: { role: Role.ADMIN },
+      });
+      if (adminCount <= 1) {
+        return {
+          success: false,
+          message: "Cannot delete the last remaining Administrator account.",
+        };
+      }
+    }
+
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    await logAudit({
+      action: AuditAction.USER_DELETE,
+      status: AuditStatus.SUCCESS,
+      userId: adminUser.id,
+      entity: "User",
+      entityId: userId,
+      details: {
+        deletedRole: target.role,
+        name: target.name,
+        email: target.email,
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
+      },
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/admin/audit");
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: `Account for ${target.name || target.role} was successfully removed.`,
+    };
+  } catch (error) {
+    console.error("[User Action Error] Failed to delete user account:", error);
+    return {
+      success: false,
+      message: "An error occurred while deleting the user account.",
+    };
+  }
+}
+
+/**
+ * Resets the password for any user account (Admin, Doctor, or Desk).
  */
 export async function resetUserPasswordAction(
   prevState: UserActionState | undefined,
   formData: FormData,
 ): Promise<UserActionState> {
-  // 1. Strict Administrator Authentication Guard
   const { user: adminUser } = await requireAuth(Role.ADMIN);
 
-  // 2. Form Data Extraction & Schema Validation
   const rawData = {
     userId: formData.get("userId")?.toString() || "",
     performerId: formData.get("performerId")?.toString() || undefined,
@@ -36,7 +224,6 @@ export async function resetUserPasswordAction(
   };
 
   const validation = resetPasswordSchema.safeParse(rawData);
-
   if (!validation.success) {
     return {
       success: false,
@@ -45,26 +232,9 @@ export async function resetUserPasswordAction(
     };
   }
 
-  const { userId, performerId, newPassword, revokeSessions } = validation.data;
-
-  // 3. Resolve & Verify Acting Admin Performer
-  const adminPerformerRes = await resolveActingAdminPerformer(
-    adminUser.id,
-    performerId,
-  );
-  if (adminPerformerRes.error) {
-    return {
-      success: false,
-      message: adminPerformerRes.error,
-      fieldErrors: {
-        performerId: [adminPerformerRes.error],
-      },
-    };
-  }
-  const actingAdmin = adminPerformerRes.performer;
+  const { userId, newPassword, revokeSessions } = validation.data;
 
   try {
-    // 4. Locate Target User Account
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -76,10 +246,8 @@ export async function resetUserPasswordAction(
       };
     }
 
-    // 5. Memory-Hard Argon2id Hash Generation
     const hashedPassword = await hashPassword(newPassword);
 
-    // 6. Update Password in Database
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -87,7 +255,6 @@ export async function resetUserPasswordAction(
       },
     });
 
-    // 7. Optionally Revoke All Active Sessions (Zero-Trust)
     let revokedCount = 0;
     if (revokeSessions) {
       const revokeResult = await prisma.session.updateMany({
@@ -102,38 +269,31 @@ export async function resetUserPasswordAction(
       revokedCount = revokeResult.count;
     }
 
-    // 8. Record Immutable Audit Log with Performer Attribution
     await logAudit({
       action: AuditAction.USER_PASSWORD_RESET,
       status: AuditStatus.SUCCESS,
       userId: adminUser.id,
-      performerId: actingAdmin?.id || null,
       entity: "User",
       entityId: targetUser.id,
       details: {
         targetRole: targetUser.role,
+        targetEmail: targetUser.email,
         sessionsRevoked: revokedCount,
-        resetByAdmin: true,
-        performedBy: actingAdmin
-          ? {
-              id: actingAdmin.id,
-              name: actingAdmin.name,
-              phone: actingAdmin.phone,
-            }
-          : { rootAdmin: true },
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
       },
     });
 
-    // 9. Revalidate Relevant App Paths
     revalidatePath("/admin/users");
     revalidatePath("/admin/audit");
     revalidatePath("/admin");
 
     return {
       success: true,
-      message: `Password for ${targetUser.role} account was reset successfully by ${
-        actingAdmin ? actingAdmin.name : "Administrator"
-      }. ${
+      message: `Password for ${targetUser.name || targetUser.role} was reset successfully. ${
         revokeSessions
           ? `(${revokedCount} active session${revokedCount === 1 ? "" : "s"} terminated)`
           : ""
@@ -141,49 +301,20 @@ export async function resetUserPasswordAction(
     };
   } catch (error) {
     console.error("[User Action Error] Failed to reset user password:", error);
-
-    await logAudit({
-      action: AuditAction.USER_PASSWORD_RESET,
-      status: AuditStatus.FAILURE,
-      userId: adminUser.id,
-      performerId: actingAdmin?.id || null,
-      entity: "User",
-      entityId: userId,
-      details: {
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-    });
-
     return {
       success: false,
-      message:
-        "An unexpected error occurred while resetting the password. Please try again.",
+      message: "An unexpected error occurred while resetting the password.",
     };
   }
 }
 
 /**
  * Revokes all active sessions for a target user account.
- * Enforces mandatory admin performer selection if multiple admin staff exist.
  */
 export async function revokeAllUserSessionsAction(
   userId: string,
-  performerId?: string,
 ): Promise<UserActionState> {
   const { user: adminUser } = await requireAuth(Role.ADMIN);
-
-  // Resolve & Verify Acting Admin Performer
-  const adminPerformerRes = await resolveActingAdminPerformer(
-    adminUser.id,
-    performerId,
-  );
-  if (adminPerformerRes.error) {
-    return {
-      success: false,
-      message: adminPerformerRes.error,
-    };
-  }
-  const actingAdmin = adminPerformerRes.performer;
 
   try {
     const targetUser = await prisma.user.findUnique({
@@ -211,19 +342,16 @@ export async function revokeAllUserSessionsAction(
       action: AuditAction.USER_SESSIONS_REVOKED,
       status: AuditStatus.SUCCESS,
       userId: adminUser.id,
-      performerId: actingAdmin?.id || null,
       entity: "User",
       entityId: targetUser.id,
       details: {
         targetRole: targetUser.role,
         revokedCount: result.count,
-        performedBy: actingAdmin
-          ? {
-              id: actingAdmin.id,
-              name: actingAdmin.name,
-              phone: actingAdmin.phone,
-            }
-          : { rootAdmin: true },
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
       },
     });
 
@@ -233,7 +361,7 @@ export async function revokeAllUserSessionsAction(
 
     return {
       success: true,
-      message: `Successfully terminated ${result.count} active session${result.count === 1 ? "" : "s"} for ${targetUser.role}.`,
+      message: `Successfully terminated ${result.count} active session${result.count === 1 ? "" : "s"} for ${targetUser.name || targetUser.role}.`,
     };
   } catch (error) {
     console.error("[User Action Error] Failed to revoke sessions:", error);
@@ -247,17 +375,26 @@ export async function revokeAllUserSessionsAction(
 export interface FormattedUserAccountData {
   id: string;
   role: Role;
+  name: string | null;
+  email: string | null;
+  whatsapp: string | null;
   createdAt: Date;
   updatedAt: Date;
   activeSessionCount: number;
   totalSessionCount: number;
   lastAccessAt: Date | null;
-  performers: { id: string; name: string; phone: string }[];
+  performers: {
+    id: string;
+    name: string;
+    email: string | null;
+    whatsapp: string;
+    phone: string;
+    pin: string;
+  }[];
 }
 
 /**
- * Fetches and aggregates all user accounts, active sessions, and performers for User Management.
- * Strictly restricted to authenticated Administrators.
+ * Fetches and aggregates all user accounts, active sessions, and desk performers for Admin User Management.
  */
 export async function getAdminUsersPageDataAction(): Promise<
   FormattedUserAccountData[]
@@ -270,7 +407,10 @@ export async function getAdminUsersPageDataAction(): Promise<
         select: {
           id: true,
           name: true,
+          email: true,
+          whatsapp: true,
           phone: true,
+          pin: true,
         },
         orderBy: {
           name: "asc",
@@ -309,6 +449,9 @@ export async function getAdminUsersPageDataAction(): Promise<
     .map((u) => ({
       id: u.id,
       role: u.role,
+      name: u.name,
+      email: u.email,
+      whatsapp: u.whatsapp,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
       activeSessionCount: u.sessions.length,
@@ -318,3 +461,4 @@ export async function getAdminUsersPageDataAction(): Promise<
     }))
     .sort((a, b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99));
 }
+

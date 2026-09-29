@@ -129,3 +129,37 @@
     @apply bg-background text-foreground font-sans min-h-screen;
   }
 }
+
+@media print {
+  @page {
+    margin: 6mm;
+    size: auto;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Hide non-print UI when printing */
+  body > *:not(.print-document-container) {
+    display: none !important;
+  }
+  .no-print,
+  dialog,
+  header,
+  nav,
+  aside,
+  footer {
+    display: none !important;
+  }
+  .print-document-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

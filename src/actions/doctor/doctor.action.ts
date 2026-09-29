@@ -25,6 +25,7 @@ import {
 } from "@/actions/receptionist/appointment.action";
 import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
 import { syncBillingForAppointment } from "@/lib/billing-sync";
+import { verifyPerformerPin } from "@/lib/performer-auth";
 import { revalidatePath } from "next/cache";
 
 export interface DoctorDashboardData {
@@ -87,7 +88,7 @@ export async function getDoctorDashboardDataAction(
 
   // Find logged-in doctor's performer record
   const currentDoctor =
-    doctorPerformers.find((doc) => doc.id === sessionData.session.userId) ||
+    doctorPerformers.find((doc) => doc.userId === sessionData.session.userId) ||
     doctorPerformers[0] ||
     null;
 
@@ -339,6 +340,7 @@ export interface RoutePatientParams {
   destination: "CASHIER" | "HANDLER" | "RECEPTIONIST" | "DOCTOR";
   feeAmount?: number;
   performerId?: string;
+  pin?: string;
   notes?: string;
   routingNote?: string;
   nextPlan?: {
@@ -367,6 +369,16 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       Role.HANDLER,
       Role.ADMIN,
     ]);
+
+    if (params.performerId && params.pin) {
+      const pinRes = await verifyPerformerPin(params.performerId, params.pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit performer PIN.",
+        };
+      }
+    }
 
     const appointment = await prisma.appointment.findUnique({
       where: { id: params.appointmentId },
@@ -545,6 +557,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
             ? null
             : appointment.roomId,
         notes: params.notes !== undefined ? params.notes : appointment.notes,
+        ...(params.performerId ? { performerId: params.performerId } : {}),
       },
       include: {
         patient: true,

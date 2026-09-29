@@ -158,16 +158,29 @@ enum ClinicalOptionCategory {
 // --------------------------------------------------------
 
 model User {
-  id       String @id @default(cuid())
-  role     Role   @unique
+  id       String  @id @default(cuid())
+  role     Role
   password String
+  name     String?
+  email    String?
+  whatsapp String?
 
   sessions   Session[]
   auditLogs  AuditLog[]
   performers Performer[]
 
+  // Doctor & Approver clinical relations
+  doctorAppointments        Appointment[]   @relation("DoctorAppointments")
+  approvedAppointmentExtras Appointment[]   @relation("AppointmentExtraApprover")
+  medicalRecords            MedicalRecord[]
+  treatmentPlans            TreatmentPlan[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([email])
+  @@index([whatsapp])
 }
 
 model Session {
@@ -221,31 +234,31 @@ model AuditLog {
 }
 
 // --------------------------------------------------------
-// PERFORMER (PERSON IDENTITY)
+// PERFORMER (PERSON IDENTITY FOR DESKS: RECEPTIONIST, HANDLER, CASHIER)
 // --------------------------------------------------------
 
 model Performer {
-  id    String @id @default(cuid())
-  name  String
-  phone String
+  id       String  @id @default(cuid())
+  name     String
+  email    String?
+  whatsapp String
+  phone    String  @default("") // Compatibility fallback matching whatsapp
+  pin      String  // 4-digit security PIN
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   auditLogs AuditLog[]
 
-  // Clinical Actions & Approvals
-  approvedAppointmentExtras Appointment[] @relation("AppointmentExtraApprover")
-  doctorAppointments        Appointment[] @relation("DoctorAppointments")
-  conductedAppointments     Appointment[] @relation("PerformerAppointments")
-  bookedAppointments        Appointment[] @relation("AppointmentBooker")
-  medicalRecords            MedicalRecord[]
-  treatmentPlans            TreatmentPlan[]
+  // Desk operations
+  conductedAppointments Appointment[] @relation("PerformerAppointments")
+  bookedAppointments    Appointment[] @relation("AppointmentBooker")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([whatsapp])
   @@index([phone])
 }
 
@@ -367,13 +380,13 @@ model Appointment {
   extraStatus       ExtraApprovalStatus @default(NOT_APPLICABLE)
   extraReason       String?
   extraApprovedById String?
-  extraApprovedBy   Performer?          @relation("AppointmentExtraApprover", fields: [extraApprovedById], references: [id], onDelete: SetNull)
+  extraApprovedBy   User?               @relation("AppointmentExtraApprover", fields: [extraApprovedById], references: [id], onDelete: SetNull)
   extraApprovedAt   DateTime?
   extraApprovalNote String?
 
-  // Assigned Doctor (Performer under Doctor role desk)
+  // Assigned Doctor (Independent User account under DOCTOR role)
   doctorId String?
-  doctor   Performer? @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: SetNull)
+  doctor   User? @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: SetNull)
 
   // Assigned Therapist / Handler / Staff conducting the therapy
   performerId String?
@@ -514,9 +527,9 @@ model MedicalRecord {
   appointmentId  String?
   appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
-  // Attending doctor (Performer)
+  // Attending doctor (User)
   doctorId       String?
-  doctor         Performer?   @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  doctor         User?        @relation(fields: [doctorId], references: [id], onDelete: SetNull)
 
   // Metadata & Care Episode File tracking
   fileNumber     String?   // e.g. "FILE-2026-001"
@@ -609,7 +622,7 @@ model TreatmentPlan {
   appointment   Appointment?      @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   doctorId      String?
-  doctor        Performer?        @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  doctor        User?             @relation(fields: [doctorId], references: [id], onDelete: SetNull)
 
   // Dynamic clinical treatment modalities (stored as JSON string array)
   modalities    String            @default("[]")

@@ -29,7 +29,16 @@ export async function createPerformerAction(
     userId: formData.get("userId")?.toString() || "",
     adminPerformerId: formData.get("adminPerformerId")?.toString() || undefined,
     name: formData.get("name")?.toString() || "",
-    phone: formData.get("phone")?.toString() || "",
+    email: formData.get("email")?.toString() || undefined,
+    whatsapp:
+      formData.get("whatsapp")?.toString() ||
+      formData.get("phone")?.toString() ||
+      "",
+    phone:
+      formData.get("phone")?.toString() ||
+      formData.get("whatsapp")?.toString() ||
+      "",
+    pin: formData.get("pin")?.toString() || "",
   };
 
   const validation = createPerformerSchema.safeParse(rawData);
@@ -42,26 +51,10 @@ export async function createPerformerAction(
     };
   }
 
-  const { userId, adminPerformerId, name, phone } = validation.data;
-
-  // 3. Resolve & Verify Acting Admin Performer
-  const adminPerformerRes = await resolveActingAdminPerformer(
-    adminUser.id,
-    adminPerformerId,
-  );
-  if (adminPerformerRes.error) {
-    return {
-      success: false,
-      message: adminPerformerRes.error,
-      fieldErrors: {
-        adminPerformerId: [adminPerformerRes.error],
-      },
-    };
-  }
-  const actingAdmin = adminPerformerRes.performer;
+  const { userId, name, email, whatsapp, phone, pin } = validation.data;
 
   try {
-    // 4. Ensure target User account exists
+    // 3. Ensure target User account exists
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -73,56 +66,68 @@ export async function createPerformerAction(
       };
     }
 
-    // 5. Check for duplicate phone under the same role desk
+    // 4. Verify that target role is a desk station that supports performers
+    if (targetUser.role === Role.ADMIN || targetUser.role === Role.DOCTOR) {
+      return {
+        success: false,
+        message: "Staff performers cannot be assigned to Admin or Doctor roles. Admin and Doctor are individual user accounts.",
+      };
+    }
+
+    // 5. Check for duplicate whatsapp under the same role desk
     const existingPerformerSamePhone = await prisma.performer.findFirst({
       where: {
         userId,
-        phone,
+        OR: [
+          { whatsapp },
+          { phone: whatsapp },
+        ],
       },
     });
 
     if (existingPerformerSamePhone) {
       return {
         success: false,
-        message: `A staff member with phone number "${phone}" is already registered under this station desk.`,
+        message: `A staff member with WhatsApp number "${whatsapp}" is already registered under this station desk.`,
         fieldErrors: {
-          phone: [
-            "This phone number is already registered for this role desk.",
+          whatsapp: [
+            "This WhatsApp number is already registered for this role desk.",
           ],
         },
       };
     }
 
-    // 6. Create Performer Record
+    // 6. Create Performer Record with 4-digit PIN
     const newPerformer = await prisma.performer.create({
       data: {
         name,
-        phone,
+        email: email || null,
+        whatsapp,
+        phone: phone || whatsapp,
+        pin,
         userId,
       },
     });
 
-    // 7. Record Immutable Audit Log with Performer Attribution
+    // 7. Record Immutable Audit Log with Admin Attribution
     await logAudit({
       action: AuditAction.PERFORMER_CREATE,
       status: AuditStatus.SUCCESS,
       userId: adminUser.id,
-      performerId: actingAdmin?.id || null,
       entity: "Performer",
       entityId: newPerformer.id,
       details: {
         type: "PERFORMER_CREATED",
         name: newPerformer.name,
-        phone: newPerformer.phone,
+        whatsapp: newPerformer.whatsapp,
         targetRole: targetUser.role,
         targetUserId: targetUser.id,
-        performedBy: actingAdmin
-          ? {
-              id: actingAdmin.id,
-              name: actingAdmin.name,
-              phone: actingAdmin.phone,
-            }
-          : { rootAdmin: true },
+        pinConfigured: true,
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
       },
     });
 
@@ -133,9 +138,7 @@ export async function createPerformerAction(
 
     return {
       success: true,
-      message: `Staff member "${name}" successfully added to ${targetUser.role} desk${
-        actingAdmin ? ` by ${actingAdmin.name}` : ""
-      }.`,
+      message: `Staff performer "${name}" (PIN: ${pin}) successfully registered under ${targetUser.role} desk.`,
     };
   } catch (error) {
     console.error(
@@ -147,12 +150,11 @@ export async function createPerformerAction(
       action: AuditAction.USER_UPDATE,
       status: AuditStatus.FAILURE,
       userId: adminUser.id,
-      performerId: actingAdmin?.id || null,
       entity: "Performer",
       details: {
         type: "PERFORMER_CREATE_FAILED",
         name,
-        phone,
+        whatsapp,
         targetUserId: userId,
         error: error instanceof Error ? error.message : "Unknown error",
       },
@@ -173,13 +175,13 @@ export async function createPerformerAction(
  */
 export async function deletePerformerAction(
   performerId: string,
-  adminPerformerId?: string,
+  _adminPerformerId?: string,
 ): Promise<PerformerActionState> {
   const { user: adminUser } = await requireAuth(Role.ADMIN);
 
   const validation = deletePerformerSchema.safeParse({
     performerId,
-    adminPerformerId,
+    adminPerformerId: _adminPerformerId,
   });
   if (!validation.success) {
     return {
@@ -187,19 +189,6 @@ export async function deletePerformerAction(
       message: "Invalid performer details provided.",
     };
   }
-
-  // Resolve & Verify Acting Admin Performer
-  const adminPerformerRes = await resolveActingAdminPerformer(
-    adminUser.id,
-    adminPerformerId,
-  );
-  if (adminPerformerRes.error) {
-    return {
-      success: false,
-      message: adminPerformerRes.error,
-    };
-  }
-  const actingAdmin = adminPerformerRes.performer;
 
   try {
     const existingPerformer = await prisma.performer.findUnique({
@@ -222,21 +211,18 @@ export async function deletePerformerAction(
       action: AuditAction.PERFORMER_DELETE,
       status: AuditStatus.SUCCESS,
       userId: adminUser.id,
-      performerId: actingAdmin?.id || null,
       entity: "Performer",
       entityId: performerId,
       details: {
         type: "PERFORMER_DELETED",
         name: existingPerformer.name,
-        phone: existingPerformer.phone,
+        whatsapp: existingPerformer.whatsapp,
         role: existingPerformer.user.role,
-        performedBy: actingAdmin
-          ? {
-              id: actingAdmin.id,
-              name: actingAdmin.name,
-              phone: actingAdmin.phone,
-            }
-          : { rootAdmin: true },
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
       },
     });
 
@@ -246,9 +232,7 @@ export async function deletePerformerAction(
 
     return {
       success: true,
-      message: `Staff member "${existingPerformer.name}" has been removed${
-        actingAdmin ? ` by ${actingAdmin.name}` : ""
-      }.`,
+      message: `Staff member "${existingPerformer.name}" has been removed from ${existingPerformer.user.role} desk.`,
     };
   } catch (error) {
     console.error(

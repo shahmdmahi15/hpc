@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   UserCheck,
   ShieldAlert,
@@ -9,6 +10,7 @@ import {
   CheckCircle2,
   User,
   AlertCircle,
+  KeyRound,
 } from "lucide-react";
 
 export interface ReceptionistPerformer {
@@ -24,6 +26,8 @@ interface ReceptionistPerformerSelectProps {
   disabled?: boolean;
   label?: string;
   error?: string;
+  pin?: string;
+  onPinChange?: (pin: string) => void;
 }
 
 export function ReceptionistPerformerSelect({
@@ -33,6 +37,8 @@ export function ReceptionistPerformerSelect({
   disabled = false,
   label = "Authorizing Receptionist",
   error,
+  pin,
+  onPinChange,
 }: ReceptionistPerformerSelectProps) {
   // If exactly 1 performer exists and none is selected, auto-select it
   React.useEffect(() => {
@@ -69,7 +75,7 @@ export function ReceptionistPerformerSelect({
   if (performers.length === 1) {
     const single = performers[0];
     return (
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
           <UserCheck className="size-3.5 text-primary" />
           {label}
@@ -94,6 +100,26 @@ export function ReceptionistPerformerSelect({
             Active
           </span>
         </div>
+
+        {onPinChange && (
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/5 border border-amber-500/20">
+            <KeyRound className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="flex-1 flex items-center justify-between gap-2">
+              <span className="text-[11px] font-medium text-foreground">
+                Staff 4-Digit PIN:
+              </span>
+              <Input
+                type="password"
+                maxLength={4}
+                value={pin || ""}
+                onChange={(e) => onPinChange(e.target.value.replace(/\D/g, ""))}
+                placeholder="••••"
+                disabled={disabled}
+                className="h-7 text-xs font-mono tracking-widest text-center rounded-lg bg-background w-24 border-amber-500/40"
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -153,6 +179,26 @@ export function ReceptionistPerformerSelect({
           );
         })}
       </div>
+
+      {onPinChange && selectedPerformerId && (
+        <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/5 border border-amber-500/20">
+          <KeyRound className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="flex-1 flex items-center justify-between gap-2">
+            <span className="text-[11px] font-medium text-foreground">
+              Selected Staff 4-Digit PIN:
+            </span>
+            <Input
+              type="password"
+              maxLength={4}
+              value={pin || ""}
+              onChange={(e) => onPinChange(e.target.value.replace(/\D/g, ""))}
+              placeholder="••••"
+              disabled={disabled}
+              className="h-7 text-xs font-mono tracking-widest text-center rounded-lg bg-background w-24 border-amber-500/40"
+            />
+          </div>
+        </div>
+      )}
 
       {error ? (
         <p className="text-[11px] text-destructive font-medium flex items-center gap-1">

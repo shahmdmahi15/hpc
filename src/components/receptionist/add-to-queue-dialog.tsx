@@ -75,6 +75,7 @@ function AddToQueueDialogBody({
     () =>
       defaultPerformerId || (performers.length === 1 ? performers[0].id : ""),
   );
+  const [performerPin, setPerformerPin] = React.useState<string>("");
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
 
   // Filter patients by search query
@@ -109,6 +110,11 @@ function AddToQueueDialogBody({
       return;
     }
 
+    if (selectedPerformerId && performers.length > 0 && !performerPin) {
+      toast.error("Please enter your 4-digit receptionist PIN.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await addPatientToQueueAction({
@@ -117,6 +123,7 @@ function AddToQueueDialogBody({
         toldTime: toldTime.trim() || undefined,
         notes: notes.trim() || undefined,
         performerId: selectedPerformerId || undefined,
+        pin: performerPin || undefined,
       });
 
       if (res.success) {
@@ -136,7 +143,7 @@ function AddToQueueDialogBody({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl max-h-[min(92vh,700px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[min(90vh,680px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         <DialogHeader className="p-5 pb-4 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
@@ -344,6 +351,8 @@ function AddToQueueDialogBody({
               performers={performers}
               selectedPerformerId={selectedPerformerId}
               onSelectPerformerId={setSelectedPerformerId}
+              pin={performerPin}
+              onPinChange={setPerformerPin}
               disabled={isSubmitting}
               label="Authorizing Receptionist"
             />

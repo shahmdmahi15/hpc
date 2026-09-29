@@ -23,6 +23,7 @@ export async function loginAction(
 ): Promise<ActionState> {
   const rawData = {
     role: formData.get("role"),
+    identifier: formData.get("identifier")?.toString().trim() || undefined,
     password: formData.get("password"),
   };
 
@@ -35,6 +36,7 @@ export async function loginAction(
       details: {
         reason: "Validation Error",
         role: rawData.role,
+        identifier: rawData.identifier,
         errors: validation.error.flatten().fieldErrors,
       },
     });
@@ -46,28 +48,62 @@ export async function loginAction(
     };
   }
 
-  const { role, password } = validation.data;
+  const { role, identifier, password } = validation.data;
 
-  // Find unique account by role
-  const user = await prisma.user.findUnique({
-    where: { role },
-  });
-
-  if (!user) {
-    await logAudit({
-      action: AuditAction.LOGIN_FAILURE,
-      status: AuditStatus.FAILURE,
-      details: {
-        reason: "Account not found for role",
-        attemptedRole: role,
+  // Find user account:
+  // For ADMIN & DOCTOR: query by role AND (email OR whatsapp)
+  // For RECEPTIONIST, HANDLER, CASHIER: query single shared desk account by role
+  let user = null;
+  if (role === Role.ADMIN || role === Role.DOCTOR) {
+    user = await prisma.user.findFirst({
+      where: {
+        role,
+        OR: [
+          { email: identifier },
+          { whatsapp: identifier },
+        ],
       },
     });
 
-    return {
-      success: false,
-      message:
-        "No account found with the selected role. Please check system setup.",
-    };
+    if (!user) {
+      await logAudit({
+        action: AuditAction.LOGIN_FAILURE,
+        status: AuditStatus.FAILURE,
+        details: {
+          reason: "Account not found by identifier",
+          attemptedRole: role,
+          identifier,
+        },
+      });
+
+      return {
+        success: false,
+        message: `No ${role.toLowerCase()} account found with email or WhatsApp "${identifier}".`,
+        fieldErrors: {
+          identifier: ["Account not found with this Email or WhatsApp number."],
+        },
+      };
+    }
+  } else {
+    user = await prisma.user.findFirst({
+      where: { role },
+    });
+
+    if (!user) {
+      await logAudit({
+        action: AuditAction.LOGIN_FAILURE,
+        status: AuditStatus.FAILURE,
+        details: {
+          reason: "Desk account not found for role",
+          attemptedRole: role,
+        },
+      });
+
+      return {
+        success: false,
+        message: `No desk account found for role ${role}. Please contact an administrator.`,
+      };
+    }
   }
 
   const isValidPassword = await verifyPassword(user.password, password);

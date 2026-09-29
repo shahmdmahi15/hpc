@@ -113,6 +113,7 @@ function EditPatientForm({
     () =>
       defaultPerformerId || (performers.length === 1 ? performers[0].id : ""),
   );
+  const [performerPin, setPerformerPin] = React.useState<string>("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
 
@@ -120,6 +121,12 @@ function EditPatientForm({
     e.preventDefault();
     setIsSubmitting(true);
     setErrors({});
+
+    if (performerId && performers.length > 0 && !performerPin) {
+      toast.error("Please enter your 4-digit receptionist PIN.");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const res = await updatePatientAction({
@@ -131,6 +138,7 @@ function EditPatientForm({
         address: address.trim() || undefined,
         emergencyPhone: emergencyPhone.trim() || undefined,
         performerId: performerId || undefined,
+        pin: performerPin || undefined,
       });
 
       if (res.success && res.patient) {
@@ -151,7 +159,7 @@ function EditPatientForm({
   };
 
   return (
-    <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[min(92vh,740px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+    <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[min(90vh,680px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
       <DialogHeader className="p-5 pb-4 border-b border-border/60 shrink-0 bg-muted/20">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -303,6 +311,8 @@ function EditPatientForm({
                 performers={performers}
                 selectedPerformerId={performerId}
                 onSelectPerformerId={setPerformerId}
+                pin={performerPin}
+                onPinChange={setPerformerPin}
                 disabled={isSubmitting}
                 label="Authorizing Staff"
               />

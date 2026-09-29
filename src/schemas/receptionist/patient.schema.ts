@@ -25,6 +25,7 @@ export const createPatientSchema = z.object({
   address: z.string().trim().optional(),
   emergencyPhone: z.string().trim().optional(),
   performerId: z.string().trim().optional(),
+  pin: z.string().trim().optional(),
 });
 
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;
@@ -54,6 +55,7 @@ export const updatePatientSchema = z.object({
   address: z.string().trim().optional(),
   emergencyPhone: z.string().trim().optional(),
   performerId: z.string().trim().optional(),
+  pin: z.string().trim().optional(),
 });
 
 export type UpdatePatientInput = z.infer<typeof updatePatientSchema>;

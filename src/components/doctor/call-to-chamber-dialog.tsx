@@ -156,7 +156,7 @@ export function CallToChamberDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl p-5 space-y-4 rounded-2xl shadow-2xl border-border/80">
+      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl p-5 sm:p-6 space-y-4 rounded-2xl shadow-2xl border-border/80">
         <DialogHeader className="space-y-1">
           <div className="flex items-center gap-2.5">
             <div className="size-8.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">

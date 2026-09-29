@@ -232,7 +232,7 @@ export type TreatmentPlanWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   appointment?: Prisma.XOR<Prisma.AppointmentNullableScalarRelationFilter, Prisma.AppointmentWhereInput> | null
-  doctor?: Prisma.XOR<Prisma.PerformerNullableScalarRelationFilter, Prisma.PerformerWhereInput> | null
+  doctor?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }
 
 export type TreatmentPlanOrderByWithRelationInput = {
@@ -249,7 +249,7 @@ export type TreatmentPlanOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   patient?: Prisma.PatientOrderByWithRelationInput
   appointment?: Prisma.AppointmentOrderByWithRelationInput
-  doctor?: Prisma.PerformerOrderByWithRelationInput
+  doctor?: Prisma.UserOrderByWithRelationInput
 }
 
 export type TreatmentPlanWhereUniqueInput = Prisma.AtLeast<{
@@ -269,7 +269,7 @@ export type TreatmentPlanWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   appointment?: Prisma.XOR<Prisma.AppointmentNullableScalarRelationFilter, Prisma.AppointmentWhereInput> | null
-  doctor?: Prisma.XOR<Prisma.PerformerNullableScalarRelationFilter, Prisma.PerformerWhereInput> | null
+  doctor?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }, "id">
 
 export type TreatmentPlanOrderByWithAggregationInput = {
@@ -317,7 +317,7 @@ export type TreatmentPlanCreateInput = {
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   appointment?: Prisma.AppointmentCreateNestedOneWithoutTreatmentPlansInput
-  doctor?: Prisma.PerformerCreateNestedOneWithoutTreatmentPlansInput
+  doctor?: Prisma.UserCreateNestedOneWithoutTreatmentPlansInput
 }
 
 export type TreatmentPlanUncheckedCreateInput = {
@@ -345,7 +345,7 @@ export type TreatmentPlanUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   appointment?: Prisma.AppointmentUpdateOneWithoutTreatmentPlansNestedInput
-  doctor?: Prisma.PerformerUpdateOneWithoutTreatmentPlansNestedInput
+  doctor?: Prisma.UserUpdateOneWithoutTreatmentPlansNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateInput = {
@@ -661,7 +661,7 @@ export type TreatmentPlanCreateWithoutPatientInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointment?: Prisma.AppointmentCreateNestedOneWithoutTreatmentPlansInput
-  doctor?: Prisma.PerformerCreateNestedOneWithoutTreatmentPlansInput
+  doctor?: Prisma.UserCreateNestedOneWithoutTreatmentPlansInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutPatientInput = {
@@ -712,7 +712,7 @@ export type TreatmentPlanCreateWithoutAppointmentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
-  doctor?: Prisma.PerformerCreateNestedOneWithoutTreatmentPlansInput
+  doctor?: Prisma.UserCreateNestedOneWithoutTreatmentPlansInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutAppointmentInput = {
@@ -828,7 +828,7 @@ export type TreatmentPlanUpdateWithoutPatientInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointment?: Prisma.AppointmentUpdateOneWithoutTreatmentPlansNestedInput
-  doctor?: Prisma.PerformerUpdateOneWithoutTreatmentPlansNestedInput
+  doctor?: Prisma.UserUpdateOneWithoutTreatmentPlansNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutPatientInput = {
@@ -880,7 +880,7 @@ export type TreatmentPlanUpdateWithoutAppointmentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
-  doctor?: Prisma.PerformerUpdateOneWithoutTreatmentPlansNestedInput
+  doctor?: Prisma.UserUpdateOneWithoutTreatmentPlansNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutAppointmentInput = {
@@ -998,7 +998,7 @@ export type $TreatmentPlanPayload<ExtArgs extends runtime.Types.Extensions.Inter
   objects: {
     patient: Prisma.$PatientPayload<ExtArgs>
     appointment: Prisma.$AppointmentPayload<ExtArgs> | null
-    doctor: Prisma.$PerformerPayload<ExtArgs> | null
+    doctor: Prisma.$UserPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1408,7 +1408,7 @@ export interface Prisma__TreatmentPlanClient<T, Null = never, ExtArgs extends ru
   readonly [Symbol.toStringTag]: "PrismaPromise"
   patient<T extends Prisma.PatientDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientDefaultArgs<ExtArgs>>): Prisma.Prisma__PatientClient<runtime.Types.Result.GetResult<Prisma.$PatientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   appointment<T extends Prisma.TreatmentPlan$appointmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$appointmentArgs<ExtArgs>>): Prisma.Prisma__AppointmentClient<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  doctor<T extends Prisma.TreatmentPlan$doctorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$doctorArgs<ExtArgs>>): Prisma.Prisma__PerformerClient<runtime.Types.Result.GetResult<Prisma.$PerformerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  doctor<T extends Prisma.TreatmentPlan$doctorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$doctorArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1871,18 +1871,18 @@ export type TreatmentPlan$appointmentArgs<ExtArgs extends runtime.Types.Extensio
  */
 export type TreatmentPlan$doctorArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Performer
+   * Select specific fields to fetch from the User
    */
-  select?: Prisma.PerformerSelect<ExtArgs> | null
+  select?: Prisma.UserSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Performer
+   * Omit specific fields from the User
    */
-  omit?: Prisma.PerformerOmit<ExtArgs> | null
+  omit?: Prisma.UserOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PerformerInclude<ExtArgs> | null
-  where?: Prisma.PerformerWhereInput
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**

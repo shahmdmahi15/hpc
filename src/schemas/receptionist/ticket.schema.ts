@@ -13,6 +13,7 @@ export const bookTherapyTicketSchema = z.object({
   toldTime: z.string().trim().optional(),
   notes: z.string().trim().optional(),
   bookedById: z.string().trim().optional(),
+  performerPin: z.string().trim().optional(),
   feeAmount: z.coerce
     .number()
     .min(0, "Fee cannot be negative.")

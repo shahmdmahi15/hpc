@@ -25,6 +25,7 @@ import {
   FileText,
   UserCheck,
 } from "lucide-react";
+import { VasRecoveryTimeline } from "@/components/doctor/medical/vas-recovery-timeline";
 
 export interface HistoryPatientInfo {
   id: string;
@@ -238,6 +239,9 @@ export function PatientMedicalHistoryDialog({
             </div>
           ) : (
             <div className="space-y-3.5">
+              {/* Clinical VAS Pain Score Recovery Trajectory */}
+              <VasRecoveryTimeline records={records} />
+
               {records.map((rec, index) => {
                 const isExpanded = expandedRecordId === rec.id;
                 const recDate = new Date(rec.assessmentDate).toLocaleDateString(

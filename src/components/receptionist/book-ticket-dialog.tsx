@@ -130,6 +130,9 @@ export function BookTicketDialog({
   // Editable Ticket Fee (0 to any amount)
   const [feeAmount, setFeeAmount] = React.useState<number>(500);
 
+  // 4-Digit Staff PIN for authorization
+  const [receptionistPin, setReceptionistPin] = React.useState("");
+
   // Sync props on dialog open (render-time adjustment)
   const [prevOpen, setPrevOpen] = React.useState(isOpen);
   if (isOpen !== prevOpen) {
@@ -269,6 +272,11 @@ export function BookTicketDialog({
       return;
     }
 
+    if (bookedById && performers.length > 0 && !receptionistPin) {
+      toast.error("Please enter the 4-digit PIN for the authorizing staff member.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await bookTherapyTicketAction({
@@ -284,6 +292,7 @@ export function BookTicketDialog({
         toldTime,
         notes: notes || undefined,
         bookedById: bookedById || undefined,
+        performerPin: receptionistPin || undefined,
         feeAmount,
       });
 
@@ -303,7 +312,7 @@ export function BookTicketDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[min(94vh,760px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl max-h-[min(92vh,740px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         {/* Header */}
         <DialogHeader className="p-5 pb-4 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-3">
@@ -697,6 +706,8 @@ export function BookTicketDialog({
               performers={performers}
               selectedPerformerId={bookedById}
               onSelectPerformerId={setBookedById}
+              pin={receptionistPin}
+              onPinChange={setReceptionistPin}
               disabled={isSubmitting}
               label="Authorizing Receptionist / Desk Staff"
             />

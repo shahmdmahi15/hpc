@@ -1356,6 +1356,9 @@ export const UserScalarFieldEnum = {
   id: 'id',
   role: 'role',
   password: 'password',
+  name: 'name',
+  email: 'email',
+  whatsapp: 'whatsapp',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1402,7 +1405,10 @@ export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typ
 export const PerformerScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  email: 'email',
+  whatsapp: 'whatsapp',
   phone: 'phone',
+  pin: 'pin',
   userId: 'userId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

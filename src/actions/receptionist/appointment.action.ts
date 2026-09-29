@@ -25,6 +25,7 @@ import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 import { isSlotActiveOnDay, type DayKey } from "@/lib/weekdays";
 import { DEFAULT_FEE } from "@/lib/billing";
 import { syncBillingForAppointment } from "@/lib/billing-sync";
+import { verifyPerformerPin } from "@/lib/performer-auth";
 import { revalidatePath } from "next/cache";
 import type {
   TherapySlotModel,
@@ -32,6 +33,7 @@ import type {
   PatientModel,
   RoomModel,
   PerformerModel,
+  UserModel,
 } from "@/generated/prisma/models";
 
 const DAY_MAP: Record<number, DayKey> = {
@@ -78,8 +80,20 @@ export async function bookTherapyTicketAction(
       toldTime,
       notes,
       bookedById,
+      performerPin,
       feeAmount,
     } = validation.data;
+
+    // Verify performer 4-digit PIN if bookedById is supplied
+    if (bookedById) {
+      const pinRes = await verifyPerformerPin(bookedById, performerPin);
+      if (!pinRes.success) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit PIN for receptionist.",
+        };
+      }
+    }
 
     // 1. Date window resolution
     const [year, month, day] = appointmentDate.split("-").map(Number);
@@ -284,6 +298,7 @@ export async function updateAppointmentStatusAction(
   performerId?: string,
   queueType?: QueueType,
   roomId?: string,
+  pin?: string,
 ) {
   try {
     const sessionData = await requireAuth([
@@ -293,6 +308,16 @@ export async function updateAppointmentStatusAction(
       Role.HANDLER,
       Role.CASHIER,
     ]);
+
+    if (performerId && pin) {
+      const pinRes = await verifyPerformerPin(performerId, pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit performer PIN.",
+        };
+      }
+    }
 
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
@@ -415,6 +440,7 @@ export async function updateAppointmentStatusAction(
           ? { queueType: assignedQueueType, queueId }
           : {}),
         ...(roomId !== undefined ? { roomId: roomId || null } : {}),
+        ...(performerId ? { performerId } : {}),
       },
       include: {
         patient: true,
@@ -465,11 +491,7 @@ export async function updateAppointmentStatusAction(
     );
 
     // If calling into room (consultation or therapy), broadcast DOCTOR_CALLED chime & banner event
-    if (
-      newStatus === AppointmentStatus.CALLING ||
-      newStatus === AppointmentStatus.IN_CONSULTATION ||
-      newStatus === AppointmentStatus.IN_THERAPY
-    ) {
+    if (newStatus === AppointmentStatus.CALLING) {
       emitRealtimeEvent("DOCTOR_CALLED", {
         appointmentId: updated.id,
         patientName: updated.patient.name,
@@ -595,8 +617,10 @@ export type AppointmentWithRelations = AppointmentModel & {
   patient?: PatientModel | null;
   therapySlot?: (TherapySlotModel & { room?: RoomModel | null }) | null;
   room?: RoomModel | null;
+  doctor?: UserModel | null;
+  performer?: PerformerModel | null;
   bookedBy?: PerformerModel | null;
-  extraApprovedBy?: PerformerModel | null;
+  extraApprovedBy?: UserModel | null;
   queue?: {
     id: string;
     name: string;
@@ -915,6 +939,7 @@ export interface AddPatientToQueueInput {
   toldTime?: string;
   notes?: string;
   performerId?: string;
+  pin?: string;
 }
 
 /**
@@ -930,6 +955,16 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       Role.HANDLER,
       Role.CASHIER,
     ]);
+
+    if (input.performerId && input.pin) {
+      const pinRes = await verifyPerformerPin(input.performerId, input.pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit performer PIN.",
+        };
+      }
+    }
 
     if (!input.patientId) {
       return { success: false, message: "Please select a patient." };
@@ -1100,6 +1135,7 @@ export async function switchQueueAction(
   appointmentId: string,
   targetQueueType: QueueType,
   performerId?: string,
+  pin?: string,
 ) {
   try {
     const sessionData = await requireAuth([
@@ -1108,6 +1144,16 @@ export async function switchQueueAction(
       Role.DOCTOR,
       Role.HANDLER,
     ]);
+
+    if (performerId && pin) {
+      const pinRes = await verifyPerformerPin(performerId, pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit performer PIN.",
+        };
+      }
+    }
 
     let queueRecord = await prisma.queue.findUnique({
       where: { type: targetQueueType },
@@ -1315,6 +1361,7 @@ export async function updateAppointmentWillCallTimeAction(
 export async function checkOutPatientAction(
   appointmentId: string,
   performerId?: string,
+  pin?: string,
 ): Promise<{
   success: boolean;
   message: string;
@@ -1328,6 +1375,16 @@ export async function checkOutPatientAction(
       Role.HANDLER,
       Role.CASHIER,
     ]);
+
+    if (performerId && pin) {
+      const pinRes = await verifyPerformerPin(performerId, pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit performer PIN.",
+        };
+      }
+    }
 
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },

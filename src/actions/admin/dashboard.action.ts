@@ -26,6 +26,13 @@ export interface AdminDashboardData {
     performerCount: number;
     roomCount: number;
     slotCount: number;
+    patientCount: number;
+    todayAppointmentsCount: number;
+    todayConsultationCount: number;
+    todayTherapyCount: number;
+    todayCollected: number;
+    todayDue: number;
+    totalLifetimeRevenue: number;
   };
   recentLogs: RecentAuditLogItem[];
 }
@@ -43,6 +50,18 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
   let performerCount = 0;
   let roomCount = 0;
   let slotCount = 0;
+  let patientCount = 0;
+  let todayAppointmentsCount = 0;
+  let todayConsultationCount = 0;
+  let todayTherapyCount = 0;
+  let todayCollected = 0;
+  let todayDue = 0;
+  let totalLifetimeRevenue = 0;
+
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
   let rawLogs: Array<{
     id: string;
     action: string;
@@ -54,7 +73,7 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
   }> = [];
 
   try {
-    const [uCount, sCount, aCount, pCount, rmCount, slCount, rLogs] =
+    const [uCount, sCount, aCount, pCount, rmCount, slCount, ptCount, todayApts, rLogs, allPatients] =
       await Promise.all([
         prisma.user.count(),
         prisma.session.count({
@@ -67,12 +86,31 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
         prisma.performer.count(),
         prisma.room.count(),
         prisma.therapySlot.count(),
+        prisma.patient.count(),
+        prisma.appointment.findMany({
+          where: {
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            status: { not: "CANCELLED" },
+          },
+          select: {
+            type: true,
+            feeAmount: true,
+            paidAmount: true,
+            dueAmount: true,
+            paymentStatus: true,
+          },
+        }),
         prisma.auditLog.findMany({
-          take: 5,
+          take: 8,
           orderBy: { createdAt: "desc" },
           include: {
             user: { select: { role: true } },
             performer: { select: { name: true, phone: true } },
+          },
+        }),
+        prisma.patient.aggregate({
+          _sum: {
+            totalPaid: true,
           },
         }),
       ]);
@@ -83,7 +121,23 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
     performerCount = pCount;
     roomCount = rmCount;
     slotCount = slCount;
+    patientCount = ptCount;
     rawLogs = rLogs;
+    totalLifetimeRevenue = allPatients._sum.totalPaid || 0;
+
+    todayAppointmentsCount = todayApts.length;
+    for (const apt of todayApts) {
+      if (apt.type === "CONSULTATION") todayConsultationCount++;
+      else todayTherapyCount++;
+
+      const fee = apt.feeAmount ?? 0;
+      const isPaid = apt.paymentStatus === "PAID";
+      const paid = isPaid ? fee : (apt.paidAmount ?? 0);
+      const due = isPaid ? 0 : Math.max(0, fee - paid);
+
+      todayCollected += paid;
+      todayDue += due;
+    }
   } catch (error) {
     console.error("[Dashboard Action Error] Failed to query telemetry:", error);
   }
@@ -109,6 +163,13 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
       performerCount,
       roomCount,
       slotCount,
+      patientCount,
+      todayAppointmentsCount,
+      todayConsultationCount,
+      todayTherapyCount,
+      todayCollected,
+      todayDue,
+      totalLifetimeRevenue,
     },
     recentLogs,
   };

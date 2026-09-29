@@ -25,9 +25,11 @@ import {
   Clock,
   Pencil,
   Megaphone,
+  Printer,
 } from "lucide-react";
 import { type AuthorizeReceptionistActionConfig } from "@/components/receptionist/authorize-receptionist-action-dialog";
 import type { RoomModel } from "@/generated/prisma/models";
+import { ThermalTicketDialog } from "@/components/print/thermal-ticket-dialog";
 import { toast } from "sonner";
 
 interface QueueManagementTabProps {
@@ -53,6 +55,8 @@ export function QueueManagementTab({
   const [actionLoadingId, setActionLoadingId] = React.useState<string | null>(
     null,
   );
+  const [printTicketApt, setPrintTicketApt] =
+    React.useState<AppointmentWithRelations | null>(null);
 
   const performerId =
     lastPerformerId || (performers.length > 0 ? performers[0].id : "");
@@ -202,6 +206,7 @@ export function QueueManagementTab({
                   isLoading={actionLoadingId === apt.id}
                   performerId={performerId}
                   onSwitchQueue={() => handleSwitchQueue(apt)}
+                  onPrintTicket={() => setPrintTicketApt(apt)}
                   onRefresh={onRefresh}
                 />
               ))
@@ -257,6 +262,7 @@ export function QueueManagementTab({
                   isLoading={actionLoadingId === apt.id}
                   performerId={performerId}
                   onSwitchQueue={() => handleSwitchQueue(apt)}
+                  onPrintTicket={() => setPrintTicketApt(apt)}
                   onRefresh={onRefresh}
                 />
               ))
@@ -264,6 +270,12 @@ export function QueueManagementTab({
           </div>
         </div>
       </div>
+
+      <ThermalTicketDialog
+        isOpen={!!printTicketApt}
+        onOpenChange={(open) => !open && setPrintTicketApt(null)}
+        appointment={printTicketApt}
+      />
     </div>
   );
 }
@@ -276,12 +288,14 @@ function QueueManagementCard({
   isLoading,
   performerId,
   onSwitchQueue,
+  onPrintTicket,
   onRefresh,
 }: {
   appointment: AppointmentWithRelations;
   isLoading: boolean;
   performerId: string;
   onSwitchQueue: () => void;
+  onPrintTicket: () => void;
   onRefresh: () => void;
 }) {
   const [isEditingCallTime, setIsEditingCallTime] = React.useState(false);
@@ -528,14 +542,14 @@ function QueueManagementCard({
         )}
       </div>
 
-      {/* Bottom: Switching Button only */}
-      <div className="pt-1 border-t border-border/40">
+      {/* Bottom: Switching Button & Print Ticket */}
+      <div className="pt-1 border-t border-border/40 flex items-center gap-1.5">
         <Button
           size="xs"
           variant="outline"
           onClick={onSwitchQueue}
           disabled={isLoading}
-          className="w-full h-6 text-[10.5px] font-semibold gap-1.5 cursor-pointer hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          className="flex-1 h-6 text-[10.5px] font-semibold gap-1.5 cursor-pointer hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           title={
             isConsultation
               ? "Move to Therapy Queue"
@@ -544,6 +558,17 @@ function QueueManagementCard({
         >
           <ArrowRightLeft className="size-2.5 text-muted-foreground" />
           <span>{isConsultation ? "To Therapy" : "To Consult"}</span>
+        </Button>
+
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={onPrintTicket}
+          className="h-6 px-2 text-[10.5px] font-semibold gap-1 cursor-pointer text-primary hover:bg-primary/10 border-primary/30"
+          title="Print 80mm Queue Ticket"
+        >
+          <Printer className="size-2.5" />
+          <span>Print</span>
         </Button>
       </div>
     </div>

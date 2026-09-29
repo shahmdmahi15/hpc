@@ -1,14 +1,10 @@
 "use client";
 
 import * as React from "react";
-import {
-  type DoctorDashboardData,
-  getDoctorDashboardDataAction,
-} from "@/actions/doctor/doctor.action";
-import {
-  updateAppointmentStatusAction,
-  type PatientWithCount,
-} from "@/actions/receptionist/appointment.action";
+import type { DoctorDashboardData } from "@/actions/doctor/doctor.action";
+import { getDoctorDashboardDataAction } from "@/actions/doctor/doctor.action";
+import type { PatientWithCount } from "@/actions/receptionist/appointment.action";
+import { updateAppointmentStatusAction } from "@/actions/receptionist/appointment.action";
 import {
   AppointmentStatus,
   QueueType,
@@ -46,12 +42,17 @@ import {
   FolderOpen,
   Send,
   CalendarCheck2,
+  Printer,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
 import { SendPatientDialog } from "@/components/doctor/send-patient-dialog";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
+import {
+  DoctorPrescriptionDialog,
+  type DoctorPrescriptionData,
+} from "@/components/print/doctor-prescription-dialog";
 
 interface DoctorDashboardViewProps {
   initialData: DoctorDashboardData;
@@ -112,6 +113,8 @@ export function DoctorDashboardView({
   // Search filter
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isFinishingSession, setIsFinishingSession] = React.useState(false);
+  const [prescriptionPrintData, setPrescriptionPrintData] =
+    React.useState<DoctorPrescriptionData | null>(null);
 
   // Refresh data transition
   const [isPending, startTransition] = React.useTransition();
@@ -442,6 +445,27 @@ export function DoctorDashboardView({
                   <span>Next Plan</span>
                 </Button>
 
+                {/* Print Prescription / Clinical Report */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (!activeConsultation.patient) return;
+                    const plan =
+                      data.todayPlansByPatientId?.[activeConsultation.patientId];
+                    setPrescriptionPrintData({
+                      patient: activeConsultation.patient,
+                      doctor: data.currentDoctor,
+                      treatmentPlans: plan?.modalities || [],
+                    });
+                  }}
+                  title="Print official A4 clinical assessment report & prescription"
+                  className="h-7.5 px-2.5 rounded-lg font-bold text-xs border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 cursor-pointer gap-1.5"
+                >
+                  <Printer className="size-3.5" />
+                  <span>Print Report</span>
+                </Button>
+
                 {/* Send Patient */}
                 <Button
                   size="sm"
@@ -745,10 +769,28 @@ export function DoctorDashboardView({
                           {a.toldTime || "--"} / {formatTime12h(a.checkInTime)}
                         </td>
                         <td className="py-1.5 px-3 text-right">
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                            <CheckCircle2 className="size-2.5" />
-                            <span>Completed</span>
-                          </span>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="xs"
+                              onClick={() => {
+                                if (!a.patient) return;
+                                setPrescriptionPrintData({
+                                  patient: a.patient,
+                                  doctor: a.doctor || data.currentDoctor,
+                                });
+                              }}
+                              className="h-6 px-2 text-[10.5px] font-semibold gap-1 text-sky-700 dark:text-sky-300 border-sky-500/30 hover:bg-sky-500/10 cursor-pointer"
+                              title="Print A4 Clinical Assessment & Prescription"
+                            >
+                              <Printer className="size-2.5" />
+                              <span>Prescription</span>
+                            </Button>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                              <CheckCircle2 className="size-2.5" />
+                              <span>Completed</span>
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -836,6 +878,15 @@ export function DoctorDashboardView({
         onSuccess={() => {
           refreshData(selectedDate);
         }}
+      />
+
+      {/* 7. Official Clinical Prescription & Assessment A4 Print Modal */}
+      <DoctorPrescriptionDialog
+        isOpen={Boolean(prescriptionPrintData)}
+        onOpenChange={(open) => {
+          if (!open) setPrescriptionPrintData(null);
+        }}
+        data={prescriptionPrintData}
       />
     </div>
   );

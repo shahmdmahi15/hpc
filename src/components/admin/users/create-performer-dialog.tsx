@@ -13,21 +13,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ROLES, type RoleConfig } from "@/components/login/role-config";
 import { createPerformerAction } from "@/actions/admin/performer.action";
-import type { Role } from "@/generated/prisma/enums";
+import { Role } from "@/generated/prisma/enums";
 import { toast } from "sonner";
 import {
   UserPlus,
   Phone,
+  Mail,
+  KeyRound,
   User as UserIcon,
   Building2,
   Loader2,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-import {
-  AdminPerformerSelect,
-  type AdminPerformer,
-} from "@/components/admin/users/admin-performer-select";
 
 interface RoleUserOption {
   id: string;
@@ -39,7 +37,6 @@ interface CreatePerformerDialogProps {
   onOpenChange: (open: boolean) => void;
   users: RoleUserOption[];
   defaultUserId?: string | null;
-  adminPerformers?: AdminPerformer[];
 }
 
 export function CreatePerformerDialog({
@@ -47,17 +44,24 @@ export function CreatePerformerDialog({
   onOpenChange,
   users,
   defaultUserId,
-  adminPerformers = [],
 }: CreatePerformerDialogProps) {
-  const [selectedUserId, setSelectedUserId] = React.useState<string>(
-    () => defaultUserId || users[0]?.id || "",
-  );
-  const [selectedAdminPerformerId, setSelectedAdminPerformerId] =
-    React.useState<string>(() =>
-      adminPerformers.length === 1 ? adminPerformers[0].id : "",
+  // Only desk roles can have performers
+  const deskUsers = React.useMemo(() => {
+    return users.filter(
+      (u) =>
+        u.role === Role.RECEPTIONIST ||
+        u.role === Role.HANDLER ||
+        u.role === Role.CASHIER,
     );
+  }, [users]);
+
+  const [selectedUserId, setSelectedUserId] = React.useState<string>(
+    () => defaultUserId || deskUsers[0]?.id || "",
+  );
   const [name, setName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [whatsapp, setWhatsapp] = React.useState("");
+  const [pin, setPin] = React.useState("");
   const [fieldErrors, setFieldErrors] = React.useState<
     Record<string, string[] | undefined>
   >({});
@@ -65,19 +69,19 @@ export function CreatePerformerDialog({
   const [isPending, startTransition] = React.useTransition();
 
   React.useEffect(() => {
-    if (adminPerformers.length === 1 && !selectedAdminPerformerId) {
-      setSelectedAdminPerformerId(adminPerformers[0].id);
+    if (defaultUserId) {
+      setSelectedUserId(defaultUserId);
+    } else if (deskUsers.length > 0 && !selectedUserId) {
+      setSelectedUserId(deskUsers[0].id);
     }
-  }, [adminPerformers, selectedAdminPerformerId]);
+  }, [defaultUserId, deskUsers, selectedUserId]);
 
-  // Reset form when dialog closes or defaultUserId changes
   const handleClose = (newOpen: boolean) => {
     if (!newOpen) {
       setName("");
-      setPhone("");
-      setSelectedAdminPerformerId(
-        adminPerformers.length === 1 ? adminPerformers[0].id : "",
-      );
+      setEmail("");
+      setWhatsapp("");
+      setPin("");
       setFieldErrors({});
       setGeneralError(null);
     }
@@ -89,15 +93,8 @@ export function CreatePerformerDialog({
     setGeneralError(null);
     setFieldErrors({});
 
-    if (adminPerformers.length > 1 && !selectedAdminPerformerId) {
-      setGeneralError(
-        "Please select the administrator authorizing this staff member creation.",
-      );
-      return;
-    }
-
     if (!selectedUserId) {
-      setGeneralError("Please choose a department desk.");
+      setGeneralError("Please choose a station desk.");
       return;
     }
 
@@ -109,10 +106,18 @@ export function CreatePerformerDialog({
       return;
     }
 
-    if (!phone.trim()) {
+    if (!whatsapp.trim()) {
       setFieldErrors((prev) => ({
         ...prev,
-        phone: ["Please enter the staff member's phone number."],
+        whatsapp: ["Please enter the staff member's WhatsApp number."],
+      }));
+      return;
+    }
+
+    if (!/^\d{4}$/.test(pin.trim())) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        pin: ["PIN must be exactly 4 digits (e.g. 1234)."],
       }));
       return;
     }
@@ -120,18 +125,16 @@ export function CreatePerformerDialog({
     const formData = new FormData();
     formData.append("userId", selectedUserId);
     formData.append("name", name.trim());
-    formData.append("phone", phone.trim());
-    if (selectedAdminPerformerId) {
-      formData.append("adminPerformerId", selectedAdminPerformerId);
-    }
+    if (email.trim()) formData.append("email", email.trim().toLowerCase());
+    formData.append("whatsapp", whatsapp.trim());
+    formData.append("phone", whatsapp.trim());
+    formData.append("pin", pin.trim());
 
     startTransition(async () => {
       const result = await createPerformerAction(undefined, formData);
 
       if (result.success) {
-        toast.success("Staff performer created", {
-          description: result.message,
-        });
+        toast.success(result.message);
         handleClose(false);
       } else {
         if (result.fieldErrors) {
@@ -139,219 +142,211 @@ export function CreatePerformerDialog({
         }
         if (result.message) {
           setGeneralError(result.message);
-          toast.error("Failed to add performer", {
-            description: result.message,
-          });
+          toast.error(result.message);
         }
       }
     });
   };
 
-  // Find current selected role configuration
-  const selectedUser = users.find((u) => u.id === selectedUserId);
+  const selectedUser = deskUsers.find((u) => u.id === selectedUserId);
   const selectedRoleConfig: RoleConfig | undefined = selectedUser
     ? ROLES.find((r) => r.value === selectedUser.role)
     : undefined;
 
-  const isSubmitDisabled =
-    isPending ||
-    !name.trim() ||
-    !phone.trim() ||
-    !selectedUserId ||
-    (adminPerformers.length > 1 && !selectedAdminPerformerId);
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[min(90vh,760px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col flex-1 min-h-0 overflow-hidden"
-        >
-          {/* Header Banner */}
-          <div className="shrink-0 bg-muted/40 p-5 pb-4 border-b border-border/60">
+      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          {/* Header */}
+          <div className="bg-muted/40 p-4 sm:p-5 border-b border-border/60">
             <DialogHeader>
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
-                  <UserPlus className="size-5" />
+              <div className="flex items-center gap-2.5">
+                <div className="size-9 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+                  <UserPlus className="size-4" />
                 </div>
                 <div>
                   <DialogTitle className="text-base font-bold text-foreground">
-                    Add Staff Performer
+                    Register Desk Staff Member
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                    Register a staff member who operates at this department
-                    desk.
+                    Add a staff performer with a 4-digit PIN for desk action verification
                   </DialogDescription>
                 </div>
               </div>
             </DialogHeader>
           </div>
 
-          {/* Form Content - Scrollable if screen is short */}
-          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+          <div className="p-4 sm:p-5 space-y-3.5">
             {generalError && (
-              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2">
-                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+              <div className="p-2.5 rounded-xl border border-destructive/30 bg-destructive/10 text-xs text-destructive flex items-center gap-2 font-medium">
+                <AlertCircle className="size-3.5 shrink-0" />
                 <span>{generalError}</span>
               </div>
             )}
 
-            {/* Authorizing Admin Staff Selector */}
-            <AdminPerformerSelect
-              adminPerformers={adminPerformers}
-              selectedPerformerId={selectedAdminPerformerId}
-              onSelectPerformerId={setSelectedAdminPerformerId}
-              disabled={isPending}
-              label="Authorizing Administrator"
-              error={fieldErrors.adminPerformerId?.[0]}
-            />
-
-            {/* Department Desk Selection */}
-            <div className="space-y-2">
+            {/* Target Desk Selection */}
+            <div className="space-y-1.5">
               <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Building2 className="size-3.5 text-muted-foreground" />
-                Department Station / Desk
+                <Building2 className="size-3.5 text-primary" />
+                <span>Station Desk</span>
+                <span className="text-destructive">*</span>
               </Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                {users.map((u) => {
+              <div className="grid grid-cols-3 gap-1.5">
+                {deskUsers.map((u) => {
+                  const isSelected = selectedUserId === u.id;
                   const cfg = ROLES.find((r) => r.value === u.role);
-                  const Icon = cfg?.icon || Building2;
-                  const label = cfg?.defaultLabel || u.role;
-                  const isSelected = u.id === selectedUserId;
-
                   return (
                     <button
                       key={u.id}
                       type="button"
                       onClick={() => setSelectedUserId(u.id)}
-                      className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                      className={`p-2 rounded-xl border text-center cursor-pointer transition-all ${
                         isSelected
-                          ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/40 font-semibold shadow-xs"
-                          : "border-border/70 hover:border-border hover:bg-muted/40 text-muted-foreground"
+                          ? "border-primary bg-primary/10 ring-1 ring-primary/40 font-bold text-primary shadow-xs"
+                          : "border-border/70 hover:bg-muted/50 text-muted-foreground"
                       }`}
                     >
-                      <div
-                        className={`size-7 rounded-lg border flex items-center justify-center shrink-0 ${
-                          isSelected && cfg
-                            ? cfg.color
-                            : "bg-muted text-muted-foreground border-border"
-                        }`}
-                      >
-                        <Icon className="size-3.5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold truncate text-foreground">
-                          {label}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground font-mono uppercase truncate">
-                          {u.role}
-                        </p>
-                      </div>
+                      <div className="text-xs">{cfg?.defaultLabel || u.role}</div>
+                      <div className="text-[9.5px] opacity-75 font-normal">Desk</div>
                     </button>
                   );
                 })}
               </div>
-              {fieldErrors.userId && (
+            </div>
+
+            {/* Staff Name */}
+            <div className="space-y-1">
+              <Label htmlFor="perfName" className="text-xs font-bold text-foreground">
+                Staff Full Name <span className="text-destructive">*</span>
+              </Label>
+              <div className="relative">
+                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                <Input
+                  id="perfName"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Ayesha Siddiqua"
+                  required
+                  disabled={isPending}
+                  className="pl-9 h-9 text-xs rounded-xl"
+                />
+              </div>
+              {fieldErrors.name && (
                 <p className="text-[11px] text-destructive font-medium">
-                  {fieldErrors.userId[0]}
+                  {fieldErrors.name[0]}
                 </p>
               )}
             </div>
 
-            {/* 2-Column Name & Phone Inputs for Compact Height */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Performer Name Input */}
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="performer-name"
-                  className="text-xs font-bold text-foreground flex items-center gap-1.5"
-                >
-                  <UserIcon className="size-3.5 text-muted-foreground" />
-                  Staff Full Name
-                </Label>
+            {/* Email (Optional) */}
+            <div className="space-y-1">
+              <Label htmlFor="perfEmail" className="text-xs font-bold text-foreground">
+                Email Address <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                 <Input
-                  id="performer-name"
-                  type="text"
-                  placeholder={
-                    selectedRoleConfig?.defaultLabel === "Doctor"
-                      ? "e.g. Dr. Tariqul Islam"
-                      : "e.g. Amina Begum"
-                  }
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  id="perfEmail"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. staff@hpc.com"
                   disabled={isPending}
-                  className="h-9 text-xs rounded-xl"
-                  autoFocus
+                  className="pl-9 h-9 text-xs rounded-xl"
                 />
-                {fieldErrors.name ? (
-                  <p className="text-[11px] text-destructive font-medium">
-                    {fieldErrors.name[0]}
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground">
-                    Official name displayed on patient records.
-                  </p>
-                )}
               </div>
+              {fieldErrors.email && (
+                <p className="text-[11px] text-destructive font-medium">
+                  {fieldErrors.email[0]}
+                </p>
+              )}
+            </div>
 
-              {/* Performer Phone Input */}
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="performer-phone"
-                  className="text-xs font-bold text-foreground flex items-center gap-1.5"
-                >
-                  <Phone className="size-3.5 text-muted-foreground" />
-                  Contact Phone Number
-                </Label>
+            {/* WhatsApp Number */}
+            <div className="space-y-1">
+              <Label htmlFor="perfWhatsapp" className="text-xs font-bold text-foreground">
+                WhatsApp / Phone Number <span className="text-destructive">*</span>
+              </Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                 <Input
-                  id="performer-phone"
-                  type="tel"
-                  placeholder="e.g. 01712345678"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  id="perfWhatsapp"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="e.g. 01811111101 or +8801811111101"
+                  required
                   disabled={isPending}
-                  className="h-9 text-xs rounded-xl font-mono"
+                  className="pl-9 h-9 text-xs rounded-xl"
                 />
-                {fieldErrors.phone ? (
-                  <p className="text-[11px] text-destructive font-medium">
-                    {fieldErrors.phone[0]}
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground">
-                    Used to switch profile at station desk.
-                  </p>
-                )}
               </div>
+              {fieldErrors.whatsapp && (
+                <p className="text-[11px] text-destructive font-medium">
+                  {fieldErrors.whatsapp[0]}
+                </p>
+              )}
+            </div>
+
+            {/* 4-Digit Security PIN */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="perfPin" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <KeyRound className="size-3.5 text-amber-500" />
+                  <span>4-Digit Authorization PIN</span>
+                  <span className="text-destructive">*</span>
+                </Label>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">
+                  Strictly 4 Digits
+                </span>
+              </div>
+              <Input
+                id="perfPin"
+                type="password"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                placeholder="e.g. 1234"
+                required
+                disabled={isPending}
+                className="h-9 text-xs font-mono tracking-widest text-center rounded-xl bg-amber-500/5 border-amber-500/30"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Staff member will enter this 4-digit PIN whenever authorizing bookings, therapies, or cash transactions.
+              </p>
+              {fieldErrors.pin && (
+                <p className="text-[11px] text-destructive font-medium">
+                  {fieldErrors.pin[0]}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Fixed Dialog Action Buttons */}
-          <div className="shrink-0 px-6 py-3.5 bg-muted/30 border-t border-border/60 flex items-center justify-between gap-3">
+          {/* Footer */}
+          <div className="p-4 sm:p-5 pt-3 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleClose(false)}
               disabled={isPending}
-              className="rounded-xl text-xs font-semibold cursor-pointer h-9 px-4 border-border/80 hover:bg-muted"
+              onClick={() => handleClose(false)}
+              className="rounded-xl h-8.5 text-xs cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               size="sm"
-              disabled={isSubmitDisabled}
-              className="rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-sm h-9 px-4"
+              disabled={isPending}
+              className="rounded-xl h-8.5 text-xs font-bold cursor-pointer"
             >
               {isPending ? (
                 <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  <span>Registering...</span>
+                  <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                  <span>Saving Performer...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="size-3.5" />
-                  <span>Add Performer</span>
+                  <CheckCircle2 className="size-3.5 mr-1.5" />
+                  <span>Register Performer</span>
                 </>
               )}
             </Button>

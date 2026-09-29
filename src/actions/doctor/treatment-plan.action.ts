@@ -45,7 +45,7 @@ interface RawTreatmentPlan {
   patientId: string;
   appointmentId?: string | null;
   doctorId?: string | null;
-  doctor?: { id: string; name: string } | null;
+  doctor?: { id: string; name: string | null } | null;
   modalities: string;
   instructions?: string | null;
   targetDate?: Date | null;

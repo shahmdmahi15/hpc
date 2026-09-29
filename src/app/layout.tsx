@@ -100,6 +100,17 @@ const poppins = localFont({
   display: "swap",
 });
 
+import type { Viewport } from "next";
+
+export const viewport: Viewport = {
+  themeColor: "#059669",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: {
     default: "HPC | Health And Pain Care Center",
@@ -107,6 +118,16 @@ export const metadata: Metadata = {
   },
   description:
     "Health And Pain Care Center (HPC) - Specialized Pain Management & Holistic Health Services Portal",
+  manifest: "/manifest.webmanifest",
+  applicationName: "Health & Pain Care Center",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "HPC Center",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -131,6 +152,7 @@ export const metadata: Metadata = {
 
 import { I18nProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
+import { PwaRegister } from "@/components/pwa-register";
 
 export default function RootLayout({
   children,
@@ -154,6 +176,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <I18nProvider>
+            <PwaRegister />
             {children}
             <Toaster position="top-right" richColors />
           </I18nProvider>

@@ -534,7 +534,7 @@ export type MedicalRecordWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"MedicalRecord"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   appointment?: Prisma.XOR<Prisma.AppointmentNullableScalarRelationFilter, Prisma.AppointmentWhereInput> | null
-  doctor?: Prisma.XOR<Prisma.PerformerNullableScalarRelationFilter, Prisma.PerformerWhereInput> | null
+  doctor?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   fileAppointments?: Prisma.AppointmentListRelationFilter
 }
 
@@ -583,7 +583,7 @@ export type MedicalRecordOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   patient?: Prisma.PatientOrderByWithRelationInput
   appointment?: Prisma.AppointmentOrderByWithRelationInput
-  doctor?: Prisma.PerformerOrderByWithRelationInput
+  doctor?: Prisma.UserOrderByWithRelationInput
   fileAppointments?: Prisma.AppointmentOrderByRelationAggregateInput
 }
 
@@ -635,7 +635,7 @@ export type MedicalRecordWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"MedicalRecord"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   appointment?: Prisma.XOR<Prisma.AppointmentNullableScalarRelationFilter, Prisma.AppointmentWhereInput> | null
-  doctor?: Prisma.XOR<Prisma.PerformerNullableScalarRelationFilter, Prisma.PerformerWhereInput> | null
+  doctor?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   fileAppointments?: Prisma.AppointmentListRelationFilter
 }, "id">
 
@@ -779,7 +779,7 @@ export type MedicalRecordCreateInput = {
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutMedicalRecordsInput
   appointment?: Prisma.AppointmentCreateNestedOneWithoutMedicalRecordsInput
-  doctor?: Prisma.PerformerCreateNestedOneWithoutMedicalRecordsInput
+  doctor?: Prisma.UserCreateNestedOneWithoutMedicalRecordsInput
   fileAppointments?: Prisma.AppointmentCreateNestedManyWithoutMedicalFileInput
 }
 
@@ -871,7 +871,7 @@ export type MedicalRecordUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutMedicalRecordsNestedInput
   appointment?: Prisma.AppointmentUpdateOneWithoutMedicalRecordsNestedInput
-  doctor?: Prisma.PerformerUpdateOneWithoutMedicalRecordsNestedInput
+  doctor?: Prisma.UserUpdateOneWithoutMedicalRecordsNestedInput
   fileAppointments?: Prisma.AppointmentUpdateManyWithoutMedicalFileNestedInput
 }
 
@@ -1571,7 +1571,7 @@ export type MedicalRecordCreateWithoutPatientInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointment?: Prisma.AppointmentCreateNestedOneWithoutMedicalRecordsInput
-  doctor?: Prisma.PerformerCreateNestedOneWithoutMedicalRecordsInput
+  doctor?: Prisma.UserCreateNestedOneWithoutMedicalRecordsInput
   fileAppointments?: Prisma.AppointmentCreateNestedManyWithoutMedicalFileInput
 }
 
@@ -1687,7 +1687,7 @@ export type MedicalRecordCreateWithoutFileAppointmentsInput = {
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutMedicalRecordsInput
   appointment?: Prisma.AppointmentCreateNestedOneWithoutMedicalRecordsInput
-  doctor?: Prisma.PerformerCreateNestedOneWithoutMedicalRecordsInput
+  doctor?: Prisma.UserCreateNestedOneWithoutMedicalRecordsInput
 }
 
 export type MedicalRecordUncheckedCreateWithoutFileAppointmentsInput = {
@@ -1781,7 +1781,7 @@ export type MedicalRecordCreateWithoutAppointmentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutMedicalRecordsInput
-  doctor?: Prisma.PerformerCreateNestedOneWithoutMedicalRecordsInput
+  doctor?: Prisma.UserCreateNestedOneWithoutMedicalRecordsInput
   fileAppointments?: Prisma.AppointmentCreateNestedManyWithoutMedicalFileInput
 }
 
@@ -1892,7 +1892,7 @@ export type MedicalRecordUpdateWithoutFileAppointmentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutMedicalRecordsNestedInput
   appointment?: Prisma.AppointmentUpdateOneWithoutMedicalRecordsNestedInput
-  doctor?: Prisma.PerformerUpdateOneWithoutMedicalRecordsNestedInput
+  doctor?: Prisma.UserUpdateOneWithoutMedicalRecordsNestedInput
 }
 
 export type MedicalRecordUncheckedUpdateWithoutFileAppointmentsInput = {
@@ -2219,7 +2219,7 @@ export type MedicalRecordUpdateWithoutPatientInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointment?: Prisma.AppointmentUpdateOneWithoutMedicalRecordsNestedInput
-  doctor?: Prisma.PerformerUpdateOneWithoutMedicalRecordsNestedInput
+  doctor?: Prisma.UserUpdateOneWithoutMedicalRecordsNestedInput
   fileAppointments?: Prisma.AppointmentUpdateManyWithoutMedicalFileNestedInput
 }
 
@@ -2397,7 +2397,7 @@ export type MedicalRecordUpdateWithoutAppointmentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutMedicalRecordsNestedInput
-  doctor?: Prisma.PerformerUpdateOneWithoutMedicalRecordsNestedInput
+  doctor?: Prisma.UserUpdateOneWithoutMedicalRecordsNestedInput
   fileAppointments?: Prisma.AppointmentUpdateManyWithoutMedicalFileNestedInput
 }
 
@@ -2736,7 +2736,7 @@ export type $MedicalRecordPayload<ExtArgs extends runtime.Types.Extensions.Inter
   objects: {
     patient: Prisma.$PatientPayload<ExtArgs>
     appointment: Prisma.$AppointmentPayload<ExtArgs> | null
-    doctor: Prisma.$PerformerPayload<ExtArgs> | null
+    doctor: Prisma.$UserPayload<ExtArgs> | null
     fileAppointments: Prisma.$AppointmentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -3178,7 +3178,7 @@ export interface Prisma__MedicalRecordClient<T, Null = never, ExtArgs extends ru
   readonly [Symbol.toStringTag]: "PrismaPromise"
   patient<T extends Prisma.PatientDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientDefaultArgs<ExtArgs>>): Prisma.Prisma__PatientClient<runtime.Types.Result.GetResult<Prisma.$PatientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   appointment<T extends Prisma.MedicalRecord$appointmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MedicalRecord$appointmentArgs<ExtArgs>>): Prisma.Prisma__AppointmentClient<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  doctor<T extends Prisma.MedicalRecord$doctorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MedicalRecord$doctorArgs<ExtArgs>>): Prisma.Prisma__PerformerClient<runtime.Types.Result.GetResult<Prisma.$PerformerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  doctor<T extends Prisma.MedicalRecord$doctorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MedicalRecord$doctorArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   fileAppointments<T extends Prisma.MedicalRecord$fileAppointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MedicalRecord$fileAppointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -3673,18 +3673,18 @@ export type MedicalRecord$appointmentArgs<ExtArgs extends runtime.Types.Extensio
  */
 export type MedicalRecord$doctorArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Performer
+   * Select specific fields to fetch from the User
    */
-  select?: Prisma.PerformerSelect<ExtArgs> | null
+  select?: Prisma.UserSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Performer
+   * Omit specific fields from the User
    */
-  omit?: Prisma.PerformerOmit<ExtArgs> | null
+  omit?: Prisma.UserOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.PerformerInclude<ExtArgs> | null
-  where?: Prisma.PerformerWhereInput
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**
