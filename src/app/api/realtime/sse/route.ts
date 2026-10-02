@@ -31,8 +31,9 @@ export async function GET(request: NextRequest) {
         try {
           const eventName = payload.type.toLowerCase();
           const data = JSON.stringify(payload);
+          // Broadcast both named event and standard data event for total listener compatibility
           controller.enqueue(
-            encoder.encode(`event: ${eventName}\ndata: ${data}\n\n`),
+            encoder.encode(`event: ${eventName}\ndata: ${data}\n\ndata: ${data}\n\n`),
           );
         } catch {
           // Stream might be closed
@@ -41,14 +42,14 @@ export async function GET(request: NextRequest) {
 
       bus.on("*", onEvent);
 
-      // 3. Heartbeat keep-alive ping every 15 seconds
+      // 3. Heartbeat keep-alive ping every 10 seconds (prevents router/NAT dropouts on LAN)
       const pingInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`: ping\n\n`));
         } catch {
           clearInterval(pingInterval);
         }
-      }, 15000);
+      }, 10000);
 
       // 4. Cleanup on client disconnect
       request.signal.addEventListener("abort", () => {

@@ -95,6 +95,21 @@ export function QueueManagementTab({
     return filteredQueue.filter((a) => a.queueType === QueueType.CONSULTATION);
   }, [filteredQueue]);
 
+  // Real-time capacity load indicators
+  const therapyLoad = React.useMemo(() => {
+    const count = therapyQueue.length;
+    if (count <= 3) return { label: "Light Load", color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30", dot: "bg-emerald-500" };
+    if (count <= 7) return { label: "Moderate Load", color: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30", dot: "bg-amber-500" };
+    return { label: "High Demand", color: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30 animate-pulse", dot: "bg-red-500" };
+  }, [therapyQueue.length]);
+
+  const consultationLoad = React.useMemo(() => {
+    const count = consultationQueue.length;
+    if (count <= 2) return { label: "Light Load", color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30", dot: "bg-emerald-500" };
+    if (count <= 5) return { label: "Moderate Load", color: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30", dot: "bg-amber-500" };
+    return { label: "High Demand", color: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30 animate-pulse", dot: "bg-red-500" };
+  }, [consultationQueue.length]);
+
   // Handle Switch Queue (Therapy <-> Consultation)
   const handleSwitchQueue = async (apt: AppointmentWithRelations) => {
     const targetQueue =
@@ -180,6 +195,10 @@ export function QueueManagementTab({
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                   {therapyQueue.length}
                 </span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-semibold border ${therapyLoad.color}`}>
+                  <span className={`size-1.5 rounded-full ${therapyLoad.dot}`} />
+                  <span>{therapyLoad.label}</span>
+                </span>
               </div>
             </div>
             <span className="text-[10px] text-muted-foreground hidden sm:inline">
@@ -228,6 +247,10 @@ export function QueueManagementTab({
                 </h3>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
                   {consultationQueue.length}
+                </span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-semibold border ${consultationLoad.color}`}>
+                  <span className={`size-1.5 rounded-full ${consultationLoad.dot}`} />
+                  <span>{consultationLoad.label}</span>
                 </span>
                 {rooms.length > 0 && (
                   <span className="hidden sm:inline-flex px-1.5 py-0.2 rounded-full text-[9.5px] font-medium bg-muted/80 text-muted-foreground border border-border/50">
@@ -373,6 +396,13 @@ function QueueManagementCard({
           >
             {isMale ? "M" : "F"}
           </span>
+          {(appointment.bookingType === "EXTRA" ||
+            appointment.notes?.toLowerCase().includes("priority") ||
+            appointment.notes?.toLowerCase().includes("urgent")) && (
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-rose-500 text-white shadow-2xs">
+              Priority
+            </span>
+          )}
           {roomNumber && (
             <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9.5px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 shrink-0">
               <DoorOpen className="size-2" />

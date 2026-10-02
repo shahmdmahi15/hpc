@@ -47,7 +47,12 @@ export async function createPatientAction(
       };
     }
 
-    if (validation.data.performerId) {
+    // Doctors and Admins are independent user accounts with zero PIN requirements.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && validation.data.performerId) {
       const pinRes = await verifyPerformerPin(
         validation.data.performerId,
         validation.data.pin,
@@ -163,7 +168,12 @@ export async function updatePatientAction(
       };
     }
 
-    if (validation.data.performerId) {
+    // Doctors and Admins are independent user accounts with zero PIN requirements.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && validation.data.performerId) {
       const pinRes = await verifyPerformerPin(
         validation.data.performerId,
         validation.data.pin,

@@ -155,9 +155,9 @@ function TreatmentPlanDialogInner({
   };
 
   return (
-    <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+    <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
       {/* Header */}
-      <DialogHeader className="p-5 pb-3.5 border-b border-border/60 bg-muted/20 shrink-0">
+      <DialogHeader className="p-5 pb-3.5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary">

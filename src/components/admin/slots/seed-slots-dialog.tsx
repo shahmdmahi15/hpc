@@ -98,9 +98,9 @@ export function SeedSlotsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl max-h-[min(92vh,700px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-2xl lg:max-w-3xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         {/* Header */}
-        <DialogHeader className="p-5 pb-4 border-b border-border/60 shrink-0 bg-muted/20">
+        <DialogHeader className="p-5 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <Sparkles className="size-5" />

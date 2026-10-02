@@ -201,14 +201,14 @@ export function PasswordResetDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[min(90vh,680px)] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
+      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[86vh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
         <form
           onSubmit={handleSubmit}
           className="flex flex-col flex-1 min-h-0 overflow-hidden"
         >
           {/* Header Banner */}
           <div className="shrink-0 bg-muted/40 p-5 pb-4 border-b border-border/60">
-            <DialogHeader>
+            <DialogHeader className="pr-10 sm:pr-12">
               <div className="flex items-center gap-2.5">
                 <div className="size-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
                   <KeyRound className="size-4" />

@@ -153,10 +153,10 @@ export function CreateRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[92vh] overflow-y-auto p-0 gap-0 border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[86vh] flex flex-col p-0 gap-0 border-border/80 shadow-2xl rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="p-6 border-b border-border/60 bg-muted/20">
-          <DialogHeader>
+          <DialogHeader className="pr-10 sm:pr-12">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
                 <DoorOpen className="size-5" />
@@ -175,7 +175,7 @@ export function CreateRoomDialog({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
           {generalError && (
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
               <AlertCircle className="size-4 shrink-0 mt-0.5" />

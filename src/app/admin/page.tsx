@@ -33,6 +33,8 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { AdminExportButton } from "@/components/admin/admin-export-button";
+import { AdminBackupButton } from "@/components/admin/admin-backup-button";
+import { AdminDailyClosingButton } from "@/components/admin/admin-daily-closing-button";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +141,19 @@ export default async function AdminPage() {
             </a>
 
             <AdminExportButton />
+            <AdminBackupButton />
+            <AdminDailyClosingButton
+              data={{
+                todayAppointmentsCount,
+                todayConsultationCount,
+                todayTherapyCount,
+                todayCollected,
+                todayDue,
+                totalLifetimeRevenue,
+                userCount,
+                activeSessionCount,
+              }}
+            />
 
             <Link
               href="/"

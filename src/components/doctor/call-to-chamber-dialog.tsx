@@ -18,7 +18,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Volume2,
@@ -29,7 +28,6 @@ import {
   Check,
   User,
   Radio,
-  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { evaluatePunctuality } from "@/lib/queue-punctuality";
@@ -93,7 +91,6 @@ export function CallToChamberDialog({
   const [selectedDoctorId, setSelectedDoctorId] = React.useState<string>(
     () => defaultDoctorId || firstDoctor?.id || "",
   );
-  const [doctorPin, setDoctorPin] = React.useState<string>("");
   const [isCalling, setIsCalling] = React.useState(false);
 
   // Sync state when dialog opens (React recommended render-time adjustment)
@@ -103,7 +100,6 @@ export function CallToChamberDialog({
     if (isOpen) {
       setSelectedRoomId(initialDoctorRoomId);
       setSelectedDoctorId(defaultDoctorId || firstDoctor?.id || "");
-      setDoctorPin("");
     }
   }
 
@@ -132,11 +128,6 @@ export function CallToChamberDialog({
       return;
     }
 
-    if (selectedDoctorId && doctors.length > 0 && !doctorPin) {
-      toast.error("Please enter your 4-digit Doctor PIN.");
-      return;
-    }
-
     setIsCalling(true);
     try {
       const res = await updateAppointmentStatusAction(
@@ -145,7 +136,7 @@ export function CallToChamberDialog({
         selectedDoctorId || undefined,
         QueueType.CONSULTATION,
         selectedRoomId,
-        doctorPin || undefined,
+        undefined,
       );
 
       if (res.success) {
@@ -166,8 +157,8 @@ export function CallToChamberDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl p-5 sm:p-6 space-y-4 rounded-2xl shadow-2xl border-border/80">
-        <DialogHeader className="space-y-1">
+      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[86vh] overflow-y-auto p-5 sm:p-6 space-y-4 rounded-2xl shadow-2xl border-border/80">
+        <DialogHeader className="space-y-1 pr-10 sm:pr-12 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="size-8.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
               <Volume2 className="size-4.5 animate-pulse" />
@@ -389,31 +380,6 @@ export function CallToChamberDialog({
             </div>
           </div>
         ) : null}
-
-        {/* Doctor 4-Digit Security PIN */}
-        {doctors.length > 0 && (
-          <div className="space-y-1.5 p-3 rounded-xl border border-border/80 bg-muted/20">
-            <label className="text-xs font-bold text-foreground flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <KeyRound className="size-3.5 text-sky-500" />
-                <span>Attending Doctor PIN</span>
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono">
-                4-digit PIN required
-              </span>
-            </label>
-            <Input
-              type="password"
-              maxLength={4}
-              placeholder="Enter 4-digit PIN"
-              value={doctorPin}
-              onChange={(e) =>
-                setDoctorPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-              }
-              className="font-mono tracking-widest text-center text-base sm:text-sm h-9"
-            />
-          </div>
-        )}
 
         {/* 4. Live Broadcast Preview */}
         <div className="p-2.5 rounded-lg border border-sky-500/30 bg-sky-500/5 text-xs space-y-1">

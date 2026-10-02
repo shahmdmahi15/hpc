@@ -77,8 +77,8 @@ export function DeleteSlotDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl max-h-[min(90vh,760px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
-        <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-border/60 shrink-0">
+      <DialogContent className="w-[96vw] max-w-xl lg:max-w-2xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <DialogHeader className="p-5 sm:p-6 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0">
           <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400">
             <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
               <AlertTriangle className="size-5" />

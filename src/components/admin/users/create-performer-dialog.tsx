@@ -155,11 +155,11 @@ export function CreatePerformerDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         <form onSubmit={handleSubmit} className="flex flex-col">
           {/* Header */}
           <div className="bg-muted/40 p-4 sm:p-5 border-b border-border/60">
-            <DialogHeader>
+            <DialogHeader className="pr-10 sm:pr-12">
               <div className="flex items-center gap-2.5">
                 <div className="size-9 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
                   <UserPlus className="size-4" />

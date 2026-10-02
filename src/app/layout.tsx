@@ -128,6 +128,13 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  other: {
+    "screen-orientation": "landscape",
+    "x5-orientation": "landscape",
+    "x5-fullscreen": "true",
+    "full-screen": "yes",
+    "mobile-web-app-capable": "yes",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },

@@ -96,8 +96,8 @@ export function CreateAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
-        <DialogHeader className="p-4 sm:p-5 border-b border-border/60 bg-muted/20">
+      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[86vh] flex flex-col p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
+        <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <UserPlus className="size-4" />

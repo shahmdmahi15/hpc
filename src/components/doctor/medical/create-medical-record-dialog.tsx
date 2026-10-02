@@ -60,6 +60,154 @@ const COMMON_DIAGNOSES = [
   "Ankle Sprain",
 ];
 
+interface ClinicalPreset {
+  label: string;
+  code: string;
+  diagnosis: string;
+  painAreas: string[];
+  painSide: "Right" | "Left" | "Both" | "N/A";
+  painTypes: string[];
+  vasScore: number;
+  aggravating: string[];
+  relieving: string[];
+  limitations: string[];
+  rom: "Normal" | "Restricted";
+  muscleSpasm: boolean;
+  tenderness: boolean;
+  treatments: string[];
+}
+
+const CLINICAL_PRESETS: ClinicalPreset[] = [
+  {
+    label: "Lumbar Spondylosis",
+    code: "M47.816",
+    diagnosis: "Lumbar Spondylosis with Radiculopathy (M47.816)",
+    painAreas: ["Back", "Buttock", "Leg"],
+    painSide: "Both",
+    painTypes: ["Dull", "Radiating", "Aching"],
+    vasScore: 6,
+    aggravating: ["Movement", "Sitting", "Bending"],
+    relieving: ["Rest"],
+    limitations: ["Bending", "Sitting"],
+    rom: "Restricted",
+    muscleSpasm: true,
+    tenderness: true,
+    treatments: ["Hot pack", "IFT / TENS", "Lumbar Traction", "Core Stability Exercises"],
+  },
+  {
+    label: "Cervical Spondylosis",
+    code: "M47.812",
+    diagnosis: "Cervical Spondylosis with Radiculopathy (M47.812)",
+    painAreas: ["Neck", "Shoulder", "Arm"],
+    painSide: "Both",
+    painTypes: ["Sharp", "Radiating", "Stiffness"],
+    vasScore: 6,
+    aggravating: ["Movement", "Sitting"],
+    relieving: ["Rest"],
+    limitations: ["Sitting"],
+    rom: "Restricted",
+    muscleSpasm: true,
+    tenderness: true,
+    treatments: ["Hot pack", "IFT / TENS", "Cervical Traction", "Neck Isometric Exercises"],
+  },
+  {
+    label: "Frozen Shoulder",
+    code: "M75.0",
+    diagnosis: "Adhesive Capsulitis / Frozen Shoulder (M75.0)",
+    painAreas: ["Shoulder", "Arm"],
+    painSide: "Right",
+    painTypes: ["Sharp", "Dull", "Stiffness"],
+    vasScore: 7,
+    aggravating: ["Movement"],
+    relieving: ["Rest"],
+    limitations: ["Lifting"],
+    rom: "Restricted",
+    muscleSpasm: true,
+    tenderness: true,
+    treatments: ["Hot pack", "Ultrasound", "Codman Pendulum Exercises", "Capsular Stretching"],
+  },
+  {
+    label: "Knee Osteoarthritis",
+    code: "M17.9",
+    diagnosis: "Primary Osteoarthritis of Knee (M17.9)",
+    painAreas: ["Knee"],
+    painSide: "Both",
+    painTypes: ["Dull", "Aching", "Stiffness"],
+    vasScore: 6,
+    aggravating: ["Movement", "Walking", "Standing"],
+    relieving: ["Rest"],
+    limitations: ["Walking", "Standing"],
+    rom: "Restricted",
+    muscleSpasm: false,
+    tenderness: true,
+    treatments: ["Short Wave Diathermy", "IFT / TENS", "Quadriceps Strengthening Exercises"],
+  },
+  {
+    label: "Sciatica / Radicular",
+    code: "M54.3",
+    diagnosis: "Sciatica with Lumbar Entrapment (M54.3)",
+    painAreas: ["Back", "Leg"],
+    painSide: "Left",
+    painTypes: ["Burning", "Radiating", "Sharp"],
+    vasScore: 7,
+    aggravating: ["Sitting", "Bending", "Walking"],
+    relieving: ["Rest"],
+    limitations: ["Sitting", "Walking"],
+    rom: "Restricted",
+    muscleSpasm: true,
+    tenderness: true,
+    treatments: ["Hot pack", "IFT / TENS", "Nerve Flossing / Mobilization", "Lumbar Traction"],
+  },
+  {
+    label: "Mechanical Low Back Pain",
+    code: "M54.5",
+    diagnosis: "Mechanical Low Back Pain / Strain (M54.5)",
+    painAreas: ["Back"],
+    painSide: "Both",
+    painTypes: ["Dull", "Aching"],
+    vasScore: 5,
+    aggravating: ["Sitting", "Bending"],
+    relieving: ["Rest"],
+    limitations: ["Bending", "Sitting"],
+    rom: "Normal",
+    muscleSpasm: true,
+    tenderness: false,
+    treatments: ["Hot pack", "IFT / TENS", "Spinal Extension Exercises", "Posture Correction"],
+  },
+  {
+    label: "Plantar Fasciitis",
+    code: "M72.2",
+    diagnosis: "Plantar Fasciitis of Heel (M72.2)",
+    painAreas: ["Foot"],
+    painSide: "Both",
+    painTypes: ["Sharp", "Stabbing"],
+    vasScore: 6,
+    aggravating: ["Walking", "Standing"],
+    relieving: ["Rest"],
+    limitations: ["Walking", "Standing"],
+    rom: "Normal",
+    muscleSpasm: false,
+    tenderness: true,
+    treatments: ["Ultrasound", "Plantar Fascia Stretching", "Contrast Bath", "Foot Arch Exercises"],
+  },
+  {
+    label: "Tennis Elbow",
+    code: "M77.1",
+    diagnosis: "Lateral Epicondylitis / Tennis Elbow (M77.1)",
+    painAreas: ["Arm", "Elbow"],
+    painSide: "Right",
+    painTypes: ["Sharp", "Burning"],
+    vasScore: 5,
+    aggravating: ["Movement"],
+    relieving: ["Rest"],
+    limitations: ["Lifting"],
+    rom: "Normal",
+    muscleSpasm: false,
+    tenderness: true,
+    treatments: ["Ultrasound", "Friction Massage", "Forearm Extensor Stretching", "Eccentric Strengthening"],
+  },
+];
+
 function CreateMedicalRecordForm({
   appointment,
   doctorId,
@@ -163,6 +311,22 @@ function CreateMedicalRecordForm({
     setCustomPainArea("");
   };
 
+  const applyPreset = (preset: ClinicalPreset) => {
+    setDiagnosis(preset.diagnosis);
+    setSelectedPainAreas(preset.painAreas);
+    setPainSide(preset.painSide);
+    setSelectedPainTypes(preset.painTypes);
+    setVasScore(preset.vasScore);
+    setSelectedAggravating(preset.aggravating);
+    setSelectedRelieving(preset.relieving);
+    setSelectedLimitations(preset.limitations);
+    setRom(preset.rom);
+    setMuscleSpasm(preset.muscleSpasm);
+    setTenderness(preset.tenderness);
+    setSelectedTreatments(preset.treatments);
+    toast.success(`Applied ${preset.label} (${preset.code}) preset!`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!patient) {
@@ -248,7 +412,7 @@ function CreateMedicalRecordForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
       {/* Header matching physical assessment form */}
-      <DialogHeader className="p-3.5 sm:p-4 bg-muted/40 border-b border-border space-y-2 shrink-0">
+      <DialogHeader className="p-3.5 sm:p-4 pr-12 sm:pr-14 bg-muted/40 border-b border-border space-y-2 shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -316,7 +480,34 @@ function CreateMedicalRecordForm({
       </DialogHeader>
 
       {/* Main Wide Scrollable Content - 2 Column Balanced Layout on LG */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 text-xs">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 text-xs space-y-4">
+        {/* Quick ICD-10 Diagnosis & Therapy Protocol Presets */}
+        <div className="p-3 rounded-xl bg-gradient-to-r from-sky-500/10 via-emerald-500/10 to-teal-500/10 border border-sky-500/20 shadow-2xs">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-sky-800 dark:text-sky-300">
+              <Sparkles className="size-3.5 text-sky-600" />
+              <span>Quick ICD-10 Diagnosis Presets (1-Click Fill)</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground">Auto-populates exam, pain &amp; treatment plan</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {CLINICAL_PRESETS.map((preset) => (
+              <button
+                key={preset.code}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-background hover:bg-sky-500/15 text-foreground border border-border/80 hover:border-sky-500/40 shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+                title={`Click to fill: ${preset.diagnosis}`}
+              >
+                <span>{preset.label}</span>
+                <span className="font-mono text-[9px] px-1 py-0.2 rounded bg-muted text-muted-foreground font-bold">
+                  {preset.code}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
           {/* ========================================= */}
           {/* LEFT COLUMN: Clinical Assessment & Exam   */}
@@ -1201,7 +1392,7 @@ export function CreateMedicalRecordDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] sm:max-w-5xl md:max-w-6xl lg:max-w-7xl max-h-[94vh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
+      <DialogContent className="w-[96vw] max-w-6xl lg:max-w-7xl max-h-[86vh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
         <CreateMedicalRecordForm
           key={appointment?.patient?.id || appointment?.id || "form"}
           appointment={appointment}

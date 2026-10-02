@@ -33,7 +33,6 @@ import {
   Save,
   FileText,
   Timer,
-  KeyRound,
 } from "lucide-react";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import {
@@ -148,8 +147,6 @@ function SendPatientDialogContent({
     };
   }, [appointment.patientId, appointment.id]);
 
-  const [doctorPin, setDoctorPin] = React.useState<string>("");
-
   const currentFee = appointment.feeAmount ?? DEFAULT_FEE;
   const isFeeModified = dueAmount !== currentFee;
   const isPaid = appointment.paymentStatus === "PAID";
@@ -160,17 +157,13 @@ function SendPatientDialogContent({
       toast.error("Due amount cannot be negative.");
       return;
     }
-    if (doctorId && !doctorPin) {
-      toast.error("Please enter your 4-digit Doctor PIN to update due amount.");
-      return;
-    }
     setIsSavingFee(true);
     try {
       const res = await updateAppointmentFeeAction({
         appointmentId: appointment.id,
         feeAmount: Number(dueAmount),
         performerId: doctorId,
-        pin: doctorPin || undefined,
+        pin: undefined,
       });
       if (res.success) {
         toast.success(res.message);
@@ -189,11 +182,6 @@ function SendPatientDialogContent({
   const executeRouting = async (
     destination: "CASHIER" | "HANDLER" | "RECEPTIONIST",
   ) => {
-    if (doctorId && !doctorPin) {
-      toast.error("Please enter your 4-digit Doctor PIN.");
-      return;
-    }
-
     setIsRouting(true);
     setRoutingDestination(destination);
     try {
@@ -202,7 +190,7 @@ function SendPatientDialogContent({
         destination,
         feeAmount: Number(dueAmount),
         performerId: doctorId,
-        pin: doctorPin || undefined,
+        pin: undefined,
         routingNote: routingNote.trim() || undefined,
       });
 
@@ -242,9 +230,9 @@ function SendPatientDialogContent({
 
   return (
     <>
-      <DialogContent className="w-[95vw] sm:max-w-3xl md:max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
           {/* Header */}
-          <DialogHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 bg-muted/20">
+          <DialogHeader className="p-4 sm:p-5 pb-3 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary shrink-0 shadow-xs">
@@ -587,31 +575,6 @@ function SendPatientDialogContent({
                 </div>
               </div>
             </div>
-
-            {/* Attending Doctor 4-Digit Security PIN */}
-            {doctorId && (
-              <div className="space-y-1.5 p-3 rounded-xl border border-border/80 bg-muted/20">
-                <label className="text-xs font-bold text-foreground flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <KeyRound className="size-3.5 text-sky-500" />
-                    <span>Attending Doctor PIN</span>
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    4-digit PIN required
-                  </span>
-                </label>
-                <Input
-                  type="password"
-                  maxLength={4}
-                  placeholder="Enter 4-digit Doctor PIN"
-                  value={doctorPin}
-                  onChange={(e) =>
-                    setDoctorPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-                  }
-                  className="font-mono tracking-widest text-center text-base sm:text-sm h-9 max-w-xs"
-                />
-              </div>
-            )}
 
             {/* 6. Three Primary Destination Routing Cards */}
             <div className="space-y-2 pt-1">

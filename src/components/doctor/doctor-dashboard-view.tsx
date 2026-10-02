@@ -26,6 +26,7 @@ import {
   type HistoryPatientInfo,
 } from "@/components/doctor/medical/patient-medical-history-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ConsultationTimer } from "@/components/doctor/consultation-timer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -355,6 +356,13 @@ export function DoctorDashboardView({
                       <span>Room {activeConsultation.room.number}</span>
                     </span>
                   )}
+
+                  <ConsultationTimer
+                    startTime={
+                      activeConsultation.inConsultationTime ||
+                      activeConsultation.checkInTime
+                    }
+                  />
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">

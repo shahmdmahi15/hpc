@@ -28,7 +28,6 @@ import {
   CalendarCheck,
   History,
   FileText,
-  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
@@ -67,7 +66,6 @@ export function ExtraSlotsApprovalTab({
     "APPROVE",
   );
   const [doctorNote, setDoctorNote] = React.useState("");
-  const [doctorPin, setDoctorPin] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [showHistory, setShowHistory] = React.useState(false);
 
@@ -78,23 +76,16 @@ export function ExtraSlotsApprovalTab({
     setSelectedAppointment(apt);
     setDecisionType(decision);
     setDoctorNote("");
-    setDoctorPin("");
   };
 
   const handleCloseReview = () => {
     if (isSubmitting) return;
     setSelectedAppointment(null);
     setDoctorNote("");
-    setDoctorPin("");
   };
 
   const handleConfirmDecision = async () => {
     if (!selectedAppointment) return;
-
-    if (performerId && !doctorPin) {
-      toast.error("Please enter your 4-digit Doctor PIN to authorize this decision.");
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -103,7 +94,7 @@ export function ExtraSlotsApprovalTab({
         decision: decisionType,
         note: doctorNote.trim() || undefined,
         performerId,
-        pin: doctorPin || undefined,
+        pin: undefined,
       });
 
       if (res.success) {
@@ -539,31 +530,6 @@ export function ExtraSlotsApprovalTab({
                     ))}
                   </div>
                 </div>
-
-                {/* Attending Doctor 4-Digit Security PIN */}
-                {performerId && (
-                  <div className="space-y-1.5 p-2.5 rounded-lg border border-border/80 bg-muted/20">
-                    <label className="text-xs font-bold text-foreground flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <KeyRound className="size-3.5 text-sky-500" />
-                        <span>Doctor Authorization PIN</span>
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        4-digit PIN required
-                      </span>
-                    </label>
-                    <Input
-                      type="password"
-                      maxLength={4}
-                      placeholder="Enter 4-digit PIN"
-                      value={doctorPin}
-                      onChange={(e) =>
-                        setDoctorPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-                      }
-                      className="font-mono tracking-widest text-center text-base sm:text-sm h-8.5 max-w-xs"
-                    />
-                  </div>
-                )}
               </div>
             </div>
           )}

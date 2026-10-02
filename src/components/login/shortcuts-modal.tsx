@@ -20,9 +20,9 @@ interface ShortcutsModalProps {
 export function ShortcutsModal({ open, onOpenChange }: ShortcutsModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl md:max-w-3xl w-full bg-card/95 dark:bg-card/90 backdrop-blur-2xl border-border/80 shadow-2xl rounded-2xl sm:rounded-3xl p-5 sm:p-7 gap-5 overflow-hidden">
+      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[86vh] overflow-y-auto bg-card/95 dark:bg-card/90 backdrop-blur-2xl border-border/80 shadow-2xl rounded-2xl sm:rounded-3xl p-5 sm:p-7 gap-5">
         {/* Header */}
-        <DialogHeader className="space-y-1.5 text-left border-b border-border/60 pb-3.5 pr-8">
+        <DialogHeader className="space-y-1.5 text-left border-b border-border/60 pb-3.5 pr-10 sm:pr-12">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary ring-2 ring-primary/5">
               <Keyboard className="h-4 w-4" />

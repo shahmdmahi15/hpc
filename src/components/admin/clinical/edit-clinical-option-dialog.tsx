@@ -139,7 +139,7 @@ function EditClinicalOptionForm({
 
   return (
     <div className="space-y-4">
-      <DialogHeader className="space-y-1">
+      <DialogHeader className="space-y-1 pr-10 sm:pr-12 shrink-0">
         <div className="flex items-center gap-2">
           <div className="size-8 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
             <Edit3 className="size-4" />
@@ -306,7 +306,7 @@ export function EditClinicalOptionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl p-5 space-y-4 rounded-2xl border-border/80 shadow-2xl">
+      <DialogContent className="w-[96vw] max-w-2xl lg:max-w-3xl max-h-[86vh] overflow-y-auto p-5 space-y-4 rounded-2xl border-border/80 shadow-2xl">
         <EditClinicalOptionForm
           key={option.id}
           option={option}

@@ -27,7 +27,9 @@ import {
   Activity,
   Stethoscope,
   Volume2,
+  VolumeX,
   Megaphone,
+  Bell,
   LogIn,
   ClipboardList,
   CreditCard,
@@ -37,6 +39,7 @@ import {
 
 interface DoctorCallAnnouncement {
   appointmentId: string;
+  serialNumber?: number;
   patientName: string;
   gender?: string;
   roomNumber: string;
@@ -61,7 +64,32 @@ export function WaitingRoomLiveQueueView({
     React.useState<DoctorCallAnnouncement | null>(null);
   const [countdownSeconds, setCountdownSeconds] = React.useState<number>(16);
 
+  // 100% Offline Audio & Speech Announcement controls
+  const [isAudioEnabled, setIsAudioEnabled] = React.useState<boolean>(true);
+  const [isAudioUnlocked, setIsAudioUnlocked] = React.useState<boolean>(false);
+  const [speechLanguageMode, setSpeechLanguageMode] = React.useState<
+    "bilingual" | "en" | "bn"
+  >("bilingual");
+  const [departmentFilter, setDepartmentFilter] = React.useState<
+    "ALL" | "CONSULTATION" | "THERAPY"
+  >("ALL");
+
+  // Read URL search params (e.g. ?dept=doctor or ?dept=therapy)
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const dept = params.get("dept")?.toLowerCase();
+      if (dept === "doctor" || dept === "consultation") {
+        setDepartmentFilter("CONSULTATION");
+      } else if (dept === "therapy") {
+        setDepartmentFilter("THERAPY");
+      }
+    }
+  }, []);
+
   const audioCtxRef = React.useRef<AudioContext | null>(null);
+  const activeUtterancesRef = React.useRef<SpeechSynthesisUtterance[]>([]);
+  const cachedVoicesRef = React.useRef<SpeechSynthesisVoice[]>([]);
   const currentTime = useLiveClock();
   const [, startTransition] = React.useTransition();
 
@@ -142,19 +170,63 @@ export function WaitingRoomLiveQueueView({
     }
   }, [getAudioContext]);
 
-  // Broadcast both audible chime and clear speech synthesis voice announcement (bilingual EN + BN)
+  // Synchronize audio preferences from localStorage
+  React.useEffect(() => {
+    try {
+      const savedAudio = localStorage.getItem("hpc_kiosk_audio");
+      if (savedAudio !== null) setIsAudioEnabled(savedAudio === "true");
+      const savedMode = localStorage.getItem("hpc_kiosk_speech_mode");
+      if (savedMode === "en" || savedMode === "bn" || savedMode === "bilingual") {
+        setSpeechLanguageMode(savedMode);
+      }
+    } catch {}
+  }, []);
+
+  // Preload and cache browser offline speech voices
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const loadVoices = () => {
+      cachedVoicesRef.current = window.speechSynthesis.getVoices();
+    };
+    loadVoices();
+    window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
+    };
+  }, []);
+
+  // Unlocks browser audio context after user interaction (handles autoplay policy)
+  const unlockAudio = React.useCallback(() => {
+    const ctx = getAudioContext();
+    if (ctx) {
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      setIsAudioUnlocked(true);
+    }
+  }, [getAudioContext]);
+
+  // Broadcast both audible chime and clear speech synthesis voice announcement (100% offline)
   const playAnnouncementSound = React.useCallback(
     (announcement: DoctorCallAnnouncement) => {
-      // 1. Trigger resonant airport/hospital chime
+      if (!isAudioEnabled) return;
+
+      // 1. Trigger resonant airport/hospital chime (Web Audio API)
       playDoctorCallChime();
 
       // 2. Trigger clear spoken text-to-speech announcement (offline native browser API)
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         try {
           window.speechSynthesis.cancel();
+          window.speechSynthesis.resume();
+
           setTimeout(() => {
             try {
-              const voices = window.speechSynthesis.getVoices();
+              const voices =
+                cachedVoicesRef.current.length > 0
+                  ? cachedVoicesRef.current
+                  : window.speechSynthesis.getVoices();
+
               const bnVoice = voices.find(
                 (v) =>
                   v.lang.toLowerCase().startsWith("bn") ||
@@ -162,26 +234,92 @@ export function WaitingRoomLiveQueueView({
                   v.name.toLowerCase().includes("bengali"),
               );
 
-              const enText = `Attention please. Patient ${announcement.patientName}. Please proceed to Room ${announcement.roomNumber}.`;
+              const tokenStr = announcement.serialNumber
+                ? `Token ${announcement.serialNumber}, `
+                : "";
+              const tokenStrBn = announcement.serialNumber
+                ? `টোকেন ${announcement.serialNumber}, `
+                : "";
+
+              const enText = `Attention please. ${tokenStr}Patient ${announcement.patientName}. Please proceed to Room ${announcement.roomNumber}.`;
+              const bnText = `দয়া করে মনোযোগ দিন। ${tokenStrBn}রোগী ${announcement.patientName}, রুম নম্বর ${announcement.roomNumber}-এ আসুন।`;
+
+              // Priority 1: Check for Native Android / Tauri 100% Offline TTS Bridge
+              const nativeBridge =
+                (window as any).HpcNative || (window as any).AndroidTTS;
+              if (
+                nativeBridge &&
+                typeof nativeBridge.speakAnnouncement === "function"
+              ) {
+                try {
+                  nativeBridge.speakAnnouncement(
+                    enText,
+                    bnText,
+                    speechLanguageMode,
+                  );
+                  return;
+                } catch (bridgeErr) {
+                  console.warn(
+                    "[HPC Native TTS Bridge Error, falling back to Web Speech]:",
+                    bridgeErr,
+                  );
+                }
+              }
+
+              // Priority 2: Standard Browser / Web Speech API (100% offline)
               const enUtterance = new SpeechSynthesisUtterance(enText);
               enUtterance.rate = 0.9;
               enUtterance.pitch = 1.0;
               enUtterance.volume = 1.0;
 
-              if (bnVoice) {
-                const bnText = `দয়া করে মনোযোগ দিন। রোগী ${announcement.patientName}, রুম নম্বর ${announcement.roomNumber}-এ আসুন।`;
-                const bnUtterance = new SpeechSynthesisUtterance(bnText);
-                bnUtterance.voice = bnVoice;
-                bnUtterance.lang = "bn-BD";
-                bnUtterance.rate = 0.88;
-                bnUtterance.volume = 1.0;
+              activeUtterancesRef.current.push(enUtterance);
+              enUtterance.onend = () => {
+                activeUtterancesRef.current =
+                  activeUtterancesRef.current.filter((u) => u !== enUtterance);
+              };
+              enUtterance.onerror = () => {
+                activeUtterancesRef.current =
+                  activeUtterancesRef.current.filter((u) => u !== enUtterance);
+              };
 
-                enUtterance.onend = () => {
+              const speakBangla = () => {
+                if (bnVoice || speechLanguageMode === "bn") {
+                  const bnUtterance = new SpeechSynthesisUtterance(bnText);
+                  if (bnVoice) bnUtterance.voice = bnVoice;
+                  bnUtterance.lang = "bn-BD";
+                  bnUtterance.rate = 0.88;
+                  bnUtterance.volume = 1.0;
+
+                  activeUtterancesRef.current.push(bnUtterance);
+                  bnUtterance.onend = () => {
+                    activeUtterancesRef.current =
+                      activeUtterancesRef.current.filter(
+                        (u) => u !== bnUtterance,
+                      );
+                  };
+                  bnUtterance.onerror = () => {
+                    activeUtterancesRef.current =
+                      activeUtterancesRef.current.filter(
+                        (u) => u !== bnUtterance,
+                      );
+                  };
+
                   window.speechSynthesis.speak(bnUtterance);
-                };
-              }
+                }
+              };
 
-              window.speechSynthesis.speak(enUtterance);
+              if (speechLanguageMode === "bn") {
+                speakBangla();
+              } else if (speechLanguageMode === "bilingual") {
+                enUtterance.onend = () => {
+                  activeUtterancesRef.current =
+                    activeUtterancesRef.current.filter((u) => u !== enUtterance);
+                  setTimeout(speakBangla, 350);
+                };
+                window.speechSynthesis.speak(enUtterance);
+              } else {
+                window.speechSynthesis.speak(enUtterance);
+              }
             } catch (e) {
               console.warn("[Speech Synthesis Error]:", e);
             }
@@ -191,8 +329,34 @@ export function WaitingRoomLiveQueueView({
         }
       }
     },
-    [playDoctorCallChime],
+    [isAudioEnabled, playDoctorCallChime, speechLanguageMode],
   );
+
+  const testAnnouncementSound = React.useCallback(() => {
+    unlockAudio();
+    playAnnouncementSound({
+      appointmentId: "test-call",
+      serialNumber: 1,
+      patientName: "Patient Name",
+      gender: "FEMALE",
+      roomNumber: "1",
+      roomPurpose: "Doctor Consultation",
+      timestamp: new Date().toISOString(),
+    });
+  }, [unlockAudio, playAnnouncementSound]);
+
+  const toggleAudio = React.useCallback(() => {
+    setIsAudioEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("hpc_kiosk_audio", String(next));
+      } catch {}
+      if (next) {
+        unlockAudio();
+      }
+      return next;
+    });
+  }, [unlockAudio]);
 
   const refreshQueue = React.useCallback(() => {
     startTransition(async () => {
@@ -453,6 +617,43 @@ export function WaitingRoomLiveQueueView({
 
         {/* Right: SSE Health, Language Switcher, Fullscreen, Theme & Login/Dashboard Button */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Department View Switcher */}
+          <div className="flex items-center bg-card border border-border/80 rounded-lg p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setDepartmentFilter("ALL")}
+              className={`px-2 py-0.5 text-[10.5px] font-bold rounded-md transition-all cursor-pointer ${
+                departmentFilter === "ALL"
+                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setDepartmentFilter("CONSULTATION")}
+              className={`px-2 py-0.5 text-[10.5px] font-bold rounded-md transition-all cursor-pointer ${
+                departmentFilter === "CONSULTATION"
+                  ? "bg-sky-600 text-white shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Chambers
+            </button>
+            <button
+              type="button"
+              onClick={() => setDepartmentFilter("THERAPY")}
+              className={`px-2 py-0.5 text-[10.5px] font-bold rounded-md transition-all cursor-pointer ${
+                departmentFilter === "THERAPY"
+                  ? "bg-emerald-600 text-white shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Therapy
+            </button>
+          </div>
+
           {/* SSE Connection Health */}
           <div
             className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${
@@ -479,12 +680,58 @@ export function WaitingRoomLiveQueueView({
             )}
           </div>
 
+          {/* Offline Audio / Speech Controls */}
+          <div className="flex items-center gap-1 bg-card border border-border/80 rounded-lg p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={toggleAudio}
+              title={
+                isAudioEnabled
+                  ? "Voice announcements active (Click to mute)"
+                  : "Voice announcements muted (Click to enable)"
+              }
+              className={`size-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+                isAudioEnabled
+                  ? "text-sky-600 dark:text-sky-400 hover:bg-sky-500/10"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {isAudioEnabled ? (
+                <Volume2 className="size-3.5" />
+              ) : (
+                <VolumeX className="size-3.5" />
+              )}
+            </button>
+
+            {/* Test Audio Button */}
+            <button
+              type="button"
+              onClick={testAnnouncementSound}
+              title="Test Sound: Play offline hospital chime & speech announcement"
+              className="h-7 px-2 text-[10px] font-bold rounded-md border border-sky-500/20 bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <Bell className="size-2.5 animate-pulse" />
+              <span className="hidden lg:inline">Test Sound</span>
+            </button>
+          </div>
+
           <LanguageSwitcher className="h-7 px-1.5 rounded-lg bg-card border-border/80 text-[11px] shadow-xs" />
           <FullscreenToggle className="size-7 rounded-lg border border-border/80 bg-card hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center shrink-0" />
           <ThemeToggle />
           {renderUserPortalButton()}
         </div>
       </header>
+
+      {/* Autoplay / Click-to-Unlock Audio Banner */}
+      {!isAudioUnlocked && (
+        <div
+          onClick={unlockAudio}
+          className="w-full bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white px-4 py-1.5 text-xs sm:text-sm font-bold text-center cursor-pointer flex items-center justify-center gap-2 shadow-md hover:brightness-105 transition-all z-30 shrink-0"
+        >
+          <Volume2 className="size-4 animate-bounce" />
+          <span>Tap or click anywhere on this screen to enable voice announcements through TV speakers</span>
+        </div>
+      )}
 
       {/* ---------------------------------------------------- */}
       {/* 1.5. Realtime Doctor Calling Large Popup Announcement */}
@@ -514,6 +761,11 @@ export function WaitingRoomLiveQueueView({
                 Please proceed to assigned consultation chamber
               </p>
               <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                {activeAnnouncement.serialNumber !== undefined && (
+                  <span className="px-3 sm:px-4 py-1 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 font-mono font-black text-lg sm:text-2xl shadow-xs">
+                    TOKEN #{activeAnnouncement.serialNumber}
+                  </span>
+                )}
                 <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl font-black text-foreground tracking-tight drop-shadow-xs">
                   {activeAnnouncement.patientName}
                 </h2>
@@ -571,79 +823,119 @@ export function WaitingRoomLiveQueueView({
       )}
 
       {/* ---------------------------------------------------- */}
-      {/* 2. Main Live Queue: High-Density 2-Column Grid       */}
+      {/* 2. Main Live Queue: High-Density Responsive Grid     */}
       {/* ---------------------------------------------------- */}
-      <main className="flex-1 min-h-0 w-full max-w-[2560px] mx-auto p-2 sm:p-3 overflow-visible md:overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+      <main
+        className={`flex-1 min-h-0 w-full max-w-[2560px] mx-auto p-2 sm:p-3 overflow-visible md:overflow-hidden grid gap-2.5 sm:gap-3 ${
+          departmentFilter === "ALL"
+            ? "grid-cols-1 md:grid-cols-2"
+            : "grid-cols-1"
+        }`}
+      >
         {/* Column 1: Therapy Queue */}
-        <section className="flex flex-col min-h-[360px] md:min-h-0 md:h-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl overflow-hidden shadow-xs">
-          {/* Compact Column Header */}
-          <div className="px-3 py-2 border-b border-border/70 flex items-center justify-between gap-2 bg-muted/20 shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                <Activity className="size-4" />
+        {(departmentFilter === "ALL" || departmentFilter === "THERAPY") && (
+          <section className="flex flex-col min-h-[360px] md:min-h-0 md:h-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl overflow-hidden shadow-xs">
+            {/* Compact Column Header */}
+            <div className="px-3 py-2 border-b border-border/70 flex items-center justify-between gap-2 bg-muted/20 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                  <Activity className="size-4" />
+                </div>
+                <h2 className="text-sm sm:text-base font-black tracking-tight text-foreground">
+                  Therapy Queue
+                </h2>
+                <span className="px-2 py-0.2 rounded-full text-xs font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                  {therapyQueue.length}
+                </span>
               </div>
-              <h2 className="text-sm sm:text-base font-black tracking-tight text-foreground">
-                Therapy Queue
-              </h2>
-              <span className="px-2 py-0.2 rounded-full text-xs font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                {therapyQueue.length}
+
+              <span className="text-[10.5px] font-semibold text-muted-foreground">
+                Therapy Rooms
               </span>
             </div>
 
-            <span className="text-[10.5px] font-semibold text-muted-foreground">
-              Therapy Rooms
-            </span>
-          </div>
-
-          {/* Column Scrollable Content: Dense Multi-Column Sub-Grid */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
-            {therapyQueue.length === 0 ? (
-              <EmptyQueueCard title="Therapy Queue is Clear" />
-            ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 auto-rows-max">
-                {therapyQueue.map((item) => (
-                  <QueueItemCard key={item.id} item={item} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+            {/* Column Scrollable Content */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
+              {therapyQueue.length === 0 ? (
+                <EmptyQueueCard title="Therapy Queue is Clear" />
+              ) : (
+                <div
+                  className={`grid gap-2 auto-rows-max ${
+                    departmentFilter === "THERAPY"
+                      ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                      : "grid-cols-1 xl:grid-cols-2"
+                  }`}
+                >
+                  {therapyQueue.map((item) => (
+                    <QueueItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Column 2: Consultation Queue */}
-        <section className="flex flex-col min-h-[360px] md:min-h-0 md:h-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl overflow-hidden shadow-xs">
-          {/* Compact Column Header */}
-          <div className="px-3 py-2 border-b border-border/70 flex items-center justify-between gap-2 bg-muted/20 shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30">
-                <Stethoscope className="size-4" />
+        {(departmentFilter === "ALL" || departmentFilter === "CONSULTATION") && (
+          <section className="flex flex-col min-h-[360px] md:min-h-0 md:h-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl overflow-hidden shadow-xs">
+            {/* Compact Column Header */}
+            <div className="px-3 py-2 border-b border-border/70 flex items-center justify-between gap-2 bg-muted/20 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30">
+                  <Stethoscope className="size-4" />
+                </div>
+                <h2 className="text-sm sm:text-base font-black tracking-tight text-foreground">
+                  Consultation Queue
+                </h2>
+                <span className="px-2 py-0.2 rounded-full text-xs font-mono font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
+                  {consultationQueue.length}
+                </span>
               </div>
-              <h2 className="text-sm sm:text-base font-black tracking-tight text-foreground">
-                Consultation Queue
-              </h2>
-              <span className="px-2 py-0.2 rounded-full text-xs font-mono font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
-                {consultationQueue.length}
+
+              <span className="text-[10.5px] font-semibold text-muted-foreground">
+                Doctor Chambers
               </span>
             </div>
 
-            <span className="text-[10.5px] font-semibold text-muted-foreground">
-              Doctor Chambers
-            </span>
-          </div>
-
-          {/* Column Scrollable Content: Dense Multi-Column Sub-Grid */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
-            {consultationQueue.length === 0 ? (
-              <EmptyQueueCard title="Consultation Queue is Clear" />
-            ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 auto-rows-max">
-                {consultationQueue.map((item) => (
-                  <QueueItemCard key={item.id} item={item} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+            {/* Column Scrollable Content */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
+              {consultationQueue.length === 0 ? (
+                <EmptyQueueCard title="Consultation Queue is Clear" />
+              ) : (
+                <div
+                  className={`grid gap-2 auto-rows-max ${
+                    departmentFilter === "CONSULTATION"
+                      ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                      : "grid-cols-1 xl:grid-cols-2"
+                  }`}
+                >
+                  {consultationQueue.map((item) => (
+                    <QueueItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </main>
+
+      {/* ---------------------------------------------------- */}
+      {/* 2.5 Clinical Health & Patient Guidance Marquee Ticker */}
+      {/* ---------------------------------------------------- */}
+      <div className="w-full bg-primary/10 border-t border-primary/20 py-1.5 px-4 text-xs font-semibold text-foreground overflow-hidden whitespace-nowrap flex items-center gap-3 shrink-0">
+        <span className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 shadow-2xs">
+          CLINIC NOTICE
+        </span>
+        <div className="overflow-hidden relative w-full text-xs text-muted-foreground whitespace-nowrap">
+          <div className="inline-block animate-marquee whitespace-nowrap font-medium space-x-6">
+            <span>• Please keep your queue token ticket ready when your serial number is called</span>
+            <span>• Maintain an upright spinal posture while sitting in the waiting area</span>
+            <span>• If experiencing acute pain or dizziness, please notify the reception counter immediately</span>
+            <span>• All rooms &amp; therapy modalities are sanitized between patient sessions</span>
+            <span>• স্বাস্থ্য বার্তা: বসার সময় মেরুদণ্ড সোজা রাখুন এবং নির্ধারিত টোকেনের জন্য অপেক্ষা করুন</span>
+          </div>
+        </div>
+      </div>
 
       {/* ---------------------------------------------------- */}
       {/* 3. Screen Footer Ticker (Live Summary Counts)        */}

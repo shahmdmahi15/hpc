@@ -152,8 +152,11 @@ export async function collectPaymentAction(params: {
       Role.RECEPTIONIST,
     ]);
 
-    // Verify cashier 4-digit PIN if performerId is supplied
-    if (params.performerId) {
+    // Admins are independent user accounts with zero PIN requirements.
+    const isExemptRole = sessionData.user.role === Role.ADMIN;
+
+    // Verify cashier 4-digit PIN for counter staff
+    if (!isExemptRole && params.performerId) {
       const { verifyPerformerPin } = await import("@/lib/performer-auth");
       const pinRes = await verifyPerformerPin(params.performerId, params.pin);
       if (!pinRes.success) {

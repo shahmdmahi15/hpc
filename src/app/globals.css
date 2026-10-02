@@ -127,24 +127,75 @@
   }
   body {
     @apply bg-background text-foreground font-sans min-h-screen;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
+
+  /* Android TV & Smartboard D-Pad Focus Highlighting */
+  :focus-visible {
+    outline: 2.5px solid #059669 !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Touch-friendly target sizing on phones and tablets */
+  @media (pointer: coarse) {
+    button:not(.no-touch-min), 
+    [role="button"]:not(.no-touch-min) {
+      min-height: 36px;
+    }
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 35s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Screen Mode: dedicated print mount point stays completely invisible */
+#hpc-print-root {
+  display: none !important;
 }
 
 @media print {
   @page {
-    margin: 6mm;
-    size: auto;
+    size: 5.5in 8.27in;
+    margin: 0;
   }
+
+  html,
   body {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  /* Hide non-print UI when printing */
-  body > *:not(.print-document-container) {
+
+  /* Hide all top-level UI elements except the isolated print container */
+  body > *:not(#hpc-print-root):not(.print-document-container) {
     display: none !important;
   }
+
   .no-print,
   dialog,
   header,
@@ -153,13 +204,51 @@
   footer {
     display: none !important;
   }
+
+  #hpc-print-root,
   .print-document-container {
     display: block !important;
     position: static !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    width: 5.5in !important;
+    height: 8.27in !important;
+    max-width: 5.5in !important;
+    min-height: 8.27in !important;
+    margin: 0 auto !important;
+    padding: 0.18in !important;
+    box-sizing: border-box !important;
     border: none !important;
     box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    visibility: visible !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  #hpc-print-root *,
+  .print-document-container * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #hpc-print-root > div,
+  .print-document-container > div {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    min-height: calc(8.27in - 0.36in) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0.16in !important;
+    border: 1.5px solid #000000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
+

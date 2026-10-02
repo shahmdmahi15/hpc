@@ -99,9 +99,9 @@ export function DeleteRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl p-0 gap-0 border-destructive/30 shadow-2xl rounded-2xl overflow-hidden">
+      <DialogContent className="w-[96vw] max-w-xl lg:max-w-2xl max-h-[86vh] flex flex-col p-0 gap-0 border-destructive/30 shadow-2xl rounded-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-border/60 bg-destructive/5">
+        <div className="p-6 pr-12 sm:pr-14 border-b border-border/60 bg-destructive/5">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive border border-destructive/20 shrink-0">
               <Trash2 className="size-5" />

@@ -170,9 +170,9 @@ export function CallToTherapyRoomDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         {/* Header */}
-        <DialogHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 bg-emerald-500/5">
+        <DialogHeader className="p-4 sm:p-5 pb-3 pr-12 sm:pr-14 border-b border-border/60 bg-emerald-500/5 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400">

@@ -122,9 +122,9 @@ export function PatientMedicalHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] sm:max-w-5xl md:max-w-6xl lg:max-w-7xl max-h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
+      <DialogContent className="w-[96vw] max-w-6xl lg:max-w-7xl max-h-[86vh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
         {/* Header */}
-        <DialogHeader className="p-3.5 sm:p-4 bg-muted/40 border-b border-border space-y-2 shrink-0">
+        <DialogHeader className="p-3.5 sm:p-4 pr-12 sm:pr-14 bg-muted/40 border-b border-border space-y-2 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
               <div className="size-9 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">

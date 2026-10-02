@@ -20,21 +20,11 @@
 # production
 /build
 
-# misc
-*.pem
-certificates/*.key
-*.key
-!public/rootCA.pem
-!public/rootCA.crt
-
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
 
 # vercel
 .vercel
@@ -43,11 +33,17 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# SQLite Database & Backups we need to push the db fiels proeprly to the github because we will need the generated db files and backup
-# *.db
-# *.db-wal
-# *.db-shm
-# *.db-journal
-# /backups
+# Local environment & secret files
+.env
+.env.local
+.env.*.local
+.hpc.pid
 
+# SSL Private Keys
+certificates/*.key
+certificates/*.pem
+!certificates/rootCA.crt
 
+# SQLite runtime temporary files (WAL journal)
+*.db-shm
+*.db-wal

@@ -5,14 +5,25 @@ import * as htmlToImage from "html-to-image";
 
 export interface PdfGenerationOptions {
   filename?: string;
-  format?: "thermal" | "a5" | "a4";
+  format?: "statement" | "half-sheet" | "custom-5.5x8.125" | "thermal" | "a5" | "a4";
   orientation?: "portrait" | "landscape";
   quality?: number;
 }
 
 /**
+ * Standard Wi-Fi printer paper size: 5.5" width x 8.27" height (139.7mm x 210.0mm / A5 height)
+ */
+export const STANDARD_PAPER_SIZE = {
+  widthInches: 5.5,
+  heightInches: 8.27,
+  widthMm: 139.7,
+  heightMm: 210.0,
+  cssSize: "5.5in 8.27in",
+};
+
+/**
  * Generates and downloads a high-resolution, crisp PDF from any DOM element using jsPDF and html-to-image.
- * Supports native Bengali font rendering, crisp SVG/vector icons, and custom page geometry.
+ * Supports native Bengali font rendering, crisp SVG/vector icons, and custom 5.5" x 8.125" paper geometry.
  */
 export async function downloadElementAsPdf(
   elementOrId: HTMLElement | string,
@@ -31,8 +42,8 @@ export async function downloadElementAsPdf(
   }
 
   const {
-    filename = `HPC-Receipt-${Date.now()}.pdf`,
-    format = "a5",
+    filename = `HPC-Doc-${Date.now()}.pdf`,
+    format = "custom-5.5x8.125",
     orientation = "portrait",
     quality = 0.95,
   } = options;
@@ -67,8 +78,32 @@ export async function downloadElementAsPdf(
     const aspectRatio = imgHeightPx / imgWidthPx;
 
     // 4. Configure jsPDF with proper page geometry
-    if (format === "thermal") {
-      // Standard 80mm continuous thermal POS roll (usable width ~72mm, total 80mm)
+    if (format === "custom-5.5x8.125" || format === "statement" || format === "half-sheet") {
+      // 5.5" width x 8.125" height cut paper for Wi-Fi printer
+      const pdfWidthMm = STANDARD_PAPER_SIZE.widthMm;
+      const pdfHeightMm = STANDARD_PAPER_SIZE.heightMm;
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [pdfWidthMm, pdfHeightMm],
+        compress: true,
+      });
+
+      const marginMm = 5;
+      const contentWidth = pdfWidthMm - marginMm * 2;
+      const contentHeight = contentWidth * aspectRatio;
+
+      if (contentHeight <= pdfHeightMm - marginMm * 2) {
+        pdf.addImage(dataUrl, "PNG", marginMm, marginMm, contentWidth, contentHeight, undefined, "FAST");
+      } else {
+        const scaledWidth = (pdfHeightMm - marginMm * 2) / aspectRatio;
+        const xOffset = (pdfWidthMm - scaledWidth) / 2;
+        pdf.addImage(dataUrl, "PNG", xOffset, marginMm, scaledWidth, pdfHeightMm - marginMm * 2, undefined, "FAST");
+      }
+
+      pdf.save(filename);
+    } else if (format === "thermal") {
       const pdfWidthMm = 80;
       const pdfHeightMm = Math.max(100, Math.round(pdfWidthMm * aspectRatio) + 6);
 
@@ -82,7 +117,7 @@ export async function downloadElementAsPdf(
       pdf.addImage(dataUrl, "PNG", 0, 2, pdfWidthMm, pdfWidthMm * aspectRatio, undefined, "FAST");
       pdf.save(filename);
     } else {
-      // Standard A5 or A4 clinical money receipt voucher
+      // Standard A5 or A4
       const pdf = new jsPDF({
         orientation,
         unit: "mm",
@@ -97,7 +132,6 @@ export async function downloadElementAsPdf(
       const contentWidth = pageWidth - marginMm * 2;
       const contentHeight = contentWidth * aspectRatio;
 
-      // Fit inside single page cleanly
       if (contentHeight <= pageHeight - marginMm * 2) {
         pdf.addImage(dataUrl, "PNG", marginMm, marginMm, contentWidth, contentHeight, undefined, "FAST");
       } else {
@@ -116,12 +150,30 @@ export async function downloadElementAsPdf(
   }
 }
 
+export interface PrintIsolatedOptions {
+  title?: string;
+  paperSize?: string; // Default: "5.5in 8.125in"
+  margin?: string; // Default: "0.2in"
+}
+
 /**
- * Prints a specific DOM element cleanly via an isolated hidden iframe.
+ * Prints a specific DOM element cleanly via the dedicated #hpc-print-root mount point.
+ * Configured specifically for 5.5" width x 8.125" height standard paper Wi-Fi printers.
  * Ensures the main dashboard, browser chrome, navigation, and dialog overlays are NOT printed.
+ * Eliminates blank pages caused by zero-dimension iframe sandbox restrictions.
  */
-export function printElementIsolated(elementOrId: HTMLElement | string, title = "Print Document"): void {
+export function printElementIsolated(
+  elementOrId: HTMLElement | string,
+  titleOrOptions: string | PrintIsolatedOptions = "Print Document"
+): void {
   if (typeof window === "undefined") return;
+
+  const options: PrintIsolatedOptions =
+    typeof titleOrOptions === "string"
+      ? { title: titleOrOptions }
+      : titleOrOptions;
+
+  const { title = "Print Document" } = options;
 
   const targetElement =
     typeof elementOrId === "string"
@@ -129,80 +181,52 @@ export function printElementIsolated(elementOrId: HTMLElement | string, title = 
       : elementOrId;
 
   if (!targetElement) {
+    console.warn("[Print Isolated] Target element not found:", elementOrId);
     window.print();
     return;
   }
 
-  // Create isolated iframe
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "none";
-  iframe.style.zIndex = "-1000";
-  document.body.appendChild(iframe);
-
-  const doc = iframe.contentWindow?.document;
-  if (!doc) {
-    document.body.removeChild(iframe);
-    window.print();
-    return;
+  // 1. Locate or create the dedicated #hpc-print-root attached to document.body
+  let printRoot = document.getElementById("hpc-print-root");
+  if (!printRoot) {
+    printRoot = document.createElement("div");
+    printRoot.id = "hpc-print-root";
+    printRoot.className = "print-document-container";
+    document.body.appendChild(printRoot);
   }
 
-  // Copy stylesheets and fonts from main document into iframe
-  const styleNodes = Array.from(document.querySelectorAll("link[rel='stylesheet'], style"));
-  const headHtml = styleNodes.map((node) => node.outerHTML).join("\n");
+  // 2. Clone the target element HTML into the isolated print container
+  printRoot.innerHTML = targetElement.outerHTML;
 
-  doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <title>${title}</title>
-        ${headHtml}
-        <style>
-          @page {
-            margin: 0mm;
-            size: auto;
-          }
-          body {
-            margin: 0;
-            padding: 8px;
-            background: #ffffff !important;
-            color: #000000 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-          }
-          * {
-            box-sizing: border-box;
-          }
-        </style>
-      </head>
-      <body>
-        <div>${targetElement.outerHTML}</div>
-      </body>
-    </html>
-  `);
-  doc.close();
+  // 3. Temporarily set document title for the printer driver and header/footer
+  const originalTitle = document.title;
+  if (title) {
+    document.title = title;
+  }
 
-  iframe.contentWindow?.focus();
-  setTimeout(() => {
+  // 4. Setup cleanup listener that cleans up once print dialog finishes
+  let isCleanedUp = false;
+  const cleanup = () => {
+    if (isCleanedUp) return;
+    isCleanedUp = true;
+    if (printRoot) {
+      printRoot.innerHTML = "";
+    }
+    if (originalTitle) {
+      document.title = originalTitle;
+    }
+    window.removeEventListener("afterprint", cleanup);
+  };
+
+  window.addEventListener("afterprint", cleanup);
+
+  // 5. Trigger print cleanly on the next animation frame after DOM commitment
+  requestAnimationFrame(() => {
     try {
-      iframe.contentWindow?.print();
+      window.print();
     } catch (e) {
       console.error("[Print Isolated] Print execution error:", e);
-    } finally {
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 1000);
+      cleanup();
     }
-  }, 350);
+  });
 }

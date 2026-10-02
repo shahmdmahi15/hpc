@@ -233,7 +233,12 @@ export async function reviewExtraSlotAction(params: {
   try {
     const sessionData = await requireAuth([Role.DOCTOR, Role.ADMIN]);
 
-    if (params.performerId) {
+    // Doctors and Admins are independent user accounts with zero PIN requirements.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && params.performerId) {
       const pinRes = await verifyPerformerPin(params.performerId, params.pin);
       if (!pinRes.valid) {
         return {
@@ -381,7 +386,12 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       Role.ADMIN,
     ]);
 
-    if (params.performerId) {
+    // Doctors and Admins are independent user accounts and do not need a PIN.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && params.performerId) {
       const pinRes = await verifyPerformerPin(params.performerId, params.pin);
       if (!pinRes.valid) {
         return {
@@ -708,7 +718,12 @@ export async function updateAppointmentFeeAction(params: {
       Role.RECEPTIONIST,
     ]);
 
-    if (params.performerId) {
+    // Doctors and Admins are independent user accounts and do not need a PIN.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && params.performerId) {
       const pinRes = await verifyPerformerPin(params.performerId, params.pin);
       if (!pinRes.valid) {
         return {

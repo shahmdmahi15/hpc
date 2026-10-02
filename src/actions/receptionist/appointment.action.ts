@@ -88,14 +88,18 @@ export async function bookTherapyTicketAction(
     const activeReceptionistsCount = await prisma.performer.count({
       where: { user: { role: Role.RECEPTIONIST } },
     });
-    if (activeReceptionistsCount > 0 && !bookedById) {
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && activeReceptionistsCount > 0 && !bookedById) {
       return {
         success: false,
         message: "Please select which receptionist staff member is booking this ticket.",
       };
     }
 
-    if (bookedById) {
+    if (!isExemptRole && bookedById) {
       const pinRes = await verifyPerformerPin(bookedById, performerPin);
       if (!pinRes.valid) {
         return {
@@ -319,7 +323,12 @@ export async function updateAppointmentStatusAction(
       Role.CASHIER,
     ]);
 
-    if (performerId) {
+    // Doctors and Admins are independent user accounts with zero PIN requirements.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && performerId) {
       const pinRes = await verifyPerformerPin(performerId, pin);
       if (!pinRes.valid) {
         return {
@@ -966,7 +975,12 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       Role.CASHIER,
     ]);
 
-    if (input.performerId) {
+    // Doctors and Admins are independent user accounts with zero PIN requirements.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && input.performerId) {
       const pinRes = await verifyPerformerPin(input.performerId, input.pin);
       if (!pinRes.valid) {
         return {
@@ -1155,7 +1169,12 @@ export async function switchQueueAction(
       Role.HANDLER,
     ]);
 
-    if (performerId) {
+    // Doctors and Admins are independent user accounts with zero PIN requirements.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && performerId) {
       const pinRes = await verifyPerformerPin(performerId, pin);
       if (!pinRes.valid) {
         return {
@@ -1386,7 +1405,12 @@ export async function checkOutPatientAction(
       Role.CASHIER,
     ]);
 
-    if (performerId) {
+    // Doctors and Admins are independent user accounts with zero PIN requirements.
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && performerId) {
       const pinRes = await verifyPerformerPin(performerId, pin);
       if (!pinRes.valid) {
         return {

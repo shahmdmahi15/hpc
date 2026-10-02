@@ -143,8 +143,8 @@ function AddToQueueDialogBody({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl md:max-w-3xl max-h-[min(90vh,680px)] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
-        <DialogHeader className="p-5 pb-4 border-b border-border/60 shrink-0 bg-muted/20">
+      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <DialogHeader className="p-5 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <UserCheck className="size-5" />
