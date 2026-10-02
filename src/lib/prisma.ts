@@ -8,7 +8,7 @@ import fs from "node:fs";
 export function getDatabaseFilePath(): string {
   const connectionString = process.env.DATABASE_URL || "file:./hpc.db";
   const rawPath = connectionString.replace(/^file:/, "");
-  return path.isAbsolute(rawPath) ? rawPath : path.resolve(process.cwd(), rawPath);
+  return path.isAbsolute(rawPath) ? rawPath : path.resolve(/*turbopackIgnore: true*/ process.cwd(), rawPath);
 }
 
 const initSqlitePragmas = (dbPath: string) => {
@@ -50,9 +50,9 @@ if (process.env.NODE_ENV !== "production") {
  */
 export async function backupDatabaseToFolder(destDir?: string): Promise<string> {
   const dbPath = getDatabaseFilePath();
-  const targetDir = destDir || path.resolve(process.cwd(), "backups");
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
+  const targetDir = destDir || path.resolve(/*turbopackIgnore: true*/ process.cwd(), "backups");
+  if (!fs.existsSync(/*turbopackIgnore: true*/ targetDir)) {
+    fs.mkdirSync(/*turbopackIgnore: true*/ targetDir, { recursive: true });
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");

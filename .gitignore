@@ -21,8 +21,11 @@
 /build
 
 # misc
-.DS_Store
 *.pem
+certificates/*.key
+*.key
+!public/rootCA.pem
+!public/rootCA.crt
 
 # debug
 npm-debug.log*

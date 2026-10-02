@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:custom": "tsx server.ts --dev",
     "build": "next build",
-    "start": "next start",
+    "start": "tsx server.ts",
     "lint": "eslint",
     "format": "prettier --write .",
     "prisma:generate": "prisma generate",
