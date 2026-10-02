@@ -419,7 +419,7 @@ export function WaitingRoomLiveQueueView({
   };
 
   return (
-    <div className="h-screen max-h-screen w-screen max-w-screen overflow-hidden flex flex-col justify-between bg-gradient-to-br from-background via-muted/20 to-background text-foreground select-none">
+    <div className="min-h-screen md:h-dvh md:max-h-dvh w-full overflow-y-auto md:overflow-hidden flex flex-col justify-between bg-gradient-to-br from-background via-muted/20 to-background text-foreground select-none">
       {/* ---------------------------------------------------- */}
       {/* 1. Header (Compact TV Screen Bar)                    */}
       {/* ---------------------------------------------------- */}
@@ -514,7 +514,7 @@ export function WaitingRoomLiveQueueView({
                 Please proceed to assigned consultation chamber
               </p>
               <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
-                <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-foreground tracking-tight drop-shadow-xs">
+                <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl font-black text-foreground tracking-tight drop-shadow-xs">
                   {activeAnnouncement.patientName}
                 </h2>
                 {activeAnnouncement.gender && (
@@ -532,16 +532,16 @@ export function WaitingRoomLiveQueueView({
             </div>
 
             {/* Chamber Callout Box */}
-            <div className="p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 text-white border border-sky-300/60 shadow-xl flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-7">
+            <div className="p-4 sm:p-6 md:p-8 2xl:p-10 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 text-white border border-sky-300/60 shadow-xl flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-7">
               <div className="p-3 sm:p-4 md:p-5 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-inner shrink-0">
-                <DoorOpen className="size-10 sm:size-14 md:size-16 text-white" />
+                <DoorOpen className="size-10 sm:size-14 md:size-16 2xl:size-20 text-white" />
               </div>
               <div className="text-center sm:text-left space-y-0.5 sm:space-y-1">
-                <div className="text-xs sm:text-sm md:text-base font-bold uppercase tracking-widest text-sky-100/90">
+                <div className="text-xs sm:text-sm md:text-base 2xl:text-lg font-bold uppercase tracking-widest text-sky-100/90">
                   {activeAnnouncement.roomPurpose || "Doctor Consultation"}{" "}
                   &bull; PLEASE PROCEED TO
                 </div>
-                <div className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black font-mono tracking-tight text-white drop-shadow-md">
+                <div className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl 2xl:text-8xl font-black font-mono tracking-tight text-white drop-shadow-md">
                   ROOM {activeAnnouncement.roomNumber}
                 </div>
               </div>
@@ -573,9 +573,9 @@ export function WaitingRoomLiveQueueView({
       {/* ---------------------------------------------------- */}
       {/* 2. Main Live Queue: High-Density 2-Column Grid       */}
       {/* ---------------------------------------------------- */}
-      <main className="flex-1 min-h-0 w-full max-w-[1920px] mx-auto p-2 sm:p-3 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+      <main className="flex-1 min-h-0 w-full max-w-[2560px] mx-auto p-2 sm:p-3 overflow-visible md:overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
         {/* Column 1: Therapy Queue */}
-        <section className="flex flex-col min-h-0 h-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl overflow-hidden shadow-xs">
+        <section className="flex flex-col min-h-[360px] md:min-h-0 md:h-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl overflow-hidden shadow-xs">
           {/* Compact Column Header */}
           <div className="px-3 py-2 border-b border-border/70 flex items-center justify-between gap-2 bg-muted/20 shrink-0">
             <div className="flex items-center gap-2">
@@ -610,7 +610,7 @@ export function WaitingRoomLiveQueueView({
         </section>
 
         {/* Column 2: Consultation Queue */}
-        <section className="flex flex-col min-h-0 h-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl overflow-hidden shadow-xs">
+        <section className="flex flex-col min-h-[360px] md:min-h-0 md:h-full rounded-2xl border border-border/80 bg-card/60 backdrop-blur-xl overflow-hidden shadow-xs">
           {/* Compact Column Header */}
           <div className="px-3 py-2 border-b border-border/70 flex items-center justify-between gap-2 bg-muted/20 shrink-0">
             <div className="flex items-center gap-2">
@@ -728,7 +728,7 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
       {/* Top Row: Patient Name & Late Time (Punctuality Badge) */}
       <div className="flex items-center justify-between gap-1.5 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <h3 className="text-xs sm:text-sm font-black text-foreground tracking-tight truncate">
+          <h3 className="text-xs sm:text-sm 2xl:text-base font-black text-foreground tracking-tight truncate">
             {item.patient?.name || "Patient"}
           </h3>
 

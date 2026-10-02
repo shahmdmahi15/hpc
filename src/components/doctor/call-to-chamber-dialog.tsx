@@ -18,6 +18,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Volume2,
@@ -28,6 +29,7 @@ import {
   Check,
   User,
   Radio,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { evaluatePunctuality } from "@/lib/queue-punctuality";
@@ -91,6 +93,7 @@ export function CallToChamberDialog({
   const [selectedDoctorId, setSelectedDoctorId] = React.useState<string>(
     () => defaultDoctorId || firstDoctor?.id || "",
   );
+  const [doctorPin, setDoctorPin] = React.useState<string>("");
   const [isCalling, setIsCalling] = React.useState(false);
 
   // Sync state when dialog opens (React recommended render-time adjustment)
@@ -100,6 +103,7 @@ export function CallToChamberDialog({
     if (isOpen) {
       setSelectedRoomId(initialDoctorRoomId);
       setSelectedDoctorId(defaultDoctorId || firstDoctor?.id || "");
+      setDoctorPin("");
     }
   }
 
@@ -128,6 +132,11 @@ export function CallToChamberDialog({
       return;
     }
 
+    if (selectedDoctorId && doctors.length > 0 && !doctorPin) {
+      toast.error("Please enter your 4-digit Doctor PIN.");
+      return;
+    }
+
     setIsCalling(true);
     try {
       const res = await updateAppointmentStatusAction(
@@ -136,6 +145,7 @@ export function CallToChamberDialog({
         selectedDoctorId || undefined,
         QueueType.CONSULTATION,
         selectedRoomId,
+        doctorPin || undefined,
       );
 
       if (res.success) {
@@ -379,6 +389,31 @@ export function CallToChamberDialog({
             </div>
           </div>
         ) : null}
+
+        {/* Doctor 4-Digit Security PIN */}
+        {doctors.length > 0 && (
+          <div className="space-y-1.5 p-3 rounded-xl border border-border/80 bg-muted/20">
+            <label className="text-xs font-bold text-foreground flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <KeyRound className="size-3.5 text-sky-500" />
+                <span>Attending Doctor PIN</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                4-digit PIN required
+              </span>
+            </label>
+            <Input
+              type="password"
+              maxLength={4}
+              placeholder="Enter 4-digit PIN"
+              value={doctorPin}
+              onChange={(e) =>
+                setDoctorPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+              }
+              className="font-mono tracking-widest text-center text-base sm:text-sm h-9"
+            />
+          </div>
+        )}
 
         {/* 4. Live Broadcast Preview */}
         <div className="p-2.5 rounded-lg border border-sky-500/30 bg-sky-500/5 text-xs space-y-1">

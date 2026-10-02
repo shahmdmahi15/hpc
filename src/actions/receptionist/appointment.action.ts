@@ -84,10 +84,20 @@ export async function bookTherapyTicketAction(
       feeAmount,
     } = validation.data;
 
-    // Verify performer 4-digit PIN if bookedById is supplied
+    // Verify receptionist performer 4-digit PIN if receptionists exist or bookedById is supplied
+    const activeReceptionistsCount = await prisma.performer.count({
+      where: { user: { role: Role.RECEPTIONIST } },
+    });
+    if (activeReceptionistsCount > 0 && !bookedById) {
+      return {
+        success: false,
+        message: "Please select which receptionist staff member is booking this ticket.",
+      };
+    }
+
     if (bookedById) {
       const pinRes = await verifyPerformerPin(bookedById, performerPin);
-      if (!pinRes.success) {
+      if (!pinRes.valid) {
         return {
           success: false,
           message: pinRes.error || "Invalid 4-digit PIN for receptionist.",
@@ -309,7 +319,7 @@ export async function updateAppointmentStatusAction(
       Role.CASHIER,
     ]);
 
-    if (performerId && pin) {
+    if (performerId) {
       const pinRes = await verifyPerformerPin(performerId, pin);
       if (!pinRes.valid) {
         return {
@@ -956,7 +966,7 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       Role.CASHIER,
     ]);
 
-    if (input.performerId && input.pin) {
+    if (input.performerId) {
       const pinRes = await verifyPerformerPin(input.performerId, input.pin);
       if (!pinRes.valid) {
         return {
@@ -1145,7 +1155,7 @@ export async function switchQueueAction(
       Role.HANDLER,
     ]);
 
-    if (performerId && pin) {
+    if (performerId) {
       const pinRes = await verifyPerformerPin(performerId, pin);
       if (!pinRes.valid) {
         return {
@@ -1376,7 +1386,7 @@ export async function checkOutPatientAction(
       Role.CASHIER,
     ]);
 
-    if (performerId && pin) {
+    if (performerId) {
       const pinRes = await verifyPerformerPin(performerId, pin);
       if (!pinRes.valid) {
         return {

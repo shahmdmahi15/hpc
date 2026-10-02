@@ -170,7 +170,7 @@ export function HandlerDashboardView({
       const res = await updateAppointmentStatusAction(
         appointmentId,
         AppointmentStatus.CHECKED_IN,
-        selectedHandlerId,
+        undefined,
         QueueType.THERAPY,
       );
       if (res.success) {
@@ -192,7 +192,7 @@ export function HandlerDashboardView({
       const res = await updateAppointmentStatusAction(
         data.callingTherapyAppointment.id,
         AppointmentStatus.IN_THERAPY,
-        selectedHandlerId,
+        undefined,
         QueueType.THERAPY,
         data.callingTherapyAppointment.roomId || selectedRoomId,
       );
@@ -468,10 +468,10 @@ export function HandlerDashboardView({
         {/* Tabs for Handler Desk Navigation */}
         <Tabs defaultValue="queue" className="w-full space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
-            <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
+            <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex flex-wrap gap-1 max-w-full">
               <TabsTrigger
                 value="queue"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
                 <Activity className="size-3 text-emerald-500" />
                 <span>Therapy Queue</span>
@@ -482,7 +482,7 @@ export function HandlerDashboardView({
 
               <TabsTrigger
                 value="booking"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
                 <Clock className="size-3 text-primary" />
                 <span>Book Slots</span>
@@ -493,7 +493,7 @@ export function HandlerDashboardView({
 
               <TabsTrigger
                 value="extra-slots"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
                 <AlertCircle className="size-3 text-amber-500" />
                 <span>Extra Slots</span>
@@ -510,7 +510,7 @@ export function HandlerDashboardView({
 
               <TabsTrigger
                 value="patients"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
                 <Users className="size-3 text-indigo-500" />
                 <span>Patients</span>
@@ -521,7 +521,7 @@ export function HandlerDashboardView({
 
               <TabsTrigger
                 value="completed"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
                 <CheckCircle2 className="size-3 text-primary" />
                 <span>Completed Today</span>

@@ -223,6 +223,7 @@ export async function reviewExtraSlotAction(params: {
   appointmentId: string;
   decision: "APPROVE" | "REJECT";
   performerId?: string;
+  pin?: string;
   note?: string;
 }): Promise<{
   success: boolean;
@@ -231,6 +232,16 @@ export async function reviewExtraSlotAction(params: {
 }> {
   try {
     const sessionData = await requireAuth([Role.DOCTOR, Role.ADMIN]);
+
+    if (params.performerId) {
+      const pinRes = await verifyPerformerPin(params.performerId, params.pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit staff PIN.",
+        };
+      }
+    }
 
     const appointment = await prisma.appointment.findUnique({
       where: { id: params.appointmentId },
@@ -370,7 +381,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       Role.ADMIN,
     ]);
 
-    if (params.performerId && params.pin) {
+    if (params.performerId) {
       const pinRes = await verifyPerformerPin(params.performerId, params.pin);
       if (!pinRes.valid) {
         return {
@@ -683,6 +694,7 @@ export async function updateAppointmentFeeAction(params: {
   appointmentId: string;
   feeAmount: number;
   performerId?: string;
+  pin?: string;
 }): Promise<{
   success: boolean;
   message: string;
@@ -695,6 +707,16 @@ export async function updateAppointmentFeeAction(params: {
       Role.CASHIER,
       Role.RECEPTIONIST,
     ]);
+
+    if (params.performerId) {
+      const pinRes = await verifyPerformerPin(params.performerId, params.pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit staff PIN.",
+        };
+      }
+    }
 
     const appointment = await prisma.appointment.findUnique({
       where: { id: params.appointmentId },

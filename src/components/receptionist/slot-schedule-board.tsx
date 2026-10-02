@@ -441,7 +441,7 @@ export function SlotScheduleBoard({
                                           : "bg-background border-border/60 hover:border-border"
                               }`}
                             >
-                              <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                                 {/* Gender & Patient Name */}
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   <span
@@ -499,7 +499,7 @@ export function SlotScheduleBoard({
                                 </div>
 
                                 {/* Actions: Status badge or Check-in, Cancel */}
-                                <div className="flex items-center gap-1 shrink-0">
+                                <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto pt-0.5 sm:pt-0">
                                   {isCalling ? (
                                     <span
                                       className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/40 text-[9.5px] font-black shadow-2xs animate-pulse"

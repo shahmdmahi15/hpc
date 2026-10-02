@@ -109,10 +109,10 @@ export function DashboardDateSelector({
           type="date"
           value={selectedDate}
           onChange={(e) => e.target.value && onSelectDate(e.target.value)}
-          className="h-6 w-[125px] text-xs font-mono bg-transparent border-0 p-0 focus-visible:ring-0 cursor-pointer text-foreground"
+          className="h-6 w-[105px] sm:w-[125px] text-xs font-mono bg-transparent border-0 p-0 focus-visible:ring-0 cursor-pointer text-foreground"
         />
         {computedDay && (
-          <span className="px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold text-[10px] border border-primary/20 uppercase">
+          <span className="hidden min-[480px]:inline-block px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold text-[10px] border border-primary/20 uppercase">
             {computedDay}
           </span>
         )}

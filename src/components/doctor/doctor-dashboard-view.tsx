@@ -190,7 +190,7 @@ export function DoctorDashboardView({
       const res = await updateAppointmentStatusAction(
         appointmentId,
         AppointmentStatus.CHECKED_IN,
-        selectedDoctorId,
+        undefined,
         QueueType.THERAPY,
       );
       if (res.success) {
@@ -210,7 +210,7 @@ export function DoctorDashboardView({
       const res = await updateAppointmentStatusAction(
         appointmentId,
         AppointmentStatus.CANCELLED,
-        selectedDoctorId,
+        undefined,
       );
       if (res.success) {
         toast.success("Ticket cancelled.");
@@ -257,7 +257,7 @@ export function DoctorDashboardView({
       const res = await updateAppointmentStatusAction(
         callingAppointment.id,
         AppointmentStatus.IN_CONSULTATION,
-        selectedDoctorId,
+        undefined,
       );
       if (res.success) {
         toast.success(
@@ -531,80 +531,80 @@ export function DoctorDashboardView({
         {/* Tabs for Doctor Navigation */}
         <Tabs defaultValue="consultation" className="w-full space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
-            <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
+            <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex flex-wrap gap-1 max-w-full">
               <TabsTrigger
                 value="consultation"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <Stethoscope className="size-3 text-sky-500" />
-                  <span>Consultation Queue</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300 text-[10px] font-mono">
-                    {data.consultationQueue.length}
-                  </span>
-                </TabsTrigger>
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <Stethoscope className="size-3 text-sky-500" />
+                <span>Consultation Queue</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300 text-[10px] font-mono">
+                  {data.consultationQueue.length}
+                </span>
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="therapy"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <Activity className="size-3 text-emerald-500" />
-                  <span>Therapy Queue</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
-                    {data.therapyQueue.length}
-                  </span>
-                </TabsTrigger>
+              <TabsTrigger
+                value="therapy"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <Activity className="size-3 text-emerald-500" />
+                <span>Therapy Queue</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
+                  {data.therapyQueue.length}
+                </span>
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="booking"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <Clock className="size-3 text-primary" />
-                  <span>Book Slots</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                    {data.slots.length}
-                  </span>
-                </TabsTrigger>
+              <TabsTrigger
+                value="booking"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <Clock className="size-3 text-primary" />
+                <span>Book Slots</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                  {data.slots.length}
+                </span>
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="patients"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <Users className="size-3 text-indigo-500" />
-                  <span>Patients</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
-                    {data.patients.length}
-                  </span>
-                </TabsTrigger>
+              <TabsTrigger
+                value="patients"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <Users className="size-3 text-indigo-500" />
+                <span>Patients</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
+                  {data.patients.length}
+                </span>
+              </TabsTrigger>
 
-                <TabsTrigger
-                  value="extra-slots"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <AlertCircle className="size-3 text-amber-500" />
-                  <span>Extra Slots</span>
-                  {data.pendingExtraSlots.length > 0 ? (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold animate-pulse">
-                      {data.pendingExtraSlots.length}
-                    </span>
-                  ) : (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
-                      0
-                    </span>
-                  )}
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="completed"
-                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer"
-                >
-                  <CheckCircle2 className="size-3 text-primary" />
-                  <span>Today&apos;s Completed</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                    {data.completedConsultations.length}
+              <TabsTrigger
+                value="extra-slots"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <AlertCircle className="size-3 text-amber-500" />
+                <span>Extra Slots</span>
+                {data.pendingExtraSlots.length > 0 ? (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold animate-pulse">
+                    {data.pendingExtraSlots.length}
                   </span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
+                ) : (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
+                    0
+                  </span>
+                )}
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="completed"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <CheckCircle2 className="size-3 text-primary" />
+                <span>Today&apos;s Completed</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                  {data.completedConsultations.length}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* 1. Consultation Queue Tab */}
           <TabsContent value="consultation" className="space-y-2 outline-none">

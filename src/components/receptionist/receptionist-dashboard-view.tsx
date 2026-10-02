@@ -201,7 +201,7 @@ export function ReceptionistDashboardView({
   // Patient Check Out: mark visit completed for the day
   const handleCheckOut = async (appointmentId: string) => {
     const apt = findAppointment(appointmentId);
-    if (data.receptionistPerformers.length > 1) {
+    if (data.receptionistPerformers.length > 0) {
       setPendingAction({
         actionType: "CHECK_OUT",
         appointmentId,
@@ -224,7 +224,7 @@ export function ReceptionistDashboardView({
 
   // Quick Cancel
   const handleCancelAppointment = async (appointmentId: string) => {
-    if (data.receptionistPerformers.length > 1) {
+    if (data.receptionistPerformers.length > 0) {
       const apt = findAppointment(appointmentId);
       setPendingAction({
         actionType: "CANCEL",
@@ -403,10 +403,10 @@ export function ReceptionistDashboardView({
         {/* Tabs for Receptionist Desk Navigation */}
         <Tabs defaultValue="slots" className="w-full space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
-            <TabsList className="bg-muted/50 p-0.5 rounded-lg h-8.5 border border-border/60 flex-wrap">
+            <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex flex-wrap gap-1 max-w-full">
               <TabsTrigger
                 value="slots"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
                 <Clock className="size-3.5" />
                 <span>Therapy Slots</span>
@@ -417,7 +417,7 @@ export function ReceptionistDashboardView({
 
               <TabsTrigger
                 value="queue"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
                 <Activity className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Live Queue</span>
@@ -428,7 +428,7 @@ export function ReceptionistDashboardView({
 
               <TabsTrigger
                 value="patients"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
                 <Users className="size-3.5" />
                 <span>Directory</span>
@@ -439,7 +439,7 @@ export function ReceptionistDashboardView({
             </TabsList>
 
             {/* Contextual Actions Bar */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"

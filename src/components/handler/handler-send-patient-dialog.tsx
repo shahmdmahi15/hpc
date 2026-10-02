@@ -191,12 +191,17 @@ function HandlerSendPatientDialogContent({
       toast.error("Due amount cannot be negative.");
       return;
     }
+    if (selectedHandlerId && handlers.length > 0 && !handlerPin) {
+      toast.error("Please enter your 4-digit Therapist PIN.");
+      return;
+    }
     setIsSavingFee(true);
     try {
       const res = await updateAppointmentFeeAction({
         appointmentId: appointment.id,
         feeAmount: Number(dueAmount),
         performerId: selectedHandlerId || undefined,
+        pin: handlerPin || undefined,
       });
       if (res.success) {
         toast.success(res.message);

@@ -47,7 +47,7 @@ export async function createPatientAction(
       };
     }
 
-    if (validation.data.performerId && validation.data.pin) {
+    if (validation.data.performerId) {
       const pinRes = await verifyPerformerPin(
         validation.data.performerId,
         validation.data.pin,
@@ -163,7 +163,7 @@ export async function updatePatientAction(
       };
     }
 
-    if (validation.data.performerId && validation.data.pin) {
+    if (validation.data.performerId) {
       const pinRes = await verifyPerformerPin(
         validation.data.performerId,
         validation.data.pin,

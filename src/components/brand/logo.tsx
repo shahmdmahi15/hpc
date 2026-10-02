@@ -73,7 +73,7 @@ export function BrandLogo({
             )}
           </div>
           {variant === "full" && (
-            <span className="text-[11px] font-medium text-muted-foreground tracking-tight line-clamp-1">
+            <span className="text-[11px] font-medium text-muted-foreground tracking-tight line-clamp-1 hidden min-[480px]:block">
               Health And Pain Care Center
             </span>
           )}
