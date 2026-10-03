@@ -188,10 +188,7 @@ export function AuthorizeSlotActionDialog({
             type="button"
             size="sm"
             onClick={handleConfirm}
-            disabled={
-              isSubmitting ||
-              (!selectedPerformerId && adminPerformers.length > 0)
-            }
+            disabled={isSubmitting}
             className="cursor-pointer gap-1.5 text-xs font-semibold"
           >
             {isSubmitting ? (

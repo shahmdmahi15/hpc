@@ -136,20 +136,26 @@ export async function validateSessionToken(
     // Graceful fallback
   }
 
-  const updatedSession = await prisma.session.update({
-    where: { id: session.id },
-    data: {
-      lastAccessAt: new Date(),
-      expiresAt: needsRefresh ? new Date(now + SESSION_DURATION_MS) : undefined,
-      ipAddress: currentDeviceInfo.ipAddress || session.ipAddress,
-      userAgent: currentDeviceInfo.userAgent || session.userAgent,
-      device: currentDeviceInfo.device || session.device,
-      browser: currentDeviceInfo.browser || session.browser,
-      os: currentDeviceInfo.os || session.os,
-    },
-  });
+  let sessionRecord: Session = session;
+  try {
+    sessionRecord = await prisma.session.update({
+      where: { id: session.id },
+      data: {
+        lastAccessAt: new Date(),
+        expiresAt: needsRefresh ? new Date(now + SESSION_DURATION_MS) : undefined,
+        ipAddress: currentDeviceInfo.ipAddress || session.ipAddress,
+        userAgent: currentDeviceInfo.userAgent || session.userAgent,
+        device: currentDeviceInfo.device || session.device,
+        browser: currentDeviceInfo.browser || session.browser,
+        os: currentDeviceInfo.os || session.os,
+      },
+    });
+  } catch (updateErr) {
+    // If SQLite is busy or telemetry write fails, proceed with the existing valid session
+    console.warn("[Session Telemetry Update Warning]:", updateErr);
+  }
 
-  return { session: updatedSession, user: session.user };
+  return { session: sessionRecord, user: session.user };
 }
 
 export async function invalidateSession(sessionId: string): Promise<void> {
@@ -157,7 +163,7 @@ export async function invalidateSession(sessionId: string): Promise<void> {
 }
 
 export async function invalidateUserSessions(userId: string): Promise<void> {
-  await prisma.session.deleteMany({ where: { userId } });
+  await prisma.session.deleteMany({ where: { userId } }).catch(() => {});
 }
 
 // ----------------------------------------------------
@@ -167,33 +173,49 @@ export async function setSessionTokenCookie(
   token: string,
   expiresAt: Date,
 ): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    expires: expiresAt,
-    path: "/",
-  });
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      expires: expiresAt,
+      path: "/",
+    });
+  } catch (err) {
+    console.warn("[setSessionTokenCookie Warning]:", err);
+  }
 }
 
 export async function deleteSessionTokenCookie(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 0,
-    path: "/",
-  });
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 0,
+      path: "/",
+    });
+  } catch (err) {
+    console.warn("[deleteSessionTokenCookie Warning]:", err);
+  }
 }
 
 export async function getCurrentSession(): Promise<{
   user: User;
   session: Session;
 } | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  if (!token) return null;
-  return await validateSessionToken(token);
+  try {
+    const cookieStore = await cookies();
+    const token =
+      cookieStore.get(SESSION_COOKIE_NAME)?.value ||
+      cookieStore.get("__Host-SESSION_TOKEN")?.value ||
+      cookieStore.get("SESSION_TOKEN")?.value;
+    if (!token) return null;
+    return await validateSessionToken(token);
+  } catch (error) {
+    console.warn("[getCurrentSession Warning]:", error);
+    return null;
+  }
 }

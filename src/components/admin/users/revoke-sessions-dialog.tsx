@@ -50,17 +50,9 @@ export function RevokeSessionsDialog({
 
   const isRevokeDisabled =
     isPending ||
-    user.activeSessionCount === 0 ||
-    (adminPerformers && adminPerformers.length > 1 && !selectedPerformerId);
+    user.activeSessionCount === 0;
 
   const handleRevoke = () => {
-    if (adminPerformers && adminPerformers.length > 1 && !selectedPerformerId) {
-      toast.error(
-        "Please select which administrator staff member is authorizing this session revocation.",
-      );
-      return;
-    }
-
     startTransition(async () => {
       const res = await revokeAllUserSessionsAction(user.id);
       if (res.success) {

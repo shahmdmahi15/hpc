@@ -196,8 +196,7 @@ export function DeleteRoomDialog({
               size="sm"
               disabled={
                 isPending ||
-                !isMatch ||
-                (adminPerformers.length > 1 && !selectedAdminPerformerId)
+                !isMatch
               }
               className="gap-1.5"
             >

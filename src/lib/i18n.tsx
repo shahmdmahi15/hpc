@@ -48,12 +48,25 @@ const translations: Record<string, { en: string; bn: string }> = {
   "btn.add_staff": { en: "Add User", bn: "নতুন ব্যবহারকারী" },
   "btn.view_all": { en: "View All", bn: "সব দেখুন" },
   "btn.close": { en: "Close", bn: "বন্ধ করুন" },
+  "btn.print": { en: "Print", bn: "প্রিন্ট করুন" },
+  "btn.export": { en: "Export", bn: "এক্সপোর্ট" },
+  "btn.back": { en: "Back", bn: "ফিরে যান" },
+  "btn.next": { en: "Next", bn: "পরবর্তী" },
+  "btn.submit": { en: "Submit", bn: "জমা দিন" },
 
   // Statuses & Badges
   "status.active": { en: "Active", bn: "সক্রিয়" },
   "status.inactive": { en: "Inactive", bn: "নিষ্ক্রিয়" },
   "status.success": { en: "Success", bn: "সফল" },
   "status.failure": { en: "Failure", bn: "ব্যর্থ" },
+  "status.pending": { en: "Pending", bn: "বকেয়া / অপেক্ষমান" },
+  "status.paid": { en: "Paid", bn: "পরিশোধিত" },
+  "status.calling": { en: "Calling", bn: "ডাকা হচ্ছে" },
+  "status.checked_in": { en: "Waiting", bn: "অপেক্ষমান" },
+  "status.in_consultation": { en: "In Consultation", bn: "পরামর্শ নিচ্ছেন" },
+  "status.in_therapy": { en: "In Therapy", bn: "থেরাপি চলছে" },
+  "status.completed": { en: "Completed", bn: "সম্পন্ন" },
+  "status.cancelled": { en: "Cancelled", bn: "বাতিল" },
 
   // User Management
   "user.total_staff": { en: "Total Users", bn: "মোট ব্যবহারকারী" },
@@ -186,6 +199,122 @@ const translations: Record<string, { en: string; bn: string }> = {
     en: "Billing records, receipts, and cash register",
     bn: "বিলিং রেকর্ড, রিসিপ্ট ও ক্যাশ রেজিস্টার",
   },
+
+  // Waiting Room Live Queue View
+  "waiting_room.title": {
+    en: "Waiting Hall Live Queue",
+    bn: "ওয়েটিং রুম লাইভ সিরিয়াল বোর্ড",
+  },
+  "waiting_room.subtitle": {
+    en: "Real-time checked-in patient queue board with arrival punctuality indicators.",
+    bn: "রিয়েল-টাইম উপস্থিত রোগীর সিরিয়াল ও আগমন মনিটরিং বোর্ড।",
+  },
+  "waiting_room.token": { en: "Token No.", bn: "টোকেন নং" },
+  "waiting_room.patient": { en: "Patient Name", bn: "রোগীর নাম" },
+  "waiting_room.status": { en: "Current Status", bn: "বর্তমান অবস্থা" },
+  "waiting_room.room": { en: "Room / Chamber", bn: "রুম / চেম্বার" },
+  "waiting_room.doctor": { en: "Attending Doctor", bn: "দায়িত্বরত চিকিৎসক" },
+  "waiting_room.dept": { en: "Department", bn: "বিভাগ" },
+  "waiting_room.all": { en: "All Departments", bn: "সকল বিভাগ" },
+  "waiting_room.consultation": { en: "Doctor Consultation", bn: "ডাক্তার কনসাল্টেশন" },
+  "waiting_room.therapy": { en: "Therapy Floor", bn: "থেরাপি ফ্লোর" },
+  "waiting_room.empty": {
+    en: "No patients currently in this queue",
+    bn: "এই মুহূর্তে কোনো রোগী সিরিয়ালে নেই",
+  },
+  "waiting_room.calling_now": { en: "Calling Now", bn: "এখন ডাকা হচ্ছে" },
+  "waiting_room.in_service": { en: "In Consultation / Therapy", bn: "সেবা গ্রহণ করছেন" },
+  "waiting_room.waiting_list": { en: "Waiting in Hall", bn: "ওয়েটিং হলে অপেক্ষমান" },
+  "waiting_room.bilingual": { en: "Bilingual (EN + BN)", bn: "দ্বিভাষিক (ইংরেজি + বাংলা)" },
+  "waiting_room.en_only": { en: "English Voice", bn: "ইংরেজি ভয়েস" },
+  "waiting_room.bn_only": { en: "Bangla Voice", bn: "বাংলা ভয়েস" },
+  "waiting_room.sound_on": { en: "Announcements On", bn: "ভয়েস ঘোষণা চালু" },
+  "waiting_room.sound_off": { en: "Announcements Muted", bn: "ভয়েস ঘোষণা বন্ধ" },
+  "waiting_room.auto_refresh": { en: "Auto-refresh in", bn: "অটো-রিফ্রেশ হতে বাকি" },
+
+  // Common Fields & Terms
+  "common.token": { en: "Token", bn: "টোকেন" },
+  "common.patient": { en: "Patient", bn: "রোগী" },
+  "common.age": { en: "Age", bn: "বয়স" },
+  "common.years": { en: "years", bn: "বছর" },
+  "common.gender": { en: "Gender", bn: "লিঙ্গ" },
+  "common.male": { en: "Male", bn: "পুরুষ" },
+  "common.female": { en: "Female", bn: "মহিলা" },
+  "common.other": { en: "Other", bn: "অন্যান্য" },
+  "common.phone": { en: "Phone Number", bn: "ফোন নম্বর" },
+  "common.date": { en: "Date", bn: "তারিখ" },
+  "common.time": { en: "Time", bn: "সময়" },
+  "common.actions": { en: "Actions", bn: "পদক্ষেপ" },
+  "common.search": { en: "Search patients, tokens...", bn: "রোগী বা টোকেন খুঁজুন..." },
+  "common.filter": { en: "Filter", bn: "ফিল্টার" },
+  "common.all": { en: "All", bn: "সকল" },
+  "common.save": { en: "Save", bn: "সংরক্ষণ" },
+  "common.cancel": { en: "Cancel", bn: "বাতিল" },
+  "common.confirm": { en: "Confirm", bn: "নিশ্চিত করুন" },
+  "common.close": { en: "Close", bn: "বন্ধ করুন" },
+  "common.print": { en: "Print", bn: "প্রিন্ট" },
+  "common.loading": { en: "Loading...", bn: "লোড হচ্ছে..." },
+  "common.no_records": { en: "No records found", bn: "কোনো তথ্য পাওয়া যায়নি" },
+  "common.performer": { en: "Station Performer", bn: "কাউন্টার পারফর্মার" },
+  "common.enter_pin": { en: "Enter 4-digit PIN", bn: "৪-সংখ্যার পিন লিখুন" },
+
+  // Receptionist Desk
+  "reception.title": { en: "Reception Desk & Intake Counter", bn: "রিসেপশন ও রোগী বুকিং কাউন্টার" },
+  "reception.book_ticket": { en: "Book Therapy Ticket", bn: "থেরাপি টিকিট বুকিং" },
+  "reception.walk_in": { en: "Walk-in Consultation", bn: "জরুরি কনসাল্টেশন টিকিট" },
+  "reception.new_patient": { en: "Register New Patient", bn: "নতুন রোগী নিবন্ধন" },
+  "reception.active_queue": { en: "Today's Patient Queue", bn: "আজকের রোগী সিরিয়াল" },
+  "reception.check_in_btn": { en: "Check In", bn: "চেক-ইন করুন" },
+  "reception.checked_in": { en: "Checked In", bn: "চেক-ইন সম্পন্ন" },
+  "reception.cancel_ticket": { en: "Cancel Ticket", bn: "টিকিট বাতিল" },
+  "reception.print_ticket": { en: "Print Ticket", bn: "টিকিট প্রিন্ট" },
+
+  // Doctor Desk
+  "doctor.title": { en: "Doctor Consultation Chamber", bn: "ডাক্তার কনসাল্টেশন চেম্বার" },
+  "doctor.call_next": { en: "Call Next Patient", bn: "পরবর্তী রোগী ডাকুন" },
+  "doctor.calling_chamber": { en: "Call to Chamber", bn: "চেম্বারে ডাকুন" },
+  "doctor.start_consultation": { en: "Start Consultation", bn: "পরামর্শ শুরু করুন" },
+  "doctor.route_therapy": { en: "Route to Therapy", bn: "থেরাপির জন্য পাঠান" },
+  "doctor.route_cashier": { en: "Send to Cashier", bn: "ক্যাশিয়ারে পাঠান" },
+  "doctor.complete": { en: "Complete Visit", bn: "ভিজিট সমাপ্ত" },
+  "doctor.prescribe": { en: "Prescription & Plan", bn: "প্রেসক্রিপশন ও প্ল্যান" },
+  "doctor.medical_history": { en: "Medical History", bn: "চিকিৎসা ইতিহাস" },
+  "doctor.adjust_fee": { en: "Update Fee", bn: "ফি নির্ধারণ" },
+  "doctor.chamber_num": { en: "Chamber", bn: "চেম্বার" },
+
+  // Cashier Desk
+  "cashier.title": { en: "Cashier & Billing Desk", bn: "ক্যাশিয়ার ও বিলিং কাউন্টার" },
+  "cashier.collect_payment": { en: "Collect Payment", bn: "পেমেন্ট গ্রহণ" },
+  "cashier.gross_fee": { en: "Gross Fee", bn: "মোট ফি" },
+  "cashier.paid_amount": { en: "Paid Amount", bn: "পরিশোধিত টাকা" },
+  "cashier.due_balance": { en: "Due Balance", bn: "বকেয়া টাকা" },
+  "cashier.payment_method": { en: "Payment Method", bn: "পেমেন্ট মাধ্যম" },
+  "cashier.cash": { en: "Cash", bn: "নগদ টাকা" },
+  "cashier.card": { en: "Card", bn: "কার্ড" },
+  "cashier.bkash": { en: "bKash", bn: "বিকাশ" },
+  "cashier.nagad": { en: "Nagad", bn: "নগদ (Nagad)" },
+  "cashier.rocket": { en: "Rocket", bn: "রকেট" },
+  "cashier.print_receipt": { en: "Print Money Receipt", bn: "মানি রিসিপ্ট প্রিন্ট" },
+  "cashier.checkout_complete": { en: "Payment Successful", bn: "পেমেন্ট সফলভাবে গৃহীত" },
+  "cashier.total_bill": { en: "Total Bill", bn: "সর্বমোট বিল" },
+
+  // Handler Desk
+  "handler.title": { en: "Therapy Floor & Bed Allocation", bn: "থেরাপি ফ্লোর ও বেড বরাদ্দ" },
+  "handler.call_patient": { en: "Call to Therapy Bed", bn: "বেডে ডাকুন" },
+  "handler.start_therapy": { en: "Start Therapy", bn: "থেরাপি শুরু করুন" },
+  "handler.complete_therapy": { en: "Complete Therapy", bn: "থেরাপি সমাপ্ত করুন" },
+  "handler.bed_room": { en: "Bed / Room", bn: "বেড / রুম" },
+  "handler.slots": { en: "Therapy Slots", bn: "থেরাপি স্লটসমূহ" },
+
+  // Admin Desk
+  "admin.title": { en: "System Command & Clinical Operations", bn: "সিস্টেম কমান্ড ও ক্লিনিক্যাল অপারেশন" },
+  "admin.export_reports": { en: "Export Clinical & Financial Reports", bn: "ক্লিনিক্যাল ও ফাইন্যান্সিয়াল রিপোর্ট এক্সপোর্ট" },
+  "admin.export_desc": { en: "Download consolidated Excel (.xlsx) and CSV reports", bn: "এক্সেল (.xlsx) ও সিএসভি আকারে সম্পূর্ণ রিপোর্ট ডাউনলোড করুন" },
+  "admin.rooms": { en: "Room Management", bn: "রুম ব্যবস্থাপনা" },
+  "admin.slots": { en: "Slot Management", bn: "স্লট ব্যবস্থাপনা" },
+  "admin.users": { en: "Staff & User Accounts", bn: "স্টাফ ও ইউজার অ্যাকাউন্ট" },
+  "admin.audit": { en: "Security Audit Trail", bn: "সিকিউরিটি অডিট ট্রেল" },
+  "admin.daily_closing": { en: "Daily Register Closing", bn: "দৈনিক হিসাব রেজিস্টার ক্লোজিং" },
 };
 
 function getClientLanguage(): Language {
@@ -257,16 +386,43 @@ export function useI18n() {
   return React.useContext(I18nContext);
 }
 
+export function formatNumberByLang(num: number | string | null | undefined, lang: Language): string {
+  if (num === null || num === undefined) return "";
+  if (lang !== "bn") return String(num);
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return String(num).replace(/[0-9]/g, (d) => bnDigits[Number(d)]);
+}
+
+export function formatDateByLang(date: Date | string, lang: Language): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (!d || isNaN(d.getTime())) return typeof date === "string" ? date : "";
+  if (lang === "bn") {
+    return d.toLocaleDateString("bn-BD", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export function LanguageSwitcher({ className }: { className?: string }) {
   const { lang, setLang } = useI18n();
 
   return (
     <div
-      className={`inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5 text-xs font-medium ${className || ""}`}
+      className={`inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5 text-xs font-medium select-none ${className || ""}`}
     >
       <button
         type="button"
         onClick={() => setLang("en")}
+        title="Switch to English"
         className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
           lang === "en"
             ? "bg-background text-foreground shadow-xs font-bold"
@@ -278,6 +434,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => setLang("bn")}
+        title="বাংলা ভাষায় পরিবর্তন করুন"
         className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
           lang === "bn"
             ? "bg-background text-foreground shadow-xs font-bold"

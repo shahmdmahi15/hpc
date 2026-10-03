@@ -51,18 +51,14 @@ export function DeletePerformerDialog({
   const handleDelete = () => {
     if (!performer) return;
 
-    if (adminPerformers.length > 1 && !selectedAdminPerformerId) {
-      toast.error("Administrator selection required", {
-        description:
-          "Please select the administrator authorizing this removal.",
-      });
-      return;
-    }
+    const fallbackAdminId =
+      selectedAdminPerformerId ||
+      (adminPerformers.length > 0 ? adminPerformers[0].id : undefined);
 
     startTransition(async () => {
       const res = await deletePerformerAction(
         performer.id,
-        selectedAdminPerformerId || undefined,
+        fallbackAdminId,
       );
       if (res.success) {
         toast.success("Performer removed", {
@@ -162,8 +158,7 @@ export function DeletePerformerDialog({
             onClick={handleDelete}
             disabled={
               isPending ||
-              !performer ||
-              (adminPerformers.length > 1 && !selectedAdminPerformerId)
+              !performer
             }
             className="rounded-xl text-xs font-semibold gap-1.5 cursor-pointer shadow-sm h-9 px-4"
           >

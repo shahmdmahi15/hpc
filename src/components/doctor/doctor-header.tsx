@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
-import { LanguageSwitcher } from "@/lib/i18n";
+import { LanguageSwitcher, useI18n, formatNumberByLang, formatDateByLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/actions/login/login.action";
 import {
@@ -25,12 +25,15 @@ import { Role } from "@/generated/prisma/enums";
 interface DoctorHeaderProps {
   connectionStatus: ConnectionStatus;
   currentUserRole?: Role;
+  currentDoctor?: { id: string; name: string; phone?: string | null } | null;
 }
 
 export function DoctorHeader({
   connectionStatus,
   currentUserRole,
+  currentDoctor,
 }: DoctorHeaderProps) {
+  const { lang } = useI18n();
   // Live local clock with zero cascading renders
   const currentTime = useLiveClock();
 
@@ -40,9 +43,20 @@ export function DoctorHeader({
       <div className="flex items-center gap-2.5 shrink-0">
         <BrandLogo size="sm" variant="full" />
         <div className="hidden md:flex items-center gap-1.5 pl-2.5 border-l border-border/60">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 text-[10.5px] font-bold tracking-wide uppercase">
-            <Stethoscope className="size-3" />
-            <span>Doctor Desk</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 text-[11px] font-bold tracking-wide">
+            <Stethoscope className="size-3 text-sky-600 dark:text-sky-400" />
+            <span>
+              {currentDoctor?.name
+                ? (currentDoctor.name.toLowerCase().startsWith("dr")
+                    ? currentDoctor.name
+                    : `Dr. ${currentDoctor.name}`)
+                : lang === "bn"
+                  ? "ডাক্তার চেম্বার"
+                  : "Doctor Chamber"}
+            </span>
+          </span>
+          <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">
+            {lang === "bn" ? "ব্যক্তিগত চেম্বার" : "Private Chamber"}
           </span>
         </div>
       </div>
@@ -54,24 +68,26 @@ export function DoctorHeader({
           <Clock className="size-3 text-sky-500 animate-pulse" />
           <span className="font-bold text-foreground">
             {currentTime
-              ? currentTime.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                })
+              ? lang === "bn"
+                ? formatNumberByLang(
+                    currentTime.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    }),
+                    "bn"
+                  )
+                : currentTime.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })
               : "--:--:--"}
           </span>
           <span className="text-muted-foreground">•</span>
           <span className="text-muted-foreground flex items-center gap-1 font-sans text-[10.5px]">
             <CalendarDays className="size-2.5 text-muted-foreground" />
-            {currentTime
-              ? currentTime.toLocaleDateString([], {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "---"}
+            {currentTime ? formatDateByLang(currentTime, lang) : "---"}
           </span>
         </div>
 
@@ -82,14 +98,14 @@ export function DoctorHeader({
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                 <Wifi className="size-3" />
-                Live
+                {lang === "bn" ? "সরাসরি" : "Live"}
               </span>
             </>
           ) : connectionStatus === "connecting" ? (
             <>
               <span className="size-2 rounded-full bg-amber-500 animate-ping" />
               <span className="text-amber-600 dark:text-amber-400">
-                Connecting...
+                {lang === "bn" ? "সংযুক্ত হচ্ছে..." : "Connecting..."}
               </span>
             </>
           ) : (
@@ -97,7 +113,7 @@ export function DoctorHeader({
               <span className="size-2 rounded-full bg-zinc-400" />
               <span className="text-muted-foreground flex items-center gap-1">
                 <WifiOff className="size-3" />
-                Offline Mode
+                {lang === "bn" ? "অফলাইন মোড" : "Offline Mode"}
               </span>
             </>
           )}
@@ -110,7 +126,7 @@ export function DoctorHeader({
         {currentUserRole === Role.ADMIN && (
           <Link
             href="/admin"
-            title="Go to Admin Panel"
+            title={lang === "bn" ? "অ্যাডমিন প্যানেলে যান" : "Go to Admin Panel"}
             className="size-8 flex items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 transition-colors cursor-pointer shadow-2xs"
           >
             <Shield className="size-3.5" />
@@ -120,7 +136,11 @@ export function DoctorHeader({
         {/* Waiting Room TV Display shortcut */}
         <Link
           href="/"
-          title="Open Waiting Room Display"
+          title={
+            lang === "bn"
+              ? "ওয়েটিং রুম ডিসপ্লে খুলুন"
+              : "Open Waiting Room Display"
+          }
           className="size-8 flex items-center justify-center rounded-lg border border-border/80 bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer shadow-2xs"
         >
           <Tv className="size-3.5" />
@@ -140,7 +160,7 @@ export function DoctorHeader({
             variant="ghost"
             size="icon"
             className="size-8 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-            title="Sign Out"
+            title={lang === "bn" ? "লগআউট" : "Sign Out"}
           >
             <LogOut className="size-3.5" />
           </Button>

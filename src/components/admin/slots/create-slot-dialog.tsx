@@ -109,10 +109,9 @@ export function CreateSlotDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!adminPerformerId && adminPerformers.length > 0) {
-      toast.error("Please select an authorizing administrator.");
-      return;
-    }
+    const finalAdminId =
+      adminPerformerId ||
+      (adminPerformers.length > 0 ? adminPerformers[0].id : undefined);
 
     startTransition(async () => {
       const res = await createTherapySlotAction({
@@ -128,7 +127,7 @@ export function CreateSlotDialog({
         status,
         isActive,
         weekDays,
-        adminPerformerId: adminPerformerId || undefined,
+        adminPerformerId: finalAdminId,
       });
 
       if (res.success) {

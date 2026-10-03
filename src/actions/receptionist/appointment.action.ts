@@ -313,6 +313,7 @@ export async function updateAppointmentStatusAction(
   queueType?: QueueType,
   roomId?: string,
   pin?: string,
+  doctorId?: string,
 ) {
   try {
     const sessionData = await requireAuth([
@@ -446,6 +447,20 @@ export async function updateAppointmentStatusAction(
       }
     }
 
+    // Resolve doctor attribution for consultation or chamber calls
+    let resolvedDoctorId = doctorId || appointment.doctorId;
+    if (sessionData.user.role === Role.DOCTOR) {
+      resolvedDoctorId = sessionData.user.id;
+    } else if (performerId && !resolvedDoctorId) {
+      const doctorUser = await prisma.user.findFirst({
+        where: { id: performerId, role: Role.DOCTOR },
+        select: { id: true },
+      });
+      if (doctorUser) {
+        resolvedDoctorId = doctorUser.id;
+      }
+    }
+
     const updated = await prisma.appointment.update({
       where: { id: appointmentId },
       data: {
@@ -460,12 +475,14 @@ export async function updateAppointmentStatusAction(
           : {}),
         ...(roomId !== undefined ? { roomId: roomId || null } : {}),
         ...(performerId ? { performerId } : {}),
+        ...(resolvedDoctorId ? { doctorId: resolvedDoctorId } : {}),
       },
       include: {
         patient: true,
         therapySlot: { include: { room: true } },
         room: true,
         queue: true,
+        doctor: true,
       },
     });
 
@@ -959,6 +976,7 @@ export interface AddPatientToQueueInput {
   notes?: string;
   performerId?: string;
   pin?: string;
+  doctorId?: string;
 }
 
 /**
@@ -1042,6 +1060,11 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       });
     }
 
+    // Resolve doctor ID (explicit or currently logged in doctor)
+    const doctorIdToSet =
+      input.doctorId ||
+      (sessionData.user.role === Role.DOCTOR ? sessionData.user.id : undefined);
+
     // Check if patient already has an active appointment for today
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
@@ -1066,9 +1089,11 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           queueType: input.queueType,
           ...(input.toldTime ? { toldTime: input.toldTime } : {}),
           ...(input.notes ? { notes: input.notes } : {}),
+          ...(doctorIdToSet ? { doctorId: doctorIdToSet } : {}),
         },
-        include: { patient: true, therapySlot: true, queue: true },
+        include: { patient: true, therapySlot: true, queue: true, doctor: true },
       });
+      await syncBillingForAppointment(updatedAppointment.id);
     } else {
       // Create new walk-in / direct queue appointment record
       const middayToday = new Date(
@@ -1079,6 +1104,8 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
         0,
         0,
       );
+
+      const feeToCharge = DEFAULT_FEE;
 
       updatedAppointment = await prisma.appointment.create({
         data: {
@@ -1097,11 +1124,15 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           toldTime: input.toldTime || undefined,
           notes: input.notes || undefined,
           bookedById: input.performerId || undefined,
-          feeAmount: DEFAULT_FEE,
+          doctorId: doctorIdToSet,
+          feeAmount: feeToCharge,
+          paidAmount: 0,
+          dueAmount: feeToCharge,
           paymentStatus: "PENDING",
         },
-        include: { patient: true, therapySlot: true, queue: true },
+        include: { patient: true, therapySlot: true, queue: true, doctor: true },
       });
+      await syncBillingForAppointment(updatedAppointment.id);
     }
 
     // Audit log

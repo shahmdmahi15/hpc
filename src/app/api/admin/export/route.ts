@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentSession } from "@/lib/auth";
+import { getCurrentSession, validateSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { Role } from "@/generated/prisma/enums";
 import prisma from "@/lib/prisma";
 import ExcelJS from "exceljs";
@@ -62,11 +62,49 @@ function parseDateRange(searchParams: URLSearchParams) {
   return { startDate, endDate };
 }
 
+function getAppointmentFinancials(a: {
+  feeAmount?: number | null;
+  paidAmount?: number | null;
+  dueAmount?: number | null;
+  paymentStatus?: string | null;
+}) {
+  const fee = typeof a.feeAmount === "number" ? a.feeAmount : 0;
+  const isPaid = a.paymentStatus === "PAID";
+  const paid = isPaid ? fee : (typeof a.paidAmount === "number" ? a.paidAmount : 0);
+  const due = isPaid ? 0 : Math.max(0, fee - paid);
+  return { fee, paid, due };
+}
+
+function getAttendingDoctorName(a: {
+  type?: string;
+  doctor?: { name: string | null } | null;
+  medicalFile?: { doctor?: { name: string | null } | null } | null;
+  medicalRecords?: { doctor?: { name: string | null } | null }[];
+  treatmentPlans?: { doctor?: { name: string | null } | null }[];
+}): string {
+  if (a.doctor?.name) return a.doctor.name;
+  if (a.medicalFile?.doctor?.name) return a.medicalFile.doctor.name;
+  if (a.medicalRecords?.[0]?.doctor?.name) return a.medicalRecords[0].doctor.name;
+  if (a.treatmentPlans?.[0]?.doctor?.name) return a.treatmentPlans[0].doctor.name;
+  if (a.type === "CONSULTATION") return "Dr. Farhan Ahmed, PT, DPT";
+  return "N/A";
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const sessionData = await getCurrentSession();
+    let sessionData = await getCurrentSession();
+    if (!sessionData) {
+      const token =
+        request.cookies.get(SESSION_COOKIE_NAME)?.value ||
+        request.cookies.get("__Host-SESSION_TOKEN")?.value ||
+        request.cookies.get("SESSION_TOKEN")?.value;
+      if (token) {
+        sessionData = await validateSessionToken(token);
+      }
+    }
+
     if (!sessionData || sessionData.user.role !== Role.ADMIN) {
-      return new NextResponse("Unauthorized", { status: 403 });
+      return new NextResponse("Unauthorized: Admin privileges required", { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -103,6 +141,9 @@ export async function GET(request: NextRequest) {
           doctor: true,
           performer: true,
           bookedBy: true,
+          medicalFile: { include: { doctor: true } },
+          medicalRecords: { include: { doctor: true } },
+          treatmentPlans: { include: { doctor: true } },
         },
       });
 
@@ -143,18 +184,18 @@ export async function GET(request: NextRequest) {
         const totalVisits = appointments.length;
         const consultCount = appointments.filter((a) => a.type === "CONSULTATION").length;
         const therapyCount = appointments.filter((a) => a.type === "THERAPY").length;
-        const totalBilled = appointments.reduce((sum, a) => sum + (a.feeAmount ?? 0), 0);
-        const totalCollected = appointments.reduce((sum, a) => sum + (a.paidAmount ?? 0), 0);
-        const totalDue = appointments.reduce((sum, a) => sum + (a.dueAmount ?? 0), 0);
+        const totalBilled = appointments.reduce((sum, a) => sum + getAppointmentFinancials(a).fee, 0);
+        const totalCollected = appointments.reduce((sum, a) => sum + getAppointmentFinancials(a).paid, 0);
+        const totalDue = appointments.reduce((sum, a) => sum + getAppointmentFinancials(a).due, 0);
         const cashTotal = appointments
           .filter((a) => (a.paymentMethod || "CASH") === "CASH")
-          .reduce((sum, a) => sum + (a.paidAmount ?? 0), 0);
+          .reduce((sum, a) => sum + getAppointmentFinancials(a).paid, 0);
         const cardTotal = appointments
           .filter((a) => a.paymentMethod === "CARD")
-          .reduce((sum, a) => sum + (a.paidAmount ?? 0), 0);
+          .reduce((sum, a) => sum + getAppointmentFinancials(a).paid, 0);
         const mfsTotal = appointments
           .filter((a) => a.paymentMethod === "BKASH" || a.paymentMethod === "NAGAD")
-          .reduce((sum, a) => sum + (a.paidAmount ?? 0), 0);
+          .reduce((sum, a) => sum + getAppointmentFinancials(a).paid, 0);
 
         // Section Title
         wsSummary.mergeCells(startR, 1, startR, 8);
@@ -266,14 +307,14 @@ export async function GET(request: NextRequest) {
             a.type === "CONSULTATION" ? "Doctor Consultation" : "Physiotherapy",
             a.therapySlot?.label || "Clinical Evaluation",
             a.room?.number ? `Room ${a.room.number}` : "Chamber",
-            a.doctor?.name || "N/A",
+            getAttendingDoctorName(a),
             a.performer?.name || "N/A",
             a.bookedBy?.name || "Reception Desk",
             a.paymentMethod || "CASH",
             a.paymentStatus,
-            a.feeAmount ?? 0,
-            a.paidAmount ?? 0,
-            a.dueAmount ?? 0,
+            getAppointmentFinancials(a).fee,
+            getAppointmentFinancials(a).paid,
+            getAppointmentFinancials(a).due,
           ];
         });
 
@@ -472,10 +513,10 @@ export async function GET(request: NextRequest) {
             a.bookingType === "EXTRA" ? "EXTRA (APPROVED)" : "REGULAR SERIAL",
             a.therapySlot?.label || "General Assessment",
             a.room?.number ? `Room ${a.room.number}` : "Waiting Hall",
-            a.doctor?.name || "Consultant Desk",
+            getAttendingDoctorName(a),
             a.status,
             a.paymentStatus,
-            a.feeAmount ?? 0,
+            getAppointmentFinancials(a).fee,
             a.notes || "None",
           ];
         });
@@ -582,13 +623,16 @@ export async function GET(request: NextRequest) {
       }
 
       const buffer = await workbook.xlsx.writeBuffer();
+      const nodeBuffer = Buffer.from(buffer);
       const filename = `HPC_Report_${exportType.toUpperCase()}_${filenameLabel}.xlsx`;
 
-      return new NextResponse(new Uint8Array(buffer as ArrayBuffer), {
+      return new NextResponse(nodeBuffer, {
+        status: 200,
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "Content-Disposition": `attachment; filename="${filename}"`,
-          "Cache-Control": "no-store",
+          "Content-Length": nodeBuffer.length.toString(),
+          "Cache-Control": "no-store, no-cache, must-revalidate",
         },
       });
     }
@@ -610,6 +654,9 @@ export async function GET(request: NextRequest) {
           doctor: true,
           performer: true,
           bookedBy: true,
+          medicalFile: { include: { doctor: true } },
+          medicalRecords: { include: { doctor: true } },
+          treatmentPlans: { include: { doctor: true } },
         },
       });
 
@@ -640,32 +687,35 @@ export async function GET(request: NextRequest) {
         "Clinical Notes",
       ];
 
-      const rows = appointments.map((a) => [
-        `HPC-REC-${a.id.slice(-6).toUpperCase()}`,
-        a.appointmentDate.toISOString().slice(0, 10),
-        a.toldTime || "",
-        `#${a.id.slice(-4).toUpperCase()}`,
-        a.patient?.mrn || "",
-        a.patient?.name || "",
-        a.patient?.phone || "",
-        a.gender || a.patient?.gender || "",
-        a.patient?.age ?? "",
-        a.patient?.address || "",
-        a.type === "CONSULTATION" ? "Doctor Consultation" : "Physiotherapy Session",
-        a.therapySlot?.label || "Clinical Evaluation",
-        a.room?.number || "",
-        a.doctor?.name || "N/A",
-        a.performer?.name || "N/A",
-        a.bookedBy?.name || "System",
-        a.bookingType,
-        a.status,
-        a.paymentStatus,
-        a.paymentMethod || "CASH",
-        a.feeAmount ?? 0,
-        a.paidAmount ?? 0,
-        a.dueAmount ?? 0,
-        a.notes || "",
-      ]);
+      const rows = appointments.map((a) => {
+        const fin = getAppointmentFinancials(a);
+        return [
+          `HPC-REC-${a.id.slice(-6).toUpperCase()}`,
+          a.appointmentDate.toISOString().slice(0, 10),
+          a.toldTime || "",
+          `#${a.id.slice(-4).toUpperCase()}`,
+          a.patient?.mrn || "",
+          a.patient?.name || "",
+          a.patient?.phone || "",
+          a.gender || a.patient?.gender || "",
+          a.patient?.age ?? "",
+          a.patient?.address || "",
+          a.type === "CONSULTATION" ? "Doctor Consultation" : "Physiotherapy Session",
+          a.therapySlot?.label || "Clinical Evaluation",
+          a.room?.number || "",
+          getAttendingDoctorName(a),
+          a.performer?.name || "N/A",
+          a.bookedBy?.name || "System",
+          a.bookingType,
+          a.status,
+          a.paymentStatus,
+          a.paymentMethod || "CASH",
+          fin.fee,
+          fin.paid,
+          fin.due,
+          a.notes || "",
+        ];
+      });
 
       csvContent = [
         headers.map(sanitizeCsvField).join(","),
@@ -681,6 +731,9 @@ export async function GET(request: NextRequest) {
           performer: true,
           bookedBy: true,
           therapySlot: true,
+          medicalFile: { include: { doctor: true } },
+          medicalRecords: { include: { doctor: true } },
+          treatmentPlans: { include: { doctor: true } },
         },
       });
 
@@ -701,22 +754,25 @@ export async function GET(request: NextRequest) {
         "Booked By",
       ];
 
-      const rows = appointments.map((a) => [
-        `HPC-REC-${a.id.slice(-6).toUpperCase()}`,
-        a.appointmentDate.toISOString().slice(0, 10),
-        a.patient?.mrn || "",
-        a.patient?.name || "",
-        a.patient?.phone || "",
-        a.type === "CONSULTATION" ? "Doctor Consultation" : (a.therapySlot?.label || "Physiotherapy"),
-        a.paymentMethod || "CASH",
-        a.paymentStatus,
-        a.feeAmount ?? 0,
-        a.paidAmount ?? 0,
-        a.dueAmount ?? 0,
-        a.doctor?.name || "N/A",
-        a.performer?.name || "N/A",
-        a.bookedBy?.name || "Front Desk",
-      ]);
+      const rows = appointments.map((a) => {
+        const fin = getAppointmentFinancials(a);
+        return [
+          `HPC-REC-${a.id.slice(-6).toUpperCase()}`,
+          a.appointmentDate.toISOString().slice(0, 10),
+          a.patient?.mrn || "",
+          a.patient?.name || "",
+          a.patient?.phone || "",
+          a.type === "CONSULTATION" ? "Doctor Consultation" : (a.therapySlot?.label || "Physiotherapy"),
+          a.paymentMethod || "CASH",
+          a.paymentStatus,
+          fin.fee,
+          fin.paid,
+          fin.due,
+          getAttendingDoctorName(a),
+          a.performer?.name || "N/A",
+          a.bookedBy?.name || "Front Desk",
+        ];
+      });
 
       csvContent = [
         headers.map(sanitizeCsvField).join(","),
@@ -865,11 +921,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Prepend UTF-8 BOM (\uFEFF) so Excel and Google Sheets parse Bengali characters cleanly
-    return new NextResponse("\uFEFF" + csvContent, {
+    const csvBuffer = Buffer.from("\uFEFF" + csvContent, "utf-8");
+    return new NextResponse(csvBuffer, {
+      status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
-        "Cache-Control": "no-store",
+        "Content-Length": csvBuffer.length.toString(),
+        "Cache-Control": "no-store, no-cache, must-revalidate",
       },
     });
   } catch (error) {

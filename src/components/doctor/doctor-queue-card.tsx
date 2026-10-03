@@ -6,7 +6,7 @@ import {
   updateAppointmentStatusAction,
   updateAppointmentWillCallTimeAction,
 } from "@/actions/receptionist/appointment.action";
-import { AppointmentStatus } from "@/generated/prisma/enums";
+import { AppointmentStatus, QueueType } from "@/generated/prisma/enums";
 import { evaluatePunctuality, formatTime12h } from "@/lib/queue-punctuality";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-pla
 interface DoctorQueueCardProps {
   appointment: AppointmentWithRelations;
   performerId: string;
+  currentDoctor?: PerformerModel | { id: string; name: string; phone?: string | null } | null;
   selectedRoomId?: string;
   selectedRoomNumber?: string;
   rooms?: RoomModel[];
@@ -49,6 +50,7 @@ interface DoctorQueueCardProps {
 export function DoctorQueueCard({
   appointment,
   performerId,
+  currentDoctor,
   selectedRoomId,
   selectedRoomNumber,
   rooms = [],
@@ -120,6 +122,10 @@ export function DoctorQueueCard({
         appointment.id,
         AppointmentStatus.IN_CONSULTATION,
         performerId,
+        QueueType.CONSULTATION,
+        undefined,
+        undefined,
+        performerId || appointment.doctorId || undefined,
       );
       if (res.success) {
         toast.success(
@@ -483,6 +489,7 @@ export function DoctorQueueCard({
         isOpen={isCallDialogOpen}
         onOpenChange={setIsCallDialogOpen}
         appointment={appointment}
+        currentDoctor={currentDoctor}
         doctors={doctors}
         rooms={rooms}
         defaultDoctorId={performerId}
@@ -526,6 +533,7 @@ export function DoctorQueueCard({
         appointment={appointment}
         defaultTab={treatmentPlanTab}
         doctorId={performerId}
+        currentDoctor={currentDoctor}
         doctors={doctors}
         onSuccess={onRefresh}
       />

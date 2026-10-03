@@ -222,10 +222,7 @@ export function SeedSlotsDialog({
             type="button"
             size="sm"
             onClick={handleSeed}
-            disabled={
-              isSubmitting ||
-              (adminPerformers.length > 1 && !selectedPerformerId)
-            }
+            disabled={isSubmitting}
             className="gap-2 bg-primary text-primary-foreground font-semibold cursor-pointer shadow-sm"
           >
             {isSubmitting ? (

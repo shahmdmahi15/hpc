@@ -55,15 +55,14 @@ export function DeleteSlotDialog({
       return;
     }
 
-    if (!adminPerformerId && adminPerformers.length > 0) {
-      toast.error("Please select an authorizing administrator.");
-      return;
-    }
+    const finalAdminId =
+      adminPerformerId ||
+      (adminPerformers.length > 0 ? adminPerformers[0].id : undefined);
 
     startTransition(async () => {
       const result = await deleteTherapySlotAction({
         slotId: slot.id,
-        adminPerformerId: adminPerformerId || undefined,
+        adminPerformerId: finalAdminId,
       });
 
       if (result.success) {

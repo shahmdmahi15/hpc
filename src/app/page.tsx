@@ -12,17 +12,41 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [initialData, sessionData] = await Promise.all([
-    getLiveQueueAction(),
-    getCurrentSession(),
-  ]);
+  let initialQueue: any[] = [];
+  let initialDate = new Date().toISOString().split("T")[0];
+  let currentUser: { role: any } | null = null;
 
-  const currentUser = sessionData ? { role: sessionData.user.role } : null;
+  try {
+    const [initialDataResult, sessionDataResult] = await Promise.allSettled([
+      getLiveQueueAction(),
+      getCurrentSession(),
+    ]);
+
+    if (
+      initialDataResult.status === "fulfilled" &&
+      initialDataResult.value?.success &&
+      Array.isArray(initialDataResult.value.queue)
+    ) {
+      initialQueue = initialDataResult.value.queue;
+      if (initialDataResult.value.date) {
+        initialDate = initialDataResult.value.date;
+      }
+    }
+
+    if (
+      sessionDataResult.status === "fulfilled" &&
+      sessionDataResult.value?.user?.role
+    ) {
+      currentUser = { role: sessionDataResult.value.user.role };
+    }
+  } catch (error) {
+    console.error("[HomePage load error fallback]:", error);
+  }
 
   return (
     <WaitingRoomLiveQueueView
-      initialQueue={initialData.queue}
-      initialDate={initialData.date}
+      initialQueue={initialQueue}
+      initialDate={initialDate}
       currentUser={currentUser}
     />
   );

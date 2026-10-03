@@ -89,12 +89,12 @@ export function DoctorDashboardView({
     "today" | "next"
   >("today");
 
-  // Selected Doctor Performer & Chamber Room
+  // Selected Doctor & Chamber Room
   const selectedDoctorId = React.useMemo(() => {
     return (
-      initialData.currentDoctor?.id || initialData.doctorPerformers[0]?.id || ""
+      data.currentDoctor?.id || initialData.currentDoctor?.id || ""
     );
-  }, [initialData.currentDoctor, initialData.doctorPerformers]);
+  }, [data.currentDoctor, initialData.currentDoctor]);
 
   // Strictly default to first doctor consultation chamber
   const selectedRoomId = React.useMemo(() => {
@@ -258,7 +258,11 @@ export function DoctorDashboardView({
       const res = await updateAppointmentStatusAction(
         callingAppointment.id,
         AppointmentStatus.IN_CONSULTATION,
+        selectedDoctorId || undefined,
+        QueueType.CONSULTATION,
         undefined,
+        undefined,
+        selectedDoctorId || undefined,
       );
       if (res.success) {
         toast.success(
@@ -279,6 +283,7 @@ export function DoctorDashboardView({
       <DoctorHeader
         connectionStatus={connectionStatus}
         currentUserRole={currentUserRole}
+        currentDoctor={data.currentDoctor}
       />
 
       {/* 2. Main Workspace */}
@@ -636,6 +641,7 @@ export function DoctorDashboardView({
                     key={appointment.id}
                     appointment={appointment}
                     performerId={selectedDoctorId}
+                    currentDoctor={data.currentDoctor}
                     selectedRoomId={selectedRoomId}
                     selectedRoomNumber={selectedRoom?.number}
                     rooms={data.rooms}
@@ -882,6 +888,7 @@ export function DoctorDashboardView({
         appointment={activeConsultation}
         defaultTab={treatmentPlanTab}
         doctorId={selectedDoctorId}
+        currentDoctor={data.currentDoctor}
         doctors={data.doctorPerformers}
         onSuccess={() => {
           refreshData(selectedDate);

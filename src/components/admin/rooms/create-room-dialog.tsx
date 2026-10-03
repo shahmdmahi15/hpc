@@ -419,10 +419,7 @@ export function CreateRoomDialog({
             <Button
               type="submit"
               size="sm"
-              disabled={
-                isPending ||
-                (adminPerformers.length > 1 && !selectedAdminPerformerId)
-              }
+              disabled={isPending}
               className="gap-1.5"
             >
               {isPending ? (

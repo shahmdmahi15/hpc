@@ -134,11 +134,15 @@ export async function createMedicalRecordAction(
       };
     }
 
+    const resolvedDoctorId =
+      val.doctorId ||
+      (sessionData.user.role === Role.DOCTOR ? sessionData.user.id : null);
+
     const created = await prisma.medicalRecord.create({
       data: {
         patientId: val.patientId,
         appointmentId: val.appointmentId || null,
-        doctorId: val.doctorId || null,
+        doctorId: resolvedDoctorId,
         age: val.age !== undefined ? val.age : patient.age || null,
         occupation: val.occupation || null,
 
@@ -202,11 +206,14 @@ export async function createMedicalRecordAction(
       },
     });
 
-    // If created on an appointment, link the appointment to this file and sync billing across Patient, Appointment, and File models
+    // If created on an appointment, link the appointment to this file, stamp doctor, and sync billing
     if (val.appointmentId) {
       await prisma.appointment.update({
         where: { id: val.appointmentId },
-        data: { medicalRecordId: created.id },
+        data: {
+          medicalRecordId: created.id,
+          ...(resolvedDoctorId ? { doctorId: resolvedDoctorId } : {}),
+        },
       });
 
       const { syncBillingForAppointment } = await import("@/lib/billing-sync");

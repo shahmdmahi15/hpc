@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
-import { LanguageSwitcher } from "@/lib/i18n";
+import { LanguageSwitcher, useI18n, formatNumberByLang, formatDateByLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/actions/login/login.action";
 import {
@@ -29,6 +29,7 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ session, user }: AdminHeaderProps) {
+  const { lang } = useI18n();
   const currentTime = useLiveClock();
 
   return (
@@ -40,11 +41,21 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
           <span
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-[10.5px] font-bold tracking-wide uppercase"
             title={
-              user?.role ? `Logged in as ${user.role}` : "Administrator Console"
+              user?.role
+                ? `Logged in as ${user.role}`
+                : lang === "bn"
+                  ? "অ্যাডমিনিস্ট্রেটর কনসোল"
+                  : "Administrator Console"
             }
           >
             <Shield className="size-3 text-purple-600 dark:text-purple-400" />
-            <span>{user?.role ? `${user.role} Console` : "Admin Console"}</span>
+            <span>
+              {user?.role
+                ? `${user.role} ${lang === "bn" ? "কনসোল" : "Console"}`
+                : lang === "bn"
+                  ? "অ্যাডমিন কনসোল"
+                  : "Admin Console"}
+            </span>
           </span>
         </div>
       </div>
@@ -56,24 +67,26 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
           <Clock className="size-3 text-purple-500 animate-pulse" />
           <span className="font-bold text-foreground">
             {currentTime
-              ? currentTime.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                })
+              ? lang === "bn"
+                ? formatNumberByLang(
+                    currentTime.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    }),
+                    "bn"
+                  )
+                : currentTime.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })
               : "--:--:--"}
           </span>
           <span className="text-muted-foreground">•</span>
           <span className="text-muted-foreground flex items-center gap-1 font-sans text-[10.5px]">
             <CalendarDays className="size-2.5 text-muted-foreground" />
-            {currentTime
-              ? currentTime.toLocaleDateString([], {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "---"}
+            {currentTime ? formatDateByLang(currentTime, lang) : "---"}
           </span>
         </div>
 
@@ -82,7 +95,11 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
           <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
             <Wifi className="size-3" />
-            {session?.ipAddress ? `Online` : "System Online"}
+            {lang === "bn"
+              ? "সিস্টেম অনলাইন"
+              : session?.ipAddress
+                ? "Online"
+                : "System Online"}
           </span>
         </div>
       </div>
@@ -97,7 +114,7 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
             className="px-2 py-0.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground text-[11px] font-semibold flex items-center gap-1 transition-all"
           >
             <Stethoscope className="size-3 text-sky-500" />
-            <span>Doctor</span>
+            <span>{lang === "bn" ? "ডাক্তার" : "Doctor"}</span>
           </Link>
           <Link
             href="/receptionist"
@@ -105,7 +122,7 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
             className="px-2 py-0.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground text-[11px] font-semibold flex items-center gap-1 transition-all"
           >
             <UserCheck className="size-3 text-blue-500" />
-            <span>Reception</span>
+            <span>{lang === "bn" ? "রিসেপশন" : "Reception"}</span>
           </Link>
           <Link
             href="/handler"
@@ -113,7 +130,7 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
             className="px-2 py-0.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground text-[11px] font-semibold flex items-center gap-1 transition-all"
           >
             <Activity className="size-3 text-emerald-500" />
-            <span>Handler</span>
+            <span>{lang === "bn" ? "হ্যান্ডলার" : "Handler"}</span>
           </Link>
           <Link
             href="/cashier"
@@ -121,14 +138,18 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
             className="px-2 py-0.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground text-[11px] font-semibold flex items-center gap-1 transition-all"
           >
             <CreditCard className="size-3 text-amber-500" />
-            <span>Cashier</span>
+            <span>{lang === "bn" ? "ক্যাশিয়ার" : "Cashier"}</span>
           </Link>
         </div>
 
         {/* Waiting Room TV Display shortcut */}
         <Link
           href="/"
-          title="Open Waiting Room Display"
+          title={
+            lang === "bn"
+              ? "ওয়েটিং রুম ডিসপ্লে খুলুন"
+              : "Open Waiting Room Display"
+          }
           className="size-8 flex items-center justify-center rounded-lg border border-border/80 bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer shadow-2xs"
         >
           <Tv className="size-3.5" />
@@ -148,7 +169,7 @@ export function AdminHeader({ session, user }: AdminHeaderProps) {
             variant="ghost"
             size="icon"
             className="size-8 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-            title="Sign Out"
+            title={lang === "bn" ? "লগআউট" : "Sign Out"}
           >
             <LogOut className="size-3.5" />
           </Button>

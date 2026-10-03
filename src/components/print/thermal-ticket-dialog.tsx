@@ -73,7 +73,8 @@ export function ThermalTicketDialog({
 
   const fee = appointment.feeAmount ?? CLINIC_CONFIG.defaultConsultationFee;
   const isPaid = appointment.paymentStatus === "PAID";
-  const due = isPaid ? 0 : (appointment.dueAmount ?? fee);
+  const paid = isPaid ? fee : (appointment.paidAmount ?? 0);
+  const due = isPaid ? 0 : Math.max(0, fee - paid);
   const tokenNumber = appointment.id.slice(-4).toUpperCase();
 
   return (
@@ -197,7 +198,10 @@ export function ThermalTicketDialog({
                   <div>
                     <span className="text-[9.5px] text-neutral-600 block font-medium">Attending Specialist / Desk:</span>
                     <span className="font-semibold text-black block truncate">
-                      {appointment.doctor?.name || "Consultation & Therapy Desk"}
+                      {appointment.doctor?.name ||
+                        (appointment.type === "CONSULTATION"
+                          ? "Dr. Farhan Ahmed, PT, DPT"
+                          : "Physiotherapy & Rehabilitation Desk")}
                     </span>
                   </div>
                   <div>

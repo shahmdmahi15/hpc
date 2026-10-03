@@ -86,7 +86,7 @@ export function AdminExportDialog({ isOpen, onOpenChange }: AdminExportDialogPro
     { id: "all_time", label: "All Time (সর্বমোট)" },
   ] as const;
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setIsDownloading(true);
     let url = `/api/admin/export?type=${reportType}&format=${exportFormat}`;
 
@@ -101,19 +101,49 @@ export function AdminExportDialog({ isOpen, onOpenChange }: AdminExportDialogPro
       url += `&preset=${datePreset}`;
     }
 
-    // Trigger download
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `HPC_${reportType}_report.${exportFormat}`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      toast.info(`Generating ${exportFormat.toUpperCase()} report... Please wait.`);
 
-    toast.success(`${exportFormat.toUpperCase()} Report download initiated! Check your downloads folder.`);
-    setTimeout(() => {
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Export request failed with status ${response.status}`);
+      }
+
+      // Read filename from Content-Disposition header if available
+      let downloadFilename = `HPC_${reportType}_report.${exportFormat}`;
+      const disposition = response.headers.get("Content-Disposition");
+      if (disposition) {
+        const match = disposition.match(/filename="?([^";]+)"?/i);
+        if (match && match[1]) {
+          downloadFilename = match[1];
+        }
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.setAttribute("download", downloadFilename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+
+      toast.success(`${exportFormat.toUpperCase()} report downloaded successfully!`);
+      setTimeout(() => {
+        setIsDownloading(false);
+        onOpenChange(false);
+      }, 500);
+    } catch (err: any) {
+      console.error("[Export Download Error]:", err);
+      toast.error(err?.message || "Failed to download report. Please check server connection.");
       setIsDownloading(false);
-      onOpenChange(false);
-    }, 1200);
+    }
   };
 
   return (

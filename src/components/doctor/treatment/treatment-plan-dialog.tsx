@@ -53,6 +53,7 @@ interface TreatmentPlanDialogProps {
   patientMrn?: string | null;
   defaultTab?: "today" | "next";
   doctorId?: string;
+  currentDoctor?: { id: string; name: string } | null;
   doctors?: { id: string; name: string }[];
   onSuccess?: () => void;
 }
@@ -80,6 +81,7 @@ function TreatmentPlanDialogInner({
   patientMrn: propPatientMrn,
   defaultTab = "today",
   doctorId = "",
+  currentDoctor,
   doctors = [],
   onSuccess,
 }: TreatmentPlanDialogProps) {
@@ -258,6 +260,7 @@ function TreatmentPlanDialogInner({
                 patientId={patientId}
                 appointmentId={appointment?.id}
                 doctorId={doctorId}
+                currentDoctor={currentDoctor}
                 doctors={doctors}
                 clinicalConfig={clinicalConfig}
                 onStartEdit={() => setEditingPlanType("today")}
@@ -273,6 +276,7 @@ function TreatmentPlanDialogInner({
                 patientId={patientId}
                 appointmentId={appointment?.id}
                 doctorId={doctorId}
+                currentDoctor={currentDoctor}
                 doctors={doctors}
                 clinicalConfig={clinicalConfig}
                 onStartEdit={() => setEditingPlanType("next")}
@@ -298,6 +302,7 @@ interface PlanTabPanelProps {
   patientId: string;
   appointmentId?: string;
   doctorId: string;
+  currentDoctor?: { id: string; name: string } | null;
   doctors: { id: string; name: string }[];
   clinicalConfig: ActiveClinicalConfig | null;
   onStartEdit: () => void;
@@ -312,6 +317,7 @@ function PlanTabPanel({
   patientId,
   appointmentId,
   doctorId,
+  currentDoctor,
   doctors,
   clinicalConfig,
   onStartEdit,
@@ -456,6 +462,7 @@ function PlanTabPanel({
       patientId={patientId}
       appointmentId={appointmentId}
       doctorId={doctorId}
+      currentDoctor={currentDoctor}
       doctors={doctors}
       clinicalConfig={clinicalConfig}
       onCancel={plan ? onCancelEdit : undefined}
@@ -474,6 +481,7 @@ interface PlanFormProps {
   patientId: string;
   appointmentId?: string;
   doctorId: string;
+  currentDoctor?: { id: string; name: string } | null;
   doctors: { id: string; name: string }[];
   clinicalConfig: ActiveClinicalConfig | null;
   onCancel?: () => void;
@@ -486,12 +494,16 @@ function PlanForm({
   patientId,
   appointmentId,
   doctorId,
+  currentDoctor,
   doctors,
   clinicalConfig,
   onCancel,
   onSaved,
 }: PlanFormProps) {
   const isToday = planType === TreatmentPlanType.TODAY;
+
+  const resolvedDoctor =
+    currentDoctor || (doctors && doctors.length > 0 ? doctors[0] : null);
 
   const [selectedModalities, setSelectedModalities] = React.useState<string[]>(
     () => (existingPlan ? existingPlan.modalities : []),
@@ -516,7 +528,8 @@ function PlanForm({
     () =>
       existingPlan?.doctorId ||
       doctorId ||
-      (doctors.length === 1 ? doctors[0].id : ""),
+      resolvedDoctor?.id ||
+      "",
   );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
@@ -750,26 +763,19 @@ function PlanForm({
         )}
       </div>
 
-      {/* Attending Doctor Attribution */}
-      {doctors.length > 1 && (
-        <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-foreground">
-            Prescribing Doctor
-          </Label>
-          <select
-            value={selectedDoctorId}
-            onChange={(e) => setSelectedDoctorId(e.target.value)}
-            className="h-8 text-xs rounded-lg border border-border bg-background px-2.5 text-foreground w-full max-w-xs"
-          >
-            <option value="">Select Doctor</option>
-            {doctors.map((d) => (
-              <option key={d.id} value={d.id}>
-                Dr. {d.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Prescribing Doctor Attribution (Logged-in Doctor) */}
+      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/40 border border-border/70 text-xs">
+        <Stethoscope className="size-3.5 text-blue-500 shrink-0" />
+        <span className="text-muted-foreground font-medium">Prescribing Doctor:</span>
+        <span className="font-bold text-foreground">
+          {resolvedDoctor?.name
+            ? `Dr. ${resolvedDoctor.name.replace(/^Dr\.\s*/i, "")}`
+            : "Attending Doctor"}
+        </span>
+        <span className="ml-auto text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+          Logged In
+        </span>
+      </div>
 
       {/* Action Buttons */}
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">

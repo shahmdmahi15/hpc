@@ -5,14 +5,14 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FullscreenToggle } from "@/components/fullscreen-toggle";
-import { LanguageSwitcher } from "@/lib/i18n";
+import { LanguageSwitcher, useI18n, formatNumberByLang, formatDateByLang } from "@/lib/i18n";
 import { useLiveClock } from "@/hooks/use-live-clock";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import {
   getLiveQueueAction,
   type AppointmentWithRelations,
 } from "@/actions/receptionist/appointment.action";
-import { evaluatePunctuality, formatTime12h } from "@/lib/queue-punctuality";
+import { evaluatePunctuality, formatTime12h, getLocalizedPunctualityLabel } from "@/lib/queue-punctuality";
 import { Role } from "@/generated/prisma/enums";
 import { getRoleDashboard } from "@/proxy";
 import {
@@ -54,19 +54,20 @@ interface WaitingRoomLiveQueueViewProps {
 }
 
 export function WaitingRoomLiveQueueView({
-  initialQueue,
+  initialQueue = [],
   initialDate,
   currentUser,
 }: WaitingRoomLiveQueueViewProps) {
+  const { lang, t } = useI18n();
   const [queue, setQueue] =
-    React.useState<AppointmentWithRelations[]>(initialQueue);
+    React.useState<AppointmentWithRelations[]>(Array.isArray(initialQueue) ? initialQueue : []);
   const [activeAnnouncement, setActiveAnnouncement] =
     React.useState<DoctorCallAnnouncement | null>(null);
   const [countdownSeconds, setCountdownSeconds] = React.useState<number>(16);
 
-  // 100% Offline Audio & Speech Announcement controls
+  // 100% Offline Audio & Speech Announcement controls (Enabled & Unlocked by default for kiosk/TV)
   const [isAudioEnabled, setIsAudioEnabled] = React.useState<boolean>(true);
-  const [isAudioUnlocked, setIsAudioUnlocked] = React.useState<boolean>(false);
+  const [isAudioUnlocked, setIsAudioUnlocked] = React.useState<boolean>(true);
   const [speechLanguageMode, setSpeechLanguageMode] = React.useState<
     "bilingual" | "en" | "bn"
   >("bilingual");
@@ -115,9 +116,44 @@ export function WaitingRoomLiveQueueView({
     }
   }, []);
 
-  // Auto-activate audio context on mount for unattended kiosk display
+  // Auto-activate audio context on mount for unattended TV/kiosk/app display
   React.useEffect(() => {
-    getAudioContext();
+    const autoUnlock = () => {
+      try {
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+        }
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          window.speechSynthesis.resume();
+        }
+        setIsAudioUnlocked(true);
+      } catch {}
+    };
+
+    autoUnlock();
+
+    // Silently unlock on first natural interaction without prompting user
+    const events = ["pointerdown", "touchstart", "keydown", "click"];
+    const handleFirstInteraction = () => {
+      autoUnlock();
+      events.forEach((e) =>
+        window.removeEventListener(e, handleFirstInteraction),
+      );
+    };
+
+    events.forEach((e) =>
+      window.addEventListener(e, handleFirstInteraction, {
+        once: true,
+        passive: true,
+      }),
+    );
+
+    return () => {
+      events.forEach((e) =>
+        window.removeEventListener(e, handleFirstInteraction),
+      );
+    };
   }, [getAudioContext]);
 
   // Play rich resonant dual hospital bell chime (Ding-Dong) using native Web Audio API (100% offline)
@@ -252,12 +288,14 @@ export function WaitingRoomLiveQueueView({
                 typeof nativeBridge.speakAnnouncement === "function"
               ) {
                 try {
-                  nativeBridge.speakAnnouncement(
+                  const handled = nativeBridge.speakAnnouncement(
                     enText,
                     bnText,
                     speechLanguageMode,
                   );
-                  return;
+                  if (handled !== false) {
+                    return;
+                  }
                 } catch (bridgeErr) {
                   console.warn(
                     "[HPC Native TTS Bridge Error, falling back to Web Speech]:",
@@ -362,7 +400,7 @@ export function WaitingRoomLiveQueueView({
     startTransition(async () => {
       try {
         const res = await getLiveQueueAction();
-        if (res.success) {
+        if (res && res.success && Array.isArray(res.queue)) {
           setQueue(res.queue);
         }
       } catch (err) {
@@ -453,30 +491,35 @@ export function WaitingRoomLiveQueueView({
 
   // Formatted digital clock strings
   const formattedTime = currentTime
-    ? currentTime.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      })
+    ? (lang === "bn"
+        ? formatNumberByLang(
+            currentTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: true,
+            }),
+            "bn"
+          )
+        : currentTime.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          }))
     : "--:--:--";
 
   const formattedDate = currentTime
-    ? currentTime.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
+    ? formatDateByLang(currentTime, lang)
     : initialDate;
 
   // Split queue into 2 distinct columns: Therapy Queue & Consultation Queue
   const therapyQueue = React.useMemo(() => {
-    return queue.filter((item) => (item.queueType || "THERAPY") === "THERAPY");
+    return (queue || []).filter((item) => (item?.queueType || "THERAPY") === "THERAPY");
   }, [queue]);
 
   const consultationQueue = React.useMemo(() => {
-    return queue.filter((item) => item.queueType === "CONSULTATION");
+    return (queue || []).filter((item) => item?.queueType === "CONSULTATION");
   }, [queue]);
 
   // Queue Punctuality Statistics
@@ -485,7 +528,9 @@ export function WaitingRoomLiveQueueView({
     let yellowCount = 0;
     let redCount = 0;
 
-    for (const item of queue) {
+    const safeQueue = Array.isArray(queue) ? queue : [];
+    for (const item of safeQueue) {
+      if (!item) continue;
       const p = evaluatePunctuality(item.toldTime, item.checkInTime);
       if (p.status === "green") greenCount++;
       else if (p.status === "yellow") yellowCount++;
@@ -493,7 +538,7 @@ export function WaitingRoomLiveQueueView({
     }
 
     return {
-      total: queue.length,
+      total: safeQueue.length,
       therapyCount: therapyQueue.length,
       consultationCount: consultationQueue.length,
       greenCount,
@@ -628,7 +673,7 @@ export function WaitingRoomLiveQueueView({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              All
+              {lang === "bn" ? "সকল" : "All"}
             </button>
             <button
               type="button"
@@ -639,7 +684,7 @@ export function WaitingRoomLiveQueueView({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Chambers
+              {lang === "bn" ? "চেম্বার" : "Chambers"}
             </button>
             <button
               type="button"
@@ -650,7 +695,7 @@ export function WaitingRoomLiveQueueView({
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Therapy
+              {lang === "bn" ? "থেরাপি" : "Therapy"}
             </button>
           </div>
 
@@ -663,19 +708,27 @@ export function WaitingRoomLiveQueueView({
             }`}
             title={
               connectionStatus === "connected"
-                ? "Real-time SSE event stream active"
-                : "Connecting to real-time event stream..."
+                ? lang === "bn"
+                  ? "রিয়েল-টাইম লাইভ ইভেন্ট সক্রিয়"
+                  : "Real-time SSE event stream active"
+                : lang === "bn"
+                  ? "রিয়েল-টাইম ইভেন্টে সংযুক্ত হচ্ছে..."
+                  : "Connecting to real-time event stream..."
             }
           >
             {connectionStatus === "connected" ? (
               <>
                 <Wifi className="size-2.5" />
-                <span className="hidden xl:inline">Live</span>
+                <span className="hidden xl:inline">
+                  {lang === "bn" ? "লাইভ" : "Live"}
+                </span>
               </>
             ) : (
               <>
                 <WifiOff className="size-2.5" />
-                <span className="hidden xl:inline">Syncing...</span>
+                <span className="hidden xl:inline">
+                  {lang === "bn" ? "সিঙ্ক হচ্ছে..." : "Syncing..."}
+                </span>
               </>
             )}
           </div>
@@ -687,8 +740,12 @@ export function WaitingRoomLiveQueueView({
               onClick={toggleAudio}
               title={
                 isAudioEnabled
-                  ? "Voice announcements active (Click to mute)"
-                  : "Voice announcements muted (Click to enable)"
+                  ? lang === "bn"
+                    ? "ভয়েস ঘোষণা চালু (মিউট করতে ক্লিক করুন)"
+                    : "Voice announcements active (Click to mute)"
+                  : lang === "bn"
+                    ? "ভয়েস ঘোষণা বন্ধ (চালু করতে ক্লিক করুন)"
+                    : "Voice announcements muted (Click to enable)"
               }
               className={`size-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                 isAudioEnabled
@@ -707,11 +764,17 @@ export function WaitingRoomLiveQueueView({
             <button
               type="button"
               onClick={testAnnouncementSound}
-              title="Test Sound: Play offline hospital chime & speech announcement"
+              title={
+                lang === "bn"
+                  ? "সাউন্ড টেস্ট: অফলাইন হসপিটাল বেল ও ভয়েস ঘোষণা শুনুন"
+                  : "Test Sound: Play offline hospital chime & speech announcement"
+              }
               className="h-7 px-2 text-[10px] font-bold rounded-md border border-sky-500/20 bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 flex items-center gap-1 cursor-pointer transition-colors"
             >
               <Bell className="size-2.5 animate-pulse" />
-              <span className="hidden lg:inline">Test Sound</span>
+              <span className="hidden lg:inline">
+                {lang === "bn" ? "সাউন্ড টেস্ট" : "Test Sound"}
+              </span>
             </button>
           </div>
 
@@ -721,17 +784,6 @@ export function WaitingRoomLiveQueueView({
           {renderUserPortalButton()}
         </div>
       </header>
-
-      {/* Autoplay / Click-to-Unlock Audio Banner */}
-      {!isAudioUnlocked && (
-        <div
-          onClick={unlockAudio}
-          className="w-full bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 text-white px-4 py-1.5 text-xs sm:text-sm font-bold text-center cursor-pointer flex items-center justify-center gap-2 shadow-md hover:brightness-105 transition-all z-30 shrink-0"
-        >
-          <Volume2 className="size-4 animate-bounce" />
-          <span>Tap or click anywhere on this screen to enable voice announcements through TV speakers</span>
-        </div>
-      )}
 
       {/* ---------------------------------------------------- */}
       {/* 1.5. Realtime Doctor Calling Large Popup Announcement */}
@@ -751,19 +803,27 @@ export function WaitingRoomLiveQueueView({
             {/* Calling Header Pill */}
             <div className="inline-flex items-center self-center gap-2 sm:gap-3 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full bg-sky-500/15 border border-sky-500/40 text-sky-700 dark:text-sky-300 text-xs sm:text-sm md:text-base font-black tracking-widest uppercase shadow-xs animate-pulse">
               <Megaphone className="size-4 sm:size-5 text-sky-600 dark:text-sky-400 animate-bounce" />
-              <span>NOW CALLING PATIENT &bull; ডাক্তার ডাকছেন</span>
+              <span>
+                {lang === "bn"
+                  ? "রোগীকে ডাকা হচ্ছে • NOW CALLING"
+                  : "NOW CALLING PATIENT • ডাক্তার ডাকছেন"}
+              </span>
               <Volume2 className="size-4 sm:size-5 text-sky-600 dark:text-sky-400" />
             </div>
 
             {/* Patient Name Section */}
             <div className="space-y-1 sm:space-y-2">
               <p className="text-[11px] sm:text-xs md:text-sm uppercase tracking-widest font-mono text-muted-foreground font-bold">
-                Please proceed to assigned consultation chamber
+                {lang === "bn"
+                  ? "অনুগ্রহ করে আপনার নির্ধারিত কনসাল্টেশন চেম্বারে যান"
+                  : "Please proceed to assigned consultation chamber"}
               </p>
               <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
                 {activeAnnouncement.serialNumber !== undefined && (
                   <span className="px-3 sm:px-4 py-1 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 font-mono font-black text-lg sm:text-2xl shadow-xs">
-                    TOKEN #{activeAnnouncement.serialNumber}
+                    {lang === "bn"
+                      ? `টোকেন #${formatNumberByLang(activeAnnouncement.serialNumber, lang)}`
+                      : `TOKEN #${activeAnnouncement.serialNumber}`}
                   </span>
                 )}
                 <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl font-black text-foreground tracking-tight drop-shadow-xs">
@@ -777,7 +837,13 @@ export function WaitingRoomLiveQueueView({
                         : "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/30"
                     }`}
                   >
-                    {activeAnnouncement.gender}
+                    {activeAnnouncement.gender === "MALE"
+                      ? lang === "bn"
+                        ? "পুরুষ"
+                        : "MALE"
+                      : lang === "bn"
+                        ? "মহিলা"
+                        : "FEMALE"}
                   </span>
                 )}
               </div>
@@ -790,11 +856,14 @@ export function WaitingRoomLiveQueueView({
               </div>
               <div className="text-center sm:text-left space-y-0.5 sm:space-y-1">
                 <div className="text-xs sm:text-sm md:text-base 2xl:text-lg font-bold uppercase tracking-widest text-sky-100/90">
-                  {activeAnnouncement.roomPurpose || "Doctor Consultation"}{" "}
-                  &bull; PLEASE PROCEED TO
+                  {lang === "bn"
+                    ? "ডাক্তার কনসাল্টেশন • চেম্বারে প্রবেশ করুন"
+                    : `${activeAnnouncement.roomPurpose || "Doctor Consultation"} • PLEASE PROCEED TO`}
                 </div>
                 <div className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl 2xl:text-8xl font-black font-mono tracking-tight text-white drop-shadow-md">
-                  ROOM {activeAnnouncement.roomNumber}
+                  {lang === "bn"
+                    ? `রুম নং ${formatNumberByLang(activeAnnouncement.roomNumber, lang)}`
+                    : `ROOM ${activeAnnouncement.roomNumber}`}
                 </div>
               </div>
             </div>
@@ -811,9 +880,12 @@ export function WaitingRoomLiveQueueView({
               <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-mono text-muted-foreground">
                 <Volume2 className="size-3.5 sm:size-4 text-sky-500 animate-pulse shrink-0" />
                 <span>
-                  Chime & Voice Broadcast &bull; Clearing automatically in{" "}
+                  {lang === "bn"
+                    ? "ভয়েস ঘোষণা সম্পন্ন • স্বয়ংক্রিয়ভাবে বন্ধ হবে "
+                    : "Chime & Voice Broadcast • Clearing automatically in "}
                   <strong className="text-foreground font-black">
-                    {countdownSeconds}s
+                    {formatNumberByLang(countdownSeconds, lang)}
+                    {lang === "bn" ? " সেকেন্ডে" : "s"}
                   </strong>
                 </span>
               </div>
@@ -842,22 +914,28 @@ export function WaitingRoomLiveQueueView({
                   <Activity className="size-4" />
                 </div>
                 <h2 className="text-sm sm:text-base font-black tracking-tight text-foreground">
-                  Therapy Queue
+                  {lang === "bn" ? "থেরাপি সিরিয়াল" : "Therapy Queue"}
                 </h2>
                 <span className="px-2 py-0.2 rounded-full text-xs font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                  {therapyQueue.length}
+                  {formatNumberByLang(therapyQueue.length, lang)}
                 </span>
               </div>
 
               <span className="text-[10.5px] font-semibold text-muted-foreground">
-                Therapy Rooms
+                {lang === "bn" ? "থেরাপি রুমসমূহ" : "Therapy Rooms"}
               </span>
             </div>
 
             {/* Column Scrollable Content */}
             <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
               {therapyQueue.length === 0 ? (
-                <EmptyQueueCard title="Therapy Queue is Clear" />
+                <EmptyQueueCard
+                  title={
+                    lang === "bn"
+                      ? "থেরাপি সিরিয়াল সম্পূর্ণ খালি"
+                      : "Therapy Queue is Clear"
+                  }
+                />
               ) : (
                 <div
                   className={`grid gap-2 auto-rows-max ${
@@ -885,22 +963,28 @@ export function WaitingRoomLiveQueueView({
                   <Stethoscope className="size-4" />
                 </div>
                 <h2 className="text-sm sm:text-base font-black tracking-tight text-foreground">
-                  Consultation Queue
+                  {lang === "bn" ? "কনসাল্টেশন সিরিয়াল" : "Consultation Queue"}
                 </h2>
                 <span className="px-2 py-0.2 rounded-full text-xs font-mono font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
-                  {consultationQueue.length}
+                  {formatNumberByLang(consultationQueue.length, lang)}
                 </span>
               </div>
 
               <span className="text-[10.5px] font-semibold text-muted-foreground">
-                Doctor Chambers
+                {lang === "bn" ? "ডাক্তার চেম্বারসমূহ" : "Doctor Chambers"}
               </span>
             </div>
 
             {/* Column Scrollable Content */}
             <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
               {consultationQueue.length === 0 ? (
-                <EmptyQueueCard title="Consultation Queue is Clear" />
+                <EmptyQueueCard
+                  title={
+                    lang === "bn"
+                      ? "কনসাল্টেশন সিরিয়াল সম্পূর্ণ খালি"
+                      : "Consultation Queue is Clear"
+                  }
+                />
               ) : (
                 <div
                   className={`grid gap-2 auto-rows-max ${
@@ -924,7 +1008,7 @@ export function WaitingRoomLiveQueueView({
       {/* ---------------------------------------------------- */}
       <div className="w-full bg-primary/10 border-t border-primary/20 py-1.5 px-4 text-xs font-semibold text-foreground overflow-hidden whitespace-nowrap flex items-center gap-3 shrink-0">
         <span className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 shadow-2xs">
-          CLINIC NOTICE
+          {lang === "bn" ? "জরুরি নোটিশ" : "CLINIC NOTICE"}
         </span>
         <div className="overflow-hidden relative w-full text-xs text-muted-foreground whitespace-nowrap">
           <div className="inline-block animate-marquee whitespace-nowrap font-medium space-x-6">
@@ -945,9 +1029,9 @@ export function WaitingRoomLiveQueueView({
         <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center gap-1 font-semibold text-foreground text-[11.5px]">
             <Users className="size-3 text-primary" />
-            <span>Total Waiting:</span>
+            <span>{lang === "bn" ? "মোট অপেক্ষমান:" : "Total Waiting:"}</span>
             <span className="px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-bold font-mono text-[11px]">
-              {stats.total}
+              {formatNumberByLang(stats.total, lang)}
             </span>
           </div>
 
@@ -956,12 +1040,18 @@ export function WaitingRoomLiveQueueView({
           <div className="flex items-center gap-2 text-[11px]">
             <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-300">
               <span className="size-1.5 rounded-full bg-emerald-500" />
-              <span>Therapy: {stats.therapyCount}</span>
+              <span>
+                {lang === "bn" ? "থেরাপি: " : "Therapy: "}
+                {formatNumberByLang(stats.therapyCount, lang)}
+              </span>
             </span>
 
             <span className="inline-flex items-center gap-1 font-semibold text-sky-700 dark:text-sky-300">
               <span className="size-1.5 rounded-full bg-sky-500" />
-              <span>Consultation: {stats.consultationCount}</span>
+              <span>
+                {lang === "bn" ? "কনসাল্টেশন: " : "Consultation: "}
+                {formatNumberByLang(stats.consultationCount, lang)}
+              </span>
             </span>
           </div>
 
@@ -971,15 +1061,24 @@ export function WaitingRoomLiveQueueView({
           <div className="hidden md:flex items-center gap-2 text-[10.5px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <span className="size-1.5 rounded-full bg-emerald-500" />
-              <span>On Time: {stats.greenCount}</span>
+              <span>
+                {lang === "bn" ? "সঠিক সময়ে: " : "On Time: "}
+                {formatNumberByLang(stats.greenCount, lang)}
+              </span>
             </span>
             <span className="inline-flex items-center gap-1">
               <span className="size-1.5 rounded-full bg-amber-500" />
-              <span>Moderate: {stats.yellowCount}</span>
+              <span>
+                {lang === "bn" ? "সামান্য বিলম্ব: " : "Moderate: "}
+                {formatNumberByLang(stats.yellowCount, lang)}
+              </span>
             </span>
             <span className="inline-flex items-center gap-1">
               <span className="size-1.5 rounded-full bg-rose-500" />
-              <span>Late: {stats.redCount}</span>
+              <span>
+                {lang === "bn" ? "দেরি: " : "Late: "}
+                {formatNumberByLang(stats.redCount, lang)}
+              </span>
             </span>
           </div>
         </div>
@@ -988,7 +1087,9 @@ export function WaitingRoomLiveQueueView({
         <div className="text-[10.5px] text-muted-foreground flex items-center gap-1">
           <span className="size-1.5 rounded-full bg-primary" />
           <span>
-            Health And Pain Care Center &bull; Realtime Waiting Hall Display
+            {lang === "bn"
+              ? "হেলথ অ্যান্ড পেইন কেয়ার সেন্টার • রিয়েল-টাইম ওয়েটিং হল ডিসপ্লে"
+              : "Health And Pain Care Center • Realtime Waiting Hall Display"}
           </span>
         </div>
       </footer>
@@ -1002,6 +1103,7 @@ export function WaitingRoomLiveQueueView({
  * Fits 25-30+ items per queue section on a standard 1080p wall display.
  */
 function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
+  const { lang } = useI18n();
   const p = evaluatePunctuality(item.toldTime, item.checkInTime);
   const isMale = item.gender === "MALE";
   const roomNumber = item.room?.number || item.therapySlot?.room?.number;
@@ -1031,12 +1133,12 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
                 : "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20"
             }`}
           >
-            {isMale ? "M" : "F"}
+            {isMale ? (lang === "bn" ? "পু" : "M") : (lang === "bn" ? "ম" : "F")}
           </span>
 
           {item.bookingType === "EXTRA" && (
             <span className="px-1 py-0.2 rounded text-[9px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-semibold shrink-0">
-              Extra
+              {lang === "bn" ? "অতিরিক্ত" : "Extra"}
             </span>
           )}
 
@@ -1051,7 +1153,11 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
               }`}
             >
               <DoorOpen className="size-2.5" />
-              <span>Room {roomNumber}</span>
+              <span>
+                {lang === "bn"
+                  ? `রুম ${formatNumberByLang(roomNumber, lang)}`
+                  : `Room ${roomNumber}`}
+              </span>
             </span>
           )}
         </div>
@@ -1060,7 +1166,7 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
         {isCalling ? (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-black border shrink-0 bg-amber-500 text-white border-amber-600 animate-pulse shadow-xs">
             <Radio className="size-2.5 shrink-0" />
-            <span>ডাকছেন • CALLING</span>
+            <span>{lang === "bn" ? "ডাকছেন • CALLING" : "CALLING • ডাকছেন"}</span>
           </span>
         ) : (
           <span
@@ -1073,7 +1179,7 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
             ) : (
               <AlertTriangle className="size-2.5 shrink-0" />
             )}
-            <span>{p.label}</span>
+            <span>{getLocalizedPunctualityLabel(p, lang)}</span>
           </span>
         )}
       </div>
@@ -1084,11 +1190,17 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
           <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-800 dark:text-amber-200">
             <Radio className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="tracking-wide text-[10.5px] uppercase font-black">
-              Please Enter Chamber:
+              {lang === "bn" ? "চেম্বারে প্রবেশ করুন:" : "Please Enter Chamber:"}
             </span>
           </div>
           <span className="text-xs sm:text-sm font-black font-mono tracking-tight text-amber-900 dark:text-amber-100 bg-amber-500/30 px-2 py-0.5 rounded border border-amber-500/40">
-            {roomNumber ? `Room ${roomNumber}` : "Chamber"}
+            {roomNumber
+              ? lang === "bn"
+                ? `রুম ${formatNumberByLang(roomNumber, lang)}`
+                : `Room ${roomNumber}`
+              : lang === "bn"
+                ? "চেম্বার"
+                : "Chamber"}
           </span>
         </div>
       ) : isServing ? (
@@ -1096,11 +1208,17 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
             <DoorOpen className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="tracking-wide text-[10.5px] uppercase font-bold">
-              Now In Session:
+              {lang === "bn" ? "চিকিৎসা চলছে:" : "Now In Session:"}
             </span>
           </div>
           <span className="text-xs sm:text-sm font-black font-mono tracking-tight text-emerald-800 dark:text-emerald-200 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
-            {roomNumber ? `Room ${roomNumber}` : "In Session"}
+            {roomNumber
+              ? lang === "bn"
+                ? `রুম ${formatNumberByLang(roomNumber, lang)}`
+                : `Room ${roomNumber}`
+              : lang === "bn"
+                ? "চিকিৎসা চলছে"
+                : "In Session"}
           </span>
         </div>
       ) : item.willCallTime ? (
@@ -1108,12 +1226,12 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-sky-700 dark:text-sky-300">
             <Clock className="size-3.5 text-sky-600 dark:text-sky-400 shrink-0 animate-pulse" />
             <span className="tracking-wide text-[10.5px] font-bold">
-              Will Call:
+              {lang === "bn" ? "সম্ভাব্য ডাক:" : "Will Call:"}
             </span>
           </div>
           <div className="flex items-center gap-1 bg-sky-500/20 dark:bg-sky-900/70 px-2 py-0.5 rounded border border-sky-500/30">
             <span className="text-xs sm:text-sm font-black font-mono tracking-tight text-sky-900 dark:text-sky-100">
-              {item.willCallTime}
+              {formatNumberByLang(item.willCallTime, lang)}
             </span>
           </div>
         </div>
@@ -1121,10 +1239,10 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
         <div className="flex items-center justify-between px-2.5 py-0.5 rounded bg-muted/25 border border-border/40 text-[10px] text-muted-foreground font-mono">
           <div className="flex items-center gap-1 text-[9.5px]">
             <Clock className="size-2.5 opacity-60 text-muted-foreground" />
-            <span>Will Call:</span>
+            <span>{lang === "bn" ? "সম্ভাব্য ডাক:" : "Will Call:"}</span>
           </div>
           <span className="text-[10px] text-muted-foreground/80 font-sans italic">
-            Estimating...
+            {lang === "bn" ? "হিসাব হচ্ছে..." : "Estimating..."}
           </span>
         </div>
       )}
@@ -1133,19 +1251,19 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
       <div className="flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono pt-1 border-t border-border/40 leading-none">
         <div className="flex items-center gap-1 text-muted-foreground">
           <span className="text-[9px] uppercase font-semibold text-muted-foreground/75">
-            Told:
+            {lang === "bn" ? "বলা:" : "Told:"}
           </span>
           <span className="font-bold text-foreground">
-            {item.toldTime || "--:--"}
+            {formatNumberByLang(item.toldTime, lang) || "--:--"}
           </span>
         </div>
 
         <div className="flex items-center gap-1">
           <span className="text-[9px] uppercase font-semibold text-muted-foreground/75">
-            In:
+            {lang === "bn" ? "প্রবেশ:" : "In:"}
           </span>
           <span className={`font-bold ${p.textClass}`} suppressHydrationWarning>
-            {formatTime12h(item.checkInTime)}
+            {formatNumberByLang(formatTime12h(item.checkInTime), lang)}
           </span>
         </div>
       </div>
@@ -1157,12 +1275,15 @@ function QueueItemCard({ item }: { item: AppointmentWithRelations }) {
  * Clean, compact empty state for a clear queue
  */
 function EmptyQueueCard({ title }: { title: string }) {
+  const { lang } = useI18n();
   return (
     <div className="h-full min-h-[140px] rounded-xl border border-dashed border-border/50 bg-muted/5 flex flex-col items-center justify-center p-4 text-center space-y-1.5 text-muted-foreground">
       <Users className="size-5 text-muted-foreground/50" />
       <span className="text-xs font-semibold text-foreground/80">{title}</span>
       <span className="text-[10px] font-mono text-muted-foreground/60">
-        Listening for real-time check-ins...
+        {lang === "bn"
+          ? "নতুন রোগীর চেক-ইনের জন্য অপেক্ষা করা হচ্ছে..."
+          : "Listening for real-time check-ins..."}
       </span>
     </div>
   );

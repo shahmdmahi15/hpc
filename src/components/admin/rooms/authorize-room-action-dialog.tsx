@@ -198,10 +198,7 @@ export function AuthorizeRoomActionDialog({
             type="button"
             size="sm"
             onClick={handleConfirm}
-            disabled={
-              isSubmitting ||
-              (adminPerformers.length > 1 && !selectedPerformerId)
-            }
+            disabled={isSubmitting}
             className="gap-1.5 font-semibold cursor-pointer"
           >
             {isSubmitting ? (

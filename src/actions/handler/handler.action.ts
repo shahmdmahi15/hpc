@@ -61,18 +61,38 @@ export async function getHandlerDashboardDataAction(
   const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const targetDateStr = dateStr || todayIso;
 
-  const [receptionistData, handlerPerformers, doctorPerformers] =
+  const [receptionistData, handlerPerformers, doctorUsers] =
     await Promise.all([
       getReceptionistDashboardDataAction(targetDateStr),
       prisma.performer.findMany({
         where: { user: { role: Role.HANDLER } },
         orderBy: { name: "asc" },
       }),
-      prisma.performer.findMany({
-        where: { user: { role: Role.DOCTOR } },
+      prisma.user.findMany({
+        where: { role: Role.DOCTOR },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          whatsapp: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: { name: "asc" },
       }),
     ]);
+
+  const doctorPerformers: PerformerModel[] = doctorUsers.map((doc) => ({
+    id: doc.id,
+    name: doc.name || "Doctor",
+    email: doc.email || null,
+    whatsapp: doc.whatsapp || "",
+    phone: doc.whatsapp || "",
+    pin: "0000",
+    userId: doc.id,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  }));
 
   const appointments = receptionistData.appointments || [];
 

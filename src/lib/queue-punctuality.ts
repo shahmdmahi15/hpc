@@ -159,3 +159,27 @@ export function evaluatePunctuality(
     };
   }
 }
+
+/**
+ * Returns localized punctuality label based on active language ("en" or "bn")
+ */
+export function getLocalizedPunctualityLabel(
+  p: PunctualityInfo,
+  lang: "en" | "bn" = "en"
+): string {
+  if (lang !== "bn") return p.label;
+  if (p.label === "Checked In") return "উপস্থিত";
+  if (p.label === "Exact Time") return "সঠিক সময়ে";
+
+  const diff = p.diffMinutes;
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  const numStr = String(Math.abs(diff)).replace(
+    /[0-9]/g,
+    (d) => bnDigits[Number(d)]
+  );
+
+  if (diff < 0) return `${numStr}মি পূর্বে`;
+  if (p.status === "green") return `+${numStr}মি (সঠিক)`;
+  if (p.status === "yellow") return `+${numStr}মি বিলম্ব`;
+  return `+${numStr}মি দেরি`;
+}

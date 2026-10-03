@@ -160,6 +160,7 @@ export const metadata: Metadata = {
 import { I18nProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa-register";
+import { LandscapeLockGuard } from "@/components/layout/landscape-lock-guard";
 
 export default function RootLayout({
   children,
@@ -184,6 +185,7 @@ export default function RootLayout({
         >
           <I18nProvider>
             <PwaRegister />
+            <LandscapeLockGuard />
             {children}
             <Toaster position="top-right" richColors />
           </I18nProvider>

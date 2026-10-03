@@ -71,11 +71,19 @@ export async function getDoctorDashboardDataAction(
   const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const targetDateStr = dateStr || todayIso;
 
-  const [receptionistData, doctorPerformers, handlerPerformers] =
+  const [receptionistData, doctorUsers, handlerPerformers] =
     await Promise.all([
       getReceptionistDashboardDataAction(targetDateStr),
-      prisma.performer.findMany({
-        where: { user: { role: Role.DOCTOR } },
+      prisma.user.findMany({
+        where: { role: Role.DOCTOR },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          whatsapp: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: { name: "asc" },
       }),
       prisma.performer.findMany({
@@ -86,11 +94,45 @@ export async function getDoctorDashboardDataAction(
 
   const appointments = receptionistData.appointments || [];
 
-  // Find logged-in doctor's performer record
-  const currentDoctor =
-    doctorPerformers.find((doc) => doc.userId === sessionData.session.userId) ||
-    doctorPerformers[0] ||
-    null;
+  // Map Doctor User accounts to PerformerModel structure so UI components have complete doctor details
+  const doctorPerformers: PerformerModel[] = doctorUsers.map((doc) => ({
+    id: doc.id,
+    name: doc.name || "Doctor",
+    email: doc.email || null,
+    whatsapp: doc.whatsapp || "",
+    phone: doc.whatsapp || "",
+    pin: "0000",
+    userId: doc.id,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  }));
+
+  // Find logged-in doctor's user identity
+  // Doctors and Admins are independent user accounts with their own credentials.
+  let currentDoctor: PerformerModel | null = null;
+  if (sessionData.user.role === Role.DOCTOR) {
+    const matched = doctorPerformers.find(
+      (doc) => doc.id === sessionData.user.id || doc.userId === sessionData.user.id,
+    );
+    if (matched) {
+      currentDoctor = matched;
+    } else {
+      currentDoctor = {
+        id: sessionData.user.id,
+        name: sessionData.user.name || "Doctor",
+        email: sessionData.user.email || null,
+        whatsapp: sessionData.user.whatsapp || "",
+        phone: sessionData.user.whatsapp || "",
+        pin: "0000",
+        userId: sessionData.user.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+  } else {
+    // Admin viewing doctor workspace: default to 1st doctor user
+    currentDoctor = doctorPerformers[0] || null;
+  }
 
   // Active in-consultation session
   const activeConsultation =
@@ -579,6 +621,9 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
             : appointment.roomId,
         notes: params.notes !== undefined ? params.notes : appointment.notes,
         ...(params.performerId ? { performerId: params.performerId } : {}),
+        doctorId:
+          appointment.doctorId ||
+          (sessionData.user.role === Role.DOCTOR ? sessionData.user.id : undefined),
       },
       include: {
         patient: true,
@@ -587,6 +632,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         bookedBy: true,
         extraApprovedBy: true,
         queue: true,
+        doctor: true,
       },
     });
 
@@ -614,7 +660,10 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
             patientId: appointment.patientId,
             appointmentId: appointment.id,
             planType: TreatmentPlanType.NEXT,
-            doctorId: params.performerId || null,
+            doctorId:
+              sessionData.user.role === Role.DOCTOR
+                ? sessionData.user.id
+                : (params.performerId || null),
             modalities: JSON.stringify(params.nextPlan.modalities),
             instructions: params.nextPlan.instructions || null,
             targetDate: params.nextPlan.targetDate
@@ -742,15 +791,23 @@ export async function updateAppointmentFeeAction(params: {
       return { success: false, message: "Appointment record not found." };
     }
 
+    const feeToSet = params.feeAmount;
+    const currentPaid = appointment.paidAmount ?? 0;
+    const dueAmount = Math.max(0, feeToSet - currentPaid);
+    const paymentStatus =
+      dueAmount === 0 && currentPaid > 0
+        ? "PAID"
+        : currentPaid > 0
+          ? "PARTIAL"
+          : "PENDING";
+
     const updated = await prisma.appointment.update({
       where: { id: params.appointmentId },
       data: {
-        feeAmount: params.feeAmount,
-        paymentStatus:
-          appointment.paymentStatus === "PAID" &&
-          params.feeAmount > (appointment.feeAmount ?? 0)
-            ? "PENDING"
-            : (appointment.paymentStatus || "PENDING"),
+        feeAmount: feeToSet,
+        paidAmount: currentPaid,
+        dueAmount,
+        paymentStatus,
       },
       include: {
         patient: true,
@@ -759,8 +816,11 @@ export async function updateAppointmentFeeAction(params: {
         bookedBy: true,
         extraApprovedBy: true,
         queue: true,
+        doctor: true,
       },
     });
+
+    await syncBillingForAppointment(updated.id);
 
     await logAudit({
       userId: sessionData.user.id,

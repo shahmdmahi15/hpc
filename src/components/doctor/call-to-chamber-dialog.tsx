@@ -36,7 +36,8 @@ export interface CallToChamberDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   appointment: AppointmentWithRelations;
-  doctors: PerformerModel[];
+  currentDoctor?: PerformerModel | { id: string; name: string; phone?: string | null } | null;
+  doctors?: PerformerModel[];
   rooms: RoomModel[];
   defaultDoctorId?: string;
   defaultRoomId?: string;
@@ -47,7 +48,8 @@ export function CallToChamberDialog({
   isOpen,
   onOpenChange,
   appointment,
-  doctors,
+  currentDoctor,
+  doctors = [],
   rooms,
   defaultDoctorId,
   defaultRoomId,
@@ -68,10 +70,17 @@ export function CallToChamberDialog({
     return doctorConsultationRooms[0] || null;
   }, [doctorConsultationRooms]);
 
-  // First doctor performer
-  const firstDoctor = React.useMemo(() => {
-    return doctors[0] || null;
-  }, [doctors]);
+  // Doctors and Admins are independent user accounts with their own credentials.
+  // The attending doctor is ALWAYS the logged-in doctor, not a selectable performer.
+  const activeDoctor = React.useMemo(() => {
+    if (currentDoctor) return currentDoctor;
+    if (doctors && doctors.length > 0) return doctors[0];
+    return null;
+  }, [currentDoctor, doctors]);
+
+  const attendingDoctorId = React.useMemo(() => {
+    return defaultDoctorId || activeDoctor?.id || "";
+  }, [defaultDoctorId, activeDoctor]);
 
   // Initial Doctor Room ID: only accept defaultRoomId if it is a doctor consultation room
   const initialDoctorRoomId = React.useMemo(() => {
@@ -84,12 +93,9 @@ export function CallToChamberDialog({
     return firstDoctorRoom?.id || "";
   }, [defaultRoomId, doctorConsultationRooms, firstDoctorRoom]);
 
-  // State with defaults pointing strictly to 1st doctor room and 1st doctor
+  // State with defaults pointing strictly to 1st doctor room
   const [selectedRoomId, setSelectedRoomId] = React.useState<string>(
     () => initialDoctorRoomId,
-  );
-  const [selectedDoctorId, setSelectedDoctorId] = React.useState<string>(
-    () => defaultDoctorId || firstDoctor?.id || "",
   );
   const [isCalling, setIsCalling] = React.useState(false);
 
@@ -99,21 +105,16 @@ export function CallToChamberDialog({
     setPrevOpen(isOpen);
     if (isOpen) {
       setSelectedRoomId(initialDoctorRoomId);
-      setSelectedDoctorId(defaultDoctorId || firstDoctor?.id || "");
     }
   }
 
-  // Selected entities
+  // Selected chamber room
   const activeRoom = React.useMemo(() => {
     return (
       doctorConsultationRooms.find((r) => r.id === selectedRoomId) ||
       firstDoctorRoom
     );
   }, [doctorConsultationRooms, selectedRoomId, firstDoctorRoom]);
-
-  const activeDoctor = React.useMemo(() => {
-    return doctors.find((d) => d.id === selectedDoctorId) || firstDoctor;
-  }, [doctors, selectedDoctorId, firstDoctor]);
 
   // Punctuality info
   const punctuality = React.useMemo(() => {
@@ -133,10 +134,11 @@ export function CallToChamberDialog({
       const res = await updateAppointmentStatusAction(
         appointment.id,
         AppointmentStatus.CALLING,
-        selectedDoctorId || undefined,
+        attendingDoctorId || undefined,
         QueueType.CONSULTATION,
         selectedRoomId,
         undefined,
+        attendingDoctorId || undefined,
       );
 
       if (res.success) {
@@ -297,89 +299,37 @@ export function CallToChamberDialog({
           </div>
         )}
 
-        {/* 3. Select Attending Doctor */}
-        {doctors.length === 1 ? (
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Stethoscope className="size-3.5 text-blue-500" />
-                <span>Attending Doctor</span>
-              </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                Auto-Selected Doctor
-              </span>
-            </label>
-            <div className="p-2.5 rounded-xl border border-sky-500/40 bg-sky-500/10 text-sky-900 dark:text-sky-200 flex items-center justify-between">
-              <div className="flex items-center gap-2 truncate">
-                <div className="size-7 rounded-lg bg-sky-500/20 flex items-center justify-center shrink-0 text-sky-600 dark:text-sky-300 font-bold text-xs">
-                  {doctors[0].name.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="truncate">
-                  <p className="font-bold text-xs text-foreground truncate">
-                    {doctors[0].name}
-                  </p>
+        {/* 3. Attending Doctor (Always verified to logged-in doctor, non-selectable) */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Stethoscope className="size-3.5 text-blue-500" />
+              <span>Attending Doctor</span>
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+              Logged In
+            </span>
+          </label>
+          <div className="p-2.5 rounded-xl border border-sky-500/40 bg-sky-500/10 text-sky-900 dark:text-sky-200 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 truncate">
+              <div className="size-8 rounded-lg bg-sky-500/20 flex items-center justify-center shrink-0 text-sky-600 dark:text-sky-300 font-bold text-xs">
+                <User className="size-4" />
+              </div>
+              <div className="truncate">
+                <p className="font-bold text-xs text-foreground truncate">
+                  {activeDoctor?.name || "Attending Doctor"}
+                </p>
+                {activeDoctor?.phone && (
                   <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
                     <Phone className="size-2.5" />
-                    {doctors[0].phone}
+                    {activeDoctor.phone}
                   </p>
-                </div>
+                )}
               </div>
-              <Check className="size-4 text-sky-600 dark:text-sky-400 shrink-0" />
             </div>
+            <Check className="size-4 text-sky-600 dark:text-sky-400 shrink-0" />
           </div>
-        ) : doctors.length > 1 ? (
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Stethoscope className="size-3.5 text-blue-500" />
-                <span>Attending Doctor</span>
-              </span>
-              <span className="text-[10.5px] text-muted-foreground font-normal">
-                Default: 1st Doctor
-              </span>
-            </label>
-
-            <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-              {doctors.map((doctor, index) => {
-                const isSelected = selectedDoctorId === doctor.id;
-                return (
-                  <button
-                    key={doctor.id}
-                    type="button"
-                    onClick={() => setSelectedDoctorId(doctor.id)}
-                    className={`w-full flex items-center justify-between p-2 rounded-lg border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-sky-500 bg-sky-500/10 text-sky-900 dark:text-sky-200 shadow-xs ring-1 ring-sky-500/40"
-                        : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <div className="size-6 rounded-md bg-muted flex items-center justify-center shrink-0 text-muted-foreground">
-                        <User className="size-3.5" />
-                      </div>
-                      <div className="truncate">
-                        <div className="font-bold text-xs flex items-center gap-1">
-                          <span>{doctor.name}</span>
-                          {index === 0 && (
-                            <span className="text-[9px] font-bold px-1 rounded bg-blue-500/20 text-blue-700 dark:text-blue-300">
-                              1st Doctor
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground font-mono">
-                          {doctor.phone}
-                        </div>
-                      </div>
-                    </div>
-                    {isSelected && (
-                      <Check className="size-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
+        </div>
 
         {/* 4. Live Broadcast Preview */}
         <div className="p-2.5 rounded-lg border border-sky-500/30 bg-sky-500/5 text-xs space-y-1">

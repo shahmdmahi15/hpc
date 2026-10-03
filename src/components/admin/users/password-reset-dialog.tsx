@@ -154,13 +154,6 @@ export function PasswordResetDialog({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (adminPerformers && adminPerformers.length > 1 && !selectedPerformerId) {
-      setErrorMessage(
-        "Please select which administrator staff member is authorizing this password reset.",
-      );
-      return;
-    }
-
     if (newPassword.length < 8) {
       setErrorMessage("Password must be at least 8 characters long.");
       return;
@@ -174,8 +167,13 @@ export function PasswordResetDialog({
     startTransition(async () => {
       const formData = new FormData();
       formData.set("userId", user.id);
-      if (selectedPerformerId) {
-        formData.set("performerId", selectedPerformerId);
+      const performerIdToSet =
+        selectedPerformerId ||
+        (adminPerformers && adminPerformers.length > 0
+          ? adminPerformers[0].id
+          : "");
+      if (performerIdToSet) {
+        formData.set("performerId", performerIdToSet);
       }
       formData.set("newPassword", newPassword);
       formData.set("confirmPassword", confirmPassword);
@@ -196,8 +194,7 @@ export function PasswordResetDialog({
   const isSubmitDisabled =
     isPending ||
     !newPassword ||
-    !confirmPassword ||
-    (adminPerformers && adminPerformers.length > 1 && !selectedPerformerId);
+    !confirmPassword;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

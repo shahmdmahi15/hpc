@@ -172,13 +172,17 @@ export async function createTreatmentPlanAction(
   } = parsed.data;
 
   try {
-    // Resolve doctor performer attribution
+    // Resolve doctor attribution (Doctor is an independent User account)
     let resolvedDoctorId = doctorId;
     if (!resolvedDoctorId) {
-      const perf = await prisma.performer.findFirst({
-        where: { userId: session.user.id },
-      });
-      resolvedDoctorId = perf?.id;
+      if (session.user.role === Role.DOCTOR) {
+        resolvedDoctorId = session.user.id;
+      } else {
+        const perf = await prisma.performer.findFirst({
+          where: { userId: session.user.id },
+        });
+        resolvedDoctorId = perf?.id;
+      }
     }
 
     // Supersede older active plans of same type for this patient/appointment
@@ -211,6 +215,14 @@ export async function createTreatmentPlanAction(
         },
       },
     });
+
+    // Stamp attending doctor onto appointment if linked
+    if (appointmentId && resolvedDoctorId) {
+      await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: { doctorId: resolvedDoctorId },
+      }).catch((err) => console.error("[Stamp Doctor on Appointment Error]:", err));
+    }
 
     await logAudit({
       userId: session.user.id,
