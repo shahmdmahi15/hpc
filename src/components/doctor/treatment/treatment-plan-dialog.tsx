@@ -54,7 +54,6 @@ interface TreatmentPlanDialogProps {
   defaultTab?: "today" | "next";
   doctorId?: string;
   currentDoctor?: { id: string; name: string } | null;
-  doctors?: { id: string; name: string }[];
   onSuccess?: () => void;
 }
 
@@ -82,7 +81,6 @@ function TreatmentPlanDialogInner({
   defaultTab = "today",
   doctorId = "",
   currentDoctor,
-  doctors = [],
   onSuccess,
 }: TreatmentPlanDialogProps) {
   const patientId = appointment?.patientId || propPatientId || "";
@@ -261,7 +259,6 @@ function TreatmentPlanDialogInner({
                 appointmentId={appointment?.id}
                 doctorId={doctorId}
                 currentDoctor={currentDoctor}
-                doctors={doctors}
                 clinicalConfig={clinicalConfig}
                 onStartEdit={() => setEditingPlanType("today")}
                 onCancelEdit={() => setEditingPlanType(null)}
@@ -277,7 +274,6 @@ function TreatmentPlanDialogInner({
                 appointmentId={appointment?.id}
                 doctorId={doctorId}
                 currentDoctor={currentDoctor}
-                doctors={doctors}
                 clinicalConfig={clinicalConfig}
                 onStartEdit={() => setEditingPlanType("next")}
                 onCancelEdit={() => setEditingPlanType(null)}
@@ -303,7 +299,6 @@ interface PlanTabPanelProps {
   appointmentId?: string;
   doctorId: string;
   currentDoctor?: { id: string; name: string } | null;
-  doctors: { id: string; name: string }[];
   clinicalConfig: ActiveClinicalConfig | null;
   onStartEdit: () => void;
   onCancelEdit: () => void;
@@ -318,7 +313,6 @@ function PlanTabPanel({
   appointmentId,
   doctorId,
   currentDoctor,
-  doctors,
   clinicalConfig,
   onStartEdit,
   onCancelEdit,
@@ -463,7 +457,6 @@ function PlanTabPanel({
       appointmentId={appointmentId}
       doctorId={doctorId}
       currentDoctor={currentDoctor}
-      doctors={doctors}
       clinicalConfig={clinicalConfig}
       onCancel={plan ? onCancelEdit : undefined}
       onSaved={onReload}
@@ -482,7 +475,6 @@ interface PlanFormProps {
   appointmentId?: string;
   doctorId: string;
   currentDoctor?: { id: string; name: string } | null;
-  doctors: { id: string; name: string }[];
   clinicalConfig: ActiveClinicalConfig | null;
   onCancel?: () => void;
   onSaved: () => Promise<void>;
@@ -495,15 +487,13 @@ function PlanForm({
   appointmentId,
   doctorId,
   currentDoctor,
-  doctors,
   clinicalConfig,
   onCancel,
   onSaved,
 }: PlanFormProps) {
   const isToday = planType === TreatmentPlanType.TODAY;
 
-  const resolvedDoctor =
-    currentDoctor || (doctors && doctors.length > 0 ? doctors[0] : null);
+  const resolvedDoctor = currentDoctor || null;
 
   const [selectedModalities, setSelectedModalities] = React.useState<string[]>(
     () => (existingPlan ? existingPlan.modalities : []),

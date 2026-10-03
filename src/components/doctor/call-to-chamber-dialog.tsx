@@ -36,8 +36,7 @@ export interface CallToChamberDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   appointment: AppointmentWithRelations;
-  currentDoctor?: PerformerModel | { id: string; name: string; phone?: string | null } | null;
-  doctors?: PerformerModel[];
+  currentDoctor?: { id: string; name: string; phone?: string | null } | null;
   rooms: RoomModel[];
   defaultDoctorId?: string;
   defaultRoomId?: string;
@@ -49,7 +48,6 @@ export function CallToChamberDialog({
   onOpenChange,
   appointment,
   currentDoctor,
-  doctors = [],
   rooms,
   defaultDoctorId,
   defaultRoomId,
@@ -72,11 +70,7 @@ export function CallToChamberDialog({
 
   // Doctors and Admins are independent user accounts with their own credentials.
   // The attending doctor is ALWAYS the logged-in doctor, not a selectable performer.
-  const activeDoctor = React.useMemo(() => {
-    if (currentDoctor) return currentDoctor;
-    if (doctors && doctors.length > 0) return doctors[0];
-    return null;
-  }, [currentDoctor, doctors]);
+  const activeDoctor = currentDoctor || null;
 
   const attendingDoctorId = React.useMemo(() => {
     return defaultDoctorId || activeDoctor?.id || "";

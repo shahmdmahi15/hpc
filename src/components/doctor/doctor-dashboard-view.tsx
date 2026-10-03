@@ -645,7 +645,6 @@ export function DoctorDashboardView({
                     selectedRoomId={selectedRoomId}
                     selectedRoomNumber={selectedRoom?.number}
                     rooms={data.rooms}
-                    doctors={data.doctorPerformers}
                     onRefresh={() => refreshData(selectedDate)}
                   />
                 ))}
@@ -889,7 +888,6 @@ export function DoctorDashboardView({
         defaultTab={treatmentPlanTab}
         doctorId={selectedDoctorId}
         currentDoctor={data.currentDoctor}
-        doctors={data.doctorPerformers}
         onSuccess={() => {
           refreshData(selectedDate);
         }}

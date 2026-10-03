@@ -39,11 +39,10 @@ import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-pla
 interface DoctorQueueCardProps {
   appointment: AppointmentWithRelations;
   performerId: string;
-  currentDoctor?: PerformerModel | { id: string; name: string; phone?: string | null } | null;
+  currentDoctor?: { id: string; name: string; phone?: string | null } | null;
   selectedRoomId?: string;
   selectedRoomNumber?: string;
   rooms?: RoomModel[];
-  doctors?: PerformerModel[];
   onRefresh: () => void;
 }
 
@@ -54,7 +53,6 @@ export function DoctorQueueCard({
   selectedRoomId,
   selectedRoomNumber,
   rooms = [],
-  doctors = [],
   onRefresh,
 }: DoctorQueueCardProps) {
   // Call to chamber dialog state
@@ -490,7 +488,6 @@ export function DoctorQueueCard({
         onOpenChange={setIsCallDialogOpen}
         appointment={appointment}
         currentDoctor={currentDoctor}
-        doctors={doctors}
         rooms={rooms}
         defaultDoctorId={performerId}
         defaultRoomId={selectedRoomId}
@@ -534,7 +531,6 @@ export function DoctorQueueCard({
         defaultTab={treatmentPlanTab}
         doctorId={performerId}
         currentDoctor={currentDoctor}
-        doctors={doctors}
         onSuccess={onRefresh}
       />
     </div>
