@@ -159,6 +159,13 @@ export function WaitingRoomLiveQueueView({
   // Play rich resonant dual hospital bell chime (Ding-Dong) using native Web Audio API (100% offline)
   const playDoctorCallChime = React.useCallback(() => {
     try {
+      const nativeBridge =
+        (window as any).HpcNative || (window as any).AndroidTTS;
+      if (nativeBridge && typeof nativeBridge.playChime === "function") {
+        nativeBridge.playChime();
+        return;
+      }
+
       const ctx = getAudioContext();
       if (!ctx) return;
       if (ctx.state === "suspended") {
@@ -283,18 +290,39 @@ export function WaitingRoomLiveQueueView({
               // Priority 1: Check for Native Android / Tauri 100% Offline TTS Bridge
               const nativeBridge =
                 (window as any).HpcNative || (window as any).AndroidTTS;
-              if (
-                nativeBridge &&
-                typeof nativeBridge.speakAnnouncement === "function"
-              ) {
+              if (nativeBridge) {
                 try {
-                  const handled = nativeBridge.speakAnnouncement(
-                    enText,
-                    bnText,
-                    speechLanguageMode,
-                  );
-                  if (handled !== false) {
-                    return;
+                  if (typeof nativeBridge.speakDoctorCall === "function") {
+                    const tokenArg =
+                      announcement.serialNumber != null
+                        ? String(announcement.serialNumber)
+                        : "";
+                    const roomArg = announcement.roomNumber
+                      ? String(announcement.roomNumber)
+                      : "";
+                    const patientArg = announcement.patientName || "";
+                    const handled = nativeBridge.speakDoctorCall(
+                      tokenArg,
+                      patientArg,
+                      roomArg,
+                      speechLanguageMode,
+                      enText,
+                      bnText,
+                    );
+                    if (handled !== false) {
+                      return;
+                    }
+                  } else if (
+                    typeof nativeBridge.speakAnnouncement === "function"
+                  ) {
+                    const handled = nativeBridge.speakAnnouncement(
+                      enText,
+                      bnText,
+                      speechLanguageMode,
+                    );
+                    if (handled !== false) {
+                      return;
+                    }
                   }
                 } catch (bridgeErr) {
                   console.warn(
