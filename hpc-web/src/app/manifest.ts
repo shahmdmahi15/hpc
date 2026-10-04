@@ -1,0 +1,98 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "Health & Pain Care Center",
+    short_name: "HPC",
+    description: "Center for Specialized Physical Therapy & Pain Rehabilitation Management System",
+    start_url: "/",
+    id: "/",
+    display: "standalone",
+    display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
+    background_color: "#0f172a",
+    theme_color: "#059669",
+    orientation: "landscape",
+    scope: "/",
+    lang: "en",
+    dir: "ltr",
+    categories: ["medical", "health", "business", "productivity"],
+    icons: [
+      {
+        src: "/favicon.ico",
+        sizes: "48x48",
+        type: "image/x-icon",
+      },
+      {
+        src: "/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        src: "/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        src: "/android-chrome-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/android-chrome-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+    shortcuts: [
+      {
+        name: "Waiting Room TV",
+        short_name: "TV Display",
+        url: "/",
+        description: "Live waiting room queue screen for smart TVs and lobby displays",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Reception Desk",
+        short_name: "Reception",
+        url: "/receptionist",
+        description: "Patient registration, appointment scheduling and queue management",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Doctor Consultation",
+        short_name: "Doctor",
+        url: "/doctor",
+        description: "Clinical evaluation, patient history, and prescription notes",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Therapy Floor",
+        short_name: "Handler",
+        url: "/handler",
+        description: "Physiotherapy modalities execution, timing, and treatment plans",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Cashier Desk",
+        short_name: "Cashier",
+        url: "/cashier",
+        description: "POS billing, cash drawer collection and thermal money receipts",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Admin Portal",
+        short_name: "Admin",
+        url: "/admin",
+        description: "System administration, staff management, and financial audit logs",
+        icons: [{ src: "/android-chrome-192x192.png", sizes: "192x192" }],
+      },
+    ],
+  };
+}
