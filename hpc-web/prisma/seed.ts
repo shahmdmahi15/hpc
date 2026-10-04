@@ -1,7 +1,15 @@
 import argon2 from "argon2";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { Role } from "../src/generated/prisma/enums";
+import {
+  Role,
+  RoomAccessType,
+  RoomGender,
+  RoomStatus,
+  SlotStatus,
+  QueueType,
+  ClinicalOptionCategory,
+} from "../src/generated/prisma/enums";
 
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL || "file:./hpc.db",
@@ -17,323 +25,285 @@ async function hashPassword(password: string): Promise<string> {
   });
 }
 
-const SEED_USERS = [
-  {
-    role: Role.ADMIN,
-    password: "admin123",
-  },
-  {
-    role: Role.DOCTOR,
-    password: "doctor123",
-  },
-  {
-    role: Role.RECEPTIONIST,
-    password: "reception123",
-  },
-  {
-    role: Role.HANDLER,
-    password: "handler123",
-  },
-  {
-    role: Role.CASHIER,
-    password: "cashier123",
-  },
-];
+export async function main() {
+  console.log("========================================================");
+  console.log("🌱 HPC Clinic Database Seeding & Initialization");
+  console.log("========================================================");
 
-async function main() {
-  console.log("🌱 Seeding accounts and performers according to the new architecture...");
+  // 1. Clean existing records if any
+  console.log("🧹 Clearing all existing records...");
+  await prisma.auditLog.deleteMany();
+  await prisma.treatmentPlan.deleteMany();
+  await prisma.medicalRecord.deleteMany();
+  await prisma.appointment.deleteMany();
+  await prisma.patient.deleteMany();
+  await prisma.performer.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.therapySlot.deleteMany();
+  await prisma.room.deleteMany();
+  await prisma.queue.deleteMany();
+  await prisma.clinicalOption.deleteMany();
+  console.log("✅ Database tables cleared.");
 
-  // 1. Seed ADMIN accounts (Independent accounts, Name, Email, WhatsApp, Password, No performers)
+  // ----------------------------------------------------
+  // 2. Seed Users & Desk Performers
+  // ----------------------------------------------------
+  console.log("\n👤 Seeding core user accounts & performers...");
+
+  // ADMIN
   const adminPassword = await hashPassword("admin123");
-  const existingAdmin = await prisma.user.findFirst({
-    where: { role: Role.ADMIN, email: "admin@hpc.com" },
+  const adminUser = await prisma.user.create({
+    data: {
+      role: Role.ADMIN,
+      name: "Admin",
+      email: "admin@hpc.com",
+      whatsapp: "+8801700000000",
+      password: adminPassword,
+    },
   });
-  if (!existingAdmin) {
-    await prisma.user.create({
-      data: {
-        role: Role.ADMIN,
-        name: "Head of Operations / Chief Admin",
-        email: "admin@hpc.com",
-        whatsapp: "+8801700000001",
-        password: adminPassword,
-      },
-    });
-    console.log("✅ Admin account created: admin@hpc.com");
-  } else {
-    await prisma.user.update({
-      where: { id: existingAdmin.id },
-      data: {
-        name: "Head of Operations / Chief Admin",
-        whatsapp: "+8801700000001",
-        password: adminPassword,
-      },
-    });
-    console.log("✅ Admin account updated: admin@hpc.com");
-  }
+  console.log(`✅ ADMIN: ${adminUser.name} (${adminUser.email})`);
 
-  // 2. Seed DOCTOR accounts (Multiple independent accounts, Name, Email, WhatsApp, Password, No performers)
-  const doctorPassword = await hashPassword("doctor123");
-  const doctorsData = [
-    {
-      name: "Dr. Farhan Ahmed, PT, DPT",
-      email: "dr.farhan@hpc.com",
-      whatsapp: "+8801700000002",
+  // DOCTOR
+  const doctorPassword = await hashPassword("admin123");
+  const doctorUser = await prisma.user.create({
+    data: {
+      role: Role.DOCTOR,
+      name: "Doctor",
+      email: "doctor@hpc.com",
+      whatsapp: "+8801700000000",
       password: doctorPassword,
     },
-    {
-      name: "Dr. Nusrat Jahan, Specialist PT",
-      email: "dr.nusrat@hpc.com",
-      whatsapp: "+8801700000003",
-      password: doctorPassword,
-    },
-  ];
-
-  for (const doc of doctorsData) {
-    const existingDoc = await prisma.user.findFirst({
-      where: { role: Role.DOCTOR, email: doc.email },
-    });
-    if (!existingDoc) {
-      await prisma.user.create({
-        data: {
-          role: Role.DOCTOR,
-          name: doc.name,
-          email: doc.email,
-          whatsapp: doc.whatsapp,
-          password: doc.password,
-        },
-      });
-      console.log(`✅ Doctor account created: ${doc.name} (${doc.email})`);
-    } else {
-      await prisma.user.update({
-        where: { id: existingDoc.id },
-        data: {
-          name: doc.name,
-          whatsapp: doc.whatsapp,
-          password: doc.password,
-        },
-      });
-      console.log(`✅ Doctor account updated: ${doc.name} (${doc.email})`);
-    }
-  }
-
-  // 3. Seed RECEPTIONIST (Single shared desk account, multiple performers with 4-digit PIN)
-  const receptionPassword = await hashPassword("reception123");
-  let receptionDesk = await prisma.user.findFirst({
-    where: { role: Role.RECEPTIONIST },
   });
-  if (!receptionDesk) {
-    receptionDesk = await prisma.user.create({
-      data: {
-        role: Role.RECEPTIONIST,
-        password: receptionPassword,
-        name: null,
-        email: null,
-        whatsapp: null,
-      },
-    });
-  } else {
-    await prisma.user.update({
-      where: { id: receptionDesk.id },
-      data: { password: receptionPassword },
-    });
-  }
-  console.log("✅ Receptionist desk account verified.");
+  console.log(`✅ DOCTOR: ${doctorUser.name} (${doctorUser.email})`);
 
-  const receptionPerformers = [
-    {
-      name: "Ayesha Siddiqua",
-      email: "ayesha@hpc.com",
-      whatsapp: "+8801811111101",
-      phone: "+8801811111101",
+  // RECEPTIONIST Desk + Performer
+  const receptionistPassword = await hashPassword("receptionist123");
+  const receptionistDesk = await prisma.user.create({
+    data: {
+      role: Role.RECEPTIONIST,
+      name: "Receptionist Desk",
+      email: "receptionist.desk@hpc.com",
+      whatsapp: "+8801700000000",
+      password: receptionistPassword,
+    },
+  });
+  const receptionistPerformer = await prisma.performer.create({
+    data: {
+      userId: receptionistDesk.id,
+      name: "Receptionist",
+      email: "receptionist@hpc.com",
+      whatsapp: "+8801700000000",
+      phone: "+8801700000000",
       pin: "1234",
     },
-    {
-      name: "Tanvir Hasan",
-      email: "tanvir@hpc.com",
-      whatsapp: "+8801811111102",
-      phone: "+8801811111102",
-      pin: "5678",
-    },
-  ];
+  });
+  console.log(`✅ RECEPTIONIST: Desk created, Performer '${receptionistPerformer.name}' (PIN: 1234)`);
 
-  for (const perf of receptionPerformers) {
-    const existingPerf = await prisma.performer.findFirst({
-      where: { userId: receptionDesk.id, whatsapp: perf.whatsapp },
-    });
-    if (!existingPerf) {
-      await prisma.performer.create({
-        data: {
-          userId: receptionDesk.id,
-          name: perf.name,
-          email: perf.email,
-          whatsapp: perf.whatsapp,
-          phone: perf.phone,
-          pin: perf.pin,
-        },
-      });
-      console.log(`  ➕ Receptionist performer added: ${perf.name} (PIN: ${perf.pin})`);
-    } else {
-      await prisma.performer.update({
-        where: { id: existingPerf.id },
-        data: {
-          name: perf.name,
-          email: perf.email,
-          phone: perf.phone,
-          pin: perf.pin,
-        },
-      });
-    }
-  }
-
-  // 4. Seed HANDLER (Single shared desk account, multiple performers with 4-digit PIN)
+  // HANDLER Desk + Performer
   const handlerPassword = await hashPassword("handler123");
-  let handlerDesk = await prisma.user.findFirst({
-    where: { role: Role.HANDLER },
+  const handlerDesk = await prisma.user.create({
+    data: {
+      role: Role.HANDLER,
+      name: "Handler Desk",
+      email: "handler.desk@hpc.com",
+      whatsapp: "+8801700000000",
+      password: handlerPassword,
+    },
   });
-  if (!handlerDesk) {
-    handlerDesk = await prisma.user.create({
-      data: {
-        role: Role.HANDLER,
-        password: handlerPassword,
-        name: null,
-        email: null,
-        whatsapp: null,
-      },
-    });
-  } else {
-    await prisma.user.update({
-      where: { id: handlerDesk.id },
-      data: { password: handlerPassword },
-    });
-  }
-  console.log("✅ Handler desk account verified.");
-
-  const handlerPerformers = [
-    {
-      name: "Sabbir Rahman (PT)",
-      email: "sabbir.pt@hpc.com",
-      whatsapp: "+8801922222201",
-      phone: "+8801922222201",
-      pin: "1122",
+  const handlerPerformer = await prisma.performer.create({
+    data: {
+      userId: handlerDesk.id,
+      name: "Handler",
+      email: "handler@hpc.com",
+      whatsapp: "+8801700000000",
+      phone: "+8801700000000",
+      pin: "1234",
     },
-    {
-      name: "Mahmuda Khatun (PT)",
-      email: "mahmuda.pt@hpc.com",
-      whatsapp: "+8801922222202",
-      phone: "+8801922222202",
-      pin: "3344",
-    },
-  ];
+  });
+  console.log(`✅ HANDLER: Desk created, Performer '${handlerPerformer.name}' (PIN: 1234)`);
 
-  for (const perf of handlerPerformers) {
-    const existingPerf = await prisma.performer.findFirst({
-      where: { userId: handlerDesk.id, whatsapp: perf.whatsapp },
-    });
-    if (!existingPerf) {
-      await prisma.performer.create({
-        data: {
-          userId: handlerDesk.id,
-          name: perf.name,
-          email: perf.email,
-          whatsapp: perf.whatsapp,
-          phone: perf.phone,
-          pin: perf.pin,
-        },
-      });
-      console.log(`  ➕ Handler performer added: ${perf.name} (PIN: ${perf.pin})`);
-    } else {
-      await prisma.performer.update({
-        where: { id: existingPerf.id },
-        data: {
-          name: perf.name,
-          email: perf.email,
-          phone: perf.phone,
-          pin: perf.pin,
-        },
-      });
-    }
-  }
-
-  // 5. Seed CASHIER (Single shared desk account, multiple performers with 4-digit PIN)
+  // CASHIER Desk + Performer
   const cashierPassword = await hashPassword("cashier123");
-  let cashierDesk = await prisma.user.findFirst({
-    where: { role: Role.CASHIER },
+  const cashierDesk = await prisma.user.create({
+    data: {
+      role: Role.CASHIER,
+      name: "Cashier Desk",
+      email: "cashier.desk@hpc.com",
+      whatsapp: "+8801700000000",
+      password: cashierPassword,
+    },
   });
-  if (!cashierDesk) {
-    cashierDesk = await prisma.user.create({
-      data: {
-        role: Role.CASHIER,
-        password: cashierPassword,
-        name: null,
-        email: null,
-        whatsapp: null,
-      },
-    });
-  } else {
-    await prisma.user.update({
-      where: { id: cashierDesk.id },
-      data: { password: cashierPassword },
-    });
-  }
-  console.log("✅ Cashier desk account verified.");
+  const cashierPerformer = await prisma.performer.create({
+    data: {
+      userId: cashierDesk.id,
+      name: "Cashier",
+      email: "cashier@hpc.com",
+      whatsapp: "+8801700000000",
+      phone: "+8801700000000",
+      pin: "1234",
+    },
+  });
+  console.log(`✅ CASHIER: Desk created, Performer '${cashierPerformer.name}' (PIN: 1234)`);
 
-  const cashierPerformers = [
-    {
-      name: "Kamrul Islam",
-      email: "kamrul@hpc.com",
-      whatsapp: "+8801633333301",
-      phone: "+8801633333301",
-      pin: "9988",
+  // ----------------------------------------------------
+  // 3. Seed Queues
+  // ----------------------------------------------------
+  console.log("\n📋 Seeding central clinic queues...");
+  await prisma.queue.createMany({
+    data: [
+      {
+        name: "Therapy Queue",
+        type: QueueType.THERAPY,
+        description: "Physical therapy and rehabilitation queue",
+        isActive: true,
+      },
+      {
+        name: "Consultation Queue",
+        type: QueueType.CONSULTATION,
+        description: "Doctor consultation and assessment queue",
+        isActive: true,
+      },
+    ],
+  });
+  console.log("✅ Queues: Therapy & Consultation created.");
+
+  // ----------------------------------------------------
+  // 4. Seed Chambers & Rooms
+  // ----------------------------------------------------
+  console.log("\n🏥 Seeding clinic chambers and rooms...");
+  const room101 = await prisma.room.create({
+    data: {
+      number: "101",
+      purpose: "Doctor Consultation Chamber",
+      accessType: RoomAccessType.DOCTOR,
+      gender: RoomGender.COMMON,
+      status: RoomStatus.AVAILABLE,
     },
-    {
-      name: "Shamima Akhter",
-      email: "shamima@hpc.com",
-      whatsapp: "+8801633333302",
-      phone: "+8801633333302",
-      pin: "7766",
+  });
+  const room102 = await prisma.room.create({
+    data: {
+      number: "102",
+      purpose: "Therapy Room 1 (Main Hall)",
+      accessType: RoomAccessType.THERAPY,
+      gender: RoomGender.COMMON,
+      status: RoomStatus.AVAILABLE,
     },
+  });
+  const room103 = await prisma.room.create({
+    data: {
+      number: "103",
+      purpose: "Therapy Room 2 (Specialized Rehab)",
+      accessType: RoomAccessType.THERAPY,
+      gender: RoomGender.COMMON,
+      status: RoomStatus.AVAILABLE,
+    },
+  });
+  console.log("✅ Rooms: 101 (Doctor), 102 (Therapy 1), 103 (Therapy 2) created.");
+
+  // ----------------------------------------------------
+  // 5. Seed Predefined Hourly Therapy Slots
+  // ----------------------------------------------------
+  console.log("\n⏰ Seeding predefined hourly therapy slots (10:00 AM - 08:00 PM)...");
+  const hourlySlots = [
+    { label: "10:00 AM - 11:00 AM", startTime: "10:00", endTime: "11:00", order: 1 },
+    { label: "11:00 AM - 12:00 PM", startTime: "11:00", endTime: "12:00", order: 2 },
+    { label: "12:00 PM - 01:00 PM", startTime: "12:00", endTime: "13:00", order: 3 },
+    { label: "01:00 PM - 02:00 PM", startTime: "13:00", endTime: "14:00", order: 4 },
+    { label: "02:00 PM - 03:00 PM", startTime: "14:00", endTime: "15:00", order: 5 },
+    { label: "03:00 PM - 04:00 PM", startTime: "15:00", endTime: "16:00", order: 6 },
+    { label: "04:00 PM - 05:00 PM", startTime: "16:00", endTime: "17:00", order: 7 },
+    { label: "05:00 PM - 06:00 PM", startTime: "17:00", endTime: "18:00", order: 8 },
+    { label: "06:00 PM - 07:00 PM", startTime: "18:00", endTime: "19:00", order: 9 },
+    { label: "07:00 PM - 08:00 PM", startTime: "19:00", endTime: "20:00", order: 10 },
   ];
 
-  for (const perf of cashierPerformers) {
-    const existingPerf = await prisma.performer.findFirst({
-      where: { userId: cashierDesk.id, whatsapp: perf.whatsapp },
-    });
-    if (!existingPerf) {
-      await prisma.performer.create({
-        data: {
-          userId: cashierDesk.id,
-          name: perf.name,
-          email: perf.email,
-          whatsapp: perf.whatsapp,
-          phone: perf.phone,
-          pin: perf.pin,
-        },
-      });
-      console.log(`  ➕ Cashier performer added: ${perf.name} (PIN: ${perf.pin})`);
-    } else {
-      await prisma.performer.update({
-        where: { id: existingPerf.id },
-        data: {
-          name: perf.name,
-          email: perf.email,
-          phone: perf.phone,
-          pin: perf.pin,
-        },
-      });
-    }
-  }
-
-  // Clean up any legacy performers that were under ADMIN or DOCTOR users
-  const adminUsers = await prisma.user.findMany({ where: { role: Role.ADMIN }, select: { id: true } });
-  const doctorUsers = await prisma.user.findMany({ where: { role: Role.DOCTOR }, select: { id: true } });
-  const noPerformerUserIds = [...adminUsers, ...doctorUsers].map(u => u.id);
-  if (noPerformerUserIds.length > 0) {
-    await prisma.performer.deleteMany({
-      where: { userId: { in: noPerformerUserIds } },
+  for (const s of hourlySlots) {
+    await prisma.therapySlot.create({
+      data: {
+        label: s.label,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        order: s.order,
+        status: SlotStatus.OPEN,
+        isActive: true,
+        weekDays: "ALL",
+        roomId: room102.id,
+        regularMaleCapacity: 3,
+        regularFemaleCapacity: 3,
+        extraMaleCapacity: 1,
+        extraFemaleCapacity: 1,
+      },
     });
   }
+  console.log(`✅ Seeded ${hourlySlots.length} hourly therapy slots.`);
 
+  // ----------------------------------------------------
+  // 6. Seed Dynamic Clinical Options
+  // ----------------------------------------------------
+  console.log("\n🩺 Seeding dynamic clinical taxonomy options...");
+  const clinicalOptions = [
+    // Pain Areas
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Neck", order: 1 },
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Shoulder", order: 2 },
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Back", order: 3 },
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Knee", order: 4 },
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Heel", order: 5 },
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Elbow", order: 6 },
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Wrist", order: 7 },
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Hip", order: 8 },
+    { category: ClinicalOptionCategory.PAIN_AREA, name: "Ankle", order: 9 },
+
+    // Pain Types
+    { category: ClinicalOptionCategory.PAIN_TYPE, name: "Sharp", order: 1 },
+    { category: ClinicalOptionCategory.PAIN_TYPE, name: "Dull", order: 2 },
+    { category: ClinicalOptionCategory.PAIN_TYPE, name: "Burning", order: 3 },
+    { category: ClinicalOptionCategory.PAIN_TYPE, name: "Radiating", order: 4 },
+    { category: ClinicalOptionCategory.PAIN_TYPE, name: "Throbbing", order: 5 },
+    { category: ClinicalOptionCategory.PAIN_TYPE, name: "Aching", order: 6 },
+
+    // Aggravating Factors
+    { category: ClinicalOptionCategory.AGGRAVATING_FACTOR, name: "Movement", order: 1 },
+    { category: ClinicalOptionCategory.AGGRAVATING_FACTOR, name: "Sitting", order: 2 },
+    { category: ClinicalOptionCategory.AGGRAVATING_FACTOR, name: "Standing", order: 3 },
+    { category: ClinicalOptionCategory.AGGRAVATING_FACTOR, name: "Walking", order: 4 },
+    { category: ClinicalOptionCategory.AGGRAVATING_FACTOR, name: "Lifting", order: 5 },
+    { category: ClinicalOptionCategory.AGGRAVATING_FACTOR, name: "Bending", order: 6 },
+
+    // Relieving Factors
+    { category: ClinicalOptionCategory.RELIEVING_FACTOR, name: "Rest", order: 1 },
+    { category: ClinicalOptionCategory.RELIEVING_FACTOR, name: "Medicine", order: 2 },
+    { category: ClinicalOptionCategory.RELIEVING_FACTOR, name: "Heat", order: 3 },
+    { category: ClinicalOptionCategory.RELIEVING_FACTOR, name: "Cold / Ice pack", order: 4 },
+    { category: ClinicalOptionCategory.RELIEVING_FACTOR, name: "Elevation", order: 5 },
+
+    // Functional Limitations
+    { category: ClinicalOptionCategory.FUNCTIONAL_LIMITATION, name: "Bending", order: 1 },
+    { category: ClinicalOptionCategory.FUNCTIONAL_LIMITATION, name: "Sitting", order: 2 },
+    { category: ClinicalOptionCategory.FUNCTIONAL_LIMITATION, name: "Standing", order: 3 },
+    { category: ClinicalOptionCategory.FUNCTIONAL_LIMITATION, name: "Walking", order: 4 },
+    { category: ClinicalOptionCategory.FUNCTIONAL_LIMITATION, name: "Lifting", order: 5 },
+    { category: ClinicalOptionCategory.FUNCTIONAL_LIMITATION, name: "Climbing Stairs", order: 6 },
+
+    // Treatment Plans / Modalities
+    { category: ClinicalOptionCategory.TREATMENT_PLAN, name: "Hot pack", order: 1 },
+    { category: ClinicalOptionCategory.TREATMENT_PLAN, name: "IFT / TENS", order: 2 },
+    { category: ClinicalOptionCategory.TREATMENT_PLAN, name: "Ultrasound Therapy", order: 3 },
+    { category: ClinicalOptionCategory.TREATMENT_PLAN, name: "Cervical / Lumbar Traction", order: 4 },
+    { category: ClinicalOptionCategory.TREATMENT_PLAN, name: "Stretching Exercises", order: 5 },
+    { category: ClinicalOptionCategory.TREATMENT_PLAN, name: "Strengthening Exercises", order: 6 },
+    { category: ClinicalOptionCategory.TREATMENT_PLAN, name: "Posture Correction", order: 7 },
+    { category: ClinicalOptionCategory.TREATMENT_PLAN, name: "Manual Mobilization", order: 8 },
+  ];
+
+  await prisma.clinicalOption.createMany({
+    data: clinicalOptions,
+  });
+  console.log(`✅ Seeded ${clinicalOptions.length} clinical assessment options.`);
+
+  console.log("\n========================================================");
   console.log("🎉 Seeding completed successfully!");
+  console.log("========================================================");
 }
 
 main()

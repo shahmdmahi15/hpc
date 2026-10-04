@@ -33,17 +33,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local environment & secret files
-.env
-.env.local
-.env.*.local
-.hpc.pid
-
-# SSL Private Keys
-certificates/*.key
-certificates/*.pem
-!certificates/rootCA.crt
-
 # SQLite runtime temporary files (WAL journal)
 *.db-shm
 *.db-wal
