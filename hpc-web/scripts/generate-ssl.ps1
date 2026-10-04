@@ -199,6 +199,11 @@ Write-Host "[INFO] Signing Server Certificate with HPC Root CA..." -ForegroundCo
 
 Write-Host "[SUCCESS] Server Certificate (server.crt) created successfully!" -ForegroundColor Green
 
+# Copy Server Certificate to public/ for client downloads
+Copy-Item -Path $serverCrtPath -Destination (Join-Path $publicDir "server.crt") -Force
+Copy-Item -Path $serverCsrPath -Destination (Join-Path $publicDir "server.csr") -Force
+Write-Host "[SUCCESS] Public certificates published to public/ (rootCA.crt, rootCA.pem, server.crt, server.csr)" -ForegroundColor Green
+
 # 7. Check / Register Root CA into Current User's Windows Trusted Root store
 $isInstalled = Get-ChildItem Cert:\CurrentUser\Root -ErrorAction SilentlyContinue | Where-Object { $_.Subject -like "*HPC Local Root CA*" }
 if (-not $isInstalled) {

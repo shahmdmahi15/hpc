@@ -190,7 +190,8 @@ app.prepare().then(() => {
     }
     console.log(`> Mode:     ${isDev ? "development" : "production"}`);
     if (hasSsl) {
-      console.log(`> Root CA:  ${protocol}://localhost:${port}/rootCA.crt (Download for devices)`);
+      console.log(`> Root CA:   ${protocol}://localhost:${port}/rootCA.crt (Download for devices)`);
+      console.log(`> SSL Guide: ${protocol}://localhost:${port}/guide.html (Device setup guide)`);
     }
     console.log("========================================================");
   });

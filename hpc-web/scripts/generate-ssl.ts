@@ -169,9 +169,19 @@ execSync(
   { stdio: "inherit" },
 );
 
+// 6. Publish all public certificates to public/ directory for local LAN downloads
+fs.copyFileSync(serverCrtPath, path.join(publicDir, "server.crt"));
+fs.copyFileSync(serverCsrPath, path.join(publicDir, "server.csr"));
+console.log("[SUCCESS] All public certificates published to public/ directory:");
+console.log("  ✓ public/rootCA.crt (Root CA for Windows/Android/iOS)");
+console.log("  ✓ public/rootCA.pem (Root CA PEM for Linux/Web Clients)");
+console.log("  ✓ public/server.crt (Signed Server Public Certificate)");
+console.log("  ✓ public/server.csr (Certificate Signing Request)");
+
 console.log("========================================================");
 console.log("  SSL Setup Complete!");
-console.log(`  - Server Key:  ${serverKeyPath}`);
-console.log(`  - Server Cert: ${serverCrtPath}`);
-console.log(`  - Public Root: public/rootCA.crt & public/rootCA.pem`);
+console.log(`  - Server Key:   ${serverKeyPath}`);
+console.log(`  - Server Cert:  ${serverCrtPath}`);
+console.log(`  - Public Files: public/rootCA.crt, public/rootCA.pem, public/server.crt`);
 console.log("========================================================");
+

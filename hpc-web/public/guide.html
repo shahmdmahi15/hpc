@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinic Apps & SSL Certificate Hub | Health & Pain Care Center (HPC)</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-hover: #047857;
+      --primary-light: #ecfdf5;
+      --primary-border: #a7f3d0;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --border-card: #e2e8f0;
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --accent-border: #bfdbfe;
+      --warning: #d97706;
+      --success: #10b981;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --bg-page: #090d16;
+        --bg-card: #131b2e;
+        --border-card: #1e293b;
+        --primary-light: #064e3b33;
+        --primary-border: #05966966;
+        --accent-light: #1e3a8a33;
+        --accent-border: #2563eb66;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 24px 16px 80px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      padding: 36px 24px;
+      background: var(--bg-card);
+      border-radius: 20px;
+      border: 1px solid var(--border-card);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #059669, #10b981, #3b82f6);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .clinic-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary-light);
+      border: 1px solid var(--primary-border);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle-bn {
+      font-size: 16px;
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* Live Status Bar */
+    .status-bar {
+      margin-top: 18px;
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: var(--primary-light);
+      border: 1px solid var(--primary-border);
+      border-radius: 12px;
+      font-size: 13px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background-color: var(--success);
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    }
+
+    /* Section Headers */
+    .section-title-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      margin-top: 36px;
+    }
+
+    .section-title {
+      font-size: 19px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-pill {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+    }
+
+    /* Card Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .app-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .app-card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .app-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--primary-light);
+      border: 1px solid var(--primary-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .app-info h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .app-info p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .app-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--accent-light);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
+    }
+
+    /* Action Buttons */
+    .dl-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      width: 100%;
+      border: none;
+    }
+
+    .dl-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(5, 150, 105, 0.2);
+    }
+
+    .dl-primary:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 6px 14px rgba(5, 150, 105, 0.3);
+    }
+
+    .dl-outline {
+      background: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border-card);
+    }
+
+    .dl-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: var(--bg-card);
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid var(--border-card);
+    }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 130px;
+      padding: 10px 14px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+    }
+
+    /* Step Card */
+    .guide-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 16px;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      border: 2px solid var(--primary-border);
+      color: var(--primary);
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .step-body h4 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .step-body p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .code-box {
+      margin-top: 8px;
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      border: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .copy-btn {
+      background: #1e293b;
+      color: #ffffff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: #334155;
+    }
+
+    .badge-tip {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 4px 10px;
+      background: #fef3c7;
+      color: #b45309;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .badge-tip {
+        background: #78350f33;
+        color: #fbbf24;
+      }
+    }
+
+    /* Diagnostics Box */
+    .diag-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 32px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .diag-info h4 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .diag-info p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-container">
+        <img src="/logo.jpg" alt="HPC Clinic Logo" class="clinic-logo" onerror="this.style.display='none'">
+        <div class="logo-badge">
+          <span>🏥</span>
+          <span>HEALTH & PAIN CARE CENTER (HPC)</span>
+        </div>
+      </div>
+      <h1 class="title">Clinic Apps & SSL Security Hub</h1>
+      <p class="subtitle-bn">ক্লিনিক সফটওয়্যার ও লোকাল নেটওয়ার্ক সিকিউরিটি হাব</p>
+      <p class="subtitle">
+        Download official HPC desktop & mobile applications, install trusted Root CA certificates, and configure local LAN devices for secure, lightning-fast offline clinic operations.
+      </p>
+
+      <div class="status-bar">
+        <span class="status-dot"></span>
+        <span id="current-url-display">Detecting host server connection...</span>
+        <span style="opacity: 0.5;">•</span>
+        <span id="network-ip-display">Local Clinic Network Active</span>
+      </div>
+    </header>
+
+    <!-- SECTION 1: Applications Download -->
+    <div class="section-title-wrap">
+      <div class="section-title">
+        <span>📦</span>
+        <span>Download Official HPC Applications</span>
+      </div>
+      <span class="section-pill">Offline Ready</span>
+    </div>
+
+    <div class="grid-4">
+      <!-- Jetpack Android APK -->
+      <div class="app-card">
+        <div>
+          <div class="app-card-top">
+            <div class="app-icon">🤖</div>
+            <div class="app-info">
+              <h4>Jetpack App</h4>
+              <p>Android Tablets & Phones</p>
+              <span class="app-badge">Native Android</span>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+            Full native Android build with hardware speech chime & TTS voice calling integration.
+          </p>
+        </div>
+        <a href="/jetpack.apk" download="jetpack.apk" class="dl-btn dl-primary">
+          <span>📥</span> <span>Download APK</span>
+        </a>
+      </div>
+
+      <!-- Tauri Android APK -->
+      <div class="app-card">
+        <div>
+          <div class="app-card-top">
+            <div class="app-icon">⚡</div>
+            <div class="app-info">
+              <h4>Tauri Mobile</h4>
+              <p>Android Mobile & TV</p>
+              <span class="app-badge">Ultra-Lightweight</span>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+            High-efficiency lightweight Tauri Android build with instant loading and low RAM usage.
+          </p>
+        </div>
+        <a href="/tauri.apk" download="tauri.apk" class="dl-btn dl-outline">
+          <span>📥</span> <span>Download APK</span>
+        </a>
+      </div>
+
+      <!-- Tauri Windows EXE -->
+      <div class="app-card">
+        <div>
+          <div class="app-card-top">
+            <div class="app-icon">🪟</div>
+            <div class="app-info">
+              <h4>Tauri Desktop</h4>
+              <p>Windows PC Portable</p>
+              <span class="app-badge">Portable .exe</span>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+            Standalone portable desktop application for Doctor chambers and Reception counters.
+          </p>
+        </div>
+        <a href="/tauri.exe" download="tauri.exe" class="dl-btn dl-primary">
+          <span>📥</span> <span>Download .EXE</span>
+        </a>
+      </div>
+
+      <!-- Tauri Windows MSI -->
+      <div class="app-card">
+        <div>
+          <div class="app-card-top">
+            <div class="app-icon">💿</div>
+            <div class="app-info">
+              <h4>Tauri Installer</h4>
+              <p>Windows MSI Setup</p>
+              <span class="app-badge">Windows Installer</span>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+            Official Windows MSI package with desktop shortcuts and auto-start clinic capabilities.
+          </p>
+        </div>
+        <a href="/tauri.msi" download="tauri.msi" class="dl-btn dl-outline">
+          <span>📥</span> <span>Download .MSI</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- SECTION 2: SSL & Root CA Certificates -->
+    <div class="section-title-wrap">
+      <div class="section-title">
+        <span>🔐</span>
+        <span>Download Local SSL Certificates</span>
+      </div>
+      <span class="section-pill">Trusted Root CA</span>
+    </div>
+
+    <div class="grid-4">
+      <!-- Root CA (.crt) -->
+      <div class="app-card" style="border-left: 4px solid var(--primary);">
+        <div class="app-card-top">
+          <div class="app-icon" style="background: var(--primary-light); color: var(--primary);">🛡️</div>
+          <div class="app-info">
+            <h4>Root CA (.crt)</h4>
+            <p>Windows / Android / iOS</p>
+            <span class="app-badge">Universal DER</span>
+          </div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+          Install into device's Trusted Root store to establish trusted HTTPS without browser warnings.
+        </p>
+        <a href="/rootCA.crt" download="rootCA.crt" class="dl-btn dl-primary">
+          <span>📥</span> <span>Download .CRT</span>
+        </a>
+      </div>
+
+      <!-- Root CA (.pem) -->
+      <div class="app-card" style="border-left: 4px solid var(--accent);">
+        <div class="app-card-top">
+          <div class="app-icon" style="background: var(--accent-light); color: var(--accent);">📄</div>
+          <div class="app-info">
+            <h4>Root CA (.pem)</h4>
+            <p>Linux / Web Clients</p>
+            <span class="app-badge">Base64 ASCII</span>
+          </div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+          Base64 certificate for Linux system CA bundles, curl scripts, Python/Node tools, and Docker.
+        </p>
+        <a href="/rootCA.pem" download="rootCA.pem" class="dl-btn dl-outline">
+          <span>📥</span> <span>Download .PEM</span>
+        </a>
+      </div>
+
+      <!-- Server Certificate (.crt) -->
+      <div class="app-card" style="border-left: 4px solid #10b981;">
+        <div class="app-card-top">
+          <div class="app-icon" style="background: #ecfdf5; color: #10b981;">📑</div>
+          <div class="app-info">
+            <h4>Server Cert (.crt)</h4>
+            <p>Signed Server Public Key</p>
+            <span class="app-badge">SANs Included</span>
+          </div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+          Public server certificate signed by Root CA with 2,287 local LAN IP Subject Alternative Names.
+        </p>
+        <a href="/server.crt" download="server.crt" class="dl-btn dl-outline">
+          <span>📥</span> <span>Download .CRT</span>
+        </a>
+      </div>
+
+      <!-- Server CSR (.csr) -->
+      <div class="app-card" style="border-left: 4px solid #6366f1;">
+        <div class="app-card-top">
+          <div class="app-icon" style="background: #eef2ff; color: #6366f1;">📝</div>
+          <div class="app-info">
+            <h4>Server CSR (.csr)</h4>
+            <p>Signing Request File</p>
+            <span class="app-badge">Metadata Spec</span>
+          </div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+          Certificate Signing Request file containing the clinic's distinguished name and SAN mapping.
+        </p>
+        <a href="/server.csr" download="server.csr" class="dl-btn dl-outline">
+          <span>📥</span> <span>Download .CSR</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Step by Step Device Walkthroughs -->
+    <div class="section-title-wrap">
+      <div class="section-title">
+        <span>🛠️</span>
+        <span>Device Setup & Certificate Installation Instructions</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav" role="tablist">
+      <button class="tab-btn active" onclick="switchTab('android')">
+        <span>🤖</span> <span>Android Devices</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('windows')">
+        <span>🪟</span> <span>Windows PC</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('apple')">
+        <span>🍏</span> <span>iPhone & iPad</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('linux')">
+        <span>🐧</span> <span>Linux</span>
+      </button>
+    </nav>
+
+    <!-- Tab 1: Android -->
+    <section id="tab-android" class="tab-content active guide-card">
+      <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 4px;">Android Phone, Tablet & Smart TV Setup</h3>
+      <p style="color: var(--text-muted); font-size: 13px;">অ্যান্ড্রয়েড ডিভাইসে অ্যাপ ও সার্টিফিকেট সেটআপ করার নিয়মাবলী:</p>
+
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Download Certificate & APK</h4>
+            <p>Download <strong>rootCA.crt</strong> and either <strong>Jetpack App (jetpack.apk)</strong> or <strong>Tauri App (tauri.apk)</strong> from the buttons above.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Install Root Certificate in Android</h4>
+            <p>Open <strong>Settings</strong> ➔ search for <strong>"Certificate"</strong> (or go to <em>Security ➔ More security settings ➔ Encryption & credentials</em>).</p>
+            <p style="margin-top: 4px;">Tap <strong>"Install a certificate"</strong> ➔ tap <strong>"CA certificate"</strong> (tap "Install anyway" if prompted) ➔ select the downloaded <code>rootCA.crt</code> file.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Install the HPC Application</h4>
+            <p>Open your Files / Downloads app, tap <code>jetpack.apk</code> or <code>tauri.apk</code>, allow "Install from this source" when prompted by Android, and tap <strong>Install</strong>.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Launch and Connect</h4>
+            <p>Open the app or browse to the clinic URL in Chrome. You will see a verified secure padlock 🔒 with zero warnings!</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Tab 2: Windows -->
+    <section id="tab-windows" class="tab-content guide-card">
+      <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 4px;">Windows 10 & 11 Computers Setup</h3>
+      <p style="color: var(--text-muted); font-size: 13px;">ডাক্তার, রিসেপশন ও ক্যাশিয়ার কম্পিউটারে সার্টিফিকেট ও অ্যাপ সেটআপ:</p>
+
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Download rootCA.crt & Desktop App</h4>
+            <p>Download <code>rootCA.crt</code> and <code>tauri.exe</code> (or <code>tauri.msi</code> installer) from above.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Import into Trusted Root Store</h4>
+            <p>Double-click the downloaded <code>rootCA.crt</code> ➔ click <strong>Install Certificate...</strong></p>
+            <p style="margin-top: 4px;">Choose <strong>Current User</strong> (or Local Machine) ➔ choose <strong>"Place all certificates in the following store"</strong> ➔ click <strong>Browse...</strong> ➔ select <strong>"Trusted Root Certification Authorities"</strong> ➔ click <strong>OK</strong> ➔ <strong>Next</strong> ➔ <strong>Finish</strong>.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Confirm Security Warning</h4>
+            <p>When the Windows Security prompt asks to trust <em>"HPC Local Root CA"</em>, click <strong>Yes</strong>.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Run Desktop App or Browser</h4>
+            <p>Launch <code>tauri.exe</code> or reload the web portal in Chrome/Edge/Brave for full, secure, seamless access.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Tab 3: Apple iOS / iPadOS -->
+    <section id="tab-apple" class="tab-content guide-card">
+      <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 4px;">Apple iPhone & iPad (Safari)</h3>
+      <p style="color: var(--text-muted); font-size: 13px;">আইফোন ও আইপ্যাডে সার্টিফিকেট ইনস্টলেশন প্রক্রিয়া:</p>
+
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Download Profile in Safari</h4>
+            <p>Open Safari on your iPad/iPhone, tap <strong>Download rootCA.crt</strong>, and tap <strong>"Allow"</strong> when prompted to download a configuration profile.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Install Downloaded Profile</h4>
+            <p>Open <strong>Settings</strong> ➔ tap <strong>"Profile Downloaded"</strong> ➔ tap <strong>Install</strong> in the top-right corner. Enter device passcode.</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Enable Full Root Trust (Important!)</h4>
+            <p>Navigate to:</p>
+            <div class="code-box">
+              <span>Settings ➔ General ➔ About ➔ Certificate Trust Settings</span>
+            </div>
+            <p style="margin-top: 6px;">Under "Enable full trust for root certificates", switch ON <strong>"HPC Local Root CA"</strong> and tap <strong>Continue</strong>.</p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Tab 4: Linux -->
+    <section id="tab-linux" class="tab-content guide-card">
+      <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 4px;">Linux (Ubuntu / Debian) Terminal</h3>
+      <p style="color: var(--text-muted); font-size: 13px;">লিনাক্স সিস্টেমে সার্টিফিকেট ট্রাস্ট স্টোরে যুক্ত করার কমান্ড:</p>
+
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Copy Certificate to System Store</h4>
+            <div class="code-box">
+              <span id="cmd-linux-copy">sudo cp rootCA.crt /usr/local/share/ca-certificates/hpc-rootCA.crt</span>
+              <button class="copy-btn" onclick="copyText('cmd-linux-copy')">Copy</button>
+            </div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Update System CA Bundle</h4>
+            <div class="code-box">
+              <span id="cmd-linux-update">sudo update-ca-certificates</span>
+              <button class="copy-btn" onclick="copyText('cmd-linux-update')">Copy</button>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- SECTION 4: Live Diagnostics -->
+    <div class="diag-box">
+      <div class="diag-info">
+        <h4>Connection Diagnostics</h4>
+        <p id="diag-status">Running security handshake test...</p>
+      </div>
+      <button class="dl-btn dl-primary" style="width: auto; padding: 10px 18px;" onclick="runDiagnostics()">
+        <span>🔄</span> <span>Test Connection</span>
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>© 2026 Health & Pain Care Center (HPC). Center for Specialized Physical Therapy & Pain Rehabilitation.</p>
+      <p style="margin-top: 4px;">চাঁচড়া ডালমিল (পুলিশ ফাঁড়ির বিপরীতে), সদর, যশোর-৭৪০০ • Hotline: 01822-000035</p>
+    </footer>
+  </div>
+
+  <script>
+    // Tab switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      event.currentTarget.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    // Auto-detect and display current host and port
+    window.addEventListener('DOMContentLoaded', () => {
+      const currentHost = window.location.host;
+      const protocol = window.location.protocol;
+      const displayElem = document.getElementById('current-url-display');
+      if (displayElem) {
+        displayElem.innerText = `Connected: ${protocol}//${currentHost}`;
+      }
+      runDiagnostics();
+    });
+
+    // Copy command helper
+    function copyText(elementId) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Command copied to clipboard!");
+      });
+    }
+
+    // Connection Diagnostics
+    function runDiagnostics() {
+      const diagElem = document.getElementById('diag-status');
+      if (!diagElem) return;
+      diagElem.innerText = "Pinging local server health endpoint...";
+
+      const start = Date.now();
+      fetch('/api/health')
+        .then(res => res.json())
+        .then(data => {
+          const latency = Date.now() - start;
+          const isHttps = window.location.protocol === 'https:';
+          diagElem.innerHTML = `<span style="color: var(--success); font-weight: 700;">● Online (${latency}ms)</span> • Mode: ${data.env} • SSL: ${isHttps ? 'Encrypted (HTTPS)' : 'Plain (HTTP)'}`;
+        })
+        .catch(err => {
+          diagElem.innerHTML = `<span style="color: var(--warning); font-weight: 700;">● Connection Limited</span> • Server endpoint unreachable directly`;
+        });
+    }
+  </script>
+
+</body>
+</html>
