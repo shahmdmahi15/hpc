@@ -477,6 +477,15 @@ export function SlotManagementView({ initialData }: SlotManagementViewProps) {
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
+                type="search"
+                name="admin_slot_search_query"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 placeholder="Search slot label, timing, or room..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

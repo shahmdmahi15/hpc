@@ -4,9 +4,11 @@ import * as React from "react";
 import { useTheme } from "next-themes";
 import { Moon, Sun, Laptop } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 const emptySubscribe = () => () => {};
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   const mounted = React.useSyncExternalStore(
     emptySubscribe,
@@ -16,12 +18,12 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="flex items-center gap-1 p-1 rounded-full bg-muted/60 border border-border h-9 w-[108px] animate-pulse" />
+      <div className={cn("flex items-center gap-1 p-1 rounded-full bg-muted/60 border border-border h-9 w-[108px] animate-pulse", className)} />
     );
   }
 
   return (
-    <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/60 border border-border backdrop-blur-md">
+    <div className={cn("inline-flex items-center gap-1 p-1 rounded-full bg-muted/60 border border-border backdrop-blur-md", className)}>
       <button
         type="button"
         onClick={() => setTheme("light")}

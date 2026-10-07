@@ -478,6 +478,11 @@ function HandlerSendPatientDialogContent({
               <Input
                 type="password"
                 inputMode="numeric"
+                autoComplete="one-time-code"
+                name="handler_send_patient_auth_pin"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 maxLength={4}
                 placeholder="Enter your 4-digit PIN"
                 value={handlerPin}

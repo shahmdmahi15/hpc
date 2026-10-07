@@ -36,9 +36,9 @@ export function ReceptionistHeader({
   const currentTime = useLiveClock();
 
   return (
-    <header className="w-full px-3 sm:px-6 py-1.5 border-b border-border/70 bg-card/85 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between gap-2.5 shadow-xs">
+    <header className="w-full px-2.5 sm:px-4 md:px-6 py-1.5 border-b border-border/70 bg-card/85 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between gap-2 shadow-xs 2xl:max-w-[2400px] 2xl:mx-auto">
       {/* 1. Left: Brand & Reception Desk Identity */}
-      <div className="flex items-center gap-2.5 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0">
         <BrandLogo size="sm" variant="full" />
         <div className="hidden md:flex items-center gap-1.5 pl-2.5 border-l border-border/60">
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary text-[10.5px] font-bold tracking-wide uppercase">
@@ -46,9 +46,26 @@ export function ReceptionistHeader({
             <span>{lang === "bn" ? "রিসেপশন ডেস্ক" : "Reception Desk"}</span>
           </span>
         </div>
+
+        {/* Compact SSE Connection Dot on Mobile (< lg) */}
+        <div
+          className="flex lg:hidden items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-muted/50 border border-border/60 shrink-0"
+          title={`SSE LAN Status: ${connectionStatus}`}
+        >
+          {connectionStatus === "connected" ? (
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+          ) : connectionStatus === "connecting" ? (
+            <span className="size-2 rounded-full bg-amber-500 animate-ping" />
+          ) : (
+            <span className="size-2 rounded-full bg-zinc-400" />
+          )}
+          <span className="hidden xs:inline text-[10px] text-muted-foreground font-mono">
+            {connectionStatus === "connected" ? "LAN" : "OFFLINE"}
+          </span>
+        </div>
       </div>
 
-      {/* 2. Center: Live Digital Clock & Offline Status */}
+      {/* 2. Center: Live Digital Clock & Offline Status (Desktop / TV) */}
       <div className="hidden lg:flex items-center gap-3">
         {/* Live Clock */}
         <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-muted/40 border border-border/60 text-xs font-mono">
@@ -108,13 +125,13 @@ export function ReceptionistHeader({
       </div>
 
       {/* 3. Right: Controls & Shortcuts */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         {/* Admin Panel shortcut (if logged in user has ADMIN role) */}
         {currentUserRole === Role.ADMIN && (
           <Link
             href="/admin"
             title={lang === "bn" ? "অ্যাডমিন প্যানেলে যান" : "Go to Admin Panel"}
-            className="size-8 flex items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 transition-colors cursor-pointer shadow-2xs"
+            className="size-7 sm:size-8 flex items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 transition-colors cursor-pointer shadow-2xs"
           >
             <Shield className="size-3.5" />
           </Link>
@@ -128,7 +145,7 @@ export function ReceptionistHeader({
               ? "ওয়েটিং রুম ডিসপ্লে খুলুন"
               : "Open Waiting Room Display"
           }
-          className="size-8 flex items-center justify-center rounded-lg border border-border/80 bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer shadow-2xs"
+          className="size-7 sm:size-8 flex items-center justify-center rounded-lg border border-border/80 bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer shadow-2xs"
         >
           <Tv className="size-3.5" />
         </Link>
@@ -136,9 +153,9 @@ export function ReceptionistHeader({
         {/* Language Switcher */}
         <LanguageSwitcher className="h-7 px-1.5 rounded-lg bg-card border-border/80 text-[11px] shadow-2xs" />
 
-        {/* Fullscreen & Theme */}
-        <FullscreenToggle />
-        <ThemeToggle />
+        {/* Fullscreen & Theme (Fullscreen hidden on small phones to conserve space) */}
+        <FullscreenToggle className="hidden sm:inline-flex p-1.5 rounded-lg" />
+        <ThemeToggle className="scale-90 sm:scale-100 origin-right" />
 
         {/* Logout */}
         <form action={logoutAction}>
@@ -146,7 +163,7 @@ export function ReceptionistHeader({
             type="submit"
             variant="ghost"
             size="icon"
-            className="size-8 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+            className="size-7 sm:size-8 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
             title={lang === "bn" ? "লগআউট" : "Sign Out"}
           >
             <LogOut className="size-3.5" />

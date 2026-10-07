@@ -358,6 +358,29 @@ export function CashierDashboardView({
 
       {/* 2. Main Workspace */}
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
+        {/* Anti-Autofill Credential Trap: Isolates browser password managers from hijacking live search inputs */}
+        <form
+          autoComplete="off"
+          aria-hidden="true"
+          className="sr-only absolute -left-[9999px] -top-[9999px] h-0 w-0 opacity-0 pointer-events-none"
+          tabIndex={-1}
+        >
+          <input
+            type="text"
+            name="dummy_cashier_username_trap"
+            tabIndex={-1}
+            autoComplete="username"
+            defaultValue=""
+          />
+          <input
+            type="password"
+            name="dummy_cashier_password_trap"
+            tabIndex={-1}
+            autoComplete="current-password"
+            defaultValue=""
+          />
+        </form>
+
         {/* Top Control Bar: Date Selector, Search & Financial Badges */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 bg-card/60 backdrop-blur-xl p-2.5 px-3 rounded-xl border border-border/80 shadow-xs">
           {/* Left: Date Navigator & Live Search */}
@@ -375,7 +398,15 @@ export function CashierDashboardView({
             <div className="relative flex-1 min-w-[200px] max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                type="text"
+                type="search"
+                name="cashier_billing_search_query"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 placeholder="Search bills by patient, phone, ticket..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -874,6 +905,11 @@ export function CashierDashboardView({
                   <Input
                     type="password"
                     inputMode="numeric"
+                    autoComplete="one-time-code"
+                    name="cashier_desk_auth_pin"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
                     maxLength={4}
                     placeholder="Enter your 4-digit PIN"
                     value={cashierPin}

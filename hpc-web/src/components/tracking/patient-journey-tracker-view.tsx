@@ -262,6 +262,29 @@ export function PatientJourneyTrackerView({
 
   return (
     <div className="w-full space-y-3 pb-8">
+      {/* Anti-Autofill Credential Trap: Isolates browser password managers from hijacking live search inputs */}
+      <form
+        autoComplete="off"
+        aria-hidden="true"
+        className="sr-only absolute -left-[9999px] -top-[9999px] h-0 w-0 opacity-0 pointer-events-none"
+        tabIndex={-1}
+      >
+        <input
+          type="text"
+          name="dummy_tracker_username_trap"
+          tabIndex={-1}
+          autoComplete="username"
+          defaultValue=""
+        />
+        <input
+          type="password"
+          name="dummy_tracker_password_trap"
+          tabIndex={-1}
+          autoComplete="current-password"
+          defaultValue=""
+        />
+      </form>
+
       {/* 1. Header & Live Indicator Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3.5 rounded-2xl bg-card/70 backdrop-blur-xl border border-border/80 shadow-xs">
         <div className="flex items-center gap-3">
@@ -476,6 +499,15 @@ export function PatientJourneyTrackerView({
         <div className="relative flex-1 w-full sm:max-w-md">
           <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
+            type="search"
+            name="journey_tracker_patient_search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
             placeholder="Search patient by name, phone, MRN, doctor or room..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -1132,6 +1164,15 @@ function QuickCheckInWithoutSlotDialog({
                   <div className="relative">
                     <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <Input
+                      type="search"
+                      name="quick_checkin_patient_search"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
                       placeholder="Search patient by name, phone or MRN..."
                       value={patientSearch}
                       onChange={(e) => setPatientSearch(e.target.value)}

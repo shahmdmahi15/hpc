@@ -23,6 +23,28 @@ export default async function AdminLayout({
         <AdminTopNav />
       </div>
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
+        {/* Anti-Autofill Credential Trap: Isolates browser password managers from hijacking live search inputs across admin panel */}
+        <form
+          autoComplete="off"
+          aria-hidden="true"
+          className="sr-only absolute -left-[9999px] -top-[9999px] h-0 w-0 opacity-0 pointer-events-none"
+          tabIndex={-1}
+        >
+          <input
+            type="text"
+            name="dummy_admin_username_trap"
+            tabIndex={-1}
+            autoComplete="username"
+            defaultValue=""
+          />
+          <input
+            type="password"
+            name="dummy_admin_password_trap"
+            tabIndex={-1}
+            autoComplete="current-password"
+            defaultValue=""
+          />
+        </form>
         {children}
       </main>
     </div>

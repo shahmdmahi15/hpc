@@ -407,6 +407,11 @@ export function CallToTherapyRoomDialog({
               <Input
                 type="password"
                 inputMode="numeric"
+                autoComplete="one-time-code"
+                name="handler_call_room_auth_pin"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 maxLength={4}
                 placeholder="Enter your 4-digit PIN"
                 value={handlerPin}

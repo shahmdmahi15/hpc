@@ -107,6 +107,15 @@ export function HandlerExtraSlotsTab({
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
         <Input
+          type="search"
+          name="handler_extra_slots_filter"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-form-type="other"
           placeholder="Filter by patient name, phone, slot..."
           value={filterQuery}
           onChange={(e) => setFilterQuery(e.target.value)}

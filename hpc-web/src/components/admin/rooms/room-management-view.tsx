@@ -341,6 +341,15 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
+                type="search"
+                name="admin_room_search_query"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 placeholder="Search by room number, purpose, or title..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

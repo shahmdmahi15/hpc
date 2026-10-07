@@ -415,20 +415,20 @@ export function ReceptionistDashboardView({
           </div>
 
           {/* Right: Desk Badges */}
-          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[11px]">
-              <Activity className="size-3.5" />
-              <span>Live Queue: {activeQueueCount}</span>
+          <div className="grid grid-cols-3 gap-1.5 w-full sm:flex sm:w-auto sm:items-center sm:gap-2 text-xs font-mono text-muted-foreground">
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-[10.5px] sm:text-[11px] truncate">
+              <Activity className="size-3 sm:size-3.5 shrink-0" />
+              <span className="truncate">Queue: {activeQueueCount}</span>
             </div>
 
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 font-bold text-[11px]">
-              <Clock className="size-3.5" />
-              <span>Therapy Slots: {data.slots.length}</span>
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 font-bold text-[10.5px] sm:text-[11px] truncate">
+              <Clock className="size-3 sm:size-3.5 shrink-0" />
+              <span className="truncate">Slots: {data.slots.length}</span>
             </div>
 
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[11px]">
-              <Users className="size-3.5 text-indigo-500" />
-              <span>Patients: {data.totalPatientsCount}</span>
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-muted/60 border border-border text-muted-foreground font-bold text-[10.5px] sm:text-[11px] truncate">
+              <Users className="size-3 sm:size-3.5 text-indigo-500 shrink-0" />
+              <span className="truncate">Patients: {data.totalPatientsCount}</span>
             </div>
           </div>
         </div>
@@ -436,7 +436,7 @@ export function ReceptionistDashboardView({
         {/* Tabs for Receptionist Desk Navigation (Arrival & Check-In placed at 1st position) */}
         <Tabs defaultValue="arrival" className="w-full space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
-            <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex flex-wrap gap-1 max-w-full">
+            <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex items-center overflow-x-auto scrollbar-none gap-1 max-w-full shrink-0">
               {/* TAB 1: ARRIVAL & IMMEDIATE CHECK-IN (DEFAULT / FIRST POSITION) */}
               <TabsTrigger
                 value="arrival"
@@ -492,26 +492,28 @@ export function ReceptionistDashboardView({
               </TabsTrigger>
             </TabsList>
 
-            {/* Contextual Actions Bar */}
-            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+            {/* Contextual Actions Bar (3-column on mobile, flex on sm+) */}
+            <div className="grid grid-cols-3 gap-1.5 w-full sm:flex sm:items-center sm:gap-2 sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsAddToQueueOpen(true)}
-                className="h-7.5 px-2.5 text-xs font-semibold gap-1.5 border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 cursor-pointer shadow-xs"
+                className="h-8 sm:h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 sm:gap-1.5 border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 cursor-pointer shadow-xs justify-center"
               >
-                <Plus className="size-3" />
-                <span>Add to Queue</span>
+                <Plus className="size-3 shrink-0" />
+                <span className="hidden xs:inline">Add to Queue</span>
+                <span className="xs:hidden">Queue</span>
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsNewPatientOpen(true)}
-                className="h-7.5 px-2.5 text-xs font-semibold gap-1.5 border-primary/40 hover:bg-primary/10 text-primary cursor-pointer shadow-xs"
+                className="h-8 sm:h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 sm:gap-1.5 border-primary/40 hover:bg-primary/10 text-primary cursor-pointer shadow-xs justify-center"
               >
-                <UserPlus className="size-3" />
-                <span>Register Patient</span>
+                <UserPlus className="size-3 shrink-0" />
+                <span className="hidden xs:inline">Register Patient</span>
+                <span className="xs:hidden">Patient</span>
               </Button>
 
               <Button
@@ -521,10 +523,11 @@ export function ReceptionistDashboardView({
                   setPreselectedSlotId(undefined);
                   setIsBookTicketOpen(true);
                 }}
-                className="h-7.5 px-3 text-xs font-semibold gap-1.5 shadow-sm cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                className="h-8 sm:h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 sm:gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center"
               >
-                <Ticket className="size-3" />
-                <span>Book Ticket</span>
+                <Ticket className="size-3 shrink-0" />
+                <span className="hidden xs:inline">Book Ticket</span>
+                <span className="xs:hidden">Ticket</span>
               </Button>
             </div>
           </div>

@@ -103,6 +103,15 @@ export function SlotScheduleBoard({
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-2.5 top-1.5 size-3 text-muted-foreground" />
           <Input
+            type="search"
+            name="slot_schedule_filter_query"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder="Search token, patient, phone..."
@@ -122,9 +131,9 @@ export function SlotScheduleBoard({
       {/* ---------------------------------------------------- */}
       {/* 2. Today's Capacity & Queue Telemetry Metrics        */}
       {/* ---------------------------------------------------- */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+      <div className="flex overflow-x-auto pb-1.5 sm:pb-0 sm:grid sm:grid-cols-3 lg:grid-cols-5 gap-2 scrollbar-none snap-x snap-mandatory -mx-1 px-1 sm:mx-0 sm:px-0">
         {/* Total Booked */}
-        <Card className="border-border/80 bg-card/80 shadow-2xs">
+        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Total Booked
@@ -135,14 +144,14 @@ export function SlotScheduleBoard({
             <div className="text-lg sm:text-xl font-bold text-foreground">
               {stats.totalBooked}
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground whitespace-nowrap">
               of {stats.totalRegularCapacity} standard capacity
             </p>
           </CardContent>
         </Card>
 
         {/* Checked-In Patients */}
-        <Card className="border-border/80 bg-card/80 shadow-2xs">
+        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Checked In
@@ -153,14 +162,14 @@ export function SlotScheduleBoard({
             <div className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">
               {stats.checkedInCount}
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground whitespace-nowrap">
               Ready in waiting area
             </p>
           </CardContent>
         </Card>
 
         {/* Male Patients Booked */}
-        <Card className="border-border/80 bg-card/80 shadow-2xs">
+        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Male Quota
@@ -171,14 +180,14 @@ export function SlotScheduleBoard({
             <div className="text-lg sm:text-xl font-bold text-sky-600 dark:text-sky-400">
               {stats.maleBooked}
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground whitespace-nowrap">
               {Math.round(stats.totalRegularCapacity / 2)} capacity
             </p>
           </CardContent>
         </Card>
 
         {/* Female Patients Booked */}
-        <Card className="border-border/80 bg-card/80 shadow-2xs">
+        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Female Quota
@@ -189,14 +198,14 @@ export function SlotScheduleBoard({
             <div className="text-lg sm:text-xl font-bold text-pink-600 dark:text-pink-400">
               {stats.femaleBooked}
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground whitespace-nowrap">
               {Math.round(stats.totalRegularCapacity / 2)} capacity
             </p>
           </CardContent>
         </Card>
 
         {/* Standby Extra Booked */}
-        <Card className="border-border/80 bg-card/80 shadow-2xs col-span-2 lg:col-span-1">
+        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs sm:col-span-2 lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Standby Extra
@@ -207,7 +216,7 @@ export function SlotScheduleBoard({
             <div className="text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400">
               {stats.extraBooked}
             </div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground whitespace-nowrap">
               Emergency buffer tickets
             </p>
           </CardContent>
@@ -228,7 +237,7 @@ export function SlotScheduleBoard({
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
           {slots.map((slot) => {
             const { telemetry, appointments = [] } = slot;
             const filteredAppointments = appointments.filter((a) => {
@@ -295,9 +304,9 @@ export function SlotScheduleBoard({
                       size="sm"
                       onClick={() => onBookSlot(slot.id)}
                       disabled={telemetry.isCompletelyFull}
-                      className="h-6 text-[11px] px-2 gap-1 font-semibold cursor-pointer shadow-2xs"
+                      className="h-7 sm:h-6 min-h-[28px] sm:min-h-0 text-xs sm:text-[11px] px-2.5 sm:px-2 gap-1 font-semibold cursor-pointer shadow-2xs touch-manipulation"
                     >
-                      <Plus className="size-2.5" />
+                      <Plus className="size-3 sm:size-2.5" />
                       <span>Book</span>
                     </Button>
                   </div>
@@ -583,7 +592,7 @@ export function SlotScheduleBoard({
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-5.5 text-[9.5px] px-1.5 gap-1 cursor-pointer border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-semibold"
+                                          className="h-7 sm:h-5.5 min-h-[28px] sm:min-h-0 text-[10.5px] sm:text-[9.5px] px-2 sm:px-1.5 gap-1 cursor-pointer border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-semibold touch-manipulation"
                                           onClick={() => onCheckOut(apt.id)}
                                           title="Mark Patient Checked Out for the Day"
                                         >
@@ -612,7 +621,7 @@ export function SlotScheduleBoard({
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="h-5.5 text-[9.5px] px-1.5 gap-1 cursor-pointer"
+                                      className="h-7 sm:h-5.5 min-h-[28px] sm:min-h-0 text-[10.5px] sm:text-[9.5px] px-2.5 sm:px-1.5 gap-1 cursor-pointer touch-manipulation font-semibold"
                                       onClick={() => onCheckIn(apt.id)}
                                       title="Mark Checked In"
                                     >
@@ -627,13 +636,13 @@ export function SlotScheduleBoard({
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="size-5.5 text-muted-foreground hover:text-destructive cursor-pointer"
+                                        className="size-7 sm:size-5.5 min-w-[28px] sm:min-w-0 text-muted-foreground hover:text-destructive cursor-pointer touch-manipulation"
                                         onClick={() =>
                                           onCancelAppointment(apt.id)
                                         }
                                         title="Cancel Ticket"
                                       >
-                                        <X className="size-2.5" />
+                                        <X className="size-3 sm:size-2.5" />
                                       </Button>
                                     )}
                                 </div>

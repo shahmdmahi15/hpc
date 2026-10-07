@@ -301,6 +301,12 @@ export function CreatePerformerDialog({
               <Input
                 id="perfPin"
                 type="password"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                name="new_performer_auth_pin"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 maxLength={4}
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}

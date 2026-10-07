@@ -14,6 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ReceptionistPerformerSelect,
   type ReceptionistPerformer,
 } from "@/components/receptionist/receptionist-performer-select";
@@ -173,6 +180,21 @@ export function PatientArrivalTab({
     setActivePerformerId(id);
     onSelectPerformerId(id);
   };
+
+  // Memoized Select Items for Base UI / shadcn Select
+  const doctorSelectItems = React.useMemo(() => {
+    return doctors.map((d) => ({
+      value: d.id,
+      label: `${d.name || "Doctor"} — ৳${(d.consultationFee ?? 1000).toLocaleString()} Fee`,
+    }));
+  }, [doctors]);
+
+  const performerSelectItems = React.useMemo(() => {
+    return performers.map((p) => ({
+      value: p.id,
+      label: p.name,
+    }));
+  }, [performers]);
 
   // Load Today Arrivals
   const loadTodayArrivals = React.useCallback(async () => {
@@ -946,17 +968,27 @@ export function PatientArrivalTab({
                       Fee automatically populated
                     </span>
                   </Label>
-                  <select
-                    value={checkInDoctorId}
-                    onChange={(e) => setCheckInDoctorId(e.target.value)}
-                    className="w-full h-9 px-3 rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:ring-2 focus:ring-indigo-500/30"
+                  <Select
+                    items={doctorSelectItems}
+                    value={checkInDoctorId || ""}
+                    onValueChange={(val) => setCheckInDoctorId(val || "")}
                   >
-                    {doctors.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name || "Doctor"} — ৳{(d.consultationFee ?? 1000).toLocaleString()} Fee
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-9 text-xs font-semibold bg-background border-border text-foreground">
+                      <SelectValue placeholder="Select Doctor">
+                        {(val: string | null) => {
+                          const item = doctorSelectItems.find((d) => d.value === val);
+                          return item ? item.label : "Select Doctor";
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="z-50 max-h-56">
+                      {doctorSelectItems.map((d) => (
+                        <SelectItem key={d.value} value={d.value} className="text-xs">
+                          {d.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -1012,19 +1044,28 @@ export function PatientArrivalTab({
                     Accountability audit
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={activePerformerId}
-                    onChange={(e) => handlePerformerChange(e.target.value)}
-                    className="w-full h-8.5 px-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
-                    required
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Select
+                    items={performerSelectItems}
+                    value={activePerformerId || ""}
+                    onValueChange={(val) => handlePerformerChange(val || "")}
                   >
-                    {performers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-9 text-xs font-semibold bg-background border-border text-foreground">
+                      <SelectValue placeholder="Select Staff">
+                        {(val: string | null) => {
+                          const item = performerSelectItems.find((p) => p.value === val);
+                          return item ? item.label : "Select Staff";
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="z-50 max-h-56">
+                      {performerSelectItems.map((p) => (
+                        <SelectItem key={p.value} value={p.value} className="text-xs">
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
                   <Input
                     type="password"
@@ -1331,17 +1372,27 @@ export function PatientArrivalTab({
                     <Label className="text-xs font-semibold text-foreground">
                       Assigned Doctor
                     </Label>
-                    <select
-                      value={regDoctorId}
-                      onChange={(e) => setRegDoctorId(e.target.value)}
-                      className="w-full h-8.5 px-2 rounded-xl border border-border bg-background text-xs font-semibold text-foreground"
+                    <Select
+                      items={doctorSelectItems}
+                      value={regDoctorId || ""}
+                      onValueChange={(val) => setRegDoctorId(val || "")}
                     >
-                      {doctors.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name || "Doctor"} — ৳{(d.consultationFee ?? 1000).toLocaleString()} Fee
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full h-9 text-xs font-semibold bg-background border-border text-foreground">
+                        <SelectValue placeholder="Select Doctor">
+                          {(val: string | null) => {
+                            const item = doctorSelectItems.find((d) => d.value === val);
+                            return item ? item.label : "Select Doctor";
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="z-50 max-h-56">
+                        {doctorSelectItems.map((d) => (
+                          <SelectItem key={d.value} value={d.value} className="text-xs">
+                            {d.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>
@@ -1354,19 +1405,28 @@ export function PatientArrivalTab({
                     <span>Authorizing Receptionist & PIN *</span>
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={activePerformerId}
-                    onChange={(e) => handlePerformerChange(e.target.value)}
-                    className="w-full h-8.5 px-2 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
-                    required
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Select
+                    items={performerSelectItems}
+                    value={activePerformerId || ""}
+                    onValueChange={(val) => handlePerformerChange(val || "")}
                   >
-                    {performers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-9 text-xs font-semibold bg-background border-border text-foreground">
+                      <SelectValue placeholder="Select Staff">
+                        {(val: string | null) => {
+                          const item = performerSelectItems.find((p) => p.value === val);
+                          return item ? item.label : "Select Staff";
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="z-50 max-h-56">
+                      {performerSelectItems.map((p) => (
+                        <SelectItem key={p.value} value={p.value} className="text-xs">
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
                   <Input
                     type="password"

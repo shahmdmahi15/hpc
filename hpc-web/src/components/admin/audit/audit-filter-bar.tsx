@@ -107,6 +107,15 @@ export function AuditFilterBar({
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
+            type="search"
+            name="admin_audit_log_search_query"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
             value={filters.search || ""}
             onChange={(e) =>
               onFilterChange({ search: e.target.value, page: 1 })

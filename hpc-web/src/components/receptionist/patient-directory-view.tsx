@@ -154,24 +154,24 @@ export function PatientDirectoryView({
             value={genderFilter}
             onValueChange={(val) => setGenderFilter(val || "ALL")}
           >
-            <SelectTrigger className="h-7.5 text-xs w-[120px] bg-background">
+            <SelectTrigger className="h-8 sm:h-7.5 text-xs w-full sm:w-[140px] bg-background">
               <SelectValue placeholder="Gender">
                 {(val: string | null) => {
                   const item = GENDER_FILTER_ITEMS.find((i) => i.value === val);
-                  return item ? item.label : "Gender";
+                  return item ? item.label : "All Genders";
                 }}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent className="text-xs">
+            <SelectContent className="text-xs z-50">
               {GENDER_FILTER_ITEMS.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
+                <SelectItem key={item.value} value={item.value} className="text-xs">
                   {item.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <span className="text-[11px] text-muted-foreground font-medium">
+          <span className="text-[11px] text-muted-foreground font-medium shrink-0">
             Showing {patients.length} of {totalCount}
           </span>
         </div>
@@ -180,7 +180,7 @@ export function PatientDirectoryView({
         <Button
           size="sm"
           onClick={onOpenNewPatient}
-          className="h-7.5 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-2.5"
+          className="h-8 sm:h-7.5 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer w-full sm:w-auto shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-2.5 justify-center"
         >
           <UserPlus className="size-3.5" />
           <span>Register Patient</span>

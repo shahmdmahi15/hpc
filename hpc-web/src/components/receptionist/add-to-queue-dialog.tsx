@@ -13,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ReceptionistPerformerSelect,
   type ReceptionistPerformer,
 } from "@/components/receptionist/receptionist-performer-select";
@@ -104,6 +111,16 @@ function AddToQueueDialogBody({
       setConsultationFee("1000");
     }
   };
+
+  const doctorSelectItems = React.useMemo(() => {
+    return [
+      { value: "GENERAL", label: "General Consultation (No Doctor Pre-assigned)" },
+      ...doctors.map((doc) => ({
+        value: doc.id,
+        label: `${doc.name || "Doctor"} — Preset Fee: ৳${(doc.consultationFee ?? 1000).toLocaleString()}`,
+      })),
+    ];
+  }, [doctors]);
 
   const [searchResults, setSearchResults] = React.useState<any[]>([]);
   const [isSearching, setIsSearching] = React.useState<boolean>(false);
@@ -267,6 +284,15 @@ function AddToQueueDialogBody({
                   <div className="relative">
                     <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <Input
+                      type="search"
+                      name="add_queue_patient_search_query"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
                       placeholder="Search patient by name or phone..."
                       value={patientSearchQuery}
                       onChange={(e) => setPatientSearchQuery(e.target.value)}
@@ -395,18 +421,27 @@ function AddToQueueDialogBody({
                       Doctor preset fee applies automatically
                     </span>
                   </Label>
-                  <select
-                    value={selectedDoctorId}
-                    onChange={(e) => handleDoctorChange(e.target.value)}
-                    className="w-full text-xs h-9 px-3 rounded-lg border border-border/80 bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-sky-500 cursor-pointer font-medium"
+                  <Select
+                    items={doctorSelectItems}
+                    value={selectedDoctorId || "GENERAL"}
+                    onValueChange={(val) => handleDoctorChange(val === "GENERAL" || !val ? "" : val)}
                   >
-                    <option value="">General Consultation (No Doctor Pre-assigned)</option>
-                    {doctors.map((doc) => (
-                      <option key={doc.id} value={doc.id}>
-                        {doc.name || "Doctor"} — Preset Fee: ৳{(doc.consultationFee ?? 1000).toLocaleString()}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full text-xs h-9 bg-background border-border/80 text-foreground font-medium">
+                      <SelectValue placeholder="Select Doctor">
+                        {(val: string | null) => {
+                          const item = doctorSelectItems.find((i) => i.value === (val || "GENERAL"));
+                          return item ? item.label : "General Consultation (No Doctor Pre-assigned)";
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="z-50 max-h-56">
+                      {doctorSelectItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value} className="text-xs">
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">

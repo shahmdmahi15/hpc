@@ -195,18 +195,27 @@ export function QueueManagementTab({
     <div className="space-y-2.5">
       {/* Top Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 px-3 rounded-xl border border-border/70 bg-card/75 shadow-xs">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 w-full">
+          <div className="relative w-full sm:w-64">
             <Search className="size-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
+              type="search"
+              name="queue_mgmt_filter_query"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
               placeholder="Filter by patient name or phone..."
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              className="pl-7 text-xs h-7 rounded-lg"
+              className="pl-7 text-xs h-8 sm:h-7 rounded-lg w-full bg-background"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold flex-wrap">
             <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
               Therapy: {therapyQueue.length}
             </span>
@@ -219,7 +228,7 @@ export function QueueManagementTab({
         <Button
           size="sm"
           onClick={onOpenAddToQueue}
-          className="h-7 px-2.5 text-xs font-semibold gap-1.5 shadow-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+          className="h-8 sm:h-7 px-2.5 text-xs font-semibold gap-1.5 shadow-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto shrink-0 justify-center"
         >
           <Plus className="size-3" />
           <span>Add Patient to Queue</span>
@@ -635,7 +644,7 @@ function QueueManagementCard({
           variant="outline"
           onClick={onSwitchQueue}
           disabled={isLoading}
-          className="flex-1 h-6.5 text-[10.5px] font-semibold gap-1 cursor-pointer hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          className="flex-1 h-7 sm:h-6.5 text-[10.5px] font-semibold gap-1 cursor-pointer hover:bg-muted text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
           title={
             isConsultation
               ? "Move to Therapy Queue"
@@ -650,7 +659,7 @@ function QueueManagementCard({
           size="xs"
           variant="outline"
           onClick={onPrintTicket}
-          className="h-6.5 px-2 text-[10.5px] font-semibold gap-1 cursor-pointer text-primary hover:bg-primary/10 border-primary/30"
+          className="h-7 sm:h-6.5 px-2 text-[10.5px] font-semibold gap-1 cursor-pointer text-primary hover:bg-primary/10 border-primary/30 touch-manipulation"
           title="Print 80mm Queue Ticket"
         >
           <Printer className="size-2.5" />
@@ -662,7 +671,7 @@ function QueueManagementCard({
           variant="ghost"
           onClick={onCheckOut}
           disabled={isLoading}
-          className="h-6.5 px-1.5 text-[10px] font-semibold gap-1 text-slate-600 dark:text-slate-400 hover:text-foreground hover:bg-muted cursor-pointer"
+          className="h-7 sm:h-6.5 px-1.5 text-[10px] font-semibold gap-1 text-slate-600 dark:text-slate-400 hover:text-foreground hover:bg-muted cursor-pointer touch-manipulation"
           title="Check out patient"
         >
           <CheckCircle2 className="size-2.5 text-emerald-500" />
@@ -674,7 +683,7 @@ function QueueManagementCard({
           variant="ghost"
           onClick={onCancel}
           disabled={isLoading}
-          className="h-6.5 px-1.5 text-[10px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+          className="h-7 sm:h-6.5 px-1.5 text-[10px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer touch-manipulation"
           title="Cancel queue ticket"
         >
           <span>Cancel</span>
