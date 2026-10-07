@@ -34,7 +34,10 @@ import {
   UserCheck,
   Sparkles,
   ArrowRight,
+  Banknote,
+  Pencil,
 } from "lucide-react";
+import { EditDoctorFeeDialog } from "@/components/admin/users/edit-doctor-fee-dialog";
 
 export interface UserAccountData {
   id: string;
@@ -42,6 +45,7 @@ export interface UserAccountData {
   name?: string | null;
   email?: string | null;
   whatsapp?: string | null;
+  consultationFee?: number | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   activeSessionCount: number;
@@ -62,9 +66,17 @@ interface UserManagementViewProps {
 }
 
 export function UserManagementView({ users }: UserManagementViewProps) {
+  const [userList, setUserList] = React.useState<UserAccountData[]>(users);
+
+  React.useEffect(() => {
+    setUserList(users);
+  }, [users]);
+
   const [activeTab, setActiveTab] = React.useState<"accounts" | "desks">("accounts");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
+  const [selectedDoctorForFee, setSelectedDoctorForFee] =
+    React.useState<UserAccountData | null>(null);
   const [selectedUserForReset, setSelectedUserForReset] = React.useState<{
     id: string;
     role: Role;
@@ -84,24 +96,32 @@ export function UserManagementView({ users }: UserManagementViewProps) {
     roleLabel?: string;
   } | null>(null);
 
+  const handleDoctorFeeSuccess = (doctorId: string, newFee: number) => {
+    setUserList((prev) =>
+      prev.map((u) =>
+        u.id === doctorId ? { ...u, consultationFee: newFee } : u,
+      ),
+    );
+  };
+
   // Split users into independent practitioner/admin accounts and station desk accounts
   const individualAccounts = React.useMemo(() => {
-    return users.filter((u) => u.role === Role.ADMIN || u.role === Role.DOCTOR);
-  }, [users]);
+    return userList.filter((u) => u.role === Role.ADMIN || u.role === Role.DOCTOR);
+  }, [userList]);
 
   const deskStationAccounts = React.useMemo(() => {
-    return users.filter(
+    return userList.filter(
       (u) =>
         u.role === Role.RECEPTIONIST ||
         u.role === Role.HANDLER ||
         u.role === Role.CASHIER,
     );
-  }, [users]);
+  }, [userList]);
 
   // Total active sessions tally
   const totalActiveSessions = React.useMemo(() => {
-    return users.reduce((acc, u) => acc + u.activeSessionCount, 0);
-  }, [users]);
+    return userList.reduce((acc, u) => acc + u.activeSessionCount, 0);
+  }, [userList]);
 
   // Filter individual accounts by search
   const filteredAccounts = React.useMemo(() => {
@@ -372,6 +392,34 @@ export function UserManagementView({ users }: UserManagementViewProps) {
                         </div>
                       )}
 
+                      {user.role === Role.DOCTOR && (
+                        <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-between mt-1">
+                          <div className="flex items-center gap-2">
+                            <div className="size-7 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                              <Banknote className="size-3.5" />
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider leading-none">
+                                Default Consultation Fee
+                              </div>
+                              <div className="text-xs sm:text-sm font-black text-foreground font-mono mt-0.5">
+                                ৳{(user.consultationFee ?? 1000).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            onClick={() => setSelectedDoctorForFee(user)}
+                            className="h-6.5 px-2 text-[10.5px] rounded-lg border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/15 font-bold cursor-pointer gap-1"
+                          >
+                            <Pencil className="size-2.5" />
+                            <span>Set Fee</span>
+                          </Button>
+                        </div>
+                      )}
+
                       <div className="pt-2 border-t border-border/40 text-[10.5px] text-muted-foreground flex items-center justify-between">
                         <span className="flex items-center gap-1">
                           <Calendar className="size-3" />
@@ -395,17 +443,32 @@ export function UserManagementView({ users }: UserManagementViewProps) {
 
                   {/* Account Actions */}
                   <div className="p-3 pt-0 flex items-center justify-between gap-1.5 border-t border-border/40 mt-auto bg-muted/10">
-                    <Button
-                      variant="outline"
-                      size="xs"
-                      onClick={() =>
-                        setSelectedUserForReset({ id: user.id, role: user.role })
-                      }
-                      className="rounded-lg h-7 text-[11px] gap-1 cursor-pointer"
-                    >
-                      <KeyRound className="size-3 text-amber-500" />
-                      <span>Reset Password</span>
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        onClick={() =>
+                          setSelectedUserForReset({ id: user.id, role: user.role })
+                        }
+                        className="rounded-lg h-7 text-[11px] gap-1 cursor-pointer"
+                      >
+                        <KeyRound className="size-3 text-amber-500" />
+                        <span>Reset Password</span>
+                      </Button>
+
+                      {user.role === Role.DOCTOR && (
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => setSelectedDoctorForFee(user)}
+                          className="rounded-lg h-7 text-[11px] gap-1 cursor-pointer border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 font-bold"
+                          title="Set Doctor Default Consultation Fee"
+                        >
+                          <Banknote className="size-3 text-sky-500" />
+                          <span>Fee: ৳{(user.consultationFee ?? 1000).toLocaleString()}</span>
+                        </Button>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-1">
                       {user.activeSessionCount > 0 && (
@@ -661,6 +724,15 @@ export function UserManagementView({ users }: UserManagementViewProps) {
           onOpenChange={(open) => !open && setPerformerToDelete(null)}
           performer={performerToDelete}
           adminPerformers={[]}
+        />
+      )}
+
+      {selectedDoctorForFee && (
+        <EditDoctorFeeDialog
+          open={Boolean(selectedDoctorForFee)}
+          onOpenChange={(open) => !open && setSelectedDoctorForFee(null)}
+          doctor={selectedDoctorForFee}
+          onSuccess={handleDoctorFeeSuccess}
         />
       )}
     </div>

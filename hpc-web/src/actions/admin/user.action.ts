@@ -69,7 +69,12 @@ export async function createUserAccountAction(
         email,
         whatsapp,
         password: hashedPassword,
-        consultationFee: role === Role.DOCTOR ? (consultationFee ?? 0) : 0,
+        consultationFee:
+          role === Role.DOCTOR
+            ? consultationFee !== undefined && !isNaN(consultationFee)
+              ? consultationFee
+              : 1000
+            : 0,
       },
     });
 
@@ -511,6 +516,8 @@ export async function updateDoctorConsultationFeeAction(
 
     revalidatePath("/admin/users");
     revalidatePath("/receptionist");
+    revalidatePath("/admin/tracking");
+    revalidatePath("/admin");
 
     return {
       success: true,

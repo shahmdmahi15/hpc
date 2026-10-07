@@ -42,6 +42,7 @@ export function CreateAccountDialog({
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [whatsapp, setWhatsapp] = React.useState("");
+  const [consultationFee, setConsultationFee] = React.useState("1000");
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<
@@ -61,6 +62,7 @@ export function CreateAccountDialog({
       setName("");
       setEmail("");
       setWhatsapp("");
+      setConsultationFee("1000");
       setPassword("");
       setFieldErrors({});
       setGeneralError(null);
@@ -79,6 +81,9 @@ export function CreateAccountDialog({
     formData.set("email", email.trim().toLowerCase());
     formData.set("whatsapp", whatsapp.trim());
     formData.set("password", password);
+    if (role === Role.DOCTOR) {
+      formData.set("consultationFee", consultationFee.trim());
+    }
 
     startTransition(async () => {
       const res = await createUserAccountAction(undefined, formData);
@@ -281,6 +286,53 @@ export function CreateAccountDialog({
               </p>
             )}
           </div>
+
+          {/* Doctor Default Consultation Fee (Only when role is DOCTOR) */}
+          {role === Role.DOCTOR && (
+            <div className="space-y-1.5 p-3 rounded-xl border border-sky-500/20 bg-sky-500/5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="doctor-fee" className="text-xs font-bold text-foreground">
+                  Default Consultation Fee (৳)
+                </Label>
+                <span className="text-[10.5px] text-muted-foreground font-mono">
+                  Preset charge per visit
+                </span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
+                  ৳
+                </span>
+                <Input
+                  id="doctor-fee"
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={consultationFee}
+                  onChange={(e) => setConsultationFee(e.target.value)}
+                  placeholder="1000"
+                  required
+                  disabled={isPending}
+                  className="pl-8 h-9 text-xs font-mono font-bold rounded-xl bg-background"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                {[500, 800, 1000, 1200, 1500].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setConsultationFee(String(preset))}
+                    className={`py-1 px-2 rounded-lg text-[10.5px] font-mono font-bold transition-all border cursor-pointer ${
+                      consultationFee === String(preset)
+                        ? "bg-sky-600 text-white border-sky-700 shadow-2xs"
+                        : "bg-background border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    ৳{preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Action buttons */}
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
