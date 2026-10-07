@@ -122,6 +122,15 @@ export function PatientDirectoryView({
           <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
             <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
             <Input
+              type="search"
+              name="patient_directory_search_query"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search patient, phone, or MRN..."

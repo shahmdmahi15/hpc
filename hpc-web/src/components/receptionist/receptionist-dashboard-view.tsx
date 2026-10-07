@@ -358,6 +358,29 @@ export function ReceptionistDashboardView({
 
       {/* 2. Main Desk Workspace */}
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
+        {/* Anti-Autofill Credential Trap: Isolates browser password managers from hijacking live search inputs */}
+        <form
+          autoComplete="off"
+          aria-hidden="true"
+          className="sr-only absolute -left-[9999px] -top-[9999px] h-0 w-0 opacity-0 pointer-events-none"
+          tabIndex={-1}
+        >
+          <input
+            type="text"
+            name="dummy_reception_username_trap"
+            tabIndex={-1}
+            autoComplete="username"
+            defaultValue=""
+          />
+          <input
+            type="password"
+            name="dummy_reception_password_trap"
+            tabIndex={-1}
+            autoComplete="current-password"
+            defaultValue=""
+          />
+        </form>
+
         {/* Top Control Bar: Date Selector, Search & Live Desk Badges */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 bg-card/60 backdrop-blur-xl p-2.5 px-3 rounded-xl border border-border/80 shadow-xs">
           {/* Left: Date Navigator & Live Search */}
@@ -374,7 +397,15 @@ export function ReceptionistDashboardView({
             <div className="relative flex-1 min-w-[200px] max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                type="text"
+                type="search"
+                name="receptionist_queue_search_query"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 placeholder="Search queue by patient, phone, ticket..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -402,21 +433,11 @@ export function ReceptionistDashboardView({
           </div>
         </div>
 
-        {/* Tabs for Receptionist Desk Navigation */}
-        <Tabs defaultValue="slots" className="w-full space-y-2.5">
+        {/* Tabs for Receptionist Desk Navigation (Arrival & Check-In placed at 1st position) */}
+        <Tabs defaultValue="arrival" className="w-full space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
             <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex flex-wrap gap-1 max-w-full">
-              <TabsTrigger
-                value="slots"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Clock className="size-3.5" />
-                <span>Therapy Slots</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/10 text-primary font-mono font-bold">
-                  {data.slots.length}
-                </span>
-              </TabsTrigger>
-
+              {/* TAB 1: ARRIVAL & IMMEDIATE CHECK-IN (DEFAULT / FIRST POSITION) */}
               <TabsTrigger
                 value="arrival"
                 className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
@@ -425,6 +446,18 @@ export function ReceptionistDashboardView({
                 <span>Arrival & Check-In</span>
                 <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-sky-500/15 text-sky-700 dark:text-sky-300 font-mono font-bold">
                   Desk
+                </span>
+              </TabsTrigger>
+
+              {/* TAB 2: THERAPY SLOTS */}
+              <TabsTrigger
+                value="slots"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <Clock className="size-3.5" />
+                <span>Therapy Slots</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/10 text-primary font-mono font-bold">
+                  {data.slots.length}
                 </span>
               </TabsTrigger>
 
@@ -496,7 +529,22 @@ export function ReceptionistDashboardView({
             </div>
           </div>
 
-          {/* TAB 1: SLOTS & SCHEDULE BOARD */}
+          {/* TAB 1: PATIENT ARRIVAL & IMMEDIATE CHECK-IN DESK (DEFAULT / FIRST TAB) */}
+          <TabsContent
+            value="arrival"
+            className="outline-none focus:outline-none space-y-4 m-0"
+          >
+            <PatientArrivalTab
+              performers={data.receptionistPerformers}
+              doctors={data.doctors || []}
+              lastPerformerId={lastPerformerId}
+              onSelectPerformerId={setLastPerformerId}
+              selectedDate={selectedDate}
+              onRefresh={() => refreshData(selectedDate)}
+            />
+          </TabsContent>
+
+          {/* TAB 2: SLOTS & SCHEDULE BOARD */}
           <TabsContent
             value="slots"
             className="outline-none focus:outline-none space-y-6 m-0"
@@ -511,21 +559,6 @@ export function ReceptionistDashboardView({
               onCheckIn={handleCheckIn}
               onCheckOut={handleCheckOut}
               onCancelAppointment={handleCancelAppointment}
-            />
-          </TabsContent>
-
-          {/* TAB 1A: PATIENT ARRIVAL & IMMEDIATE CHECK-IN DESK */}
-          <TabsContent
-            value="arrival"
-            className="outline-none focus:outline-none space-y-4 m-0"
-          >
-            <PatientArrivalTab
-              performers={data.receptionistPerformers}
-              doctors={data.doctors || []}
-              lastPerformerId={lastPerformerId}
-              onSelectPerformerId={setLastPerformerId}
-              selectedDate={selectedDate}
-              onRefresh={() => refreshData(selectedDate)}
             />
           </TabsContent>
 

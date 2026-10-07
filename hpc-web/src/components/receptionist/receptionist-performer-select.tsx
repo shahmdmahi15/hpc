@@ -110,6 +110,12 @@ export function ReceptionistPerformerSelect({
               </span>
               <Input
                 type="password"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                name="performer_auth_pin_input"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 maxLength={4}
                 value={pin || ""}
                 onChange={(e) => onPinChange(e.target.value.replace(/\D/g, ""))}
@@ -189,6 +195,12 @@ export function ReceptionistPerformerSelect({
             </span>
             <Input
               type="password"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              name="performer_multi_auth_pin_input"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
               maxLength={4}
               value={pin || ""}
               onChange={(e) => onPinChange(e.target.value.replace(/\D/g, ""))}

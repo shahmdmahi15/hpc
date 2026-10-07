@@ -424,8 +424,6 @@ export function PatientArrivalTab({
               performers={performers}
               selectedPerformerId={activePerformerId}
               onSelectPerformerId={handlePerformerChange}
-              pin={activePin}
-              onPinChange={setActivePin}
               label="Staff Identity"
             />
           </div>
@@ -434,6 +432,12 @@ export function PatientArrivalTab({
             <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
             <Input
               type="password"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              name="staff_arrival_header_pin"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
               maxLength={4}
               value={activePin}
               onChange={(e) => setActivePin(e.target.value.replace(/\D/g, ""))}
@@ -484,10 +488,19 @@ export function PatientArrivalTab({
         </CardHeader>
 
         <CardContent className="p-4 sm:p-5 space-y-4">
-          {/* Prominent Search Input */}
+          {/* Prominent Search Input (Protected against password manager autofill) */}
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
+              type="search"
+              name="arriving_patient_search_query"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-form-type="other"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search arriving patient by MRN (e.g. HPC-2026-0001), Name, or 11-digit Phone (01XXXXXXXXX)..."
@@ -1015,6 +1028,12 @@ export function PatientArrivalTab({
 
                   <Input
                     type="password"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    name="checkin_modal_auth_pin"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
                     maxLength={4}
                     value={activePin}
                     onChange={(e) => setActivePin(e.target.value.replace(/\D/g, ""))}
@@ -1351,6 +1370,12 @@ export function PatientArrivalTab({
 
                   <Input
                     type="password"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    name="register_modal_auth_pin"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
                     maxLength={4}
                     value={activePin}
                     onChange={(e) => setActivePin(e.target.value.replace(/\D/g, ""))}
