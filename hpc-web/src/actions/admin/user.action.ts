@@ -29,6 +29,9 @@ export async function createUserAccountAction(
     email: formData.get("email")?.toString() || "",
     whatsapp: formData.get("whatsapp")?.toString() || "",
     password: formData.get("password")?.toString() || "",
+    consultationFee: formData.get("consultationFee")
+      ? Number(formData.get("consultationFee"))
+      : undefined,
   };
 
   const validation = createAccountSchema.safeParse(rawData);
@@ -40,7 +43,7 @@ export async function createUserAccountAction(
     };
   }
 
-  const { role, name, email, whatsapp, password } = validation.data;
+  const { role, name, email, whatsapp, password, consultationFee } = validation.data;
 
   try {
     // Check if email already in use
@@ -66,6 +69,7 @@ export async function createUserAccountAction(
         email,
         whatsapp,
         password: hashedPassword,
+        consultationFee: role === Role.DOCTOR ? (consultationFee ?? 0) : 0,
       },
     });
 
@@ -378,6 +382,7 @@ export interface FormattedUserAccountData {
   name: string | null;
   email: string | null;
   whatsapp: string | null;
+  consultationFee?: number | null;
   createdAt: Date;
   updatedAt: Date;
   activeSessionCount: number;
@@ -452,6 +457,7 @@ export async function getAdminUsersPageDataAction(): Promise<
       name: u.name,
       email: u.email,
       whatsapp: u.whatsapp,
+      consultationFee: u.consultationFee ?? 0,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
       activeSessionCount: u.sessions.length,
@@ -460,5 +466,59 @@ export async function getAdminUsersPageDataAction(): Promise<
       performers: u.performers,
     }))
     .sort((a, b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99));
+}
+
+/**
+ * Updates a doctor's preset consultation fee.
+ */
+export async function updateDoctorConsultationFeeAction(
+  doctorId: string,
+  fee: number,
+): Promise<{ success: boolean; message: string }> {
+  const { user: adminUser } = await requireAuth(Role.ADMIN);
+
+  if (fee < 0 || isNaN(fee)) {
+    return { success: false, message: "Fee must be a valid non-negative number." };
+  }
+
+  try {
+    const doctor = await prisma.user.findUnique({
+      where: { id: doctorId },
+    });
+
+    if (!doctor || doctor.role !== Role.DOCTOR) {
+      return { success: false, message: "Doctor not found." };
+    }
+
+    await prisma.user.update({
+      where: { id: doctorId },
+      data: { consultationFee: fee },
+    });
+
+    await logAudit({
+      action: AuditAction.USER_UPDATE,
+      status: AuditStatus.SUCCESS,
+      userId: adminUser.id,
+      entity: "User",
+      entityId: doctorId,
+      details: {
+        action: "UPDATE_DOCTOR_CONSULTATION_FEE",
+        doctorName: doctor.name,
+        previousFee: doctor.consultationFee,
+        newFee: fee,
+      },
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/receptionist");
+
+    return {
+      success: true,
+      message: `Updated consultation fee for ${doctor.name || "Doctor"} to ৳${fee}.`,
+    };
+  } catch (error) {
+    console.error("[Update Doctor Fee Error]:", error);
+    return { success: false, message: "Failed to update consultation fee." };
+  }
 }
 

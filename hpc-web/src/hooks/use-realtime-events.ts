@@ -111,6 +111,7 @@ export function useRealtimeEvents(options: UseRealtimeEventsOptions = {}) {
       "appointment_created",
       "appointment_updated",
       "appointment_cancelled",
+      "station_changed",
       "patient_created",
       "patient_updated",
       "slot_updated",

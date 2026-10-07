@@ -164,6 +164,7 @@ model User {
   name     String?
   email    String?
   whatsapp String?
+  consultationFee Float? @default(0)
 
   sessions   Session[]
   auditLogs  AuditLog[]
@@ -439,6 +440,10 @@ model Appointment {
   queue     Queue?     @relation(fields: [queueId], references: [id], onDelete: SetNull)
   queueType QueueType? @default(THERAPY)
 
+  // Real-time Station / Department Journey Location
+  // Options: "RECEPTIONIST_DESK", "CONSULTATION_ROOM", "CASHIER_REGISTER", "THERAPY_ROOM", "CHECKED_OUT"
+  currentStation String? @default("RECEPTIONIST_DESK")
+
   // Direct Room / Chamber assignment (e.g. Doctor consultation room or specific therapy room)
   roomId String?
   room   Room?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
@@ -461,6 +466,8 @@ model Appointment {
   @@index([appointmentDate])
   @@index([appointmentDate, status])
   @@index([appointmentDate, queueType])
+  @@index([appointmentDate, currentStation])
+  @@index([currentStation])
   @@index([queueType])
   @@index([queueId])
   @@index([therapySlotId])

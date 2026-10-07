@@ -32,10 +32,11 @@ import { AddToQueueDialog } from "@/components/receptionist/add-to-queue-dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, UserPlus, Ticket, Activity, Plus, Search } from "lucide-react";
+import { Clock, Users, UserPlus, Ticket, Activity, Plus, Search, Compass } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
+import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
 
 interface ReceptionistDashboardViewProps {
   initialData: ReceptionistDashboardData;
@@ -416,6 +417,14 @@ export function ReceptionistDashboardView({
               </TabsTrigger>
 
               <TabsTrigger
+                value="tracking"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <Compass className="size-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>Patient Journey</span>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="queue"
                 className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
@@ -493,6 +502,14 @@ export function ReceptionistDashboardView({
             />
           </TabsContent>
 
+          {/* TAB 1B: PATIENT JOURNEY TRACKING (SLOT-FREE & FULL CLINIC TRACKING) */}
+          <TabsContent
+            value="tracking"
+            className="outline-none focus:outline-none space-y-4 m-0"
+          >
+            <PatientJourneyTrackerView defaultDate={selectedDate} />
+          </TabsContent>
+
           {/* TAB 2: LIVE QUEUE MANAGEMENT */}
           <TabsContent
             value="queue"
@@ -543,6 +560,7 @@ export function ReceptionistDashboardView({
         isOpen={isAddToQueueOpen}
         onOpenChange={setIsAddToQueueOpen}
         patients={data.patients || []}
+        doctors={data.doctors || []}
         performers={data.receptionistPerformers}
         defaultPerformerId={lastPerformerId}
         onSuccess={() => refreshData(selectedDate)}

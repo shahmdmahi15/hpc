@@ -774,6 +774,12 @@ export interface ReceptionistDashboardData {
   }[];
   patients: PatientWithCount[];
   totalPatientsCount: number;
+  doctors: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    consultationFee: number;
+  }[];
 }
 
 /**
@@ -810,6 +816,7 @@ export async function getReceptionistDashboardDataAction(
     patients,
     totalPatientsCount,
     rooms,
+    doctors,
   ] = await Promise.all([
     prisma.therapySlot.findMany({
       where: { isActive: true },
@@ -824,6 +831,7 @@ export async function getReceptionistDashboardDataAction(
         patient: true,
         therapySlot: { include: { room: true } },
         room: true,
+        doctor: true,
         bookedBy: true,
         extraApprovedBy: true,
       },
@@ -851,6 +859,16 @@ export async function getReceptionistDashboardDataAction(
     prisma.patient.count(),
     prisma.room.findMany({
       orderBy: { number: "asc" },
+    }),
+    prisma.user.findMany({
+      where: { role: Role.DOCTOR },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        consultationFee: true,
+      },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -974,6 +992,12 @@ export async function getReceptionistDashboardDataAction(
     })),
     patients,
     totalPatientsCount,
+    doctors: doctors.map((d) => ({
+      id: d.id,
+      name: d.name,
+      email: d.email,
+      consultationFee: d.consultationFee ?? 0,
+    })),
   };
 }
 
@@ -1072,6 +1096,7 @@ export interface AddPatientToQueueInput {
   performerId?: string;
   pin?: string;
   doctorId?: string;
+  feeAmount?: number;
 }
 
 /**
@@ -1189,20 +1214,53 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       },
     });
 
+    const stationToSet =
+      input.queueType === QueueType.CONSULTATION
+        ? "CONSULTATION_ROOM"
+        : "RECEPTIONIST_DESK";
+
+    // Determine consultation fee
+    let feeToCharge = input.feeAmount;
+    if (feeToCharge === undefined && validatedDoctorIdToSet) {
+      const doc = await prisma.user.findUnique({
+        where: { id: validatedDoctorIdToSet },
+        select: { consultationFee: true },
+      });
+      feeToCharge = doc?.consultationFee ?? DEFAULT_FEE;
+    }
+    if (feeToCharge === undefined) {
+      feeToCharge =
+        input.queueType === QueueType.CONSULTATION ? DEFAULT_FEE : 800;
+    }
+
     let updatedAppointment;
 
     if (existingAppointment) {
-      // Update existing appointment: assign queue & mark checked in
+      // Update existing appointment: assign queue, station & mark checked in
       updatedAppointment = await prisma.appointment.update({
         where: { id: existingAppointment.id },
         data: {
           status: AppointmentStatus.CHECKED_IN,
-          checkInTime: now,
+          currentStation: stationToSet,
+          checkInTime: existingAppointment.checkInTime || now,
           queueId: queueRecord.id,
           queueType: input.queueType,
           ...(input.toldTime ? { toldTime: input.toldTime } : {}),
           ...(input.notes ? { notes: input.notes } : {}),
           ...(validatedDoctorIdToSet ? { doctorId: validatedDoctorIdToSet } : {}),
+          ...(input.feeAmount !== undefined
+            ? {
+                feeAmount: input.feeAmount,
+                dueAmount: Math.max(
+                  0,
+                  input.feeAmount - (existingAppointment.paidAmount ?? 0),
+                ),
+                paymentStatus:
+                  input.feeAmount <= (existingAppointment.paidAmount ?? 0)
+                    ? "PAID"
+                    : "PARTIAL",
+              }
+            : {}),
         },
         include: { patient: true, therapySlot: true, queue: true, doctor: true },
       });
@@ -1218,8 +1276,6 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
         0,
       );
 
-      const feeToCharge = DEFAULT_FEE;
-
       updatedAppointment = await prisma.appointment.create({
         data: {
           type:
@@ -1231,6 +1287,7 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           gender: patient.gender,
           bookingType: BookingType.REGULAR,
           status: AppointmentStatus.CHECKED_IN,
+          currentStation: stationToSet,
           checkInTime: now,
           queueId: queueRecord.id,
           queueType: input.queueType,
@@ -1241,7 +1298,7 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           feeAmount: feeToCharge,
           paidAmount: 0,
           dueAmount: feeToCharge,
-          paymentStatus: "PENDING",
+          paymentStatus: feeToCharge === 0 ? "PAID" : "PENDING",
         },
         include: { patient: true, therapySlot: true, queue: true, doctor: true },
       });

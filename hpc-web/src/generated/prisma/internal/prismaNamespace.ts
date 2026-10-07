@@ -1359,6 +1359,7 @@ export const UserScalarFieldEnum = {
   name: 'name',
   email: 'email',
   whatsapp: 'whatsapp',
+  consultationFee: 'consultationFee',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1509,6 +1510,7 @@ export const AppointmentScalarFieldEnum = {
   routedAt: 'routedAt',
   queueId: 'queueId',
   queueType: 'queueType',
+  currentStation: 'currentStation',
   roomId: 'roomId',
   medicalRecordId: 'medicalRecordId',
   consultationDate: 'consultationDate',
@@ -1649,6 +1651,13 @@ export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
 
 
 /**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+/**
  * Reference to a field of type 'DateTime'
  */
 export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -1715,13 +1724,6 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'Gender'
  */
 export type EnumGenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Gender'>
-    
-
-
-/**
- * Reference to a field of type 'Float'
- */
-export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
     
 
 

@@ -32,12 +32,14 @@ import {
   DoorOpen,
   Send,
   Phone,
+  Compass,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
 import { HandlerSendPatientDialog } from "@/components/handler/handler-send-patient-dialog";
 import { ModalityTimersWidget } from "@/components/handler/modality-timers-widget";
+import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
 
 interface HandlerDashboardViewProps {
   initialData: HandlerDashboardData;
@@ -492,6 +494,14 @@ export function HandlerDashboardView({
               </TabsTrigger>
 
               <TabsTrigger
+                value="tracking"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <Compass className="size-3 text-indigo-500" />
+                <span>Patient Journey</span>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="extra-slots"
                 className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
@@ -581,6 +591,11 @@ export function HandlerDashboardView({
               onCheckIn={handleCheckIn}
               onCancelAppointment={handleCancelAppointment}
             />
+          </TabsContent>
+
+          {/* 2B. Patient Journey Tracking Tab */}
+          <TabsContent value="tracking" className="space-y-2 outline-none">
+            <PatientJourneyTrackerView defaultDate={selectedDate} />
           </TabsContent>
 
           {/* 3. Extra Slots Monitor Tab */}

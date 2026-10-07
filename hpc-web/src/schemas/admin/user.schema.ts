@@ -17,6 +17,10 @@ export const createAccountSchema = z.object({
     .string()
     .min(6, "Password must be at least 6 characters.")
     .max(100, "Password must not exceed 100 characters."),
+  consultationFee: z.coerce
+    .number()
+    .min(0, "Fee must be a valid non-negative number.")
+    .optional(),
 });
 
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;

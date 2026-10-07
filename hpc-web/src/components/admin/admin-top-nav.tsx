@@ -14,6 +14,7 @@ import {
   Activity,
   CreditCard,
   Tv,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,12 @@ const NAV_ITEMS = [
     label: "Overview",
     icon: LayoutDashboard,
     exact: true,
+  },
+  {
+    href: "/admin/tracking",
+    label: "Patient Journey",
+    icon: Compass,
+    exact: false,
   },
   {
     href: "/admin/users",

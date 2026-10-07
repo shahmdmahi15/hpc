@@ -44,10 +44,12 @@ import {
   Send,
   CalendarCheck2,
   Printer,
+  Compass,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
+import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
 import { SendPatientDialog } from "@/components/doctor/send-patient-dialog";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import {
@@ -579,6 +581,14 @@ export function DoctorDashboardView({
               </TabsTrigger>
 
               <TabsTrigger
+                value="tracking"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <Compass className="size-3 text-indigo-500" />
+                <span>Patient Journey</span>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="patients"
                 className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
@@ -699,6 +709,11 @@ export function DoctorDashboardView({
               onCheckIn={handleCheckIn}
               onCancelAppointment={handleCancelAppointment}
             />
+          </TabsContent>
+
+          {/* 3B. Patient Journey Tracking Tab */}
+          <TabsContent value="tracking" className="space-y-2 outline-none">
+            <PatientJourneyTrackerView defaultDate={selectedDate} />
           </TabsContent>
 
           {/* 4. Patients Directory & Registration Tab */}

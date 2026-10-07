@@ -8,7 +8,8 @@ export type RealtimeEventType =
   | "PATIENT_UPDATED"
   | "SLOT_UPDATED"
   | "DOCTOR_CALLED"
-  | "ROOM_UPDATED";
+  | "ROOM_UPDATED"
+  | "STATION_CHANGED";
 
 export interface RealtimeEventPayload<T = any> {
   type: RealtimeEventType;

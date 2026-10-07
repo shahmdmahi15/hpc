@@ -57,11 +57,13 @@ import {
   RotateCw,
   Calculator,
   KeyRound,
+  Compass,
 } from "lucide-react";
 import { CashDrawerCloseoutDialog } from "@/components/cashier/cash-drawer-closeout-dialog";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
+import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
 
 import { DashboardDateSelector, formatLocalDate } from "@/components/ui/dashboard-date-selector";
 
@@ -466,6 +468,14 @@ export function CashierDashboardView({
               </TabsTrigger>
 
               <TabsTrigger
+                value="tracking"
+                className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold"
+              >
+                <Compass className="size-3 text-indigo-500" />
+                <span>Patient Journey</span>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="patients"
                 className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold"
               >
@@ -696,6 +706,11 @@ export function CashierDashboardView({
               onCheckIn={handleCheckIn}
               onCancelAppointment={handleCancelAppointment}
             />
+          </TabsContent>
+
+          {/* TAB 3B: PATIENT JOURNEY TRACKING */}
+          <TabsContent value="tracking" className="mt-0 space-y-2 outline-none">
+            <PatientJourneyTrackerView defaultDate={selectedDate} />
           </TabsContent>
 
           {/* TAB 4: PATIENTS */}

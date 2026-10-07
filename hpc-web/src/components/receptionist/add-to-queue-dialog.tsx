@@ -30,13 +30,22 @@ import {
   Clock,
   CheckCircle2,
   UserCheck,
+  Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
+
+export interface AddToQueueDoctor {
+  id: string;
+  name: string | null;
+  email: string | null;
+  consultationFee: number;
+}
 
 interface AddToQueueDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   patients: PatientWithCount[];
+  doctors?: AddToQueueDoctor[];
   performers: ReceptionistPerformer[];
   defaultPerformerId?: string;
   onSuccess: () => void;
@@ -51,6 +60,7 @@ export function AddToQueueDialog(props: AddToQueueDialogProps) {
 function AddToQueueDialogBody({
   onOpenChange,
   patients,
+  doctors = [],
   performers,
   defaultPerformerId = "",
   onSuccess,
@@ -62,6 +72,9 @@ function AddToQueueDialogBody({
   const [selectedQueueType, setSelectedQueueType] = React.useState<QueueType>(
     QueueType.THERAPY,
   );
+  const [selectedDoctorId, setSelectedDoctorId] = React.useState<string>("");
+  const [consultationFee, setConsultationFee] = React.useState<string>("1000");
+
   const [toldTime, setToldTime] = React.useState<string>(() => {
     const now = new Date();
     const hours = now.getHours();
@@ -77,6 +90,19 @@ function AddToQueueDialogBody({
   );
   const [performerPin, setPerformerPin] = React.useState<string>("");
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
+
+  // When a doctor is selected, update fee to the doctor's preset fee
+  const handleDoctorChange = (docId: string) => {
+    setSelectedDoctorId(docId);
+    if (docId) {
+      const doc = doctors.find((d) => d.id === docId);
+      if (doc) {
+        setConsultationFee(String(doc.consultationFee ?? 1000));
+      }
+    } else {
+      setConsultationFee("1000");
+    }
+  };
 
   // Filter patients by search query
   const filteredPatients = React.useMemo(() => {
@@ -117,9 +143,16 @@ function AddToQueueDialogBody({
 
     setIsSubmitting(true);
     try {
+      const parsedFee =
+        selectedQueueType === QueueType.CONSULTATION
+          ? Math.max(0, parseFloat(consultationFee) || 0)
+          : undefined;
+
       const res = await addPatientToQueueAction({
         patientId: selectedPatientId,
         queueType: selectedQueueType,
+        doctorId: selectedDoctorId || undefined,
+        feeAmount: parsedFee,
         toldTime: toldTime.trim() || undefined,
         notes: notes.trim() || undefined,
         performerId: selectedPerformerId || undefined,
@@ -326,6 +359,86 @@ function AddToQueueDialogBody({
                 </button>
               </div>
             </div>
+
+            {/* 2b. Doctor & Consultation Fee (Conditional on Consultation Queue) */}
+            {selectedQueueType === QueueType.CONSULTATION && (
+              <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/5 space-y-3 transition-all">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-sky-700 dark:text-sky-300">
+                      <Stethoscope className="size-3.5" />
+                      <span>Assign Doctor (Optional)</span>
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground font-normal">
+                      Doctor preset fee applies automatically
+                    </span>
+                  </Label>
+                  <select
+                    value={selectedDoctorId}
+                    onChange={(e) => handleDoctorChange(e.target.value)}
+                    className="w-full text-xs h-9 px-3 rounded-lg border border-border/80 bg-background text-foreground focus:outline-hidden focus:ring-2 focus:ring-sky-500 cursor-pointer font-medium"
+                  >
+                    <option value="">General Consultation (No Doctor Pre-assigned)</option>
+                    {doctors.map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.name || "Doctor"} — Preset Fee: ৳{(doc.consultationFee ?? 1000).toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Banknote className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>Consultation Fee (৳ BDT)</span>
+                    </span>
+                    <span className="text-[10.5px] text-muted-foreground font-normal">
+                      Preset or modify as needed
+                    </span>
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground font-mono">
+                        ৳
+                      </span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="50"
+                        value={consultationFee}
+                        onChange={(e) => setConsultationFee(e.target.value)}
+                        placeholder="1000"
+                        className="pl-7 text-xs h-9 font-mono font-bold"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConsultationFee("0")}
+                        className="h-9 px-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                      >
+                        Free (৳0)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const doc = doctors.find((d) => d.id === selectedDoctorId);
+                          setConsultationFee(String(doc?.consultationFee ?? 1000));
+                        }}
+                        className="h-9 px-2 text-[10px] font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 cursor-pointer"
+                      >
+                        Reset Preset
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 3. Told Arrival Time */}
             <div className="space-y-1.5">

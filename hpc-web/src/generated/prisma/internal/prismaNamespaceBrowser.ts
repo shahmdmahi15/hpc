@@ -85,6 +85,7 @@ export const UserScalarFieldEnum = {
   name: 'name',
   email: 'email',
   whatsapp: 'whatsapp',
+  consultationFee: 'consultationFee',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -235,6 +236,7 @@ export const AppointmentScalarFieldEnum = {
   routedAt: 'routedAt',
   queueId: 'queueId',
   queueType: 'queueType',
+  currentStation: 'currentStation',
   roomId: 'roomId',
   medicalRecordId: 'medicalRecordId',
   consultationDate: 'consultationDate',
