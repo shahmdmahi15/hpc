@@ -332,9 +332,12 @@ model Patient {
   phone          String
   gender         Gender
   age            Int?
+  email          String?
   dateOfBirth    DateTime?
   address        String?
   emergencyPhone String?
+  profession     String?
+  bloodGroup     String?
 
   // Lifetime Billing Telemetry
   totalBill      Float     @default(0)
@@ -351,6 +354,7 @@ model Patient {
   @@index([name])
   @@index([phone])
   @@index([gender])
+  @@index([email])
 }
 
 model Appointment {

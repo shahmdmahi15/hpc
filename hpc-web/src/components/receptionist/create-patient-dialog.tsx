@@ -24,6 +24,9 @@ import {
   HeartHandshake,
   Loader2,
   Ticket,
+  Mail,
+  Briefcase,
+  Droplet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,8 +53,11 @@ export function CreatePatientDialog({
   const [phone, setPhone] = React.useState("");
   const [gender, setGender] = React.useState<Gender>(Gender.MALE);
   const [age, setAge] = React.useState<string>("");
+  const [email, setEmail] = React.useState("");
   const [address, setAddress] = React.useState("");
   const [emergencyPhone, setEmergencyPhone] = React.useState("");
+  const [profession, setProfession] = React.useState("");
+  const [bloodGroup, setBloodGroup] = React.useState("");
   const [performerId, setPerformerId] = React.useState(defaultPerformerId);
   const [performerPin, setPerformerPin] = React.useState("");
   const [proceedToBooking, setProceedToBooking] = React.useState(true);
@@ -74,8 +80,11 @@ export function CreatePatientDialog({
     setPhone("");
     setGender(Gender.MALE);
     setAge("");
+    setEmail("");
     setAddress("");
     setEmergencyPhone("");
+    setProfession("");
+    setBloodGroup("");
     setPerformerPin("");
     setProceedToBooking(true);
     setErrors({});
@@ -98,10 +107,14 @@ export function CreatePatientDialog({
         phone,
         gender,
         age: age ? parseInt(age, 10) : undefined,
-        address: address || undefined,
-        emergencyPhone: emergencyPhone || undefined,
+        email: email.trim() || undefined,
+        address: address.trim() || undefined,
+        emergencyPhone: emergencyPhone.trim() || undefined,
+        profession: profession.trim() || undefined,
+        bloodGroup: bloodGroup.trim() || undefined,
         performerId: performerId || undefined,
         pin: performerPin || undefined,
+        checkInNow: false,
       });
 
       if (res.success && res.patient) {
@@ -223,9 +236,40 @@ export function CreatePatientDialog({
                     disabled={isSubmitting}
                   />
                 </div>
+
+                {/* Email Address */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Mail className="size-3.5 text-muted-foreground" />
+                    <span>Email Address (Optional)</span>
+                  </Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. patient@example.com"
+                    className="h-9 text-xs"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {/* Profession */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Briefcase className="size-3.5 text-muted-foreground" />
+                    <span>Profession (Optional)</span>
+                  </Label>
+                  <Input
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    placeholder="e.g. Teacher, Business, Engineer, Homemaker"
+                    className="h-9 text-xs"
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
 
-              {/* Right Column: Gender Quota, Address & Attribution */}
+              {/* Right Column: Gender Quota, Address, Blood Group & Attribution */}
               <div className="space-y-3.5">
                 {/* Gender Selection */}
                 <div className="space-y-1.5">
@@ -271,6 +315,34 @@ export function CreatePatientDialog({
                         Quota
                       </span>
                     </button>
+                  </div>
+                </div>
+
+                {/* Blood Group */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Droplet className="size-3.5 text-rose-500" />
+                    <span>Blood Group (Optional)</span>
+                  </Label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(
+                      (bg) => (
+                        <button
+                          key={bg}
+                          type="button"
+                          onClick={() =>
+                            setBloodGroup(bloodGroup === bg ? "" : bg)
+                          }
+                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                            bloodGroup === bg
+                              ? "bg-rose-500 text-white border-rose-600 shadow-xs"
+                              : "bg-background border-border text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {bg}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </div>
 

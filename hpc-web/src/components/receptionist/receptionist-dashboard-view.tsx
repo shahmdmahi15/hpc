@@ -32,11 +32,12 @@ import { AddToQueueDialog } from "@/components/receptionist/add-to-queue-dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, UserPlus, Ticket, Activity, Plus, Search, Compass } from "lucide-react";
+import { Clock, Users, UserPlus, Ticket, Activity, Plus, Search, Compass, UserCheck } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
+import { PatientArrivalTab } from "@/components/receptionist/patient-arrival-tab";
 
 interface ReceptionistDashboardViewProps {
   initialData: ReceptionistDashboardData;
@@ -417,6 +418,17 @@ export function ReceptionistDashboardView({
               </TabsTrigger>
 
               <TabsTrigger
+                value="arrival"
+                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <UserCheck className="size-3.5 text-sky-600 dark:text-sky-400" />
+                <span>Arrival & Check-In</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-sky-500/15 text-sky-700 dark:text-sky-300 font-mono font-bold">
+                  Desk
+                </span>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="tracking"
                 className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
               >
@@ -499,6 +511,21 @@ export function ReceptionistDashboardView({
               onCheckIn={handleCheckIn}
               onCheckOut={handleCheckOut}
               onCancelAppointment={handleCancelAppointment}
+            />
+          </TabsContent>
+
+          {/* TAB 1A: PATIENT ARRIVAL & IMMEDIATE CHECK-IN DESK */}
+          <TabsContent
+            value="arrival"
+            className="outline-none focus:outline-none space-y-4 m-0"
+          >
+            <PatientArrivalTab
+              performers={data.receptionistPerformers}
+              doctors={data.doctors || []}
+              lastPerformerId={lastPerformerId}
+              onSelectPerformerId={setLastPerformerId}
+              selectedDate={selectedDate}
+              onRefresh={() => refreshData(selectedDate)}
             />
           </TabsContent>
 

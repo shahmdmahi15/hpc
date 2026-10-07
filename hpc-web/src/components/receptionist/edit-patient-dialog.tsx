@@ -33,8 +33,12 @@ import {
   HeartHandshake,
   Loader2,
   Edit3,
+  Mail,
+  Briefcase,
+  Droplet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BLOOD_GROUPS } from "@/schemas/receptionist/patient.schema";
 
 interface EditPatientDialogProps {
   open?: boolean;
@@ -105,9 +109,16 @@ function EditPatientForm({
       ? String(patient.age)
       : "",
   );
+  const [email, setEmail] = React.useState((patient as any).email || "");
   const [address, setAddress] = React.useState(patient.address || "");
   const [emergencyPhone, setEmergencyPhone] = React.useState(
     patient.emergencyPhone || "",
+  );
+  const [profession, setProfession] = React.useState(
+    (patient as any).profession || "",
+  );
+  const [bloodGroup, setBloodGroup] = React.useState(
+    (patient as any).bloodGroup || "",
   );
   const [performerId, setPerformerId] = React.useState<string>(
     () =>
@@ -135,8 +146,11 @@ function EditPatientForm({
         phone: phone.trim(),
         gender,
         age: age.trim() ? parseInt(age.trim(), 10) : undefined,
+        email: email.trim() || undefined,
         address: address.trim() || undefined,
         emergencyPhone: emergencyPhone.trim() || undefined,
+        profession: profession.trim() || undefined,
+        bloodGroup: bloodGroup.trim() || undefined,
         performerId: performerId || undefined,
         pin: performerPin || undefined,
       });
@@ -302,6 +316,60 @@ function EditPatientForm({
               placeholder="e.g. 01812345678 (Spouse/Relative)"
               className="h-9 text-xs font-mono"
             />
+          </div>
+
+          {/* Email Address & Profession */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Mail className="size-3.5 text-muted-foreground" />
+                <span>Email Address (Optional)</span>
+              </Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. patient@example.com"
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Briefcase className="size-3.5 text-muted-foreground" />
+                <span>Profession (Optional)</span>
+              </Label>
+              <Input
+                value={profession}
+                onChange={(e) => setProfession(e.target.value)}
+                placeholder="e.g. Teacher, Engineer, Homemaker"
+                className="h-9 text-xs"
+              />
+            </div>
+          </div>
+
+          {/* Blood Group */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold flex items-center gap-1.5">
+              <Droplet className="size-3.5 text-rose-500" />
+              <span>Blood Group (Optional)</span>
+            </Label>
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+              {BLOOD_GROUPS.map((bg) => (
+                <button
+                  key={bg}
+                  type="button"
+                  onClick={() => setBloodGroup(bloodGroup === bg ? "" : bg)}
+                  className={`py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                    bloodGroup === bg
+                      ? "bg-rose-500 text-white border-rose-600 shadow-xs"
+                      : "bg-background border-border text-foreground hover:bg-muted"
+                  }`}
+                >
+                  {bg}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Authorizing Performer Selection */}

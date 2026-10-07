@@ -47,9 +47,12 @@ export type PatientMinAggregateOutputType = {
   phone: string | null
   gender: $Enums.Gender | null
   age: number | null
+  email: string | null
   dateOfBirth: Date | null
   address: string | null
   emergencyPhone: string | null
+  profession: string | null
+  bloodGroup: string | null
   totalBill: number | null
   totalPaid: number | null
   totalDue: number | null
@@ -64,9 +67,12 @@ export type PatientMaxAggregateOutputType = {
   phone: string | null
   gender: $Enums.Gender | null
   age: number | null
+  email: string | null
   dateOfBirth: Date | null
   address: string | null
   emergencyPhone: string | null
+  profession: string | null
+  bloodGroup: string | null
   totalBill: number | null
   totalPaid: number | null
   totalDue: number | null
@@ -81,9 +87,12 @@ export type PatientCountAggregateOutputType = {
   phone: number
   gender: number
   age: number
+  email: number
   dateOfBirth: number
   address: number
   emergencyPhone: number
+  profession: number
+  bloodGroup: number
   totalBill: number
   totalPaid: number
   totalDue: number
@@ -114,9 +123,12 @@ export type PatientMinAggregateInputType = {
   phone?: true
   gender?: true
   age?: true
+  email?: true
   dateOfBirth?: true
   address?: true
   emergencyPhone?: true
+  profession?: true
+  bloodGroup?: true
   totalBill?: true
   totalPaid?: true
   totalDue?: true
@@ -131,9 +143,12 @@ export type PatientMaxAggregateInputType = {
   phone?: true
   gender?: true
   age?: true
+  email?: true
   dateOfBirth?: true
   address?: true
   emergencyPhone?: true
+  profession?: true
+  bloodGroup?: true
   totalBill?: true
   totalPaid?: true
   totalDue?: true
@@ -148,9 +163,12 @@ export type PatientCountAggregateInputType = {
   phone?: true
   gender?: true
   age?: true
+  email?: true
   dateOfBirth?: true
   address?: true
   emergencyPhone?: true
+  profession?: true
+  bloodGroup?: true
   totalBill?: true
   totalPaid?: true
   totalDue?: true
@@ -252,9 +270,12 @@ export type PatientGroupByOutputType = {
   phone: string
   gender: $Enums.Gender
   age: number | null
+  email: string | null
   dateOfBirth: Date | null
   address: string | null
   emergencyPhone: string | null
+  profession: string | null
+  bloodGroup: string | null
   totalBill: number
   totalPaid: number
   totalDue: number
@@ -292,9 +313,12 @@ export type PatientWhereInput = {
   phone?: Prisma.StringFilter<"Patient"> | string
   gender?: Prisma.EnumGenderFilter<"Patient"> | $Enums.Gender
   age?: Prisma.IntNullableFilter<"Patient"> | number | null
+  email?: Prisma.StringNullableFilter<"Patient"> | string | null
   dateOfBirth?: Prisma.DateTimeNullableFilter<"Patient"> | Date | string | null
   address?: Prisma.StringNullableFilter<"Patient"> | string | null
   emergencyPhone?: Prisma.StringNullableFilter<"Patient"> | string | null
+  profession?: Prisma.StringNullableFilter<"Patient"> | string | null
+  bloodGroup?: Prisma.StringNullableFilter<"Patient"> | string | null
   totalBill?: Prisma.FloatFilter<"Patient"> | number
   totalPaid?: Prisma.FloatFilter<"Patient"> | number
   totalDue?: Prisma.FloatFilter<"Patient"> | number
@@ -312,9 +336,12 @@ export type PatientOrderByWithRelationInput = {
   phone?: Prisma.SortOrder
   gender?: Prisma.SortOrder
   age?: Prisma.SortOrderInput | Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrderInput | Prisma.SortOrder
   address?: Prisma.SortOrderInput | Prisma.SortOrder
   emergencyPhone?: Prisma.SortOrderInput | Prisma.SortOrder
+  profession?: Prisma.SortOrderInput | Prisma.SortOrder
+  bloodGroup?: Prisma.SortOrderInput | Prisma.SortOrder
   totalBill?: Prisma.SortOrder
   totalPaid?: Prisma.SortOrder
   totalDue?: Prisma.SortOrder
@@ -335,9 +362,12 @@ export type PatientWhereUniqueInput = Prisma.AtLeast<{
   phone?: Prisma.StringFilter<"Patient"> | string
   gender?: Prisma.EnumGenderFilter<"Patient"> | $Enums.Gender
   age?: Prisma.IntNullableFilter<"Patient"> | number | null
+  email?: Prisma.StringNullableFilter<"Patient"> | string | null
   dateOfBirth?: Prisma.DateTimeNullableFilter<"Patient"> | Date | string | null
   address?: Prisma.StringNullableFilter<"Patient"> | string | null
   emergencyPhone?: Prisma.StringNullableFilter<"Patient"> | string | null
+  profession?: Prisma.StringNullableFilter<"Patient"> | string | null
+  bloodGroup?: Prisma.StringNullableFilter<"Patient"> | string | null
   totalBill?: Prisma.FloatFilter<"Patient"> | number
   totalPaid?: Prisma.FloatFilter<"Patient"> | number
   totalDue?: Prisma.FloatFilter<"Patient"> | number
@@ -355,9 +385,12 @@ export type PatientOrderByWithAggregationInput = {
   phone?: Prisma.SortOrder
   gender?: Prisma.SortOrder
   age?: Prisma.SortOrderInput | Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrderInput | Prisma.SortOrder
   address?: Prisma.SortOrderInput | Prisma.SortOrder
   emergencyPhone?: Prisma.SortOrderInput | Prisma.SortOrder
+  profession?: Prisma.SortOrderInput | Prisma.SortOrder
+  bloodGroup?: Prisma.SortOrderInput | Prisma.SortOrder
   totalBill?: Prisma.SortOrder
   totalPaid?: Prisma.SortOrder
   totalDue?: Prisma.SortOrder
@@ -380,9 +413,12 @@ export type PatientScalarWhereWithAggregatesInput = {
   phone?: Prisma.StringWithAggregatesFilter<"Patient"> | string
   gender?: Prisma.EnumGenderWithAggregatesFilter<"Patient"> | $Enums.Gender
   age?: Prisma.IntNullableWithAggregatesFilter<"Patient"> | number | null
+  email?: Prisma.StringNullableWithAggregatesFilter<"Patient"> | string | null
   dateOfBirth?: Prisma.DateTimeNullableWithAggregatesFilter<"Patient"> | Date | string | null
   address?: Prisma.StringNullableWithAggregatesFilter<"Patient"> | string | null
   emergencyPhone?: Prisma.StringNullableWithAggregatesFilter<"Patient"> | string | null
+  profession?: Prisma.StringNullableWithAggregatesFilter<"Patient"> | string | null
+  bloodGroup?: Prisma.StringNullableWithAggregatesFilter<"Patient"> | string | null
   totalBill?: Prisma.FloatWithAggregatesFilter<"Patient"> | number
   totalPaid?: Prisma.FloatWithAggregatesFilter<"Patient"> | number
   totalDue?: Prisma.FloatWithAggregatesFilter<"Patient"> | number
@@ -397,9 +433,12 @@ export type PatientCreateInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -417,9 +456,12 @@ export type PatientUncheckedCreateInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -437,9 +479,12 @@ export type PatientUpdateInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -457,9 +502,12 @@ export type PatientUncheckedUpdateInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -477,9 +525,12 @@ export type PatientCreateManyInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -494,9 +545,12 @@ export type PatientUpdateManyMutationInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -511,9 +565,12 @@ export type PatientUncheckedUpdateManyInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -528,9 +585,12 @@ export type PatientCountOrderByAggregateInput = {
   phone?: Prisma.SortOrder
   gender?: Prisma.SortOrder
   age?: Prisma.SortOrder
+  email?: Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrder
   address?: Prisma.SortOrder
   emergencyPhone?: Prisma.SortOrder
+  profession?: Prisma.SortOrder
+  bloodGroup?: Prisma.SortOrder
   totalBill?: Prisma.SortOrder
   totalPaid?: Prisma.SortOrder
   totalDue?: Prisma.SortOrder
@@ -552,9 +612,12 @@ export type PatientMaxOrderByAggregateInput = {
   phone?: Prisma.SortOrder
   gender?: Prisma.SortOrder
   age?: Prisma.SortOrder
+  email?: Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrder
   address?: Prisma.SortOrder
   emergencyPhone?: Prisma.SortOrder
+  profession?: Prisma.SortOrder
+  bloodGroup?: Prisma.SortOrder
   totalBill?: Prisma.SortOrder
   totalPaid?: Prisma.SortOrder
   totalDue?: Prisma.SortOrder
@@ -569,9 +632,12 @@ export type PatientMinOrderByAggregateInput = {
   phone?: Prisma.SortOrder
   gender?: Prisma.SortOrder
   age?: Prisma.SortOrder
+  email?: Prisma.SortOrder
   dateOfBirth?: Prisma.SortOrder
   address?: Prisma.SortOrder
   emergencyPhone?: Prisma.SortOrder
+  profession?: Prisma.SortOrder
+  bloodGroup?: Prisma.SortOrder
   totalBill?: Prisma.SortOrder
   totalPaid?: Prisma.SortOrder
   totalDue?: Prisma.SortOrder
@@ -660,9 +726,12 @@ export type PatientCreateWithoutAppointmentsInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -679,9 +748,12 @@ export type PatientUncheckedCreateWithoutAppointmentsInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -714,9 +786,12 @@ export type PatientUpdateWithoutAppointmentsInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -733,9 +808,12 @@ export type PatientUncheckedUpdateWithoutAppointmentsInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -752,9 +830,12 @@ export type PatientCreateWithoutMedicalRecordsInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -771,9 +852,12 @@ export type PatientUncheckedCreateWithoutMedicalRecordsInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -806,9 +890,12 @@ export type PatientUpdateWithoutMedicalRecordsInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -825,9 +912,12 @@ export type PatientUncheckedUpdateWithoutMedicalRecordsInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -844,9 +934,12 @@ export type PatientCreateWithoutTreatmentPlansInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -863,9 +956,12 @@ export type PatientUncheckedCreateWithoutTreatmentPlansInput = {
   phone: string
   gender: $Enums.Gender
   age?: number | null
+  email?: string | null
   dateOfBirth?: Date | string | null
   address?: string | null
   emergencyPhone?: string | null
+  profession?: string | null
+  bloodGroup?: string | null
   totalBill?: number
   totalPaid?: number
   totalDue?: number
@@ -898,9 +994,12 @@ export type PatientUpdateWithoutTreatmentPlansInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -917,9 +1016,12 @@ export type PatientUncheckedUpdateWithoutTreatmentPlansInput = {
   phone?: Prisma.StringFieldUpdateOperationsInput | string
   gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
   age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emergencyPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profession?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bloodGroup?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalBill?: Prisma.FloatFieldUpdateOperationsInput | number
   totalPaid?: Prisma.FloatFieldUpdateOperationsInput | number
   totalDue?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -985,9 +1087,12 @@ export type PatientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   phone?: boolean
   gender?: boolean
   age?: boolean
+  email?: boolean
   dateOfBirth?: boolean
   address?: boolean
   emergencyPhone?: boolean
+  profession?: boolean
+  bloodGroup?: boolean
   totalBill?: boolean
   totalPaid?: boolean
   totalDue?: boolean
@@ -1006,9 +1111,12 @@ export type PatientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   phone?: boolean
   gender?: boolean
   age?: boolean
+  email?: boolean
   dateOfBirth?: boolean
   address?: boolean
   emergencyPhone?: boolean
+  profession?: boolean
+  bloodGroup?: boolean
   totalBill?: boolean
   totalPaid?: boolean
   totalDue?: boolean
@@ -1023,9 +1131,12 @@ export type PatientSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   phone?: boolean
   gender?: boolean
   age?: boolean
+  email?: boolean
   dateOfBirth?: boolean
   address?: boolean
   emergencyPhone?: boolean
+  profession?: boolean
+  bloodGroup?: boolean
   totalBill?: boolean
   totalPaid?: boolean
   totalDue?: boolean
@@ -1040,9 +1151,12 @@ export type PatientSelectScalar = {
   phone?: boolean
   gender?: boolean
   age?: boolean
+  email?: boolean
   dateOfBirth?: boolean
   address?: boolean
   emergencyPhone?: boolean
+  profession?: boolean
+  bloodGroup?: boolean
   totalBill?: boolean
   totalPaid?: boolean
   totalDue?: boolean
@@ -1050,7 +1164,7 @@ export type PatientSelectScalar = {
   updatedAt?: boolean
 }
 
-export type PatientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "mrn" | "name" | "phone" | "gender" | "age" | "dateOfBirth" | "address" | "emergencyPhone" | "totalBill" | "totalPaid" | "totalDue" | "createdAt" | "updatedAt", ExtArgs["result"]["patient"]>
+export type PatientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "mrn" | "name" | "phone" | "gender" | "age" | "email" | "dateOfBirth" | "address" | "emergencyPhone" | "profession" | "bloodGroup" | "totalBill" | "totalPaid" | "totalDue" | "createdAt" | "updatedAt", ExtArgs["result"]["patient"]>
 export type PatientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   appointments?: boolean | Prisma.Patient$appointmentsArgs<ExtArgs>
   medicalRecords?: boolean | Prisma.Patient$medicalRecordsArgs<ExtArgs>
@@ -1074,9 +1188,12 @@ export type $PatientPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     phone: string
     gender: $Enums.Gender
     age: number | null
+    email: string | null
     dateOfBirth: Date | null
     address: string | null
     emergencyPhone: string | null
+    profession: string | null
+    bloodGroup: string | null
     totalBill: number
     totalPaid: number
     totalDue: number
@@ -1514,9 +1631,12 @@ export interface PatientFieldRefs {
   readonly phone: Prisma.FieldRef<"Patient", 'String'>
   readonly gender: Prisma.FieldRef<"Patient", 'Gender'>
   readonly age: Prisma.FieldRef<"Patient", 'Int'>
+  readonly email: Prisma.FieldRef<"Patient", 'String'>
   readonly dateOfBirth: Prisma.FieldRef<"Patient", 'DateTime'>
   readonly address: Prisma.FieldRef<"Patient", 'String'>
   readonly emergencyPhone: Prisma.FieldRef<"Patient", 'String'>
+  readonly profession: Prisma.FieldRef<"Patient", 'String'>
+  readonly bloodGroup: Prisma.FieldRef<"Patient", 'String'>
   readonly totalBill: Prisma.FieldRef<"Patient", 'Float'>
   readonly totalPaid: Prisma.FieldRef<"Patient", 'Float'>
   readonly totalDue: Prisma.FieldRef<"Patient", 'Float'>
