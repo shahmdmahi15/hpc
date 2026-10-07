@@ -7,11 +7,12 @@ export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
 interface UseRealtimeEventsOptions {
   onEvent?: (event: RealtimeEventPayload) => void;
+  onReconnect?: () => void;
   enabled?: boolean;
 }
 
 export function useRealtimeEvents(options: UseRealtimeEventsOptions = {}) {
-  const { onEvent, enabled = true } = options;
+  const { onEvent, onReconnect, enabled = true } = options;
   const [connectionStatus, setConnectionStatus] =
     React.useState<ConnectionStatus>(() =>
       enabled ? "connecting" : "disconnected",
@@ -20,13 +21,18 @@ export function useRealtimeEvents(options: UseRealtimeEventsOptions = {}) {
     null,
   );
 
-  // Preserve callback reference without resetting effect
+  // Preserve callback references without resetting effect
   const onEventRef = React.useRef(onEvent);
   React.useEffect(() => {
     onEventRef.current = onEvent;
   }, [onEvent]);
 
-  // Event deduplication cache: avoids double firing when both named event and onmessage arrive
+  const onReconnectRef = React.useRef(onReconnect);
+  React.useEffect(() => {
+    onReconnectRef.current = onReconnect;
+  }, [onReconnect]);
+
+  // Event deduplication cache: avoids double firing within 500ms
   const processedEventsRef = React.useRef<Map<string, number>>(new Map());
 
   const dispatchEvent = React.useCallback(
@@ -87,13 +93,21 @@ export function useRealtimeEvents(options: UseRealtimeEventsOptions = {}) {
     eventSourceRef.current = es;
 
     es.addEventListener("connected", () => {
+      const wasReconnecting = reconnectAttemptRef.current > 0;
       setConnectionStatus("connected");
       reconnectAttemptRef.current = 0;
+      if (wasReconnecting) {
+        onReconnectRef.current?.();
+      }
     });
 
     es.onopen = () => {
+      const wasReconnecting = reconnectAttemptRef.current > 0;
       setConnectionStatus("connected");
       reconnectAttemptRef.current = 0;
+      if (wasReconnecting) {
+        onReconnectRef.current?.();
+      }
     };
 
     // Generic broadcast handler

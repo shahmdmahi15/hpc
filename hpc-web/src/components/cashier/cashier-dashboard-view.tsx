@@ -283,7 +283,24 @@ export function CashierDashboardView({
 
       if (res.success) {
         toast.success(res.message);
-        setReceiptAppointment(collectingAppointment);
+        const receiptData = (res.appointment || {
+          ...collectingAppointment,
+          paidAmount: (collectingAppointment.paidAmount ?? 0) + paymentAmount,
+          dueAmount: Math.max(
+            0,
+            (collectingAppointment.feeAmount ?? paymentAmount) -
+              ((collectingAppointment.paidAmount ?? 0) + paymentAmount),
+          ),
+          paymentStatus:
+            Math.max(
+              0,
+              (collectingAppointment.feeAmount ?? paymentAmount) -
+                ((collectingAppointment.paidAmount ?? 0) + paymentAmount),
+            ) === 0
+              ? "PAID"
+              : "PARTIAL",
+        }) as AppointmentWithRelations;
+        setReceiptAppointment(receiptData);
         setCollectingAppointment(null);
         refreshData();
       } else {

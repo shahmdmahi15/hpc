@@ -5,6 +5,8 @@ import {
   type AppointmentWithRelations,
   switchQueueAction,
   updateAppointmentWillCallTimeAction,
+  checkOutPatientAction,
+  updateAppointmentStatusAction,
 } from "@/actions/receptionist/appointment.action";
 import { type ReceptionistPerformer } from "@/components/receptionist/receptionist-performer-select";
 import { evaluatePunctuality, formatTime12h } from "@/lib/queue-punctuality";
@@ -143,6 +145,52 @@ export function QueueManagementTab({
     }
   };
 
+  const handleCheckOut = async (apt: AppointmentWithRelations) => {
+    setActionLoadingId(apt.id);
+    try {
+      const res = await checkOutPatientAction(apt.id, performerId);
+      if (res.success) {
+        toast.success(`Patient ${apt.patient?.name || "Patient"} checked out.`);
+        onRefresh();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to check out patient.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCancel = async (apt: AppointmentWithRelations) => {
+    const patientName = apt.patient?.name || "Patient";
+    if (
+      !window.confirm(
+        `Are you sure you want to cancel the queue ticket for ${patientName}?`,
+      )
+    ) {
+      return;
+    }
+    setActionLoadingId(apt.id);
+    try {
+      const res = await updateAppointmentStatusAction(
+        apt.id,
+        AppointmentStatus.CANCELLED,
+        performerId,
+      );
+      if (res.success) {
+        toast.success(`Queue ticket cancelled for ${patientName}.`);
+        onRefresh();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to cancel ticket.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   return (
     <div className="space-y-2.5">
       {/* Top Controls Bar */}
@@ -226,6 +274,8 @@ export function QueueManagementTab({
                   performerId={performerId}
                   onSwitchQueue={() => handleSwitchQueue(apt)}
                   onPrintTicket={() => setPrintTicketApt(apt)}
+                  onCheckOut={() => handleCheckOut(apt)}
+                  onCancel={() => handleCancel(apt)}
                   onRefresh={onRefresh}
                 />
               ))
@@ -286,6 +336,8 @@ export function QueueManagementTab({
                   performerId={performerId}
                   onSwitchQueue={() => handleSwitchQueue(apt)}
                   onPrintTicket={() => setPrintTicketApt(apt)}
+                  onCheckOut={() => handleCheckOut(apt)}
+                  onCancel={() => handleCancel(apt)}
                   onRefresh={onRefresh}
                 />
               ))
@@ -312,6 +364,8 @@ function QueueManagementCard({
   performerId,
   onSwitchQueue,
   onPrintTicket,
+  onCheckOut,
+  onCancel,
   onRefresh,
 }: {
   appointment: AppointmentWithRelations;
@@ -319,6 +373,8 @@ function QueueManagementCard({
   performerId: string;
   onSwitchQueue: () => void;
   onPrintTicket: () => void;
+  onCheckOut: () => void;
+  onCancel: () => void;
   onRefresh: () => void;
 }) {
   const [isEditingCallTime, setIsEditingCallTime] = React.useState(false);
@@ -572,14 +628,14 @@ function QueueManagementCard({
         )}
       </div>
 
-      {/* Bottom: Switching Button & Print Ticket */}
-      <div className="pt-1 border-t border-border/40 flex items-center gap-1.5">
+      {/* Bottom: Switching Button, Print Ticket, Check Out & Cancel */}
+      <div className="pt-1.5 border-t border-border/40 flex items-center gap-1 flex-wrap sm:flex-nowrap">
         <Button
           size="xs"
           variant="outline"
           onClick={onSwitchQueue}
           disabled={isLoading}
-          className="flex-1 h-6 text-[10.5px] font-semibold gap-1.5 cursor-pointer hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          className="flex-1 h-6.5 text-[10.5px] font-semibold gap-1 cursor-pointer hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           title={
             isConsultation
               ? "Move to Therapy Queue"
@@ -594,11 +650,34 @@ function QueueManagementCard({
           size="xs"
           variant="outline"
           onClick={onPrintTicket}
-          className="h-6 px-2 text-[10.5px] font-semibold gap-1 cursor-pointer text-primary hover:bg-primary/10 border-primary/30"
+          className="h-6.5 px-2 text-[10.5px] font-semibold gap-1 cursor-pointer text-primary hover:bg-primary/10 border-primary/30"
           title="Print 80mm Queue Ticket"
         >
           <Printer className="size-2.5" />
           <span>Print</span>
+        </Button>
+
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={onCheckOut}
+          disabled={isLoading}
+          className="h-6.5 px-1.5 text-[10px] font-semibold gap-1 text-slate-600 dark:text-slate-400 hover:text-foreground hover:bg-muted cursor-pointer"
+          title="Check out patient"
+        >
+          <CheckCircle2 className="size-2.5 text-emerald-500" />
+          <span>Done</span>
+        </Button>
+
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="h-6.5 px-1.5 text-[10px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+          title="Cancel queue ticket"
+        >
+          <span>Cancel</span>
         </Button>
       </div>
     </div>

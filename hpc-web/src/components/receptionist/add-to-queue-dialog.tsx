@@ -20,6 +20,7 @@ import {
   type PatientWithCount,
   addPatientToQueueAction,
 } from "@/actions/receptionist/appointment.action";
+import { searchPatientsAction } from "@/actions/receptionist/patient.action";
 import { QueueType } from "@/generated/prisma/enums";
 import {
   Activity,
@@ -104,23 +105,44 @@ function AddToQueueDialogBody({
     }
   };
 
-  // Filter patients by search query
+  const [searchResults, setSearchResults] = React.useState<any[]>([]);
+  const [isSearching, setIsSearching] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!patientSearchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchPatientsAction(patientSearchQuery);
+        if (active) setSearchResults(results);
+      } finally {
+        if (active) setIsSearching(false);
+      }
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [patientSearchQuery]);
+
+  // Filter patients by search query (live search if query present, else initial recent list)
   const filteredPatients = React.useMemo(() => {
-    if (!patientSearchQuery.trim()) return patients.slice(0, 8);
-    const q = patientSearchQuery.toLowerCase();
-    return patients
-      .filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.phone.includes(q) ||
-          (p.mrn && p.mrn.toLowerCase().includes(q)),
-      )
-      .slice(0, 8);
-  }, [patients, patientSearchQuery]);
+    if (patientSearchQuery.trim()) {
+      return searchResults;
+    }
+    return patients.slice(0, 8);
+  }, [patients, patientSearchQuery, searchResults]);
 
   const selectedPatient = React.useMemo(
-    () => patients.find((p) => p.id === selectedPatientId),
-    [patients, selectedPatientId],
+    () =>
+      patients.find((p) => p.id === selectedPatientId) ||
+      searchResults.find((p) => p.id === selectedPatientId) ||
+      null,
+    [patients, searchResults, selectedPatientId],
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -176,7 +198,7 @@ function AddToQueueDialogBody({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[min(90dvh,calc(100dvh-1.5rem))] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         <DialogHeader className="p-5 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">

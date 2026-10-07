@@ -101,11 +101,16 @@ export function PatientDirectoryView({
   }, [searchQuery, genderFilter]);
 
   const handleCopyPhone = (phone: string) => {
-    navigator.clipboard.writeText(phone).then(() => {
-      setCopiedPhone(phone);
-      toast.success(`Phone "${phone}" copied to clipboard!`);
-      setTimeout(() => setCopiedPhone(null), 2000);
-    });
+    navigator.clipboard
+      .writeText(phone)
+      .then(() => {
+        setCopiedPhone(phone);
+        toast.success(`Phone "${phone}" copied to clipboard!`);
+        setTimeout(() => setCopiedPhone(null), 2000);
+      })
+      .catch(() => {
+        toast.error(`Unable to copy phone "${phone}" to clipboard.`);
+      });
   };
 
   return (
@@ -197,8 +202,8 @@ export function PatientDirectoryView({
       ) : (
         <Card className="border-border/80 bg-card/90 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/40">
+            <Table className="min-w-[760px]">
+              <TableHeader className="bg-muted/40 sticky top-0 z-10">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[120px] font-bold text-[11px] py-2 px-3">
                     MRN

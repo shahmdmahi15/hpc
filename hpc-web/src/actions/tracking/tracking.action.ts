@@ -97,11 +97,11 @@ function deriveStation(apt: {
   inTherapyTime?: Date | null;
   checkOutTime?: Date | null;
 }): PatientStation {
-  if (apt.currentStation) {
-    return apt.currentStation as PatientStation;
-  }
   if (apt.status === AppointmentStatus.COMPLETED || apt.checkOutTime) {
     return "CHECKED_OUT";
+  }
+  if (apt.currentStation) {
+    return apt.currentStation as PatientStation;
   }
   if (apt.status === AppointmentStatus.IN_CONSULTATION) {
     return "CONSULTATION_ROOM";
@@ -324,6 +324,14 @@ export async function transferPatientStationAction(
       updateData.doctorId = input.doctorId;
     }
 
+    // Record exit timestamps when transitioning out of consultation or therapy
+    if (apt.status === AppointmentStatus.IN_CONSULTATION && input.targetStation !== "CONSULTATION_ROOM" && !apt.outConsultationTime) {
+      updateData.outConsultationTime = now;
+    }
+    if (apt.status === AppointmentStatus.IN_THERAPY && input.targetStation !== "THERAPY_ROOM" && !apt.outTherapyTime) {
+      updateData.outTherapyTime = now;
+    }
+
     switch (input.targetStation) {
       case "RECEPTIONIST_DESK":
         updateData.status = AppointmentStatus.CHECKED_IN;
@@ -353,12 +361,6 @@ export async function transferPatientStationAction(
       case "CHECKED_OUT":
         updateData.status = AppointmentStatus.COMPLETED;
         updateData.checkOutTime = now;
-        if (apt.status === AppointmentStatus.IN_CONSULTATION) {
-          updateData.outConsultationTime = now;
-        }
-        if (apt.status === AppointmentStatus.IN_THERAPY) {
-          updateData.outTherapyTime = now;
-        }
         break;
     }
 
@@ -367,6 +369,8 @@ export async function transferPatientStationAction(
       data: updateData,
       include: { patient: true, doctor: true, room: true },
     });
+
+    await syncBillingForAppointment(updated.id);
 
     await logAudit({
       userId: sessionData.user.id,
@@ -403,6 +407,7 @@ export async function transferPatientStationAction(
     revalidatePath("/handler");
     revalidatePath("/cashier");
     revalidatePath("/admin");
+    revalidatePath("/admin/tracking");
 
     const stationLabelMap: Record<PatientStation, string> = {
       RECEPTIONIST_DESK: "Receptionist Desk (Waiting Area)",

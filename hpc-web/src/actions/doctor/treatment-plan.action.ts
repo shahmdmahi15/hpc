@@ -87,6 +87,13 @@ export async function getPatientTreatmentPlansAction(
   appointmentId?: string,
 ): Promise<PatientPlansResult> {
   try {
+    await requireAuth([
+      Role.DOCTOR,
+      Role.HANDLER,
+      Role.ADMIN,
+      Role.RECEPTIONIST,
+    ]);
+
     if (!patientId) {
       return { todayPlan: null, nextPlan: null, historyPlans: [] };
     }

@@ -183,16 +183,22 @@ export async function getDoctorDashboardDataAction(
         a.extraStatus === ExtraApprovalStatus.REJECTED),
   );
 
-  // Fetch today's treatment plans for all patients in therapy queue
-  const therapyPatientIds = Array.from(
-    new Set(therapyQueue.map((a) => a.patientId).filter(Boolean)),
+  // Fetch today's treatment plans for all active patients (consultation + therapy + completed)
+  const treatmentPlanPatientIds = Array.from(
+    new Set(
+      [
+        ...consultationQueue.map((a) => a.patientId),
+        ...therapyQueue.map((a) => a.patientId),
+        ...completedConsultations.map((a) => a.patientId),
+      ].filter(Boolean),
+    ),
   ) as string[];
 
   const activeTodayPlans =
-    therapyPatientIds.length > 0
+    treatmentPlanPatientIds.length > 0
       ? await prisma.treatmentPlan.findMany({
           where: {
-            patientId: { in: therapyPatientIds },
+            patientId: { in: treatmentPlanPatientIds },
             planType: TreatmentPlanType.TODAY,
             isActive: true,
           },

@@ -49,24 +49,27 @@ export function CashDrawerCloseoutDialog({
   cashierName,
   stats,
 }: CashDrawerCloseoutDialogProps) {
-  const [actualCash, setActualCash] = React.useState<number>(stats.cashCollected);
+  const [actualCashInput, setActualCashInput] = React.useState<string>(
+    String(stats.cashCollected),
+  );
   const [notes, setNotes] = React.useState("");
 
   // Sync default when opening
   React.useEffect(() => {
     if (isOpen) {
-      setActualCash(stats.cashCollected);
+      setActualCashInput(String(stats.cashCollected));
       setNotes("");
     }
   }, [isOpen, stats.cashCollected]);
 
+  const actualCash = parseFloat(actualCashInput) || 0;
   const diff = actualCash - stats.cashCollected;
   const isBalanced = diff === 0;
 
   const handlePrint = () => {
     printElementIsolated(
       "register-closeout-print",
-      `Shift Register Closeout - ${selectedDate}`
+      `Shift Register Closeout - ${selectedDate}`,
     );
   };
 
@@ -77,7 +80,7 @@ export function CashDrawerCloseoutDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[86vh] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[min(90dvh,calc(100dvh-1.5rem))] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl">
         <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
@@ -105,7 +108,7 @@ export function CashDrawerCloseoutDialog({
                   <img
                     src="/logo.jpg"
                     alt="Health & Pain Care Center Logo"
-                    className="size-13 object-contain shrink-0"
+                    className="size-12 object-contain shrink-0"
                   />
                   <div>
                     <h1 className="font-black text-base tracking-tight uppercase text-black leading-tight">
@@ -222,11 +225,8 @@ export function CashDrawerCloseoutDialog({
                         type="number"
                         min={0}
                         step={10}
-                        value={isNaN(actualCash) ? "" : actualCash}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          setActualCash(isNaN(val) ? 0 : val);
-                        }}
+                        value={actualCashInput}
+                        onChange={(e) => setActualCashInput(e.target.value)}
                         className="pl-7 h-8.5 text-xs font-sans font-bold border-neutral-700"
                       />
                     </div>

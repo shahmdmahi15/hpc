@@ -20,7 +20,12 @@ export function ConsultationTimer({
       return;
     }
 
-    const startMs = new Date(startTime).getTime();
+    const parsed = new Date(startTime);
+    const startMs = parsed.getTime();
+    if (isNaN(startMs)) {
+      setElapsedSeconds(0);
+      return;
+    }
 
     const updateTimer = () => {
       const nowMs = Date.now();

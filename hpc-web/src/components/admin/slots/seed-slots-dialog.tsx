@@ -58,16 +58,14 @@ export function SeedSlotsDialog({
   );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const [prevOpen, setPrevOpen] = React.useState(isOpen);
-  if (isOpen !== prevOpen) {
-    setPrevOpen(isOpen);
+  React.useEffect(() => {
     if (isOpen) {
       setSelectedPerformerId(
         defaultPerformerId ||
           (adminPerformers.length === 1 ? adminPerformers[0].id : ""),
       );
     }
-  }
+  }, [isOpen, defaultPerformerId, adminPerformers]);
 
   const handleSeed = async () => {
     if (!selectedPerformerId && adminPerformers.length > 1) {

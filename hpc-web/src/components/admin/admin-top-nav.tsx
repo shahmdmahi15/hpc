@@ -67,7 +67,7 @@ export function AdminTopNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="w-full bg-card/60 backdrop-blur-md border-b border-border/70 sticky top-[45px] z-20">
+    <nav className="w-full bg-card/85 backdrop-blur-md border-b border-border/70">
       <div className="max-w-[1700px] mx-auto px-3 sm:px-5 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar py-1">
         {/* Main Admin Navigation Links */}
         <div className="flex items-center gap-1 shrink-0">

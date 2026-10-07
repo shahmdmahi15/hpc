@@ -176,6 +176,14 @@ export function PatientJourneyTrackerView({
     }
   }, [selectedDate, initialData, loadTrackingData]);
 
+  // Synchronize when parent passes a new defaultDate
+  React.useEffect(() => {
+    if (defaultDate && defaultDate !== selectedDate) {
+      setSelectedDate(defaultDate);
+      loadTrackingData(defaultDate);
+    }
+  }, [defaultDate, selectedDate, loadTrackingData]);
+
   // Real-time Event Subscription for 100% offline sync
   useRealtimeEvents({
     onEvent: (event) => {
@@ -215,18 +223,31 @@ export function PatientJourneyTrackerView({
     return list;
   }, [data?.patients, selectedStationFilter, searchQuery]);
 
+  // 1-Click checkout loading indicator
+  const [checkingOutPatientId, setCheckingOutPatientId] =
+    React.useState<string | null>(null);
+
   // Handle direct 1-click Check Out
-  const handleQuickCheckOut = async (appointmentId: string, name: string) => {
+  const handleQuickCheckOut = async (patient: LiveTrackedPatient) => {
+    if (patient.dueAmount > 0) {
+      const confirmed = window.confirm(
+        `Patient ${patient.name} has an unpaid balance of ৳${patient.dueAmount.toLocaleString()}. Are you sure you want to check out before billing is cleared?`,
+      );
+      if (!confirmed) return;
+    }
     try {
-      const res = await quickCheckOutPatientAction(appointmentId);
+      setCheckingOutPatientId(patient.id);
+      const res = await quickCheckOutPatientAction(patient.id);
       if (res.success) {
-        toast.success(`Patient ${name} checked out.`);
+        toast.success(`Patient ${patient.name} checked out.`);
         loadTrackingData(selectedDate);
       } else {
         toast.error(res.message);
       }
     } catch {
       toast.error("Failed to check out patient.");
+    } finally {
+      setCheckingOutPatientId(null);
     }
   };
 
@@ -304,7 +325,7 @@ export function PatientJourneyTrackerView({
       </div>
 
       {/* 2. Live Station Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2.5">
         {/* Total Metric */}
         <button
           type="button"
@@ -452,18 +473,18 @@ export function PatientJourneyTrackerView({
 
       {/* 3. Search & Live Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2 rounded-xl bg-card border border-border/80 shadow-2xs">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 w-full sm:max-w-md">
           <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search patient by name, phone, MRN, doctor or room..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 text-xs h-8.5 rounded-lg bg-background"
+            className="pl-8 text-xs h-8.5 rounded-lg bg-background w-full"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] text-muted-foreground font-bold px-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar sm:flex-wrap pb-1 sm:pb-0">
+          <span className="text-[11px] text-muted-foreground font-bold px-1 shrink-0">
             Station:
           </span>
           {(
@@ -662,14 +683,21 @@ export function PatientJourneyTrackerView({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() =>
-                        handleQuickCheckOut(patient.id, patient.name)
-                      }
+                      onClick={() => handleQuickCheckOut(patient)}
+                      disabled={checkingOutPatientId === patient.id}
                       title="Complete visit & check out patient"
-                      className="h-8 px-2.5 text-xs font-bold gap-1 text-slate-600 dark:text-slate-400 hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                      className="h-8 px-2.5 text-xs font-bold gap-1 text-slate-600 dark:text-slate-400 hover:text-destructive hover:bg-destructive/10 cursor-pointer disabled:opacity-50"
                     >
-                      <LogOut className="size-3.5" />
-                      <span>Check Out</span>
+                      {checkingOutPatientId === patient.id ? (
+                        <RefreshCw className="size-3.5 animate-spin" />
+                      ) : (
+                        <LogOut className="size-3.5" />
+                      )}
+                      <span>
+                        {checkingOutPatientId === patient.id
+                          ? "Checking out..."
+                          : "Check Out"}
+                      </span>
                     </Button>
                   )}
                 </div>
@@ -784,8 +812,8 @@ function TransferStationDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-lg p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
-        <DialogHeader className="p-5 pb-4 border-b border-border/60 bg-muted/20">
+      <DialogContent className="w-[95vw] max-w-lg p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl max-h-[min(90dvh,calc(100dvh-1.5rem))] flex flex-col">
+        <DialogHeader className="p-5 pb-4 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <Compass className="size-5" />
@@ -801,7 +829,7 @@ function TransferStationDialog({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1 overscroll-contain">
           {/* Target Station Radio Grid */}
           <div className="space-y-2">
             <Label className="text-xs font-bold text-foreground">
@@ -903,7 +931,7 @@ function TransferStationDialog({
             />
           </div>
 
-          <DialogFooter className="pt-2 border-t border-border/60 flex items-center justify-end gap-2">
+          <DialogFooter className="pt-2 border-t border-border/60 flex items-center justify-end gap-2 shrink-0">
             <Button
               type="button"
               variant="outline"
@@ -1107,10 +1135,19 @@ function QuickCheckInWithoutSlotDialog({
                       placeholder="Search patient by name, phone or MRN..."
                       value={patientSearch}
                       onChange={(e) => setPatientSearch(e.target.value)}
-                      className="pl-8 text-xs h-9"
+                      className="pl-8 pr-8 text-xs h-9"
                       autoFocus
                     />
+                    {isSearching && (
+                      <RefreshCw className="size-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
+                    )}
                   </div>
+
+                  {!isSearching && patientSearch.trim() && patientResults.length === 0 && (
+                    <div className="p-3 text-center text-xs text-muted-foreground rounded-xl border border-dashed border-border/80 bg-muted/20">
+                      No patients found matching &ldquo;{patientSearch}&rdquo;
+                    </div>
+                  )}
 
                   {patientResults.length > 0 && (
                     <div className="max-h-36 overflow-y-auto rounded-xl border border-border/80 divide-y divide-border/50 bg-card shadow-xs">

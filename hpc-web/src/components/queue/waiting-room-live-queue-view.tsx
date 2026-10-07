@@ -197,19 +197,23 @@ export function WaitingRoomLiveQueueView({
       }
     };
 
-    requestWakeLock();
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         requestWakeLock();
       }
     };
 
+    const handleFullscreenChange = () => {
+      requestWakeLock();
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
 
     return () => {
       isMounted = false;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
       if (wakeLockRef.current) {
         wakeLockRef.current.release().catch(() => {});
         wakeLockRef.current = null;
@@ -265,6 +269,13 @@ export function WaitingRoomLiveQueueView({
 
         osc.connect(gainNode);
         gainNode.connect(ctx.destination);
+
+        osc.onended = () => {
+          try {
+            osc.disconnect();
+            gainNode.disconnect();
+          } catch {}
+        };
 
         osc.start(ctx.currentTime + start);
         osc.stop(ctx.currentTime + start + duration);
@@ -489,7 +500,7 @@ export function WaitingRoomLiveQueueView({
             } catch (e) {
               console.warn("[Speech Synthesis Error]:", e);
             }
-          }, 1100);
+          }, 1800);
         } catch (err) {
           console.warn("[Speech Synthesis Cancel Error]:", err);
         }
@@ -630,6 +641,25 @@ export function WaitingRoomLiveQueueView({
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       lastInteractionTimeRef.current = Date.now();
+
+      // Smart TV Remote Back Key Handling (Samsung Tizen 10009, LG webOS 461, Android TV Back)
+      const isBackKey =
+        (e as any).keyCode === 10009 ||
+        (e as any).keyCode === 461 ||
+        e.key === "GoBack" ||
+        e.key === "Back";
+
+      if (isBackKey) {
+        e.preventDefault();
+        if (activeAnnouncement) {
+          setActiveAnnouncement(null);
+          return;
+        }
+        if (typeof document !== "undefined" && document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {});
+          return;
+        }
+      }
 
       // Dismiss announcement if open
       if (activeAnnouncement) {

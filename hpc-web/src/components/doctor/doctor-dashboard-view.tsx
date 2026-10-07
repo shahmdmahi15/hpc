@@ -279,6 +279,33 @@ export function DoctorDashboardView({
     }
   };
 
+  // Cancel call and put patient back in checked-in queue
+  const handleCancelCall = async () => {
+    if (!callingAppointment) return;
+    setIsFinishingSession(true);
+    try {
+      const res = await updateAppointmentStatusAction(
+        callingAppointment.id,
+        AppointmentStatus.CHECKED_IN,
+        undefined,
+        QueueType.CONSULTATION,
+        undefined,
+        undefined,
+        selectedDoctorId || undefined,
+      );
+      if (res.success) {
+        toast.info(
+          `Call cancelled. ${callingAppointment.patient?.name} returned to queue.`,
+        );
+        refreshData(selectedDate);
+      } else {
+        toast.error(res.message);
+      }
+    } finally {
+      setIsFinishingSession(false);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col bg-background text-foreground selection:bg-sky-500/20">
       {/* 1. Full-Width Doctor Header (NO SIDEBAR) */}
@@ -340,6 +367,16 @@ export function DoctorDashboardView({
                 >
                   <Stethoscope className="size-3.5" />
                   <span>Mark In Consultation</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelCall}
+                  disabled={isFinishingSession}
+                  className="h-7.5 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border-border cursor-pointer gap-1"
+                >
+                  <span>Cancel Call</span>
                 </Button>
               </div>
             </div>

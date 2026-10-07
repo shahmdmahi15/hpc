@@ -110,7 +110,6 @@ export async function createMedicalRecordAction(
     const sessionData = await requireAuth([
       Role.DOCTOR,
       Role.ADMIN,
-      Role.RECEPTIONIST,
     ]);
 
     const parsed = createMedicalRecordSchema.safeParse(data);

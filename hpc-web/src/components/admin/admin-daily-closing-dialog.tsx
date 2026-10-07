@@ -121,7 +121,7 @@ export function AdminDailyClosingDialog({
                   <img
                     src="/logo.jpg"
                     alt="Health & Pain Care Center Logo"
-                    className="size-13 object-contain shrink-0"
+                    className="size-12 object-contain shrink-0"
                   />
                   <div>
                     <h1 className="font-black text-base tracking-tight uppercase text-black leading-tight">

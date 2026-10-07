@@ -387,26 +387,23 @@ export async function updateAppointmentStatusAction(
           ? QueueType.CONSULTATION
           : QueueType.THERAPY);
 
-      // Ensure Queue master record exists
+      // Ensure Queue master record exists atomically
       try {
-        let queueRecord = await prisma.queue.findUnique({
+        const queueRecord = await prisma.queue.upsert({
           where: { type: assignedQueueType },
+          update: {},
+          create: {
+            type: assignedQueueType,
+            name:
+              assignedQueueType === QueueType.CONSULTATION
+                ? "Consultation Queue"
+                : "Therapy Queue",
+            description:
+              assignedQueueType === QueueType.CONSULTATION
+                ? "Queue for consultation patients"
+                : "Queue for physical therapy patients",
+          },
         });
-        if (!queueRecord) {
-          queueRecord = await prisma.queue.create({
-            data: {
-              type: assignedQueueType,
-              name:
-                assignedQueueType === QueueType.CONSULTATION
-                  ? "Consultation Queue"
-                  : "Therapy Queue",
-              description:
-                assignedQueueType === QueueType.CONSULTATION
-                  ? "Queue for consultation patients"
-                  : "Queue for physical therapy patients",
-            },
-          });
-        }
         queueId = queueRecord.id;
       } catch (err) {
         console.error("[Ensure Queue Record Error]:", err);
@@ -520,6 +517,9 @@ export async function updateAppointmentStatusAction(
       where: { id: appointmentId },
       data: {
         status: newStatus,
+        ...(newStatus === AppointmentStatus.COMPLETED
+          ? { currentStation: "CHECKED_OUT" }
+          : {}),
         ...(checkInTime !== undefined ? { checkInTime } : {}),
         ...(inConsultationTimeUpdate ? { inConsultationTime: inConsultationTimeUpdate } : {}),
         ...(inTherapyTimeUpdate ? { inTherapyTime: inTherapyTimeUpdate } : {}),
@@ -676,9 +676,58 @@ export async function updateAppointmentStatusAction(
       }
     }
 
+    // If patient transferred rooms, release previous room if no longer occupied
+    if (
+      appointment.roomId &&
+      updated.roomId !== appointment.roomId
+    ) {
+      const activeOccupyingPrev = await prisma.appointment.count({
+        where: {
+          roomId: appointment.roomId,
+          status: {
+            in: [
+              AppointmentStatus.IN_CONSULTATION,
+              AppointmentStatus.IN_THERAPY,
+              AppointmentStatus.CALLING,
+            ],
+          },
+          id: { not: updated.id },
+        },
+      });
+
+      if (activeOccupyingPrev === 0) {
+        await prisma.room
+          .update({
+            where: { id: appointment.roomId },
+            data: { status: RoomStatus.AVAILABLE },
+          })
+          .catch((err) =>
+            console.error("[Release Prev Room Error]:", err),
+          );
+
+        emitRealtimeEvent("ROOM_UPDATED", {
+          id: appointment.roomId,
+          status: RoomStatus.AVAILABLE,
+        });
+      }
+    }
+
+    // If completed, broadcast STATION_CHANGED
+    if (newStatus === AppointmentStatus.COMPLETED) {
+      emitRealtimeEvent("STATION_CHANGED", {
+        appointmentId: updated.id,
+        patientId: updated.patientId,
+        patientName: updated.patient.name,
+        toStation: "CHECKED_OUT",
+        status: updated.status,
+      });
+    }
+
     revalidatePath("/receptionist");
     revalidatePath("/doctor");
     revalidatePath("/handler");
+    revalidatePath("/cashier");
+    revalidatePath("/admin/tracking");
     revalidatePath("/admin/rooms");
     revalidatePath("/");
 
@@ -1063,12 +1112,14 @@ export async function getLiveQueueAction() {
       orderBy: [{ checkInTime: "asc" }, { createdAt: "asc" }],
     });
 
-    // Sanitize any financial amounts so private monetary figures are never sent to public TV displays
+    // Sanitize any financial amounts and private notes so they are never sent to public TV displays
     const sanitizedQueue = checkedInAppointments.map((apt) => ({
       ...apt,
       feeAmount: 0,
       paidAmount: 0,
       dueAmount: 0,
+      notes: null,
+      extraReason: null,
     }));
 
     const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -1161,24 +1212,21 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
     );
 
     // Ensure corresponding Queue master record exists
-    let queueRecord = await prisma.queue.findUnique({
+    const queueRecord = await prisma.queue.upsert({
       where: { type: input.queueType },
+      update: {},
+      create: {
+        type: input.queueType,
+        name:
+          input.queueType === QueueType.CONSULTATION
+            ? "Consultation Queue"
+            : "Therapy Queue",
+        description:
+          input.queueType === QueueType.CONSULTATION
+            ? "Queue for consultation patients"
+            : "Queue for physical therapy patients",
+      },
     });
-    if (!queueRecord) {
-      queueRecord = await prisma.queue.create({
-        data: {
-          type: input.queueType,
-          name:
-            input.queueType === QueueType.CONSULTATION
-              ? "Consultation Queue"
-              : "Therapy Queue",
-          description:
-            input.queueType === QueueType.CONSULTATION
-              ? "Queue for consultation patients"
-              : "Queue for physical therapy patients",
-        },
-      });
-    }
 
     // Validate performerId: only assign to bookedById if exists in Performer table
     let validatedBookedById: string | undefined = undefined;
@@ -1334,6 +1382,9 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
 
     revalidatePath("/receptionist");
     revalidatePath("/cashier");
+    revalidatePath("/doctor");
+    revalidatePath("/handler");
+    revalidatePath("/admin/tracking");
     revalidatePath("/");
 
     return {
@@ -1667,6 +1718,7 @@ export async function checkOutPatientAction(
       where: { id: appointmentId },
       data: {
         checkOutTime: now,
+        currentStation: "CHECKED_OUT",
         status:
           appointment.status === AppointmentStatus.CHECKED_IN ||
           appointment.status === AppointmentStatus.CALLING ||
@@ -1706,10 +1758,19 @@ export async function checkOutPatientAction(
       date: updated.appointmentDate.toISOString().split("T")[0],
     });
 
+    emitRealtimeEvent("STATION_CHANGED", {
+      appointmentId: updated.id,
+      patientId: updated.patientId,
+      patientName: updated.patient.name,
+      toStation: "CHECKED_OUT",
+      status: updated.status,
+    });
+
     revalidatePath("/receptionist");
     revalidatePath("/doctor");
     revalidatePath("/handler");
     revalidatePath("/cashier");
+    revalidatePath("/admin/tracking");
     revalidatePath("/");
 
     return {

@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
   const bus = getRealtimeEventBus();
   const encoder = new TextEncoder();
 
+  let cleanup: (() => void) | null = null;
+
   const stream = new ReadableStream({
     start(controller) {
       // 1. Initial connection handshake
@@ -47,12 +49,11 @@ export async function GET(request: NextRequest) {
         try {
           controller.enqueue(encoder.encode(`: ping\n\n`));
         } catch {
-          clearInterval(pingInterval);
+          if (cleanup) cleanup();
         }
       }, 10000);
 
-      // 4. Cleanup on client disconnect
-      request.signal.addEventListener("abort", () => {
+      cleanup = () => {
         clearInterval(pingInterval);
         bus.off("*", onEvent);
         try {
@@ -60,7 +61,15 @@ export async function GET(request: NextRequest) {
         } catch {
           // Already closed
         }
+      };
+
+      // 4. Cleanup on client disconnect
+      request.signal.addEventListener("abort", () => {
+        if (cleanup) cleanup();
       });
+    },
+    cancel() {
+      if (cleanup) cleanup();
     },
   });
 

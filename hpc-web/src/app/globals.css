@@ -193,10 +193,11 @@
   }
   html {
     @apply bg-background text-foreground font-sans;
-    overflow-x: hidden;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-background text-foreground font-sans min-h-screen;
+    @apply bg-background text-foreground font-sans min-h-dvh;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: env(safe-area-inset-left, 0px);
@@ -209,11 +210,19 @@
     outline-offset: 2px !important;
   }
 
-  /* Touch-friendly target sizing on phones and tablets */
+  /* Touch-friendly target sizing on phones and tablets (WCAG & Apple HIG 44px) */
   @media (pointer: coarse) {
     button:not(.no-touch-min), 
-    [role="button"]:not(.no-touch-min) {
-      min-height: 36px;
+    [role="button"]:not(.no-touch-min),
+    [role="tab"]:not(.no-touch-min) {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      min-height: 42px;
+      font-size: 16px !important; /* Prevents auto-zoom viewport distortion on iOS Safari */
     }
   }
 }

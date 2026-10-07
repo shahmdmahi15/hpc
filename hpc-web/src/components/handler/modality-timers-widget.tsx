@@ -29,14 +29,44 @@ export function ModalityTimersWidget({ modalities }: ModalityTimersWidgetProps) 
     })),
   );
 
-  // Play completion notification sound via native Web Audio API
+  const audioCtxRef = React.useRef<AudioContext | null>(null);
+
+  // Sync timers when modalities prop updates
+  React.useEffect(() => {
+    setTimers((prev) => {
+      return modalities.map((name, index) => {
+        const existing = prev.find((t) => t.name === name);
+        if (existing) return existing;
+        return {
+          id: `${name}-${index}`,
+          name,
+          totalSeconds: 15 * 60,
+          remainingSeconds: 15 * 60,
+          isRunning: false,
+          isCompleted: false,
+        };
+      });
+    });
+  }, [modalities]);
+
+  // Play completion notification sound via native Web Audio API (reusable context)
   const playTimerCompleteChime = React.useCallback(() => {
     try {
+      if (typeof window === "undefined") return;
       const AudioCtx =
         window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
       if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -47,6 +77,14 @@ export function ModalityTimersWidget({ modalities }: ModalityTimersWidgetProps) 
 
       osc.connect(gain);
       gain.connect(ctx.destination);
+
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gain.disconnect();
+        } catch {}
+      };
+
       osc.start();
       osc.stop(ctx.currentTime + 1.2);
     } catch {
