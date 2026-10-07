@@ -33,6 +33,9 @@ export interface AdminDashboardData {
     todayCollected: number;
     todayDue: number;
     totalLifetimeRevenue: number;
+    todayCash?: number;
+    todayCard?: number;
+    todayMfs?: number;
   };
   recentLogs: RecentAuditLogItem[];
 }
@@ -57,6 +60,9 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
   let todayCollected = 0;
   let todayDue = 0;
   let totalLifetimeRevenue = 0;
+  let todayCash = 0;
+  let todayCard = 0;
+  let todayMfs = 0;
 
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
@@ -98,6 +104,7 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
             paidAmount: true,
             dueAmount: true,
             paymentStatus: true,
+            paymentMethod: true,
           },
         }),
         prisma.auditLog.findMany({
@@ -132,11 +139,15 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
 
       const fee = apt.feeAmount ?? 0;
       const isPaid = apt.paymentStatus === "PAID";
-      const paid = isPaid ? fee : (apt.paidAmount ?? 0);
+      const paid = isPaid ? (apt.paidAmount && apt.paidAmount > 0 ? apt.paidAmount : fee) : (apt.paidAmount ?? 0);
       const due = isPaid ? 0 : Math.max(0, fee - paid);
 
       todayCollected += paid;
       todayDue += due;
+
+      if (apt.paymentMethod === "CARD") todayCard += paid;
+      else if (apt.paymentMethod === "MFS") todayMfs += paid;
+      else if (paid > 0) todayCash += paid;
     }
   } catch (error) {
     console.error("[Dashboard Action Error] Failed to query telemetry:", error);
@@ -170,6 +181,9 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
       todayCollected,
       todayDue,
       totalLifetimeRevenue,
+      todayCash,
+      todayCard,
+      todayMfs,
     },
     recentLogs,
   };

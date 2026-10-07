@@ -111,20 +111,27 @@ export async function getCashierDashboardDataAction(
   let cashCollected = 0;
   let cardCollected = 0;
   let mfsCollected = 0;
-
-  for (const a of paidAppointments) {
-    const fee = a.feeAmount ?? DEFAULT_FEE;
-    totalCollected += fee;
-    if (a.paymentMethod === "CASH") cashCollected += fee;
-    else if (a.paymentMethod === "CARD") cardCollected += fee;
-    else if (a.paymentMethod === "MFS") mfsCollected += fee;
-    else cashCollected += fee; // default
-  }
-
   let pendingCollection = 0;
-  for (const a of pendingAppointments) {
-    const fee = a.feeAmount ?? DEFAULT_FEE;
-    pendingCollection += fee;
+
+  for (const a of appointments) {
+    if (a.status === "CANCELLED") continue;
+    const isPaid = a.paymentStatus === "PAID";
+    const paid =
+      a.paidAmount !== null && a.paidAmount !== undefined && (a.paidAmount > 0 || !isPaid)
+        ? a.paidAmount
+        : (isPaid ? (a.feeAmount ?? DEFAULT_FEE) : (a.paidAmount ?? 0));
+    totalCollected += paid;
+    if (a.paymentMethod === "CARD") cardCollected += paid;
+    else if (a.paymentMethod === "MFS") mfsCollected += paid;
+    else cashCollected += paid;
+
+    const due =
+      isPaid
+        ? 0
+        : (a.dueAmount !== null && a.dueAmount !== undefined
+            ? a.dueAmount
+            : Math.max(0, (a.feeAmount ?? DEFAULT_FEE) - paid));
+    pendingCollection += due;
   }
 
   return {
@@ -196,16 +203,17 @@ export async function collectPaymentAction(params: {
       return { success: false, message: "Appointment record not found." };
     }
 
-    const feeAmount = appointment.feeAmount ?? params.amount;
-    const paidAmount = params.amount;
-    const dueAmount = Math.max(0, feeAmount - paidAmount);
+    const currentPaid = appointment.paidAmount ?? 0;
+    const newPaid = currentPaid + params.amount;
+    const feeAmount = appointment.feeAmount ?? (currentPaid + params.amount);
+    const dueAmount = Math.max(0, feeAmount - newPaid);
     const paymentStatus = dueAmount === 0 ? "PAID" : "PARTIAL";
 
     const updated = await prisma.appointment.update({
       where: { id: params.appointmentId },
       data: {
         feeAmount,
-        paidAmount,
+        paidAmount: newPaid,
         dueAmount,
         paymentStatus,
         paidAt: new Date(),

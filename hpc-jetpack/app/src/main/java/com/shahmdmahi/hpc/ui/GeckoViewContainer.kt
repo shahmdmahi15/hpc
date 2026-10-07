@@ -103,17 +103,28 @@ fun GeckoViewContainer(
     val focusRequester = remember { FocusRequester() }
     val runtime = remember { GeckoRuntimeManager.getRuntime(context) }
 
-    // Session settings tailored for Android 9 TV (armeabi-v7a)
-    val sessionSettings = remember {
-        GeckoSessionSettings.Builder()
+    val isTvDevice = remember {
+        val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+        uiModeManager?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION ||
+            context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+    }
+
+    // Session settings tailored for TV (desktop viewport) or Mobile/Tablet (responsive viewport)
+    val sessionSettings = remember(isTvDevice) {
+        val builder = GeckoSessionSettings.Builder()
             .usePrivateMode(false)
             .useTrackingProtection(false)
             .allowJavascript(true)
-            .viewportMode(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
-            .userAgentOverride(
-                "Mozilla/5.0 (Large Screen; Android TV 9; armeabi-v7a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 HPCNativeTV/1.0 Gecko/115.0"
-            )
-            .build()
+
+        if (isTvDevice) {
+            builder.viewportMode(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
+                .userAgentOverride(
+                    "Mozilla/5.0 (Large Screen; Android TV; Linux; arm) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 HPCNativeTV/1.0 Gecko/115.0"
+                )
+        } else {
+            builder.viewportMode(GeckoSessionSettings.VIEWPORT_MODE_MOBILE)
+        }
+        builder.build()
     }
 
     val geckoSession = remember(targetUrl) {

@@ -360,7 +360,7 @@ model Appointment {
 
   // Therapy Slot relation (used when type == THERAPY)
   therapySlotId String?
-  therapySlot   TherapySlot? @relation(fields: [therapySlotId], references: [id], onDelete: Cascade)
+  therapySlot   TherapySlot? @relation(fields: [therapySlotId], references: [id], onDelete: SetNull)
 
   // Patient relation
   patientId String
@@ -458,6 +458,9 @@ model Appointment {
   updatedAt DateTime @updatedAt
 
   @@index([type])
+  @@index([appointmentDate])
+  @@index([appointmentDate, status])
+  @@index([appointmentDate, queueType])
   @@index([queueType])
   @@index([queueId])
   @@index([therapySlotId])

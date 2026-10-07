@@ -23,12 +23,36 @@ const initSqlitePragmas = (dbPath: string) => {
   }
 };
 
+class ConfiguredPrismaBetterSqlite3 extends PrismaBetterSqlite3 {
+  override async connect() {
+    const adapter = await super.connect();
+    const client = (adapter as unknown as { client?: InstanceType<typeof Database> }).client;
+    if (client) {
+      client.pragma("journal_mode = WAL");
+      client.pragma("synchronous = NORMAL");
+      client.pragma("foreign_keys = ON");
+    }
+    return adapter;
+  }
+
+  override async connectToShadowDb() {
+    const adapter = await super.connectToShadowDb();
+    const client = (adapter as unknown as { client?: InstanceType<typeof Database> }).client;
+    if (client) {
+      client.pragma("journal_mode = WAL");
+      client.pragma("synchronous = NORMAL");
+      client.pragma("foreign_keys = ON");
+    }
+    return adapter;
+  }
+}
+
 const prismaClientSingleton = () => {
   const connectionString = process.env.DATABASE_URL || "file:./hpc.db";
   const dbPath = getDatabaseFilePath();
   initSqlitePragmas(dbPath);
 
-  const adapter = new PrismaBetterSqlite3({
+  const adapter = new ConfiguredPrismaBetterSqlite3({
     url: connectionString,
     timeout: 5000,
   });

@@ -13,33 +13,31 @@ import {
   Calculator,
   Printer,
   Download,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  FileCheck,
-  Building,
-  CheckCircle2,
-  Clock,
   Loader2,
 } from "lucide-react";
 import { CLINIC_CONFIG } from "@/lib/clinic-config";
 import { downloadElementAsPdf, printElementIsolated } from "@/lib/pdf-generator";
 import { toast } from "sonner";
 
+export interface DailyClosingFinancialData {
+  todayAppointmentsCount: number;
+  todayConsultationCount: number;
+  todayTherapyCount: number;
+  todayCollected: number;
+  todayDue: number;
+  totalLifetimeRevenue: number;
+  userCount: number;
+  activeSessionCount: number;
+  todayCash?: number;
+  todayCard?: number;
+  todayMfs?: number;
+}
+
 interface AdminDailyClosingDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   dateStr?: string;
-  data: {
-    todayAppointmentsCount: number;
-    todayConsultationCount: number;
-    todayTherapyCount: number;
-    todayCollected: number;
-    todayDue: number;
-    totalLifetimeRevenue: number;
-    userCount: number;
-    activeSessionCount: number;
-  };
+  data: DailyClosingFinancialData;
 }
 
 export function AdminDailyClosingDialog({
@@ -58,12 +56,15 @@ export function AdminDailyClosingDialog({
   });
 
   const totalGross = data.todayCollected + data.todayDue;
+  const card = data.todayCard ?? 0;
+  const mfs = data.todayMfs ?? 0;
+  const cash = data.todayCash ?? Math.max(0, data.todayCollected - (card + mfs));
 
   const handlePrint = () => {
-    printElementIsolated(
-      "admin-z-report-print",
-      `Daily Financial Z-Report - ${dateStr}`
-    );
+    printElementIsolated("admin-z-report-print", {
+      title: `Daily Financial Z-Report - ${dateStr}`,
+      paperSize: "5.5in 8.27in",
+    });
   };
 
   const handleDownloadPdf = async () => {
@@ -100,7 +101,7 @@ export function AdminDailyClosingDialog({
               <span>Daily Financial Closing (Z-Report)</span>
             </DialogTitle>
             <span className="text-[11px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border self-start sm:self-auto">
-              5.5″ × 8.27″ (HPC Paper)
+              5.5″ × 8.27″ (Thermal/A5 Paper)
             </span>
           </div>
         </DialogHeader>
@@ -192,17 +193,38 @@ export function AdminDailyClosingDialog({
                 </div>
                 <div className="p-2.5 space-y-1.5 bg-white">
                   <div className="flex justify-between">
-                    <span className="text-neutral-700">Gross Billed Value:</span>
+                    <span className="text-neutral-700">Gross Billed Value (Total Revenue):</span>
                     <span className="font-sans font-bold text-black">৳ {totalGross.toLocaleString()} BDT</span>
                   </div>
-                  <div className="flex justify-between font-bold border-t border-neutral-300 pt-1.5 text-black">
-                    <span>Total Cash &amp; Bank Collections:</span>
-                    <span className="font-sans text-sm font-black">৳ {data.todayCollected.toLocaleString()} BDT</span>
+
+                  <div className="border-t border-neutral-300 pt-1.5 space-y-1">
+                    <div className="flex justify-between font-bold text-black">
+                      <span>Total Collections (আদায়কৃত):</span>
+                      <span className="font-sans text-sm font-black text-emerald-800">৳ {data.todayCollected.toLocaleString()} BDT</span>
+                    </div>
+
+                    {/* Breakdown by Payment Channel */}
+                    <div className="pl-3 space-y-0.5 text-[9.5px] text-neutral-600 border-l-2 border-neutral-300 ml-1">
+                      <div className="flex justify-between">
+                        <span>• Cash in Counter (নগদ):</span>
+                        <span className="font-mono font-semibold text-black">৳ {cash.toLocaleString()} BDT</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>• Card / POS Terminal (কার্ড):</span>
+                        <span className="font-mono font-semibold text-black">৳ {card.toLocaleString()} BDT</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>• MFS (bKash / Nagad):</span>
+                        <span className="font-mono font-semibold text-black">৳ {mfs.toLocaleString()} BDT</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-black font-bold">
+
+                  <div className="flex justify-between text-black font-bold border-t border-neutral-300 pt-1.5">
                     <span>Outstanding Patient Dues (বকেয়া):</span>
-                    <span className="font-sans font-bold">৳ {data.todayDue.toLocaleString()} BDT</span>
+                    <span className="font-sans font-bold text-amber-900">৳ {data.todayDue.toLocaleString()} BDT</span>
                   </div>
+
                   <div className="flex justify-between text-neutral-600 text-[10px] border-t border-neutral-300 pt-1">
                     <span>Cumulative Clinic Lifetime Revenue:</span>
                     <span className="font-sans font-semibold">৳ {data.totalLifetimeRevenue.toLocaleString()} BDT</span>
@@ -287,7 +309,7 @@ export function AdminDailyClosingDialog({
               className="gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-xs flex-1 sm:flex-initial"
             >
               <Printer className="size-3.5" />
-              <span>Print Z-Report (5.5″ × 8.125″)</span>
+              <span>Print Z-Report (5.5″ × 8.27″)</span>
             </Button>
           </div>
         </DialogFooter>

@@ -3,19 +3,13 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Calculator } from "lucide-react";
-import { AdminDailyClosingDialog } from "@/components/admin/admin-daily-closing-dialog";
+import {
+  AdminDailyClosingDialog,
+  type DailyClosingFinancialData,
+} from "@/components/admin/admin-daily-closing-dialog";
 
 interface AdminDailyClosingButtonProps {
-  data: {
-    todayAppointmentsCount: number;
-    todayConsultationCount: number;
-    todayTherapyCount: number;
-    todayCollected: number;
-    todayDue: number;
-    totalLifetimeRevenue: number;
-    userCount: number;
-    activeSessionCount: number;
-  };
+  data: DailyClosingFinancialData;
 }
 
 export function AdminDailyClosingButton({ data }: AdminDailyClosingButtonProps) {

@@ -36,3 +36,4 @@ next-env.d.ts
 # SQLite runtime temporary files (WAL journal)
 *.db-shm
 *.db-wal
+.hpc.pid

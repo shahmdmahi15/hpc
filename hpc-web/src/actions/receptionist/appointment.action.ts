@@ -1016,22 +1016,42 @@ export async function getLiveQueueAction() {
         },
       },
       include: {
-        patient: true,
+        patient: {
+          select: {
+            id: true,
+            name: true,
+            mrn: true,
+            gender: true,
+          },
+        },
         therapySlot: {
           include: { room: true },
         },
         room: true,
-        bookedBy: true,
+        bookedBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         queue: true,
       },
       orderBy: [{ checkInTime: "asc" }, { createdAt: "asc" }],
     });
 
+    // Sanitize any financial amounts so private monetary figures are never sent to public TV displays
+    const sanitizedQueue = checkedInAppointments.map((apt) => ({
+      ...apt,
+      feeAmount: 0,
+      paidAmount: 0,
+      dueAmount: 0,
+    }));
+
     const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
     return {
       success: true,
-      queue: checkedInAppointments,
+      queue: sanitizedQueue as unknown as AppointmentWithRelations[],
       date: todayDateStr,
     };
   } catch (error: unknown) {

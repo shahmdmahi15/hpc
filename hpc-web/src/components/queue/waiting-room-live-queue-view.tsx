@@ -35,6 +35,7 @@ import {
   CreditCard,
   Shield,
   Radio,
+  Tv,
 } from "lucide-react";
 
 interface DoctorCallAnnouncement {
@@ -74,6 +75,16 @@ export function WaitingRoomLiveQueueView({
   const [departmentFilter, setDepartmentFilter] = React.useState<
     "ALL" | "CONSULTATION" | "THERAPY"
   >("ALL");
+
+  // Screen Wake Lock API state (Prevents TV/Kiosk sleep mode)
+  const [isWakeLockActive, setIsWakeLockActive] = React.useState<boolean>(false);
+  const wakeLockRef = React.useRef<any>(null);
+
+  // TV Leanback & D-Pad Navigation state
+  const [activeColumnIndex, setActiveColumnIndex] = React.useState<0 | 1>(0);
+  const therapyListRef = React.useRef<HTMLDivElement | null>(null);
+  const consultationListRef = React.useRef<HTMLDivElement | null>(null);
+  const lastInteractionTimeRef = React.useRef<number>(Date.now());
 
   // Read URL search params (e.g. ?dept=doctor or ?dept=therapy)
   React.useEffect(() => {
@@ -155,6 +166,56 @@ export function WaitingRoomLiveQueueView({
       );
     };
   }, [getAudioContext]);
+
+  // Screen Wake Lock API implementation: guarantees TV display stays powered on
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const requestWakeLock = async () => {
+      if (typeof window === "undefined" || !("wakeLock" in navigator)) {
+        return;
+      }
+      try {
+        if (wakeLockRef.current && !wakeLockRef.current.released) {
+          return;
+        }
+        const lock = await (navigator as any).wakeLock.request("screen");
+        if (!isMounted) {
+          await lock.release();
+          return;
+        }
+        wakeLockRef.current = lock;
+        setIsWakeLockActive(true);
+
+        lock.addEventListener("release", () => {
+          if (isMounted) {
+            setIsWakeLockActive(false);
+          }
+        });
+      } catch (err) {
+        console.warn("[Screen Wake Lock Request]:", err);
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+    };
+  }, []);
 
   // Play rich resonant dual hospital bell chime (Ding-Dong) using native Web Audio API (100% offline)
   const playDoctorCallChime = React.useCallback(() => {
@@ -565,6 +626,153 @@ export function WaitingRoomLiveQueueView({
     return () => clearInterval(interval);
   }, [refreshQueue]);
 
+  // D-Pad and Keyboard Remote Navigation (TV Leanback Mode)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      lastInteractionTimeRef.current = Date.now();
+
+      // Dismiss announcement if open
+      if (activeAnnouncement) {
+        if (
+          e.key === "Enter" ||
+          e.key === " " ||
+          e.key === "Escape" ||
+          e.key === "Backspace"
+        ) {
+          e.preventDefault();
+          setActiveAnnouncement(null);
+          return;
+        }
+      }
+
+      const activeContainer =
+        departmentFilter === "CONSULTATION"
+          ? consultationListRef.current
+          : departmentFilter === "THERAPY"
+            ? therapyListRef.current
+            : activeColumnIndex === 0
+              ? therapyListRef.current
+              : consultationListRef.current;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          if (activeContainer) {
+            activeContainer.scrollBy({ top: 180, behavior: "smooth" });
+          }
+          break;
+
+        case "ArrowUp":
+          e.preventDefault();
+          if (activeContainer) {
+            activeContainer.scrollBy({ top: -180, behavior: "smooth" });
+          }
+          break;
+
+        case "ArrowLeft":
+          e.preventDefault();
+          if (departmentFilter === "ALL") {
+            setActiveColumnIndex(0);
+          } else if (departmentFilter === "CONSULTATION") {
+            setDepartmentFilter("ALL");
+          } else if (departmentFilter === "THERAPY") {
+            setDepartmentFilter("CONSULTATION");
+          }
+          break;
+
+        case "ArrowRight":
+          e.preventDefault();
+          if (departmentFilter === "ALL") {
+            setActiveColumnIndex(1);
+          } else if (departmentFilter === "CONSULTATION") {
+            setDepartmentFilter("THERAPY");
+          }
+          break;
+
+        case "Enter":
+        case " ":
+          if (
+            document.activeElement?.tagName !== "BUTTON" &&
+            document.activeElement?.tagName !== "A"
+          ) {
+            e.preventDefault();
+            unlockAudio();
+            testAnnouncementSound();
+          }
+          break;
+
+        case "f":
+        case "F":
+          if (
+            document.activeElement?.tagName !== "INPUT" &&
+            document.activeElement?.tagName !== "TEXTAREA"
+          ) {
+            e.preventDefault();
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+              document.exitFullscreen?.().catch(() => {});
+            }
+          }
+          break;
+
+        case "m":
+        case "M":
+          if (
+            document.activeElement?.tagName !== "INPUT" &&
+            document.activeElement?.tagName !== "TEXTAREA"
+          ) {
+            e.preventDefault();
+            toggleAudio();
+          }
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    activeAnnouncement,
+    departmentFilter,
+    activeColumnIndex,
+    unlockAudio,
+    testAnnouncementSound,
+    toggleAudio,
+  ]);
+
+  // Gentle Auto-Scroll for unattended wall TV displays (scrolls if content overflows and TV is idle)
+  React.useEffect(() => {
+    const autoScrollInterval = setInterval(() => {
+      if (Date.now() - lastInteractionTimeRef.current < 15000) return;
+      if (activeAnnouncement) return;
+
+      const containers = [
+        therapyListRef.current,
+        consultationListRef.current,
+      ].filter(Boolean) as HTMLDivElement[];
+
+      containers.forEach((container) => {
+        if (!container) return;
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        if (maxScroll <= 20) return;
+
+        if (
+          container.scrollTop + container.clientHeight >=
+          container.scrollHeight - 10
+        ) {
+          container.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          container.scrollBy({ top: 120, behavior: "smooth" });
+        }
+      });
+    }, 6000);
+
+    return () => clearInterval(autoScrollInterval);
+  }, [activeAnnouncement]);
+
   // Formatted digital clock strings
   const formattedTime = currentTime
     ? (lang === "bn"
@@ -773,6 +981,35 @@ export function WaitingRoomLiveQueueView({
             >
               {lang === "bn" ? "থেরাপি" : "Therapy"}
             </button>
+          </div>
+
+          {/* Screen Wake Lock Status Badge */}
+          <div
+            className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${
+              isWakeLockActive
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                : "bg-muted text-muted-foreground border-border/80"
+            }`}
+            title={
+              isWakeLockActive
+                ? lang === "bn"
+                  ? "স্ক্রিন ওয়েক লক সক্রিয় (টিভি ডিসপ্লে স্লিপ মোডে যাবে না)"
+                  : "Screen Wake Lock Active (TV display will stay awake)"
+                : lang === "bn"
+                  ? "স্ক্রিন ওয়েক লক নিষ্ক্রিয়"
+                  : "Screen Wake Lock Inactive"
+            }
+          >
+            <Tv className="size-2.5" />
+            <span className="hidden xl:inline">
+              {isWakeLockActive
+                ? lang === "bn"
+                  ? "সজাগ"
+                  : "Awake"
+                : lang === "bn"
+                  ? "টিভি"
+                  : "TV"}
+            </span>
           </div>
 
           {/* SSE Connection Health */}
@@ -1003,7 +1240,7 @@ export function WaitingRoomLiveQueueView({
             </div>
 
             {/* Column Scrollable Content */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
+            <div ref={therapyListRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
               {therapyQueue.length === 0 ? (
                 <EmptyQueueCard
                   title={
@@ -1052,7 +1289,7 @@ export function WaitingRoomLiveQueueView({
             </div>
 
             {/* Column Scrollable Content */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
+            <div ref={consultationListRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5">
               {consultationQueue.length === 0 ? (
                 <EmptyQueueCard
                   title={

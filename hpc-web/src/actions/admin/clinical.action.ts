@@ -85,6 +85,7 @@ export async function createClinicalOptionAction(
       entityId: created.id,
       status: AuditStatus.SUCCESS,
       details: {
+        action: "CLINICAL_OPTION_CREATE",
         category: created.category,
         name: created.name,
       },
@@ -154,6 +155,7 @@ export async function updateClinicalOptionAction(
       entityId: updated.id,
       status: AuditStatus.SUCCESS,
       details: {
+        action: "CLINICAL_OPTION_UPDATE",
         category: updated.category,
         name: updated.name,
         isActive: updated.isActive,
@@ -205,6 +207,7 @@ export async function toggleClinicalOptionStatusAction(
       entityId: updated.id,
       status: AuditStatus.SUCCESS,
       details: {
+        action: "CLINICAL_OPTION_STATUS_CHANGE",
         name: updated.name,
         isActive: updated.isActive,
       },
@@ -253,6 +256,7 @@ export async function deleteClinicalOptionAction(
       entityId: id,
       status: AuditStatus.SUCCESS,
       details: {
+        action: "CLINICAL_OPTION_DELETE",
         name: existing.name,
         category: existing.category,
       },

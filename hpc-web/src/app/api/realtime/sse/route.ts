@@ -31,9 +31,9 @@ export async function GET(request: NextRequest) {
         try {
           const eventName = payload.type.toLowerCase();
           const data = JSON.stringify(payload);
-          // Broadcast both named event and standard data event for total listener compatibility
+          // Broadcast single clean named event
           controller.enqueue(
-            encoder.encode(`event: ${eventName}\ndata: ${data}\n\ndata: ${data}\n\n`),
+            encoder.encode(`event: ${eventName}\ndata: ${data}\n\n`),
           );
         } catch {
           // Stream might be closed

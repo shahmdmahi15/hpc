@@ -33,7 +33,14 @@ export function useRealtimeEvents(options: UseRealtimeEventsOptions = {}) {
     (payload: RealtimeEventPayload) => {
       if (!payload || !payload.type) return;
 
-      const eventKey = `${payload.type}:${payload.timestamp}:${JSON.stringify(payload.data?.id || payload.data?.appointmentId || "")}`;
+      const entityId =
+        payload.data?.id ??
+        payload.data?.appointmentId ??
+        payload.data?.patientId ??
+        payload.data?.slotId ??
+        payload.data?.roomId ??
+        "";
+      const eventKey = `${payload.type}:${payload.timestamp}:${typeof entityId === "object" ? JSON.stringify(entityId) : entityId}`;
       const now = Date.now();
       const lastProcessed = processedEventsRef.current.get(eventKey) || 0;
 

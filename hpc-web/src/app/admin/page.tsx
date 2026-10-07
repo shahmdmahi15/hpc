@@ -142,18 +142,7 @@ export default async function AdminPage() {
 
             <AdminExportButton />
             <AdminBackupButton />
-            <AdminDailyClosingButton
-              data={{
-                todayAppointmentsCount,
-                todayConsultationCount,
-                todayTherapyCount,
-                todayCollected,
-                todayDue,
-                totalLifetimeRevenue,
-                userCount,
-                activeSessionCount,
-              }}
-            />
+            <AdminDailyClosingButton data={counts} />
 
             <Link
               href="/"

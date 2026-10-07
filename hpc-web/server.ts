@@ -78,20 +78,42 @@ const handle = app.getRequestHandler();
 app.prepare().then(() => {
   const requestHandler = (req: any, res: any) => {
     // Fast, lightweight health check endpoint for startup scripts & monitoring
-    if (req.url === "/_hpc_health" || req.url === "/api/health") {
+    const reqPath = (req.url || "").split("?")[0].replace(/\/+$/, "") || "/";
+    if (reqPath === "/_hpc_health" || reqPath === "/api/health") {
+      if (req.method === "OPTIONS") {
+        res.writeHead(204, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        });
+        res.end();
+        return;
+      }
+
       res.writeHead(200, {
         "Content-Type": "application/json",
         "Cache-Control": "no-store, no-cache, must-revalidate",
         "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
       });
       res.end(
         JSON.stringify({
           status: "ok",
           app: "hpc",
           ssl: hasSsl,
+          timestamp: new Date().toISOString(),
+          name: "Health And Pain Care Center",
+          role: "server",
+          defaultPort: port,
           pid: process.pid,
           uptime: process.uptime(),
           env: process.env.NODE_ENV,
+          capabilities: {
+            sse: true,
+            speechSynthesis: true,
+            offlineMode: true,
+            localPrinting: true,
+          },
         }),
       );
       return;

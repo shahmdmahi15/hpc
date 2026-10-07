@@ -93,6 +93,15 @@ export async function getAuditLogsAction(
 
     if (params.action) {
       where.action = params.action;
+      if (
+        (params.action === AuditAction.ROOM_CREATE ||
+          params.action === AuditAction.ROOM_UPDATE ||
+          params.action === AuditAction.ROOM_STATUS_CHANGE ||
+          params.action === AuditAction.ROOM_DELETE) &&
+        !params.search
+      ) {
+        where.entity = "Room";
+      }
     }
 
     if (params.status) {

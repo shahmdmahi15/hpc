@@ -25,16 +25,29 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
 
     const fee = apt.feeAmount ?? 0;
     const isPaid = apt.paymentStatus === "PAID";
-    const calculatedPaid = isPaid ? fee : (apt.paidAmount ?? 0);
+    const rawPaid =
+      apt.paidAmount !== null && apt.paidAmount !== undefined && (apt.paidAmount > 0 || !isPaid)
+        ? apt.paidAmount
+        : (isPaid ? fee : 0);
+    const calculatedPaid = Math.max(0, rawPaid);
     const calculatedDue = isPaid ? 0 : Math.max(0, fee - calculatedPaid);
+    const resolvedStatus =
+      calculatedDue === 0
+        ? "PAID"
+        : (calculatedPaid > 0 ? "PARTIAL" : (apt.paymentStatus || "PENDING"));
 
-    // Update appointment amounts if divergent
-    if (apt.paidAmount !== calculatedPaid || apt.dueAmount !== calculatedDue) {
+    // Update appointment amounts and status if divergent
+    if (
+      apt.paidAmount !== calculatedPaid ||
+      apt.dueAmount !== calculatedDue ||
+      apt.paymentStatus !== resolvedStatus
+    ) {
       await prisma.appointment.update({
         where: { id: apt.id },
         data: {
           paidAmount: calculatedPaid,
           dueAmount: calculatedDue,
+          paymentStatus: resolvedStatus,
         },
       });
     }
@@ -61,10 +74,19 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
 
       for (const a of fileApts) {
         const aFee = a.feeAmount ?? 0;
-        const aPaid = a.paymentStatus === "PAID" ? aFee : (a.paidAmount ?? 0);
+        const aIsPaid = a.paymentStatus === "PAID";
+        const aPaid =
+          a.paidAmount !== null && a.paidAmount !== undefined && (a.paidAmount > 0 || !aIsPaid)
+            ? a.paidAmount
+            : (aIsPaid ? aFee : 0);
+        const aDue = aIsPaid
+          ? 0
+          : (a.dueAmount !== null && a.dueAmount !== undefined
+              ? a.dueAmount
+              : Math.max(0, aFee - aPaid));
         fileBill += aFee;
         filePaid += aPaid;
-        fileDue += a.paymentStatus === "PAID" ? 0 : Math.max(0, aFee - aPaid);
+        fileDue += aDue;
       }
 
       await prisma.medicalRecord.update({
@@ -98,10 +120,19 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
 
       for (const a of patientApts) {
         const aFee = a.feeAmount ?? 0;
-        const aPaid = a.paymentStatus === "PAID" ? aFee : (a.paidAmount ?? 0);
+        const aIsPaid = a.paymentStatus === "PAID";
+        const aPaid =
+          a.paidAmount !== null && a.paidAmount !== undefined && (a.paidAmount > 0 || !aIsPaid)
+            ? a.paidAmount
+            : (aIsPaid ? aFee : 0);
+        const aDue = aIsPaid
+          ? 0
+          : (a.dueAmount !== null && a.dueAmount !== undefined
+              ? a.dueAmount
+              : Math.max(0, aFee - aPaid));
         patientBill += aFee;
         patientPaid += aPaid;
-        patientDue += a.paymentStatus === "PAID" ? 0 : Math.max(0, aFee - aPaid);
+        patientDue += aDue;
       }
 
       await prisma.patient.update({
