@@ -23,7 +23,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import com.shahmdmahi.hpc.ui.ServerDiscoveryScreen
-import com.shahmdmahi.hpc.ui.GeckoViewContainer
+import com.shahmdmahi.hpc.ui.TvWebView
 import com.shahmdmahi.hpc.ui.theme.HPCTheme
 import com.shahmdmahi.hpc.util.DeviceRoleManager
 import com.shahmdmahi.hpc.util.NetworkScanner
@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        GeckoViewContainer(
+                        TvWebView(
                             targetUrl = activeServerUrl!!,
                             onRescanRequested = {
                                 NetworkScanner.clearSavedServerUrl(this@MainActivity)

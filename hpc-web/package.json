@@ -67,5 +67,12 @@
     "overrides": {
       "better-sqlite3": "^13.0.3"
     }
-  }
+  },
+  "browserslist": [
+    "> 0.5%",
+    "last 2 versions",
+    "Chrome >= 65",
+    "Android >= 6",
+    "not dead"
+  ]
 }
