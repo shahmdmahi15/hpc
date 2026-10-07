@@ -16,6 +16,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        ndk {
+            abiFilters.add("armeabi-v7a")
+        }
     }
 
     buildTypes {
@@ -47,6 +50,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.tv.foundation)
     implementation(libs.androidx.tv.material)
+    implementation("org.mozilla.geckoview:geckoview-armeabi-v7a:115.0.20230726201356")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
