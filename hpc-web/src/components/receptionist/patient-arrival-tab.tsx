@@ -52,8 +52,6 @@ import {
   Droplet,
   Sparkles,
   X,
-  Lock,
-  ShieldCheck,
   Loader2,
   Ticket,
   ArrowRight,
@@ -253,11 +251,13 @@ export function PatientArrivalTab({
     setRegDoctorId(doctors[0]?.id ?? "");
     setRegToldTime("");
     setRegNotes("");
+    setActivePin("");
     setIsRegisterModalOpen(true);
   };
 
   // Open Check-In Modal for existing patient
   const handleOpenCheckIn = (patient: PatientSearchResult) => {
+    setActivePin("");
     setCheckInModalPatient(patient);
     setCheckInQueueType(
       patient.todayAppointment?.queueType || QueueType.THERAPY,
@@ -310,6 +310,7 @@ export function PatientArrivalTab({
 
       if (res.success) {
         toast.success(res.message);
+        setActivePin("");
         setCheckInModalPatient(null);
         setSearchQuery("");
         setSearchResults([]);
@@ -381,6 +382,7 @@ export function PatientArrivalTab({
 
       if (res.success) {
         toast.success(res.message);
+        setActivePin("");
         setIsRegisterModalOpen(false);
         setSearchQuery("");
         setSearchResults([]);
@@ -414,66 +416,25 @@ export function PatientArrivalTab({
 
   return (
     <div className="space-y-4">
-      {/* 1. TOP RECEPTIONIST IDENTITY & AUTHORIZATION BAR */}
-      <div className="p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="size-9 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
-            <UserCheck className="size-4.5" />
+      {/* 1. TOP ARRIVAL DESK BANNER */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-card border border-border/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="size-10 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+            <UserCheck className="size-5" />
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-              <span>Patient Arrival & Check-In Desk</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 font-semibold border border-sky-500/20">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm sm:text-base font-bold text-foreground">
+                Patient Arrival &amp; Check-In Desk
+              </h2>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-300 font-semibold border border-sky-500/20">
                 100% LAN
               </span>
-            </h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            </div>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
               Verify arriving patients by MRN, Name or Mobile; register new walk-ins with immediate check-in.
             </p>
           </div>
-        </div>
-
-        {/* Receptionist Performer Select & 4-Digit PIN */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="w-48 sm:w-56">
-            <ReceptionistPerformerSelect
-              performers={performers}
-              selectedPerformerId={activePerformerId}
-              onSelectPerformerId={handlePerformerChange}
-              label="Staff Identity"
-            />
-          </div>
-
-          <div className="relative">
-            <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
-            <Input
-              type="password"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              name="staff_arrival_header_pin"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-form-type="other"
-              maxLength={4}
-              value={activePin}
-              onChange={(e) => setActivePin(e.target.value.replace(/\D/g, ""))}
-              placeholder="4-digit PIN"
-              className="w-24 pl-7 h-8.5 text-xs font-mono font-bold tracking-widest rounded-xl bg-background text-center"
-              title="4-digit security PIN for desk check-ins"
-            />
-          </div>
-
-          {activePin.length === 4 ? (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10.5px] font-bold">
-              <ShieldCheck className="size-3 text-emerald-500" />
-              <span>PIN Verified</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-semibold">
-              <AlertCircle className="size-3 text-amber-500" />
-              <span>PIN Required</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -866,7 +827,12 @@ export function PatientArrivalTab({
       {checkInModalPatient && (
         <Dialog
           open={Boolean(checkInModalPatient)}
-          onOpenChange={(open) => !open && setCheckInModalPatient(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCheckInModalPatient(null);
+              setActivePin("");
+            }
+          }}
         >
           <DialogContent className="w-[96vw] max-w-lg p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
             <DialogHeader className="p-4 sm:p-5 pr-12 border-b border-border/60 bg-muted/20">
@@ -1077,7 +1043,12 @@ export function PatientArrivalTab({
       {isRegisterModalOpen && (
         <Dialog
           open={isRegisterModalOpen}
-          onOpenChange={setIsRegisterModalOpen}
+          onOpenChange={(open) => {
+            setIsRegisterModalOpen(open);
+            if (!open) {
+              setActivePin("");
+            }
+          }}
         >
           <DialogContent className="w-[96vw] max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
             <DialogHeader className="p-4 sm:p-5 pr-12 border-b border-border/60 bg-muted/20 shrink-0">
