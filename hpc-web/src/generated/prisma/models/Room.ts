@@ -208,6 +208,7 @@ export type RoomWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   therapySlots?: Prisma.TherapySlotListRelationFilter
   appointments?: Prisma.AppointmentListRelationFilter
+  consultingDoctors?: Prisma.UserListRelationFilter
 }
 
 export type RoomOrderByWithRelationInput = {
@@ -221,6 +222,7 @@ export type RoomOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   therapySlots?: Prisma.TherapySlotOrderByRelationAggregateInput
   appointments?: Prisma.AppointmentOrderByRelationAggregateInput
+  consultingDoctors?: Prisma.UserOrderByRelationAggregateInput
 }
 
 export type RoomWhereUniqueInput = Prisma.AtLeast<{
@@ -237,6 +239,7 @@ export type RoomWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   therapySlots?: Prisma.TherapySlotListRelationFilter
   appointments?: Prisma.AppointmentListRelationFilter
+  consultingDoctors?: Prisma.UserListRelationFilter
 }, "id" | "number">
 
 export type RoomOrderByWithAggregationInput = {
@@ -278,6 +281,7 @@ export type RoomCreateInput = {
   updatedAt?: Date | string
   therapySlots?: Prisma.TherapySlotCreateNestedManyWithoutRoomInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutRoomInput
+  consultingDoctors?: Prisma.UserCreateNestedManyWithoutConsultationRoomInput
 }
 
 export type RoomUncheckedCreateInput = {
@@ -291,6 +295,7 @@ export type RoomUncheckedCreateInput = {
   updatedAt?: Date | string
   therapySlots?: Prisma.TherapySlotUncheckedCreateNestedManyWithoutRoomInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutRoomInput
+  consultingDoctors?: Prisma.UserUncheckedCreateNestedManyWithoutConsultationRoomInput
 }
 
 export type RoomUpdateInput = {
@@ -304,6 +309,7 @@ export type RoomUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   therapySlots?: Prisma.TherapySlotUpdateManyWithoutRoomNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutRoomNestedInput
+  consultingDoctors?: Prisma.UserUpdateManyWithoutConsultationRoomNestedInput
 }
 
 export type RoomUncheckedUpdateInput = {
@@ -317,6 +323,7 @@ export type RoomUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   therapySlots?: Prisma.TherapySlotUncheckedUpdateManyWithoutRoomNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutRoomNestedInput
+  consultingDoctors?: Prisma.UserUncheckedUpdateManyWithoutConsultationRoomNestedInput
 }
 
 export type RoomCreateManyInput = {
@@ -352,6 +359,11 @@ export type RoomUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type RoomNullableScalarRelationFilter = {
+  is?: Prisma.RoomWhereInput | null
+  isNot?: Prisma.RoomWhereInput | null
+}
+
 export type RoomCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   number?: Prisma.SortOrder
@@ -385,9 +397,20 @@ export type RoomMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
-export type RoomNullableScalarRelationFilter = {
-  is?: Prisma.RoomWhereInput | null
-  isNot?: Prisma.RoomWhereInput | null
+export type RoomCreateNestedOneWithoutConsultingDoctorsInput = {
+  create?: Prisma.XOR<Prisma.RoomCreateWithoutConsultingDoctorsInput, Prisma.RoomUncheckedCreateWithoutConsultingDoctorsInput>
+  connectOrCreate?: Prisma.RoomCreateOrConnectWithoutConsultingDoctorsInput
+  connect?: Prisma.RoomWhereUniqueInput
+}
+
+export type RoomUpdateOneWithoutConsultingDoctorsNestedInput = {
+  create?: Prisma.XOR<Prisma.RoomCreateWithoutConsultingDoctorsInput, Prisma.RoomUncheckedCreateWithoutConsultingDoctorsInput>
+  connectOrCreate?: Prisma.RoomCreateOrConnectWithoutConsultingDoctorsInput
+  upsert?: Prisma.RoomUpsertWithoutConsultingDoctorsInput
+  disconnect?: Prisma.RoomWhereInput | boolean
+  delete?: Prisma.RoomWhereInput | boolean
+  connect?: Prisma.RoomWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.RoomUpdateToOneWithWhereWithoutConsultingDoctorsInput, Prisma.RoomUpdateWithoutConsultingDoctorsInput>, Prisma.RoomUncheckedUpdateWithoutConsultingDoctorsInput>
 }
 
 export type EnumRoomAccessTypeFieldUpdateOperationsInput = {
@@ -434,6 +457,74 @@ export type RoomUpdateOneWithoutAppointmentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.RoomUpdateToOneWithWhereWithoutAppointmentsInput, Prisma.RoomUpdateWithoutAppointmentsInput>, Prisma.RoomUncheckedUpdateWithoutAppointmentsInput>
 }
 
+export type RoomCreateWithoutConsultingDoctorsInput = {
+  id?: string
+  number: string
+  purpose: string
+  accessType: $Enums.RoomAccessType
+  gender: $Enums.RoomGender
+  status: $Enums.RoomStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  therapySlots?: Prisma.TherapySlotCreateNestedManyWithoutRoomInput
+  appointments?: Prisma.AppointmentCreateNestedManyWithoutRoomInput
+}
+
+export type RoomUncheckedCreateWithoutConsultingDoctorsInput = {
+  id?: string
+  number: string
+  purpose: string
+  accessType: $Enums.RoomAccessType
+  gender: $Enums.RoomGender
+  status: $Enums.RoomStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  therapySlots?: Prisma.TherapySlotUncheckedCreateNestedManyWithoutRoomInput
+  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutRoomInput
+}
+
+export type RoomCreateOrConnectWithoutConsultingDoctorsInput = {
+  where: Prisma.RoomWhereUniqueInput
+  create: Prisma.XOR<Prisma.RoomCreateWithoutConsultingDoctorsInput, Prisma.RoomUncheckedCreateWithoutConsultingDoctorsInput>
+}
+
+export type RoomUpsertWithoutConsultingDoctorsInput = {
+  update: Prisma.XOR<Prisma.RoomUpdateWithoutConsultingDoctorsInput, Prisma.RoomUncheckedUpdateWithoutConsultingDoctorsInput>
+  create: Prisma.XOR<Prisma.RoomCreateWithoutConsultingDoctorsInput, Prisma.RoomUncheckedCreateWithoutConsultingDoctorsInput>
+  where?: Prisma.RoomWhereInput
+}
+
+export type RoomUpdateToOneWithWhereWithoutConsultingDoctorsInput = {
+  where?: Prisma.RoomWhereInput
+  data: Prisma.XOR<Prisma.RoomUpdateWithoutConsultingDoctorsInput, Prisma.RoomUncheckedUpdateWithoutConsultingDoctorsInput>
+}
+
+export type RoomUpdateWithoutConsultingDoctorsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  number?: Prisma.StringFieldUpdateOperationsInput | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
+  accessType?: Prisma.EnumRoomAccessTypeFieldUpdateOperationsInput | $Enums.RoomAccessType
+  gender?: Prisma.EnumRoomGenderFieldUpdateOperationsInput | $Enums.RoomGender
+  status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  therapySlots?: Prisma.TherapySlotUpdateManyWithoutRoomNestedInput
+  appointments?: Prisma.AppointmentUpdateManyWithoutRoomNestedInput
+}
+
+export type RoomUncheckedUpdateWithoutConsultingDoctorsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  number?: Prisma.StringFieldUpdateOperationsInput | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
+  accessType?: Prisma.EnumRoomAccessTypeFieldUpdateOperationsInput | $Enums.RoomAccessType
+  gender?: Prisma.EnumRoomGenderFieldUpdateOperationsInput | $Enums.RoomGender
+  status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  therapySlots?: Prisma.TherapySlotUncheckedUpdateManyWithoutRoomNestedInput
+  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutRoomNestedInput
+}
+
 export type RoomCreateWithoutTherapySlotsInput = {
   id?: string
   number: string
@@ -444,6 +535,7 @@ export type RoomCreateWithoutTherapySlotsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutRoomInput
+  consultingDoctors?: Prisma.UserCreateNestedManyWithoutConsultationRoomInput
 }
 
 export type RoomUncheckedCreateWithoutTherapySlotsInput = {
@@ -456,6 +548,7 @@ export type RoomUncheckedCreateWithoutTherapySlotsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutRoomInput
+  consultingDoctors?: Prisma.UserUncheckedCreateNestedManyWithoutConsultationRoomInput
 }
 
 export type RoomCreateOrConnectWithoutTherapySlotsInput = {
@@ -484,6 +577,7 @@ export type RoomUpdateWithoutTherapySlotsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutRoomNestedInput
+  consultingDoctors?: Prisma.UserUpdateManyWithoutConsultationRoomNestedInput
 }
 
 export type RoomUncheckedUpdateWithoutTherapySlotsInput = {
@@ -496,6 +590,7 @@ export type RoomUncheckedUpdateWithoutTherapySlotsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutRoomNestedInput
+  consultingDoctors?: Prisma.UserUncheckedUpdateManyWithoutConsultationRoomNestedInput
 }
 
 export type RoomCreateWithoutAppointmentsInput = {
@@ -508,6 +603,7 @@ export type RoomCreateWithoutAppointmentsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   therapySlots?: Prisma.TherapySlotCreateNestedManyWithoutRoomInput
+  consultingDoctors?: Prisma.UserCreateNestedManyWithoutConsultationRoomInput
 }
 
 export type RoomUncheckedCreateWithoutAppointmentsInput = {
@@ -520,6 +616,7 @@ export type RoomUncheckedCreateWithoutAppointmentsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   therapySlots?: Prisma.TherapySlotUncheckedCreateNestedManyWithoutRoomInput
+  consultingDoctors?: Prisma.UserUncheckedCreateNestedManyWithoutConsultationRoomInput
 }
 
 export type RoomCreateOrConnectWithoutAppointmentsInput = {
@@ -548,6 +645,7 @@ export type RoomUpdateWithoutAppointmentsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   therapySlots?: Prisma.TherapySlotUpdateManyWithoutRoomNestedInput
+  consultingDoctors?: Prisma.UserUpdateManyWithoutConsultationRoomNestedInput
 }
 
 export type RoomUncheckedUpdateWithoutAppointmentsInput = {
@@ -560,6 +658,7 @@ export type RoomUncheckedUpdateWithoutAppointmentsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   therapySlots?: Prisma.TherapySlotUncheckedUpdateManyWithoutRoomNestedInput
+  consultingDoctors?: Prisma.UserUncheckedUpdateManyWithoutConsultationRoomNestedInput
 }
 
 
@@ -570,11 +669,13 @@ export type RoomUncheckedUpdateWithoutAppointmentsInput = {
 export type RoomCountOutputType = {
   therapySlots: number
   appointments: number
+  consultingDoctors: number
 }
 
 export type RoomCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   therapySlots?: boolean | RoomCountOutputTypeCountTherapySlotsArgs
   appointments?: boolean | RoomCountOutputTypeCountAppointmentsArgs
+  consultingDoctors?: boolean | RoomCountOutputTypeCountConsultingDoctorsArgs
 }
 
 /**
@@ -601,6 +702,13 @@ export type RoomCountOutputTypeCountAppointmentsArgs<ExtArgs extends runtime.Typ
   where?: Prisma.AppointmentWhereInput
 }
 
+/**
+ * RoomCountOutputType without action
+ */
+export type RoomCountOutputTypeCountConsultingDoctorsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserWhereInput
+}
+
 
 export type RoomSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -613,6 +721,7 @@ export type RoomSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   updatedAt?: boolean
   therapySlots?: boolean | Prisma.Room$therapySlotsArgs<ExtArgs>
   appointments?: boolean | Prisma.Room$appointmentsArgs<ExtArgs>
+  consultingDoctors?: boolean | Prisma.Room$consultingDoctorsArgs<ExtArgs>
   _count?: boolean | Prisma.RoomCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["room"]>
 
@@ -653,6 +762,7 @@ export type RoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = run
 export type RoomInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   therapySlots?: boolean | Prisma.Room$therapySlotsArgs<ExtArgs>
   appointments?: boolean | Prisma.Room$appointmentsArgs<ExtArgs>
+  consultingDoctors?: boolean | Prisma.Room$consultingDoctorsArgs<ExtArgs>
   _count?: boolean | Prisma.RoomCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type RoomIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -663,6 +773,7 @@ export type $RoomPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   objects: {
     therapySlots: Prisma.$TherapySlotPayload<ExtArgs>[]
     appointments: Prisma.$AppointmentPayload<ExtArgs>[]
+    consultingDoctors: Prisma.$UserPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1069,6 +1180,7 @@ export interface Prisma__RoomClient<T, Null = never, ExtArgs extends runtime.Typ
   readonly [Symbol.toStringTag]: "PrismaPromise"
   therapySlots<T extends Prisma.Room$therapySlotsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Room$therapySlotsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TherapySlotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   appointments<T extends Prisma.Room$appointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Room$appointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  consultingDoctors<T extends Prisma.Room$consultingDoctorsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Room$consultingDoctorsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1542,6 +1654,30 @@ export type Room$appointmentsArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.AppointmentScalarFieldEnum | Prisma.AppointmentScalarFieldEnum[]
+}
+
+/**
+ * Room.consultingDoctors
+ */
+export type Room$consultingDoctorsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
+  orderBy?: Prisma.UserOrderByWithRelationInput | Prisma.UserOrderByWithRelationInput[]
+  cursor?: Prisma.UserWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserScalarFieldEnum | Prisma.UserScalarFieldEnum[]
 }
 
 /**

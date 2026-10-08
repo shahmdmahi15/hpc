@@ -48,7 +48,7 @@ export interface DoctorDashboardData {
   doctorPerformers: PerformerModel[];
   handlerPerformers: PerformerModel[];
   receptionistPerformers: ReceptionistDashboardData["receptionistPerformers"];
-  currentDoctor: PerformerModel | null;
+  currentDoctor: (PerformerModel & { consultationRoomId?: string | null }) | null;
 }
 
 /**
@@ -81,6 +81,8 @@ export async function getDoctorDashboardDataAction(
           name: true,
           email: true,
           whatsapp: true,
+          consultationFee: true,
+          consultationRoomId: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -95,7 +97,7 @@ export async function getDoctorDashboardDataAction(
   const appointments = receptionistData.appointments || [];
 
   // Map Doctor User accounts to PerformerModel structure so UI components have complete doctor details
-  const doctorPerformers: PerformerModel[] = doctorUsers.map((doc) => ({
+  const doctorPerformers = doctorUsers.map((doc) => ({
     id: doc.id,
     name: doc.name || "Doctor",
     email: doc.email || null,
@@ -103,13 +105,14 @@ export async function getDoctorDashboardDataAction(
     phone: doc.whatsapp || "",
     pin: "0000",
     userId: doc.id,
+    consultationRoomId: doc.consultationRoomId,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   }));
 
   // Find logged-in doctor's user identity
   // Doctors and Admins are independent user accounts with their own credentials.
-  let currentDoctor: PerformerModel | null = null;
+  let currentDoctor: (PerformerModel & { consultationRoomId?: string | null }) | null = null;
   if (sessionData.user.role === Role.DOCTOR) {
     const matched = doctorPerformers.find(
       (doc) => doc.id === sessionData.user.id || doc.userId === sessionData.user.id,
@@ -125,6 +128,7 @@ export async function getDoctorDashboardDataAction(
         phone: sessionData.user.whatsapp || "",
         pin: "0000",
         userId: sessionData.user.id,
+        consultationRoomId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

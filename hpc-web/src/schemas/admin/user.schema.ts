@@ -21,6 +21,12 @@ export const createAccountSchema = z.object({
     .number()
     .min(0, "Fee must be a valid non-negative number.")
     .optional(),
+  consultationRoomId: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((val) => (val === "" || val === "none" ? undefined : val)),
 });
 
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;

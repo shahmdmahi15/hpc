@@ -36,7 +36,12 @@ export interface CallToChamberDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   appointment: AppointmentWithRelations;
-  currentDoctor?: { id: string; name: string; phone?: string | null } | null;
+  currentDoctor?: {
+    id: string;
+    name: string;
+    phone?: string | null;
+    consultationRoomId?: string | null;
+  } | null;
   rooms: RoomModel[];
   defaultDoctorId?: string;
   defaultRoomId?: string;
@@ -76,7 +81,7 @@ export function CallToChamberDialog({
     return defaultDoctorId || activeDoctor?.id || "";
   }, [defaultDoctorId, activeDoctor]);
 
-  // Initial Doctor Room ID: only accept defaultRoomId if it is a doctor consultation room
+  // Initial Doctor Room ID: accept defaultRoomId, doctor's assigned chamber, or first doctor room
   const initialDoctorRoomId = React.useMemo(() => {
     if (
       defaultRoomId &&
@@ -84,8 +89,16 @@ export function CallToChamberDialog({
     ) {
       return defaultRoomId;
     }
+    if (
+      currentDoctor?.consultationRoomId &&
+      doctorConsultationRooms.some(
+        (r) => r.id === currentDoctor.consultationRoomId,
+      )
+    ) {
+      return currentDoctor.consultationRoomId;
+    }
     return firstDoctorRoom?.id || "";
-  }, [defaultRoomId, doctorConsultationRooms, firstDoctorRoom]);
+  }, [defaultRoomId, currentDoctor, doctorConsultationRooms, firstDoctorRoom]);
 
   // State with defaults pointing strictly to 1st doctor room
   const [selectedRoomId, setSelectedRoomId] = React.useState<string>(

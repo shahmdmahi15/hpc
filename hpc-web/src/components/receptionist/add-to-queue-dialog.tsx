@@ -47,6 +47,12 @@ export interface AddToQueueDoctor {
   name: string | null;
   email: string | null;
   consultationFee: number;
+  consultationRoomId?: string | null;
+  consultationRoom?: {
+    id: string;
+    number: string;
+    purpose?: string | null;
+  } | null;
 }
 
 interface AddToQueueDialogProps {
@@ -117,7 +123,7 @@ function AddToQueueDialogBody({
       { value: "GENERAL", label: "General Consultation (No Doctor Pre-assigned)" },
       ...doctors.map((doc) => ({
         value: doc.id,
-        label: `${doc.name || "Doctor"} — Preset Fee: ৳${(doc.consultationFee ?? 1000).toLocaleString()}`,
+        label: `${doc.name || "Doctor"}${doc.consultationRoom ? ` (Room ${doc.consultationRoom.number})` : ""} — Preset Fee: ৳${(doc.consultationFee ?? 1000).toLocaleString()}`,
       })),
     ];
   }, [doctors]);

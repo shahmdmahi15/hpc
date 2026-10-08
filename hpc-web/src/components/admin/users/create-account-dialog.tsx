@@ -27,22 +27,48 @@ import {
   EyeOff,
 } from "lucide-react";
 
+import {
+  DoorClosed,
+  Building2,
+  XCircle,
+  Sparkles,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RoomAccessType } from "@/generated/prisma/enums";
+
+export interface CreateAccountRoomOption {
+  id: string;
+  number: string;
+  purpose?: string | null;
+  accessType: string;
+  status: string;
+}
+
 interface CreateAccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultRole?: typeof Role.ADMIN | typeof Role.DOCTOR;
+  rooms?: CreateAccountRoomOption[];
 }
 
 export function CreateAccountDialog({
   open,
   onOpenChange,
   defaultRole = Role.DOCTOR,
+  rooms = [],
 }: CreateAccountDialogProps) {
   const [role, setRole] = React.useState<typeof Role.ADMIN | typeof Role.DOCTOR>(defaultRole);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [whatsapp, setWhatsapp] = React.useState("");
   const [consultationFee, setConsultationFee] = React.useState("1000");
+  const [consultationRoomId, setConsultationRoomId] = React.useState("none");
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [fieldErrors, setFieldErrors] = React.useState<
@@ -63,6 +89,7 @@ export function CreateAccountDialog({
       setEmail("");
       setWhatsapp("");
       setConsultationFee("1000");
+      setConsultationRoomId("none");
       setPassword("");
       setFieldErrors({});
       setGeneralError(null);
@@ -83,6 +110,9 @@ export function CreateAccountDialog({
     formData.set("password", password);
     if (role === Role.DOCTOR) {
       formData.set("consultationFee", consultationFee.trim());
+      if (consultationRoomId && consultationRoomId !== "none") {
+        formData.set("consultationRoomId", consultationRoomId);
+      }
     }
 
     startTransition(async () => {
@@ -330,6 +360,64 @@ export function CreateAccountDialog({
                     ৳{preset}
                   </button>
                 ))}
+              </div>
+
+              {/* Consultation Chamber Assignment */}
+              <div className="space-y-1.5 pt-2 border-t border-sky-500/20">
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="doctor-chamber-select"
+                    className="text-xs font-bold text-foreground flex items-center gap-1.5"
+                  >
+                    <DoorClosed className="size-3.5 text-indigo-500" />
+                    <span>Assigned Consultation Chamber</span>
+                  </Label>
+                  <span className="text-[10.5px] text-muted-foreground font-mono">
+                    Optional
+                  </span>
+                </div>
+                <Select
+                  value={consultationRoomId}
+                  onValueChange={(val) => setConsultationRoomId(val ?? "none")}
+                >
+                  <SelectTrigger
+                    id="doctor-chamber-select"
+                    className="h-9 text-xs rounded-xl bg-background border-border/80 w-full"
+                  >
+                    <SelectValue placeholder="Select chamber room (or leave unassigned)..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56">
+                    <SelectItem value="none">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <XCircle className="size-3.5" />
+                        <span>-- Unassigned (Can be set later) --</span>
+                      </div>
+                    </SelectItem>
+                    {rooms.map((room) => {
+                      const isDoctorType =
+                        room.accessType === RoomAccessType.DOCTOR ||
+                        (room.purpose &&
+                          room.purpose.toLowerCase().includes("consultation"));
+                      return (
+                        <SelectItem key={room.id} value={room.id}>
+                          <div className="flex items-center justify-between gap-3 w-full">
+                            <span className="font-mono font-bold">
+                              Room {room.number}
+                            </span>
+                            <span className="text-muted-foreground text-[11px] truncate max-w-[140px]">
+                              {room.purpose || room.accessType}
+                            </span>
+                            {isDoctorType && (
+                              <span className="text-[9.5px] px-1 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+                                Chamber
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}

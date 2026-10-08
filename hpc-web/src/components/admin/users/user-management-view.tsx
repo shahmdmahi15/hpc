@@ -36,8 +36,10 @@ import {
   ArrowRight,
   Banknote,
   Pencil,
+  DoorClosed,
 } from "lucide-react";
 import { EditDoctorFeeDialog } from "@/components/admin/users/edit-doctor-fee-dialog";
+import { EditDoctorRoomDialog } from "@/components/admin/users/edit-doctor-room-dialog";
 
 export interface UserAccountData {
   id: string;
@@ -46,6 +48,14 @@ export interface UserAccountData {
   email?: string | null;
   whatsapp?: string | null;
   consultationFee?: number | null;
+  consultationRoomId?: string | null;
+  consultationRoom?: {
+    id: string;
+    number: string;
+    purpose?: string | null;
+    accessType?: string;
+    status?: string;
+  } | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   activeSessionCount: number;
@@ -63,9 +73,16 @@ export interface UserAccountData {
 
 interface UserManagementViewProps {
   users: UserAccountData[];
+  rooms?: {
+    id: string;
+    number: string;
+    purpose?: string | null;
+    accessType: string;
+    status: string;
+  }[];
 }
 
-export function UserManagementView({ users }: UserManagementViewProps) {
+export function UserManagementView({ users, rooms = [] }: UserManagementViewProps) {
   const [userList, setUserList] = React.useState<UserAccountData[]>(users);
 
   React.useEffect(() => {
@@ -76,6 +93,8 @@ export function UserManagementView({ users }: UserManagementViewProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
   const [selectedDoctorForFee, setSelectedDoctorForFee] =
+    React.useState<UserAccountData | null>(null);
+  const [selectedDoctorForRoom, setSelectedDoctorForRoom] =
     React.useState<UserAccountData | null>(null);
   const [selectedUserForReset, setSelectedUserForReset] = React.useState<{
     id: string;
@@ -100,6 +119,29 @@ export function UserManagementView({ users }: UserManagementViewProps) {
     setUserList((prev) =>
       prev.map((u) =>
         u.id === doctorId ? { ...u, consultationFee: newFee } : u,
+      ),
+    );
+  };
+
+  const handleDoctorRoomSuccess = (
+    doctorId: string,
+    newRoom: {
+      id: string;
+      number: string;
+      purpose?: string | null;
+      accessType?: string;
+      status?: string;
+    } | null,
+  ) => {
+    setUserList((prev) =>
+      prev.map((u) =>
+        u.id === doctorId
+          ? {
+              ...u,
+              consultationRoomId: newRoom ? newRoom.id : null,
+              consultationRoom: newRoom,
+            }
+          : u,
       ),
     );
   };
@@ -402,7 +444,8 @@ export function UserManagementView({ users }: UserManagementViewProps) {
                       )}
 
                       {user.role === Role.DOCTOR && (
-                        <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-between mt-1">
+                        <>
+                          <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-between mt-1">
                           <div className="flex items-center gap-2">
                             <div className="size-7 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
                               <Banknote className="size-3.5" />
@@ -427,7 +470,50 @@ export function UserManagementView({ users }: UserManagementViewProps) {
                             <span>Set Fee</span>
                           </Button>
                         </div>
-                      )}
+
+                        {/* Consultation Chamber Assignment */}
+                        <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between mt-1.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="size-7 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                              <DoorClosed className="size-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider leading-none">
+                                Consultation Chamber
+                              </div>
+                              <div className="text-xs sm:text-sm font-bold text-foreground font-mono mt-0.5 truncate">
+                                {user.consultationRoom ? (
+                                  <span>
+                                    Room {user.consultationRoom.number}
+                                    {user.consultationRoom.purpose ? (
+                                      <span className="text-[10.5px] font-normal text-muted-foreground ml-1">
+                                        ({user.consultationRoom.purpose})
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground font-normal text-xs italic">
+                                    Not assigned
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="xs"
+                            onClick={() => setSelectedDoctorForRoom(user)}
+                            className="h-6.5 px-2 text-[10.5px] rounded-lg border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/15 font-bold cursor-pointer gap-1 shrink-0 ml-2"
+                          >
+                            <Pencil className="size-2.5" />
+                            <span>
+                              {user.consultationRoom ? "Change" : "Set Chamber"}
+                            </span>
+                          </Button>
+                        </div>
+                      </>
+                    )}
 
                       <div className="pt-2 border-t border-border/40 text-[10.5px] text-muted-foreground flex items-center justify-between">
                         <span className="flex items-center gap-1">
@@ -700,6 +786,7 @@ export function UserManagementView({ users }: UserManagementViewProps) {
       <CreateAccountDialog
         open={createAccountOpen}
         onOpenChange={setCreateAccountOpen}
+        rooms={rooms}
       />
 
       <CreatePerformerDialog
@@ -742,6 +829,16 @@ export function UserManagementView({ users }: UserManagementViewProps) {
           onOpenChange={(open) => !open && setSelectedDoctorForFee(null)}
           doctor={selectedDoctorForFee}
           onSuccess={handleDoctorFeeSuccess}
+        />
+      )}
+
+      {selectedDoctorForRoom && (
+        <EditDoctorRoomDialog
+          open={Boolean(selectedDoctorForRoom)}
+          onOpenChange={(open) => !open && setSelectedDoctorForRoom(null)}
+          doctor={selectedDoctorForRoom}
+          rooms={rooms}
+          onSuccess={handleDoctorRoomSuccess}
         />
       )}
     </div>

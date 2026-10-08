@@ -2,7 +2,13 @@
 
 import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/guard";
-import { Role, AuditAction, AuditStatus } from "@/generated/prisma/enums";
+import {
+  Role,
+  AuditAction,
+  AuditStatus,
+  RoomAccessType,
+  RoomStatus,
+} from "@/generated/prisma/enums";
 import {
   createAccountSchema,
   deleteUserAccountSchema,
@@ -32,6 +38,8 @@ export async function createUserAccountAction(
     consultationFee: formData.get("consultationFee")
       ? Number(formData.get("consultationFee"))
       : undefined,
+    consultationRoomId:
+      formData.get("consultationRoomId")?.toString() || undefined,
   };
 
   const validation = createAccountSchema.safeParse(rawData);
@@ -43,7 +51,15 @@ export async function createUserAccountAction(
     };
   }
 
-  const { role, name, email, whatsapp, password, consultationFee } = validation.data;
+  const {
+    role,
+    name,
+    email,
+    whatsapp,
+    password,
+    consultationFee,
+    consultationRoomId,
+  } = validation.data;
 
   try {
     // Check if email already in use
@@ -75,6 +91,8 @@ export async function createUserAccountAction(
               ? consultationFee
               : 1000
             : 0,
+        consultationRoomId:
+          role === Role.DOCTOR && consultationRoomId ? consultationRoomId : null,
       },
     });
 
@@ -89,6 +107,8 @@ export async function createUserAccountAction(
         name,
         email,
         whatsapp,
+        consultationRoomId:
+          role === Role.DOCTOR ? consultationRoomId || null : null,
         performedBy: {
           id: adminUser.id,
           name: adminUser.name,
@@ -388,6 +408,14 @@ export interface FormattedUserAccountData {
   email: string | null;
   whatsapp: string | null;
   consultationFee?: number | null;
+  consultationRoomId?: string | null;
+  consultationRoom?: {
+    id: string;
+    number: string;
+    purpose: string | null;
+    accessType: RoomAccessType;
+    status: RoomStatus;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
   activeSessionCount: number;
@@ -403,49 +431,79 @@ export interface FormattedUserAccountData {
   }[];
 }
 
+export interface AdminUsersPageData {
+  users: FormattedUserAccountData[];
+  rooms: {
+    id: string;
+    number: string;
+    purpose: string | null;
+    accessType: RoomAccessType;
+    status: RoomStatus;
+  }[];
+}
+
 /**
- * Fetches and aggregates all user accounts, active sessions, and desk performers for Admin User Management.
+ * Fetches and aggregates all user accounts, active sessions, desk performers, and clinic rooms for Admin User Management.
  */
-export async function getAdminUsersPageDataAction(): Promise<
-  FormattedUserAccountData[]
-> {
+export async function getAdminUsersPageDataAction(): Promise<AdminUsersPageData> {
   await requireAuth(Role.ADMIN);
 
-  const users = await prisma.user.findMany({
-    include: {
-      performers: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          whatsapp: true,
-          phone: true,
-          pin: true,
+  const [users, rooms] = await Promise.all([
+    prisma.user.findMany({
+      include: {
+        consultationRoom: {
+          select: {
+            id: true,
+            number: true,
+            purpose: true,
+            accessType: true,
+            status: true,
+          },
         },
-        orderBy: {
-          name: "asc",
+        performers: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            whatsapp: true,
+            phone: true,
+            pin: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        },
+        sessions: {
+          where: {
+            expiresAt: { gt: new Date() },
+            revokedAt: null,
+          },
+          select: {
+            id: true,
+            lastAccessAt: true,
+          },
+        },
+        _count: {
+          select: {
+            sessions: true,
+          },
         },
       },
-      sessions: {
-        where: {
-          expiresAt: { gt: new Date() },
-          revokedAt: null,
-        },
-        select: {
-          id: true,
-          lastAccessAt: true,
-        },
+      orderBy: {
+        role: "asc",
       },
-      _count: {
-        select: {
-          sessions: true,
-        },
+    }),
+    prisma.room.findMany({
+      select: {
+        id: true,
+        number: true,
+        purpose: true,
+        accessType: true,
+        status: true,
       },
-    },
-    orderBy: {
-      role: "asc",
-    },
-  });
+      orderBy: { number: "asc" },
+    }),
+  ]);
 
   const roleOrder: Record<Role, number> = {
     [Role.ADMIN]: 1,
@@ -455,7 +513,7 @@ export async function getAdminUsersPageDataAction(): Promise<
     [Role.CASHIER]: 5,
   };
 
-  return users
+  const formattedUsers: FormattedUserAccountData[] = users
     .map((u) => ({
       id: u.id,
       role: u.role,
@@ -463,6 +521,8 @@ export async function getAdminUsersPageDataAction(): Promise<
       email: u.email,
       whatsapp: u.whatsapp,
       consultationFee: u.consultationFee ?? 0,
+      consultationRoomId: u.consultationRoomId,
+      consultationRoom: u.consultationRoom,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
       activeSessionCount: u.sessions.length,
@@ -471,6 +531,11 @@ export async function getAdminUsersPageDataAction(): Promise<
       performers: u.performers,
     }))
     .sort((a, b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99));
+
+  return {
+    users: formattedUsers,
+    rooms,
+  };
 }
 
 /**
@@ -526,6 +591,89 @@ export async function updateDoctorConsultationFeeAction(
   } catch (error) {
     console.error("[Update Doctor Fee Error]:", error);
     return { success: false, message: "Failed to update consultation fee." };
+  }
+}
+
+/**
+ * Assigns or clears a doctor's default consultation chamber / room.
+ */
+export async function updateDoctorConsultationRoomAction(
+  doctorId: string,
+  roomId: string | null,
+): Promise<{ success: boolean; message: string }> {
+  const { user: adminUser } = await requireAuth(Role.ADMIN);
+
+  try {
+    const doctor = await prisma.user.findUnique({
+      where: { id: doctorId },
+      include: {
+        consultationRoom: true,
+      },
+    });
+
+    if (!doctor || doctor.role !== Role.DOCTOR) {
+      return { success: false, message: "Doctor account not found." };
+    }
+
+    let targetRoom: { id: string; number: string; purpose: string | null } | null = null;
+    const cleanRoomId = roomId && roomId !== "none" ? roomId : null;
+
+    if (cleanRoomId) {
+      targetRoom = await prisma.room.findUnique({
+        where: { id: cleanRoomId },
+        select: { id: true, number: true, purpose: true },
+      });
+      if (!targetRoom) {
+        return { success: false, message: "The selected chamber room was not found." };
+      }
+    }
+
+    await prisma.user.update({
+      where: { id: doctorId },
+      data: {
+        consultationRoomId: cleanRoomId,
+      },
+    });
+
+    await logAudit({
+      action: AuditAction.USER_UPDATE,
+      status: AuditStatus.SUCCESS,
+      userId: adminUser.id,
+      entity: "User",
+      entityId: doctorId,
+      details: {
+        action: "UPDATE_DOCTOR_CONSULTATION_ROOM",
+        doctorName: doctor.name,
+        previousRoomId: doctor.consultationRoomId,
+        previousRoomNumber: doctor.consultationRoom?.number ?? null,
+        newRoomId: cleanRoomId,
+        newRoomNumber: targetRoom ? targetRoom.number : null,
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
+      },
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/admin/rooms");
+    revalidatePath("/admin/tracking");
+    revalidatePath("/admin");
+    revalidatePath("/doctor");
+    revalidatePath("/receptionist");
+
+    const message = cleanRoomId && targetRoom
+      ? `Assigned Room ${targetRoom.number}${targetRoom.purpose ? ` (${targetRoom.purpose})` : ""} to ${doctor.name || "Doctor"}.`
+      : `Cleared assigned consultation chamber for ${doctor.name || "Doctor"}.`;
+
+    return {
+      success: true,
+      message,
+    };
+  } catch (error) {
+    console.error("[Update Doctor Room Error]:", error);
+    return { success: false, message: "Failed to update doctor consultation room." };
   }
 }
 

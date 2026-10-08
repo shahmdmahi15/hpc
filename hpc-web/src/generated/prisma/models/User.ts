@@ -42,6 +42,7 @@ export type UserMinAggregateOutputType = {
   email: string | null
   whatsapp: string | null
   consultationFee: number | null
+  consultationRoomId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -54,6 +55,7 @@ export type UserMaxAggregateOutputType = {
   email: string | null
   whatsapp: string | null
   consultationFee: number | null
+  consultationRoomId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -66,6 +68,7 @@ export type UserCountAggregateOutputType = {
   email: number
   whatsapp: number
   consultationFee: number
+  consultationRoomId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -88,6 +91,7 @@ export type UserMinAggregateInputType = {
   email?: true
   whatsapp?: true
   consultationFee?: true
+  consultationRoomId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -100,6 +104,7 @@ export type UserMaxAggregateInputType = {
   email?: true
   whatsapp?: true
   consultationFee?: true
+  consultationRoomId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -112,6 +117,7 @@ export type UserCountAggregateInputType = {
   email?: true
   whatsapp?: true
   consultationFee?: true
+  consultationRoomId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -211,6 +217,7 @@ export type UserGroupByOutputType = {
   email: string | null
   whatsapp: string | null
   consultationFee: number | null
+  consultationRoomId: string | null
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
@@ -246,8 +253,10 @@ export type UserWhereInput = {
   email?: Prisma.StringNullableFilter<"User"> | string | null
   whatsapp?: Prisma.StringNullableFilter<"User"> | string | null
   consultationFee?: Prisma.FloatNullableFilter<"User"> | number | null
+  consultationRoomId?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  consultationRoom?: Prisma.XOR<Prisma.RoomNullableScalarRelationFilter, Prisma.RoomWhereInput> | null
   sessions?: Prisma.SessionListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   performers?: Prisma.PerformerListRelationFilter
@@ -265,8 +274,10 @@ export type UserOrderByWithRelationInput = {
   email?: Prisma.SortOrderInput | Prisma.SortOrder
   whatsapp?: Prisma.SortOrderInput | Prisma.SortOrder
   consultationFee?: Prisma.SortOrderInput | Prisma.SortOrder
+  consultationRoomId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  consultationRoom?: Prisma.RoomOrderByWithRelationInput
   sessions?: Prisma.SessionOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
   performers?: Prisma.PerformerOrderByRelationAggregateInput
@@ -287,8 +298,10 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   email?: Prisma.StringNullableFilter<"User"> | string | null
   whatsapp?: Prisma.StringNullableFilter<"User"> | string | null
   consultationFee?: Prisma.FloatNullableFilter<"User"> | number | null
+  consultationRoomId?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  consultationRoom?: Prisma.XOR<Prisma.RoomNullableScalarRelationFilter, Prisma.RoomWhereInput> | null
   sessions?: Prisma.SessionListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   performers?: Prisma.PerformerListRelationFilter
@@ -306,6 +319,7 @@ export type UserOrderByWithAggregationInput = {
   email?: Prisma.SortOrderInput | Prisma.SortOrder
   whatsapp?: Prisma.SortOrderInput | Prisma.SortOrder
   consultationFee?: Prisma.SortOrderInput | Prisma.SortOrder
+  consultationRoomId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -326,6 +340,7 @@ export type UserScalarWhereWithAggregatesInput = {
   email?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   whatsapp?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   consultationFee?: Prisma.FloatNullableWithAggregatesFilter<"User"> | number | null
+  consultationRoomId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -340,6 +355,7 @@ export type UserCreateInput = {
   consultationFee?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  consultationRoom?: Prisma.RoomCreateNestedOneWithoutConsultingDoctorsInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   performers?: Prisma.PerformerCreateNestedManyWithoutUserInput
@@ -357,6 +373,7 @@ export type UserUncheckedCreateInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -378,6 +395,7 @@ export type UserUpdateInput = {
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationRoom?: Prisma.RoomUpdateOneWithoutConsultingDoctorsNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   performers?: Prisma.PerformerUpdateManyWithoutUserNestedInput
@@ -395,6 +413,7 @@ export type UserUncheckedUpdateInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -414,6 +433,7 @@ export type UserCreateManyInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -438,6 +458,7 @@ export type UserUncheckedUpdateManyInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -450,6 +471,7 @@ export type UserCountOrderByAggregateInput = {
   email?: Prisma.SortOrder
   whatsapp?: Prisma.SortOrder
   consultationFee?: Prisma.SortOrder
+  consultationRoomId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -466,6 +488,7 @@ export type UserMaxOrderByAggregateInput = {
   email?: Prisma.SortOrder
   whatsapp?: Prisma.SortOrder
   consultationFee?: Prisma.SortOrder
+  consultationRoomId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -478,6 +501,7 @@ export type UserMinOrderByAggregateInput = {
   email?: Prisma.SortOrder
   whatsapp?: Prisma.SortOrder
   consultationFee?: Prisma.SortOrder
+  consultationRoomId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -494,6 +518,16 @@ export type UserScalarRelationFilter = {
 export type UserNullableScalarRelationFilter = {
   is?: Prisma.UserWhereInput | null
   isNot?: Prisma.UserWhereInput | null
+}
+
+export type UserListRelationFilter = {
+  every?: Prisma.UserWhereInput
+  some?: Prisma.UserWhereInput
+  none?: Prisma.UserWhereInput
+}
+
+export type UserOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
 }
 
 export type StringFieldUpdateOperationsInput = {
@@ -562,6 +596,48 @@ export type UserUpdateOneRequiredWithoutPerformersNestedInput = {
   upsert?: Prisma.UserUpsertWithoutPerformersInput
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPerformersInput, Prisma.UserUpdateWithoutPerformersInput>, Prisma.UserUncheckedUpdateWithoutPerformersInput>
+}
+
+export type UserCreateNestedManyWithoutConsultationRoomInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutConsultationRoomInput, Prisma.UserUncheckedCreateWithoutConsultationRoomInput> | Prisma.UserCreateWithoutConsultationRoomInput[] | Prisma.UserUncheckedCreateWithoutConsultationRoomInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutConsultationRoomInput | Prisma.UserCreateOrConnectWithoutConsultationRoomInput[]
+  createMany?: Prisma.UserCreateManyConsultationRoomInputEnvelope
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+}
+
+export type UserUncheckedCreateNestedManyWithoutConsultationRoomInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutConsultationRoomInput, Prisma.UserUncheckedCreateWithoutConsultationRoomInput> | Prisma.UserCreateWithoutConsultationRoomInput[] | Prisma.UserUncheckedCreateWithoutConsultationRoomInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutConsultationRoomInput | Prisma.UserCreateOrConnectWithoutConsultationRoomInput[]
+  createMany?: Prisma.UserCreateManyConsultationRoomInputEnvelope
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+}
+
+export type UserUpdateManyWithoutConsultationRoomNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutConsultationRoomInput, Prisma.UserUncheckedCreateWithoutConsultationRoomInput> | Prisma.UserCreateWithoutConsultationRoomInput[] | Prisma.UserUncheckedCreateWithoutConsultationRoomInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutConsultationRoomInput | Prisma.UserCreateOrConnectWithoutConsultationRoomInput[]
+  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutConsultationRoomInput | Prisma.UserUpsertWithWhereUniqueWithoutConsultationRoomInput[]
+  createMany?: Prisma.UserCreateManyConsultationRoomInputEnvelope
+  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  update?: Prisma.UserUpdateWithWhereUniqueWithoutConsultationRoomInput | Prisma.UserUpdateWithWhereUniqueWithoutConsultationRoomInput[]
+  updateMany?: Prisma.UserUpdateManyWithWhereWithoutConsultationRoomInput | Prisma.UserUpdateManyWithWhereWithoutConsultationRoomInput[]
+  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+}
+
+export type UserUncheckedUpdateManyWithoutConsultationRoomNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutConsultationRoomInput, Prisma.UserUncheckedCreateWithoutConsultationRoomInput> | Prisma.UserCreateWithoutConsultationRoomInput[] | Prisma.UserUncheckedCreateWithoutConsultationRoomInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutConsultationRoomInput | Prisma.UserCreateOrConnectWithoutConsultationRoomInput[]
+  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutConsultationRoomInput | Prisma.UserUpsertWithWhereUniqueWithoutConsultationRoomInput[]
+  createMany?: Prisma.UserCreateManyConsultationRoomInputEnvelope
+  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  update?: Prisma.UserUpdateWithWhereUniqueWithoutConsultationRoomInput | Prisma.UserUpdateWithWhereUniqueWithoutConsultationRoomInput[]
+  updateMany?: Prisma.UserUpdateManyWithWhereWithoutConsultationRoomInput | Prisma.UserUpdateManyWithWhereWithoutConsultationRoomInput[]
+  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
 }
 
 export type UserCreateNestedOneWithoutApprovedAppointmentExtrasInput = {
@@ -638,6 +714,7 @@ export type UserCreateWithoutSessionsInput = {
   consultationFee?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  consultationRoom?: Prisma.RoomCreateNestedOneWithoutConsultingDoctorsInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   performers?: Prisma.PerformerCreateNestedManyWithoutUserInput
   doctorAppointments?: Prisma.AppointmentCreateNestedManyWithoutDoctorInput
@@ -654,6 +731,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
@@ -690,6 +768,7 @@ export type UserUpdateWithoutSessionsInput = {
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationRoom?: Prisma.RoomUpdateOneWithoutConsultingDoctorsNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   performers?: Prisma.PerformerUpdateManyWithoutUserNestedInput
   doctorAppointments?: Prisma.AppointmentUpdateManyWithoutDoctorNestedInput
@@ -706,6 +785,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
@@ -726,6 +806,7 @@ export type UserCreateWithoutAuditLogsInput = {
   consultationFee?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  consultationRoom?: Prisma.RoomCreateNestedOneWithoutConsultingDoctorsInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   performers?: Prisma.PerformerCreateNestedManyWithoutUserInput
   doctorAppointments?: Prisma.AppointmentCreateNestedManyWithoutDoctorInput
@@ -742,6 +823,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -778,6 +860,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationRoom?: Prisma.RoomUpdateOneWithoutConsultingDoctorsNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   performers?: Prisma.PerformerUpdateManyWithoutUserNestedInput
   doctorAppointments?: Prisma.AppointmentUpdateManyWithoutDoctorNestedInput
@@ -794,6 +877,7 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -814,6 +898,7 @@ export type UserCreateWithoutPerformersInput = {
   consultationFee?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  consultationRoom?: Prisma.RoomCreateNestedOneWithoutConsultingDoctorsInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   doctorAppointments?: Prisma.AppointmentCreateNestedManyWithoutDoctorInput
@@ -830,6 +915,7 @@ export type UserUncheckedCreateWithoutPerformersInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -866,6 +952,7 @@ export type UserUpdateWithoutPerformersInput = {
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationRoom?: Prisma.RoomUpdateOneWithoutConsultingDoctorsNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   doctorAppointments?: Prisma.AppointmentUpdateManyWithoutDoctorNestedInput
@@ -882,6 +969,7 @@ export type UserUncheckedUpdateWithoutPerformersInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -890,6 +978,85 @@ export type UserUncheckedUpdateWithoutPerformersInput = {
   approvedAppointmentExtras?: Prisma.AppointmentUncheckedUpdateManyWithoutExtraApprovedByNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutDoctorNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutDoctorNestedInput
+}
+
+export type UserCreateWithoutConsultationRoomInput = {
+  id?: string
+  role: $Enums.Role
+  password: string
+  name?: string | null
+  email?: string | null
+  whatsapp?: string | null
+  consultationFee?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  performers?: Prisma.PerformerCreateNestedManyWithoutUserInput
+  doctorAppointments?: Prisma.AppointmentCreateNestedManyWithoutDoctorInput
+  approvedAppointmentExtras?: Prisma.AppointmentCreateNestedManyWithoutExtraApprovedByInput
+  medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutDoctorInput
+  treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutDoctorInput
+}
+
+export type UserUncheckedCreateWithoutConsultationRoomInput = {
+  id?: string
+  role: $Enums.Role
+  password: string
+  name?: string | null
+  email?: string | null
+  whatsapp?: string | null
+  consultationFee?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  performers?: Prisma.PerformerUncheckedCreateNestedManyWithoutUserInput
+  doctorAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutDoctorInput
+  approvedAppointmentExtras?: Prisma.AppointmentUncheckedCreateNestedManyWithoutExtraApprovedByInput
+  medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutDoctorInput
+  treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutDoctorInput
+}
+
+export type UserCreateOrConnectWithoutConsultationRoomInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutConsultationRoomInput, Prisma.UserUncheckedCreateWithoutConsultationRoomInput>
+}
+
+export type UserCreateManyConsultationRoomInputEnvelope = {
+  data: Prisma.UserCreateManyConsultationRoomInput | Prisma.UserCreateManyConsultationRoomInput[]
+}
+
+export type UserUpsertWithWhereUniqueWithoutConsultationRoomInput = {
+  where: Prisma.UserWhereUniqueInput
+  update: Prisma.XOR<Prisma.UserUpdateWithoutConsultationRoomInput, Prisma.UserUncheckedUpdateWithoutConsultationRoomInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutConsultationRoomInput, Prisma.UserUncheckedCreateWithoutConsultationRoomInput>
+}
+
+export type UserUpdateWithWhereUniqueWithoutConsultationRoomInput = {
+  where: Prisma.UserWhereUniqueInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutConsultationRoomInput, Prisma.UserUncheckedUpdateWithoutConsultationRoomInput>
+}
+
+export type UserUpdateManyWithWhereWithoutConsultationRoomInput = {
+  where: Prisma.UserScalarWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateManyMutationInput, Prisma.UserUncheckedUpdateManyWithoutConsultationRoomInput>
+}
+
+export type UserScalarWhereInput = {
+  AND?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+  OR?: Prisma.UserScalarWhereInput[]
+  NOT?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+  id?: Prisma.StringFilter<"User"> | string
+  role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
+  password?: Prisma.StringFilter<"User"> | string
+  name?: Prisma.StringNullableFilter<"User"> | string | null
+  email?: Prisma.StringNullableFilter<"User"> | string | null
+  whatsapp?: Prisma.StringNullableFilter<"User"> | string | null
+  consultationFee?: Prisma.FloatNullableFilter<"User"> | number | null
+  consultationRoomId?: Prisma.StringNullableFilter<"User"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
 }
 
 export type UserCreateWithoutApprovedAppointmentExtrasInput = {
@@ -902,6 +1069,7 @@ export type UserCreateWithoutApprovedAppointmentExtrasInput = {
   consultationFee?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  consultationRoom?: Prisma.RoomCreateNestedOneWithoutConsultingDoctorsInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   performers?: Prisma.PerformerCreateNestedManyWithoutUserInput
@@ -918,6 +1086,7 @@ export type UserUncheckedCreateWithoutApprovedAppointmentExtrasInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -943,6 +1112,7 @@ export type UserCreateWithoutDoctorAppointmentsInput = {
   consultationFee?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  consultationRoom?: Prisma.RoomCreateNestedOneWithoutConsultingDoctorsInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   performers?: Prisma.PerformerCreateNestedManyWithoutUserInput
@@ -959,6 +1129,7 @@ export type UserUncheckedCreateWithoutDoctorAppointmentsInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -995,6 +1166,7 @@ export type UserUpdateWithoutApprovedAppointmentExtrasInput = {
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationRoom?: Prisma.RoomUpdateOneWithoutConsultingDoctorsNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   performers?: Prisma.PerformerUpdateManyWithoutUserNestedInput
@@ -1011,6 +1183,7 @@ export type UserUncheckedUpdateWithoutApprovedAppointmentExtrasInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1042,6 +1215,7 @@ export type UserUpdateWithoutDoctorAppointmentsInput = {
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationRoom?: Prisma.RoomUpdateOneWithoutConsultingDoctorsNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   performers?: Prisma.PerformerUpdateManyWithoutUserNestedInput
@@ -1058,6 +1232,7 @@ export type UserUncheckedUpdateWithoutDoctorAppointmentsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1078,6 +1253,7 @@ export type UserCreateWithoutMedicalRecordsInput = {
   consultationFee?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  consultationRoom?: Prisma.RoomCreateNestedOneWithoutConsultingDoctorsInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   performers?: Prisma.PerformerCreateNestedManyWithoutUserInput
@@ -1094,6 +1270,7 @@ export type UserUncheckedCreateWithoutMedicalRecordsInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -1130,6 +1307,7 @@ export type UserUpdateWithoutMedicalRecordsInput = {
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationRoom?: Prisma.RoomUpdateOneWithoutConsultingDoctorsNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   performers?: Prisma.PerformerUpdateManyWithoutUserNestedInput
@@ -1146,6 +1324,7 @@ export type UserUncheckedUpdateWithoutMedicalRecordsInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1166,6 +1345,7 @@ export type UserCreateWithoutTreatmentPlansInput = {
   consultationFee?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  consultationRoom?: Prisma.RoomCreateNestedOneWithoutConsultingDoctorsInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   performers?: Prisma.PerformerCreateNestedManyWithoutUserInput
@@ -1182,6 +1362,7 @@ export type UserUncheckedCreateWithoutTreatmentPlansInput = {
   email?: string | null
   whatsapp?: string | null
   consultationFee?: number | null
+  consultationRoomId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -1218,6 +1399,7 @@ export type UserUpdateWithoutTreatmentPlansInput = {
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationRoom?: Prisma.RoomUpdateOneWithoutConsultingDoctorsNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   performers?: Prisma.PerformerUpdateManyWithoutUserNestedInput
@@ -1234,6 +1416,7 @@ export type UserUncheckedUpdateWithoutTreatmentPlansInput = {
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationRoomId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1242,6 +1425,68 @@ export type UserUncheckedUpdateWithoutTreatmentPlansInput = {
   doctorAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutDoctorNestedInput
   approvedAppointmentExtras?: Prisma.AppointmentUncheckedUpdateManyWithoutExtraApprovedByNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutDoctorNestedInput
+}
+
+export type UserCreateManyConsultationRoomInput = {
+  id?: string
+  role: $Enums.Role
+  password: string
+  name?: string | null
+  email?: string | null
+  whatsapp?: string | null
+  consultationFee?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type UserUpdateWithoutConsultationRoomInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  performers?: Prisma.PerformerUpdateManyWithoutUserNestedInput
+  doctorAppointments?: Prisma.AppointmentUpdateManyWithoutDoctorNestedInput
+  approvedAppointmentExtras?: Prisma.AppointmentUpdateManyWithoutExtraApprovedByNestedInput
+  medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutDoctorNestedInput
+  treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutDoctorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutConsultationRoomInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  performers?: Prisma.PerformerUncheckedUpdateManyWithoutUserNestedInput
+  doctorAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutDoctorNestedInput
+  approvedAppointmentExtras?: Prisma.AppointmentUncheckedUpdateManyWithoutExtraApprovedByNestedInput
+  medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutDoctorNestedInput
+  treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutDoctorNestedInput
+}
+
+export type UserUncheckedUpdateManyWithoutConsultationRoomInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  whatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -1337,8 +1582,10 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   email?: boolean
   whatsapp?: boolean
   consultationFee?: boolean
+  consultationRoomId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  consultationRoom?: boolean | Prisma.User$consultationRoomArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
   performers?: boolean | Prisma.User$performersArgs<ExtArgs>
@@ -1357,8 +1604,10 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   whatsapp?: boolean
   consultationFee?: boolean
+  consultationRoomId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  consultationRoom?: boolean | Prisma.User$consultationRoomArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1369,8 +1618,10 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   whatsapp?: boolean
   consultationFee?: boolean
+  consultationRoomId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  consultationRoom?: boolean | Prisma.User$consultationRoomArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1381,12 +1632,14 @@ export type UserSelectScalar = {
   email?: boolean
   whatsapp?: boolean
   consultationFee?: boolean
+  consultationRoomId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "role" | "password" | "name" | "email" | "whatsapp" | "consultationFee" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "role" | "password" | "name" | "email" | "whatsapp" | "consultationFee" | "consultationRoomId" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  consultationRoom?: boolean | Prisma.User$consultationRoomArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
   performers?: boolean | Prisma.User$performersArgs<ExtArgs>
@@ -1396,12 +1649,17 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   treatmentPlans?: boolean | Prisma.User$treatmentPlansArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  consultationRoom?: boolean | Prisma.User$consultationRoomArgs<ExtArgs>
+}
+export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  consultationRoom?: boolean | Prisma.User$consultationRoomArgs<ExtArgs>
+}
 
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
+    consultationRoom: Prisma.$RoomPayload<ExtArgs> | null
     sessions: Prisma.$SessionPayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
     performers: Prisma.$PerformerPayload<ExtArgs>[]
@@ -1418,6 +1676,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     email: string | null
     whatsapp: string | null
     consultationFee: number | null
+    consultationRoomId: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -1814,6 +2073,7 @@ readonly fields: UserFieldRefs;
  */
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  consultationRoom<T extends Prisma.User$consultationRoomArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$consultationRoomArgs<ExtArgs>>): Prisma.Prisma__RoomClient<runtime.Types.Result.GetResult<Prisma.$RoomPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   sessions<T extends Prisma.User$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.User$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   performers<T extends Prisma.User$performersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$performersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PerformerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1857,6 +2117,7 @@ export interface UserFieldRefs {
   readonly email: Prisma.FieldRef<"User", 'String'>
   readonly whatsapp: Prisma.FieldRef<"User", 'String'>
   readonly consultationFee: Prisma.FieldRef<"User", 'Float'>
+  readonly consultationRoomId: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
@@ -2111,6 +2372,10 @@ export type UserCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions
    * The data used to create many Users.
    */
   data: Prisma.UserCreateManyInput | Prisma.UserCreateManyInput[]
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2181,6 +2446,10 @@ export type UserUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many Users to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2247,6 +2516,25 @@ export type UserDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * Limit how many Users to delete.
    */
   limit?: number
+}
+
+/**
+ * User.consultationRoom
+ */
+export type User$consultationRoomArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Room
+   */
+  select?: Prisma.RoomSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Room
+   */
+  omit?: Prisma.RoomOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RoomInclude<ExtArgs> | null
+  where?: Prisma.RoomWhereInput
 }
 
 /**

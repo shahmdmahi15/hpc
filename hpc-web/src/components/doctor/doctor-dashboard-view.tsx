@@ -98,8 +98,14 @@ export function DoctorDashboardView({
     );
   }, [data.currentDoctor, initialData.currentDoctor]);
 
-  // Strictly default to first doctor consultation chamber
+  // Priority: 1. Doctor's assigned chamber from admin panel, 2. First doctor consultation room
   const selectedRoomId = React.useMemo(() => {
+    if (data.currentDoctor?.consultationRoomId) {
+      const assignedRoom = data.rooms.find(
+        (r) => r.id === data.currentDoctor?.consultationRoomId,
+      );
+      if (assignedRoom) return assignedRoom.id;
+    }
     const consultationRoom = data.rooms.find((r) => {
       return (
         r.accessType === RoomAccessType.DOCTOR ||
@@ -107,7 +113,7 @@ export function DoctorDashboardView({
       );
     });
     return consultationRoom?.id || "";
-  }, [data.rooms]);
+  }, [data.rooms, data.currentDoctor]);
 
   const selectedRoom = React.useMemo(() => {
     return data.rooms.find((r) => r.id === selectedRoomId);

@@ -65,6 +65,12 @@ export interface PatientArrivalDoctor {
   name: string | null;
   email: string | null;
   consultationFee: number;
+  consultationRoomId?: string | null;
+  consultationRoom?: {
+    id: string;
+    number: string;
+    purpose?: string | null;
+  } | null;
 }
 
 interface PatientArrivalTabProps {
@@ -183,7 +189,7 @@ export function PatientArrivalTab({
   const doctorSelectItems = React.useMemo(() => {
     return doctors.map((d) => ({
       value: d.id,
-      label: `${d.name || "Doctor"} — ৳${(d.consultationFee ?? 1000).toLocaleString()} Fee`,
+      label: `${d.name || "Doctor"}${d.consultationRoom ? ` (Room ${d.consultationRoom.number})` : ""} — ৳${(d.consultationFee ?? 1000).toLocaleString()} Fee`,
     }));
   }, [doctors]);
 

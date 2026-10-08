@@ -14,6 +14,7 @@ import {
   SlotStatus,
   QueueType,
   RoomStatus,
+  RoomAccessType,
 } from "@/generated/prisma/enums";
 import {
   bookTherapyTicketSchema,
@@ -828,6 +829,14 @@ export interface ReceptionistDashboardData {
     name: string | null;
     email: string | null;
     consultationFee: number;
+    consultationRoomId?: string | null;
+    consultationRoom?: {
+      id: string;
+      number: string;
+      purpose: string | null;
+      accessType: RoomAccessType;
+      status: RoomStatus;
+    } | null;
   }[];
 }
 
@@ -916,6 +925,16 @@ export async function getReceptionistDashboardDataAction(
         name: true,
         email: true,
         consultationFee: true,
+        consultationRoomId: true,
+        consultationRoom: {
+          select: {
+            id: true,
+            number: true,
+            purpose: true,
+            accessType: true,
+            status: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     }),
@@ -1046,6 +1065,8 @@ export async function getReceptionistDashboardDataAction(
       name: d.name,
       email: d.email,
       consultationFee: d.consultationFee ?? 0,
+      consultationRoomId: d.consultationRoomId,
+      consultationRoom: d.consultationRoom,
     })),
   };
 }

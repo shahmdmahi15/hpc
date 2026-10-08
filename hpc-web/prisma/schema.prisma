@@ -165,6 +165,8 @@ model User {
   email    String?
   whatsapp String?
   consultationFee Float? @default(0)
+  consultationRoomId String?
+  consultationRoom   Room?   @relation("DoctorConsultationRoom", fields: [consultationRoomId], references: [id], onDelete: SetNull)
 
   sessions   Session[]
   auditLogs  AuditLog[]
@@ -182,6 +184,7 @@ model User {
   @@index([role])
   @@index([email])
   @@index([whatsapp])
+  @@index([consultationRoomId])
 }
 
 model Session {
@@ -273,6 +276,7 @@ model Room {
 
   therapySlots TherapySlot[]
   appointments Appointment[]
+  consultingDoctors User[] @relation("DoctorConsultationRoom")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

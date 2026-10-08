@@ -11,6 +11,6 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminUsersPage() {
-  const formattedUsers = await getAdminUsersPageDataAction();
-  return <UserManagementView users={formattedUsers} />;
+  const { users, rooms } = await getAdminUsersPageDataAction();
+  return <UserManagementView users={users} rooms={rooms} />;
 }

@@ -86,6 +86,7 @@ export const UserScalarFieldEnum = {
   email: 'email',
   whatsapp: 'whatsapp',
   consultationFee: 'consultationFee',
+  consultationRoomId: 'consultationRoomId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
