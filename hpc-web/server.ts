@@ -4,6 +4,7 @@ import next from "next";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import tls from "tls";
 
 // Check if launched in development or production mode
 const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
@@ -55,17 +56,32 @@ const rootCrtPath = path.join(certDir, "rootCA.crt");
 
 const hasSsl = fs.existsSync(serverKeyPath) && fs.existsSync(serverCrtPath);
 
-// Ensure Node.js TLS verification trusts our local Root CA or allows local loopback fetches
-// for internal Next.js Server Actions flight pre-rendering / redirects
+// Ensure Node.js TLS verification securely trusts our local Root CA
+// for internal Next.js Server Actions flight pre-rendering / redirects,
+// without disabling TLS certificate verification or triggering NODE_TLS_REJECT_UNAUTHORIZED warnings.
 if (hasSsl) {
   const caPath = fs.existsSync(rootPemPath) ? rootPemPath : fs.existsSync(rootCrtPath) ? rootCrtPath : null;
-  if (caPath && !process.env.NODE_EXTRA_CA_CERTS) {
-    process.env.NODE_EXTRA_CA_CERTS = caPath;
-  }
-  // In case the Node process was already booted before NODE_EXTRA_CA_CERTS was read by C++,
-  // also set NODE_TLS_REJECT_UNAUTHORIZED = "0" as a fail-safe for internal loopback calls
-  if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  if (caPath) {
+    if (!process.env.NODE_EXTRA_CA_CERTS) {
+      process.env.NODE_EXTRA_CA_CERTS = caPath;
+    }
+    try {
+      const rootCaBuffer = fs.readFileSync(caPath);
+      const origCreateSecureContext = tls.createSecureContext;
+      tls.createSecureContext = function (options: any) {
+        const ctx = origCreateSecureContext.call(this, options);
+        if (ctx && (ctx as any).context && typeof (ctx as any).context.addCACert === "function") {
+          try {
+            (ctx as any).context.addCACert(rootCaBuffer);
+          } catch {
+            // Already added or context finalized
+          }
+        }
+        return ctx;
+      };
+    } catch {
+      // Ignore if unable to hook
+    }
   }
 }
 
