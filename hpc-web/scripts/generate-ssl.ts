@@ -111,10 +111,12 @@ basicConstraints       = critical, CA:true
 keyUsage               = critical, digitalSignature, cRLSign, keyCertSign
 
 [ v3_req ]
-basicConstraints    = CA:FALSE
-keyUsage            = nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage    = serverAuth, clientAuth
-subjectAltName      = @alt_names
+basicConstraints       = CA:FALSE
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid,issuer
+keyUsage               = digitalSignature, keyEncipherment
+extendedKeyUsage       = serverAuth, clientAuth
+subjectAltName         = @alt_names
 
 [ alt_names ]
 DNS.1   = localhost
@@ -182,7 +184,7 @@ execSync(`${openSslBin} req -new -key "${serverKeyPath}" -out "${serverCsrPath}"
 
 console.log("[INFO] Signing Server Certificate with HPC Root CA...");
 execSync(
-  `${openSslBin} x509 -req -in "${serverCsrPath}" -CA "${rootPemPath}" -CAkey "${rootKeyPath}" -CAcreateserial -out "${serverCrtPath}" -days 1825 -sha256 -extfile "${cnfPath}" -extensions v3_req`,
+  `${openSslBin} x509 -req -in "${serverCsrPath}" -CA "${rootPemPath}" -CAkey "${rootKeyPath}" -CAcreateserial -out "${serverCrtPath}" -days 365 -sha256 -extfile "${cnfPath}" -extensions v3_req`,
   { stdio: "inherit" },
 );
 
