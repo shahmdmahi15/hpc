@@ -58,14 +58,9 @@ export function CallToChamberDialog({
   defaultRoomId,
   onSuccess,
 }: CallToChamberDialogProps) {
-  // 1. Strictly identify Doctor Consultation rooms only using RoomAccessType.DOCTOR or purpose "Doctor Consultation"
+  // 1. Strictly identify Doctor Consultation rooms only using RoomAccessType.DOCTOR
   const doctorConsultationRooms = React.useMemo(() => {
-    return rooms.filter((r) => {
-      return (
-        r.accessType === RoomAccessType.DOCTOR ||
-        r.purpose?.toLowerCase().includes("consultation")
-      );
-    });
+    return rooms.filter((r) => r.accessType === RoomAccessType.DOCTOR);
   }, [rooms]);
 
   // First doctor consultation room

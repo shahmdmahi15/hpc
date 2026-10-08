@@ -108,6 +108,9 @@ export function EditAccountDialog({
   const [whatsapp, setWhatsapp] = React.useState("");
   const [consultationFee, setConsultationFee] = React.useState("1000");
   const [consultationRoomId, setConsultationRoomId] = React.useState("none");
+  const doctorRooms = React.useMemo(() => {
+    return rooms.filter((r) => r.accessType === RoomAccessType.DOCTOR);
+  }, [rooms]);
   const [changePassword, setChangePassword] = React.useState(false);
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
@@ -501,7 +504,7 @@ export function EditAccountDialog({
                         id="edit-doctor-chamber-select"
                         className="h-9 text-xs rounded-xl bg-background border-border/80 w-full"
                       >
-                        <SelectValue placeholder="Select chamber room..." />
+                        <SelectValue placeholder="Select DOCTOR chamber room..." />
                       </SelectTrigger>
                       <SelectContent className="max-h-56">
                         <SelectItem value="none" label="-- Unassigned (Can be set later) --">
@@ -510,30 +513,30 @@ export function EditAccountDialog({
                             <span>-- Unassigned (Can be set later) --</span>
                           </div>
                         </SelectItem>
-                        {rooms.map((room) => {
-                          const isDoctorType =
-                            room.accessType === RoomAccessType.DOCTOR ||
-                            (room.purpose &&
-                              room.purpose.toLowerCase().includes("consultation"));
-                          const roomLabel = `Room ${room.number}${room.purpose ? ` - ${room.purpose}` : ` (${room.accessType})`}`;
-                          return (
-                            <SelectItem key={room.id} value={room.id} label={roomLabel}>
-                              <div className="flex items-center justify-between gap-3 w-full">
-                                <span className="font-mono font-bold">
-                                  Room {room.number}
-                                </span>
-                                <span className="text-muted-foreground text-[11px] truncate max-w-[140px]">
-                                  {room.purpose || room.accessType}
-                                </span>
-                                {isDoctorType && (
-                                  <span className="text-[9.5px] px-1 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
-                                    Chamber
+                        {doctorRooms.length === 0 ? (
+                          <div className="p-3 text-center text-xs text-muted-foreground">
+                            No DOCTOR type rooms found
+                          </div>
+                        ) : (
+                          doctorRooms.map((room) => {
+                            const roomLabel = `Room ${room.number}${room.purpose ? ` - ${room.purpose}` : ""}`;
+                            return (
+                              <SelectItem key={room.id} value={room.id} label={roomLabel}>
+                                <div className="flex items-center justify-between gap-3 w-full">
+                                  <span className="font-mono font-bold">
+                                    Room {room.number}
                                   </span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
+                                  <span className="text-muted-foreground text-[11px] truncate max-w-[140px]">
+                                    {room.purpose || "Doctor Chamber"}
+                                  </span>
+                                  <span className="text-[9.5px] px-1 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+                                    DOCTOR
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            );
+                          })
+                        )}
                       </SelectContent>
                     </Select>
                     <p className="text-[10px] text-muted-foreground">

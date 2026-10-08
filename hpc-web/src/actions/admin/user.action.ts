@@ -77,6 +77,34 @@ export async function createUserAccountAction(
       };
     }
 
+    if (role === Role.DOCTOR && consultationRoomId) {
+      const assignedRoom = await prisma.room.findUnique({
+        where: { id: consultationRoomId },
+        select: { id: true, number: true, accessType: true },
+      });
+      if (!assignedRoom) {
+        return {
+          success: false,
+          message: "The selected chamber room does not exist.",
+          fieldErrors: {
+            consultationRoomId: ["The selected chamber room does not exist."],
+          },
+        };
+      }
+      if (assignedRoom.accessType !== RoomAccessType.DOCTOR) {
+        return {
+          success: false,
+          message:
+            "Only rooms with DOCTOR access type can be assigned as a doctor consultation chamber.",
+          fieldErrors: {
+            consultationRoomId: [
+              "Only DOCTOR type rooms can be assigned as a consultation chamber.",
+            ],
+          },
+        };
+      }
+    }
+
     const hashedPassword = await hashPassword(password);
 
     const newUser = await prisma.user.create({
@@ -616,16 +644,28 @@ export async function updateDoctorConsultationRoomAction(
       return { success: false, message: "Doctor account not found." };
     }
 
-    let targetRoom: { id: string; number: string; purpose: string | null } | null = null;
+    let targetRoom: {
+      id: string;
+      number: string;
+      purpose: string | null;
+      accessType: RoomAccessType;
+    } | null = null;
     const cleanRoomId = roomId && roomId !== "none" ? roomId : null;
 
     if (cleanRoomId) {
       targetRoom = await prisma.room.findUnique({
         where: { id: cleanRoomId },
-        select: { id: true, number: true, purpose: true },
+        select: { id: true, number: true, purpose: true, accessType: true },
       });
       if (!targetRoom) {
         return { success: false, message: "The selected chamber room was not found." };
+      }
+      if (targetRoom.accessType !== RoomAccessType.DOCTOR) {
+        return {
+          success: false,
+          message:
+            "Only rooms with DOCTOR access type can be assigned as a doctor consultation chamber.",
+        };
       }
     }
 
@@ -778,7 +818,36 @@ export async function updateUserAccountAction(
       if (consultationFee !== undefined && !isNaN(consultationFee)) {
         updateData.consultationFee = consultationFee;
       }
-      updateData.consultationRoomId = consultationRoomId || null;
+      if (consultationRoomId) {
+        const assignedRoom = await prisma.room.findUnique({
+          where: { id: consultationRoomId },
+          select: { id: true, number: true, accessType: true },
+        });
+        if (!assignedRoom) {
+          return {
+            success: false,
+            message: "The selected chamber room does not exist.",
+            fieldErrors: {
+              consultationRoomId: ["The selected chamber room does not exist."],
+            },
+          };
+        }
+        if (assignedRoom.accessType !== RoomAccessType.DOCTOR) {
+          return {
+            success: false,
+            message:
+              "Only rooms with DOCTOR access type can be assigned as a doctor consultation chamber.",
+            fieldErrors: {
+              consultationRoomId: [
+                "Only DOCTOR type rooms can be assigned as a consultation chamber.",
+              ],
+            },
+          };
+        }
+        updateData.consultationRoomId = consultationRoomId;
+      } else {
+        updateData.consultationRoomId = null;
+      }
     }
 
     await prisma.user.update({

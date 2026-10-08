@@ -80,14 +80,12 @@ export function EditDoctorRoomDialog({
 
   if (!doctor) return null;
 
-  // Filter doctor consultation rooms for quick recommendation
-  const doctorChambers = rooms.filter(
-    (r) =>
-      r.accessType === RoomAccessType.DOCTOR ||
-      (r.purpose && r.purpose.toLowerCase().includes("consultation")),
-  );
+  // Filter doctor consultation rooms: strictly DOCTOR type rooms only
+  const doctorChambers = React.useMemo(() => {
+    return rooms.filter((r) => r.accessType === RoomAccessType.DOCTOR);
+  }, [rooms]);
 
-  const selectedRoomObj = rooms.find((r) => r.id === selectedRoomId) || null;
+  const selectedRoomObj = doctorChambers.find((r) => r.id === selectedRoomId) || null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,11 +174,11 @@ export function EditDoctorRoomDialog({
           </div>
 
           {/* Quick Doctor Chamber Suggestions */}
-          {doctorChambers.length > 0 && (
+          {doctorChambers.length > 0 ? (
             <div className="space-y-1.5">
               <Label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
                 <Sparkles className="size-3 text-indigo-500" />
-                <span>Quick Chambers ({doctorChambers.length} available)</span>
+                <span>Quick Chambers ({doctorChambers.length} DOCTOR rooms)</span>
               </Label>
               <div className="grid grid-cols-2 gap-2">
                 {doctorChambers.map((room) => {
@@ -202,13 +200,18 @@ export function EditDoctorRoomDialog({
                           Room {room.number}
                         </div>
                         <div className="text-[10px] text-muted-foreground truncate">
-                          {room.purpose || "Chamber"}
+                          {room.purpose || "Doctor Chamber"}
                         </div>
                       </div>
                     </button>
                   );
                 })}
               </div>
+            </div>
+          ) : (
+            <div className="p-3 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
+              <Building2 className="size-4 shrink-0 text-amber-500" />
+              <span>No DOCTOR type rooms found. Only DOCTOR type rooms can be assigned as a doctor chamber.</span>
             </div>
           )}
 
@@ -225,7 +228,7 @@ export function EditDoctorRoomDialog({
                 id="chamber-select"
                 className="h-10 text-xs rounded-xl bg-background border-border/80 w-full"
               >
-                <SelectValue placeholder="Choose a chamber room..." />
+                <SelectValue placeholder="Choose a DOCTOR chamber room..." />
               </SelectTrigger>
               <SelectContent className="max-h-56">
                 <SelectItem value="none" label="-- No Chamber Assigned (Clear) --">
@@ -235,12 +238,8 @@ export function EditDoctorRoomDialog({
                   </div>
                 </SelectItem>
 
-                {rooms.map((room) => {
-                  const isDoctorType =
-                    room.accessType === RoomAccessType.DOCTOR ||
-                    (room.purpose &&
-                      room.purpose.toLowerCase().includes("consultation"));
-                  const roomLabel = `Room ${room.number}${room.purpose ? ` - ${room.purpose}` : ` (${room.accessType})`}`;
+                {doctorChambers.map((room) => {
+                  const roomLabel = `Room ${room.number}${room.purpose ? ` - ${room.purpose}` : ""}`;
 
                   return (
                     <SelectItem key={room.id} value={room.id} label={roomLabel}>
@@ -249,13 +248,11 @@ export function EditDoctorRoomDialog({
                           Room {room.number}
                         </span>
                         <span className="text-muted-foreground text-[11px] truncate max-w-[140px]">
-                          {room.purpose || room.accessType}
+                          {room.purpose || "Doctor Chamber"}
                         </span>
-                        {isDoctorType && (
-                          <span className="text-[9.5px] px-1 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
-                            Chamber
-                          </span>
-                        )}
+                        <span className="text-[9.5px] px-1 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+                          DOCTOR
+                        </span>
                       </div>
                     </SelectItem>
                   );

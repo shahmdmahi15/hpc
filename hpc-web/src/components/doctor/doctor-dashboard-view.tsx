@@ -98,20 +98,19 @@ export function DoctorDashboardView({
     );
   }, [data.currentDoctor, initialData.currentDoctor]);
 
-  // Priority: 1. Doctor's assigned chamber from admin panel, 2. First doctor consultation room
+  // Priority: 1. Doctor's assigned chamber from admin panel (strictly DOCTOR type), 2. First doctor consultation room
   const selectedRoomId = React.useMemo(() => {
     if (data.currentDoctor?.consultationRoomId) {
       const assignedRoom = data.rooms.find(
         (r) => r.id === data.currentDoctor?.consultationRoomId,
       );
-      if (assignedRoom) return assignedRoom.id;
+      if (assignedRoom && assignedRoom.accessType === RoomAccessType.DOCTOR) {
+        return assignedRoom.id;
+      }
     }
-    const consultationRoom = data.rooms.find((r) => {
-      return (
-        r.accessType === RoomAccessType.DOCTOR ||
-        r.purpose?.toLowerCase().includes("consultation")
-      );
-    });
+    const consultationRoom = data.rooms.find(
+      (r) => r.accessType === RoomAccessType.DOCTOR,
+    );
     return consultationRoom?.id || "";
   }, [data.rooms, data.currentDoctor]);
 
