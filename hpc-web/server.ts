@@ -50,8 +50,24 @@ process.on("SIGTERM", () => {
 const certDir = path.resolve(process.cwd(), "certificates");
 const serverKeyPath = path.join(certDir, "server.key");
 const serverCrtPath = path.join(certDir, "server.crt");
+const rootPemPath = path.join(certDir, "rootCA.pem");
+const rootCrtPath = path.join(certDir, "rootCA.crt");
 
 const hasSsl = fs.existsSync(serverKeyPath) && fs.existsSync(serverCrtPath);
+
+// Ensure Node.js TLS verification trusts our local Root CA or allows local loopback fetches
+// for internal Next.js Server Actions flight pre-rendering / redirects
+if (hasSsl) {
+  const caPath = fs.existsSync(rootPemPath) ? rootPemPath : fs.existsSync(rootCrtPath) ? rootCrtPath : null;
+  if (caPath && !process.env.NODE_EXTRA_CA_CERTS) {
+    process.env.NODE_EXTRA_CA_CERTS = caPath;
+  }
+  // In case the Node process was already booted before NODE_EXTRA_CA_CERTS was read by C++,
+  // also set NODE_TLS_REJECT_UNAUTHORIZED = "0" as a fail-safe for internal loopback calls
+  if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  }
+}
 
 const getLocalIps = (): string[] => {
   const ips: string[] = [];
@@ -156,10 +172,18 @@ app.prepare().then(() => {
   let server: any;
 
   if (hasSsl) {
-    const httpsOptions = {
+    const caPath = fs.existsSync(rootPemPath) ? rootPemPath : fs.existsSync(rootCrtPath) ? rootCrtPath : null;
+    const httpsOptions: {
+      key: Buffer;
+      cert: Buffer;
+      ca?: Buffer;
+    } = {
       key: fs.readFileSync(serverKeyPath),
       cert: fs.readFileSync(serverCrtPath),
     };
+    if (caPath) {
+      httpsOptions.ca = fs.readFileSync(caPath);
+    }
     server = createHttpsServer(httpsOptions, requestHandler);
 
     // Gracefully handle plain HTTP request sent to HTTPS port: redirect to HTTPS

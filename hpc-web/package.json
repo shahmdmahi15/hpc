@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:custom": "tsx server.ts --dev",
+    "dev:custom": "NODE_EXTRA_CA_CERTS=\"./certificates/rootCA.pem\" tsx server.ts --dev",
     "build": "next build",
-    "start": "tsx server.ts",
+    "start": "NODE_EXTRA_CA_CERTS=\"./certificates/rootCA.pem\" tsx server.ts",
     "ssl:generate": "tsx scripts/generate-ssl.ts",
     "db:backup": "tsx scripts/backup-db.ts",
     "db:backup:push": "tsx scripts/backup-db.ts --push",
