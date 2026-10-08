@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/guard";
 import { Role, AuditAction, AuditStatus } from "@/generated/prisma/enums";
 import {
   createPerformerSchema,
+  updatePerformerSchema,
   deletePerformerSchema,
   type PerformerActionState,
 } from "@/schemas/admin/performer.schema";
@@ -247,3 +248,150 @@ export async function deletePerformerAction(
     };
   }
 }
+
+/**
+ * Updates an existing clinical or desk performer's details, PIN, or role station desk.
+ * Accessible only to authenticated Administrators.
+ */
+export async function updatePerformerAction(
+  prevState: PerformerActionState | undefined,
+  formData: FormData,
+): Promise<PerformerActionState> {
+  const { user: adminUser } = await requireAuth(Role.ADMIN);
+
+  const rawData = {
+    performerId: formData.get("performerId")?.toString() || "",
+    userId: formData.get("userId")?.toString() || "",
+    adminPerformerId: formData.get("adminPerformerId")?.toString() || undefined,
+    name: formData.get("name")?.toString() || "",
+    email: formData.get("email")?.toString() || undefined,
+    whatsapp:
+      formData.get("whatsapp")?.toString() ||
+      formData.get("phone")?.toString() ||
+      "",
+    phone:
+      formData.get("phone")?.toString() ||
+      formData.get("whatsapp")?.toString() ||
+      "",
+    pin: formData.get("pin")?.toString() || "",
+  };
+
+  const validation = updatePerformerSchema.safeParse(rawData);
+  if (!validation.success) {
+    return {
+      success: false,
+      message: "Please correct the errors in the form.",
+      fieldErrors: validation.error.flatten().fieldErrors,
+    };
+  }
+
+  const { performerId, userId, name, email, whatsapp, phone, pin } =
+    validation.data;
+
+  try {
+    const existingPerformer = await prisma.performer.findUnique({
+      where: { id: performerId },
+      include: { user: true },
+    });
+
+    if (!existingPerformer) {
+      return {
+        success: false,
+        message: "Performer record does not exist or has already been removed.",
+      };
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!targetUser) {
+      return {
+        success: false,
+        message: "The specified role station account could not be found.",
+      };
+    }
+
+    if (targetUser.role === Role.ADMIN || targetUser.role === Role.DOCTOR) {
+      return {
+        success: false,
+        message:
+          "Staff performers cannot be assigned to Admin or Doctor roles. Admin and Doctor are individual user accounts.",
+      };
+    }
+
+    // Check phone uniqueness: ensures no other performer under that same desk has the same whatsapp
+    const existingPerformerSamePhone = await prisma.performer.findFirst({
+      where: {
+        userId,
+        NOT: { id: performerId },
+        OR: [{ whatsapp }, { phone: whatsapp }],
+      },
+    });
+
+    if (existingPerformerSamePhone) {
+      return {
+        success: false,
+        message: `A staff member with WhatsApp number "${whatsapp}" is already registered under this station desk.`,
+        fieldErrors: {
+          whatsapp: [
+            "This WhatsApp number is already registered for this role desk.",
+          ],
+        },
+      };
+    }
+
+    await prisma.performer.update({
+      where: { id: performerId },
+      data: {
+        name,
+        email: email || null,
+        whatsapp,
+        phone: phone || whatsapp,
+        pin,
+        userId,
+      },
+    });
+
+    await logAudit({
+      action: AuditAction.PERFORMER_UPDATE,
+      status: AuditStatus.SUCCESS,
+      userId: adminUser.id,
+      entity: "Performer",
+      entityId: performerId,
+      details: {
+        performerId,
+        name,
+        deskRole: targetUser.role,
+        previousDeskRole: existingPerformer.user?.role,
+        whatsapp,
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
+      },
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/admin/audit");
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: "Performer updated successfully.",
+    };
+  } catch (error) {
+    console.error(
+      "[Performer Action Error] Failed to update performer:",
+      error,
+    );
+
+    return {
+      success: false,
+      message:
+        "An unexpected error occurred while updating the staff member. Please try again.",
+    };
+  }
+}
+

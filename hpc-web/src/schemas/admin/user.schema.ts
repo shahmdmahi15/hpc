@@ -31,6 +31,38 @@ export const createAccountSchema = z.object({
 
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
 
+export const updateAccountSchema = z.object({
+  userId: z.string().min(1, "User ID is required."),
+  name: z.string().trim().min(2, "Full name must be at least 2 characters."),
+  email: z.string().trim().email("Please provide a valid email address."),
+  whatsapp: z
+    .string()
+    .trim()
+    .min(6, "WhatsApp number must be at least 6 characters.")
+    .regex(
+      /^(?:\+?88)?01[3-9]\d{8}$|^\+?[0-9\s-]{6,20}$/,
+      "Please provide a valid WhatsApp number.",
+    ),
+  newPassword: z
+    .string()
+    .min(6, "Password must be at least 6 characters.")
+    .max(100, "Password must not exceed 100 characters.")
+    .optional()
+    .or(z.literal("")),
+  consultationFee: z.coerce
+    .number()
+    .min(0, "Fee must be a valid non-negative number.")
+    .optional(),
+  consultationRoomId: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((val) => (val === "" || val === "none" ? undefined : val)),
+});
+
+export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
+
 export const deleteUserAccountSchema = z.object({
   userId: z.string().min(1, "User ID is required."),
 });

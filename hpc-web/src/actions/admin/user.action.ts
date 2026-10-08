@@ -11,6 +11,7 @@ import {
 } from "@/generated/prisma/enums";
 import {
   createAccountSchema,
+  updateAccountSchema,
   deleteUserAccountSchema,
   resetPasswordSchema,
   type UserActionState,
@@ -676,4 +677,161 @@ export async function updateDoctorConsultationRoomAction(
     return { success: false, message: "Failed to update doctor consultation room." };
   }
 }
+
+/**
+ * Updates an existing user account's profile details (Admin or Doctor).
+ * Handles password rotation, email uniqueness check, and doctor-specific chamber/fee attributes.
+ */
+export async function updateUserAccountAction(
+  prevState: UserActionState | undefined,
+  formData: FormData,
+): Promise<UserActionState> {
+  const { user: adminUser } = await requireAuth(Role.ADMIN);
+
+  const rawData = {
+    userId: formData.get("userId")?.toString() || "",
+    name: formData.get("name")?.toString() || "",
+    email: formData.get("email")?.toString() || "",
+    whatsapp: formData.get("whatsapp")?.toString() || "",
+    newPassword: formData.get("newPassword")?.toString() || undefined,
+    consultationFee: formData.get("consultationFee")
+      ? Number(formData.get("consultationFee"))
+      : undefined,
+    consultationRoomId:
+      formData.get("consultationRoomId")?.toString() || undefined,
+  };
+
+  const validation = updateAccountSchema.safeParse(rawData);
+  if (!validation.success) {
+    return {
+      success: false,
+      message: "Please fix the validation errors below.",
+      fieldErrors: validation.error.flatten().fieldErrors,
+    };
+  }
+
+  const {
+    userId,
+    name,
+    email,
+    whatsapp,
+    newPassword,
+    consultationFee,
+    consultationRoomId,
+  } = validation.data;
+
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!targetUser) {
+      return {
+        success: false,
+        message: "The specified user account does not exist.",
+      };
+    }
+
+    // Check if another user already has the updated email
+    const existingEmail = await prisma.user.findFirst({
+      where: {
+        email,
+        NOT: { id: userId },
+      },
+    });
+
+    if (existingEmail) {
+      return {
+        success: false,
+        message: `An account with email "${email}" already exists.`,
+        fieldErrors: {
+          email: ["Email is already registered by another account."],
+        },
+      };
+    }
+
+    // If newPassword provided and non-empty, hash it
+    let hashedPassword: string | undefined;
+    if (newPassword && newPassword.trim().length > 0) {
+      hashedPassword = await hashPassword(newPassword.trim());
+    }
+
+    // Prepare update data
+    const updateData: {
+      name: string;
+      email: string;
+      whatsapp: string;
+      password?: string;
+      consultationFee?: number;
+      consultationRoomId?: string | null;
+    } = {
+      name,
+      email,
+      whatsapp,
+    };
+
+    if (hashedPassword) {
+      updateData.password = hashedPassword;
+    }
+
+    if (targetUser.role === Role.DOCTOR) {
+      if (consultationFee !== undefined && !isNaN(consultationFee)) {
+        updateData.consultationFee = consultationFee;
+      }
+      updateData.consultationRoomId = consultationRoomId || null;
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    await logAudit({
+      action: AuditAction.USER_UPDATE,
+      status: AuditStatus.SUCCESS,
+      userId: adminUser.id,
+      entity: "User",
+      entityId: userId,
+      details: {
+        userId,
+        role: targetUser.role,
+        changes: {
+          name,
+          email,
+          whatsapp,
+          passwordUpdated: !!hashedPassword,
+          ...(targetUser.role === Role.DOCTOR && {
+            consultationFee: updateData.consultationFee,
+            consultationRoomId: updateData.consultationRoomId,
+          }),
+        },
+        performedBy: {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+        },
+      },
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/admin/audit");
+    revalidatePath("/admin");
+    if (targetUser.role === Role.DOCTOR) {
+      revalidatePath("/doctor");
+      revalidatePath("/receptionist");
+    }
+
+    return {
+      success: true,
+      message: "Account updated successfully.",
+    };
+  } catch (error) {
+    console.error("[User Action Error] Failed to update user account:", error);
+    return {
+      success: false,
+      message: "An unexpected error occurred while updating the account.",
+    };
+  }
+}
+
 

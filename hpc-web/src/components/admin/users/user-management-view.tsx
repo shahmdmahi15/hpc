@@ -10,6 +10,8 @@ import { PasswordResetDialog } from "@/components/admin/users/password-reset-dia
 import { RevokeSessionsDialog } from "@/components/admin/users/revoke-sessions-dialog";
 import { CreatePerformerDialog } from "@/components/admin/users/create-performer-dialog";
 import { CreateAccountDialog } from "@/components/admin/users/create-account-dialog";
+import { EditAccountDialog } from "@/components/admin/users/edit-account-dialog";
+import { EditPerformerDialog } from "@/components/admin/users/edit-performer-dialog";
 import { DeletePerformerDialog } from "@/components/admin/users/delete-performer-dialog";
 import { deleteUserAccountAction } from "@/actions/admin/user.action";
 import { Role } from "@/generated/prisma/enums";
@@ -96,6 +98,19 @@ export function UserManagementView({ users, rooms = [] }: UserManagementViewProp
     React.useState<UserAccountData | null>(null);
   const [selectedDoctorForRoom, setSelectedDoctorForRoom] =
     React.useState<UserAccountData | null>(null);
+  const [selectedUserForEdit, setSelectedUserForEdit] =
+    React.useState<UserAccountData | null>(null);
+  const [selectedPerformerForEdit, setSelectedPerformerForEdit] =
+    React.useState<{
+      id: string;
+      name: string;
+      phone: string;
+      whatsapp?: string;
+      email?: string | null;
+      pin: string;
+      userId: string;
+      role?: Role;
+    } | null>(null);
   const [selectedUserForReset, setSelectedUserForReset] = React.useState<{
     id: string;
     role: Role;
@@ -542,6 +557,17 @@ export function UserManagementView({ users, rooms = [] }: UserManagementViewProp
                       <Button
                         variant="outline"
                         size="xs"
+                        onClick={() => setSelectedUserForEdit(user)}
+                        className="rounded-lg h-7 text-[11px] gap-1 cursor-pointer border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 font-bold"
+                        title="Edit Account Details"
+                      >
+                        <Pencil className="size-3 text-sky-500" />
+                        <span>Edit</span>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="xs"
                         onClick={() =>
                           setSelectedUserForReset({ id: user.id, role: user.role })
                         }
@@ -716,21 +742,42 @@ export function UserManagementView({ users, rooms = [] }: UserManagementViewProp
                                 </div>
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPerformerToDelete({
-                                    id: perf.id,
-                                    name: perf.name,
-                                    phone: perf.whatsapp || perf.phone,
-                                    roleLabel: roleConfig.defaultLabel,
-                                  })
-                                }
-                                className="text-muted-foreground hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-colors cursor-pointer"
-                                title="Remove staff member"
-                              >
-                                <Trash2 className="size-3" />
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setSelectedPerformerForEdit({
+                                      id: perf.id,
+                                      name: perf.name,
+                                      phone: perf.phone || perf.whatsapp || "",
+                                      whatsapp: perf.whatsapp || perf.phone,
+                                      email: perf.email,
+                                      pin: perf.pin,
+                                      userId: desk.id,
+                                      role: desk.role,
+                                    })
+                                  }
+                                  className="text-muted-foreground hover:text-sky-600 p-1 rounded-md hover:bg-sky-500/10 transition-colors cursor-pointer"
+                                  title="Edit staff member"
+                                >
+                                  <Pencil className="size-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPerformerToDelete({
+                                      id: perf.id,
+                                      name: perf.name,
+                                      phone: perf.whatsapp || perf.phone,
+                                      roleLabel: roleConfig.defaultLabel,
+                                    })
+                                  }
+                                  className="text-muted-foreground hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-colors cursor-pointer"
+                                  title="Remove staff member"
+                                >
+                                  <Trash2 className="size-3" />
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -839,6 +886,24 @@ export function UserManagementView({ users, rooms = [] }: UserManagementViewProp
           doctor={selectedDoctorForRoom}
           rooms={rooms}
           onSuccess={handleDoctorRoomSuccess}
+        />
+      )}
+
+      {selectedUserForEdit && (
+        <EditAccountDialog
+          open={Boolean(selectedUserForEdit)}
+          onOpenChange={(open) => !open && setSelectedUserForEdit(null)}
+          user={selectedUserForEdit}
+          rooms={rooms}
+        />
+      )}
+
+      {selectedPerformerForEdit && (
+        <EditPerformerDialog
+          open={Boolean(selectedPerformerForEdit)}
+          onOpenChange={(open) => !open && setSelectedPerformerForEdit(null)}
+          performer={selectedPerformerForEdit}
+          desks={deskStationAccounts.map((d) => ({ id: d.id, role: d.role }))}
         />
       )}
     </div>
