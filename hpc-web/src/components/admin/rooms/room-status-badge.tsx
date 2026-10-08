@@ -13,6 +13,7 @@ import {
   Globe,
   Activity,
   AlertTriangle,
+  Banknote,
 } from "lucide-react";
 
 export function RoomStatusBadge({ status }: { status: RoomStatus }) {
@@ -82,6 +83,13 @@ export function RoomAccessBadge({
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
           <DoorOpen className="size-3 text-amber-500" />
           Private / VIP
+        </span>
+      );
+    case RoomAccessType.CASHIER:
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/25">
+          <Banknote className="size-3 text-amber-500" />
+          Cashier
         </span>
       );
     default:

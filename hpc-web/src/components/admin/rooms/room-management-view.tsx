@@ -44,6 +44,7 @@ import {
 import { CreateRoomDialog } from "@/components/admin/rooms/create-room-dialog";
 import { EditRoomDialog } from "@/components/admin/rooms/edit-room-dialog";
 import { DeleteRoomDialog } from "@/components/admin/rooms/delete-room-dialog";
+import { SeedRoomsDialog } from "@/components/admin/rooms/seed-rooms-dialog";
 import {
   AuthorizeRoomActionDialog,
   type AuthorizeRoomActionConfig,
@@ -65,6 +66,7 @@ import {
   Table as TableIcon,
   Copy,
   Check,
+  Sparkles,
 } from "lucide-react";
 
 interface RoomManagementViewProps {
@@ -85,6 +87,7 @@ const ACCESS_OPTIONS = [
   { value: RoomAccessType.STAFF, label: "Staff Only" },
   { value: RoomAccessType.DOCTOR, label: "Doctor" },
   { value: RoomAccessType.PRIVATE, label: "Private / VIP" },
+  { value: RoomAccessType.CASHIER, label: "Cashier" },
 ] as const;
 
 const GENDER_OPTIONS = [
@@ -109,6 +112,7 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
 
   // Modals
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [isSeedDialogOpen, setIsSeedDialogOpen] = React.useState(false);
   const [editingRoom, setEditingRoom] = React.useState<Room | null>(null);
   const [deletingRoom, setDeletingRoom] = React.useState<Room | null>(null);
   const [pendingStatusAction, setPendingStatusAction] =
@@ -233,6 +237,16 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSeedDialogOpen(true)}
+            className="gap-1.5 border-primary/40 hover:bg-primary/10 text-xs font-semibold cursor-pointer"
+          >
+            <Sparkles className="size-3.5 text-primary" />
+            <span>Seed Standard Rooms</span>
+          </Button>
+
           <Button
             onClick={() => setCreateDialogOpen(true)}
             size="sm"
@@ -829,6 +843,17 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
         adminPerformers={adminPerformers}
         defaultPerformerId={lastPerformerId}
         onSuccess={(performerId) => setLastPerformerId(performerId)}
+      />
+
+      <SeedRoomsDialog
+        isOpen={isSeedDialogOpen}
+        onOpenChange={setIsSeedDialogOpen}
+        adminPerformers={adminPerformers}
+        defaultPerformerId={lastPerformerId}
+        onSuccess={(performerId) => {
+          setLastPerformerId(performerId);
+          router.refresh();
+        }}
       />
     </div>
   );

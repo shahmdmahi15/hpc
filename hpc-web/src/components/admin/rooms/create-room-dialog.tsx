@@ -38,6 +38,7 @@ import {
   Activity,
   Loader2,
   AlertCircle,
+  Banknote,
 } from "lucide-react";
 
 interface CreateRoomDialogProps {
@@ -52,6 +53,7 @@ const ROOM_ACCESS_OPTIONS = [
   { value: RoomAccessType.PUBLIC, label: "Public (All Visitors)" },
   { value: RoomAccessType.STAFF, label: "Staff Only" },
   { value: RoomAccessType.DOCTOR, label: "Doctor Console" },
+  { value: RoomAccessType.CASHIER, label: "Cashier Register / Billing" },
   { value: RoomAccessType.PRIVATE, label: "Private / VIP" },
 ] as const;
 
@@ -286,6 +288,12 @@ export function CreateRoomDialog({
                     <div className="flex items-center gap-2">
                       <Stethoscope className="size-3.5 text-purple-500" />
                       <span>Doctor Console</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value={RoomAccessType.CASHIER}>
+                    <div className="flex items-center gap-2">
+                      <Banknote className="size-3.5 text-amber-500" />
+                      <span>Cashier Register / Billing</span>
                     </div>
                   </SelectItem>
                   <SelectItem value={RoomAccessType.PRIVATE}>

@@ -16,6 +16,7 @@ import {
   updateRoomSchema,
   updateRoomStatusSchema,
   deleteRoomSchema,
+  DEFAULT_ROOM_PRESETS,
   type RoomActionState,
 } from "@/schemas/admin/room.schema";
 import { logAudit } from "@/lib/audit";
@@ -32,6 +33,7 @@ export interface RoomStats {
   doctorCount: number;
   therapyCount?: number;
   privateCount?: number;
+  cashierCount?: number;
 }
 
 export interface AdminRoomsPageData {
@@ -73,6 +75,8 @@ export async function getAdminRoomsPageDataAction(): Promise<AdminRoomsPageData>
     therapyCount: rooms.filter((r) => r.accessType === RoomAccessType.THERAPY)
       .length,
     privateCount: rooms.filter((r) => r.accessType === RoomAccessType.PRIVATE)
+      .length,
+    cashierCount: rooms.filter((r) => r.accessType === RoomAccessType.CASHIER)
       .length,
   };
 
@@ -503,3 +507,88 @@ export async function deleteRoomAction(
     };
   }
 }
+
+// --------------------------------------------------------
+// DEFAULT ROOM SEED ACTION
+// --------------------------------------------------------
+
+/**
+ * Seeds default hospital rooms (Rooms 200 - 215) into the database.
+ * Strictly idempotent: rooms with existing numbers will NOT be duplicated.
+ */
+export async function seedDefaultRoomsAction(
+  adminPerformerId?: string,
+): Promise<{ success: boolean; message: string; createdCount?: number }> {
+  try {
+    const { user: adminUser } = await requireAuth(Role.ADMIN);
+
+    const adminPerformerRes = await resolveActingAdminPerformer(
+      adminUser.id,
+      adminPerformerId,
+    );
+    if (adminPerformerRes.error) {
+      return {
+        success: false,
+        message: adminPerformerRes.error,
+      };
+    }
+
+    const actingPerformer = adminPerformerRes.performer;
+
+    let createdCount = 0;
+
+    for (const item of DEFAULT_ROOM_PRESETS) {
+      const exists = await prisma.room.findUnique({
+        where: { number: item.number },
+      });
+
+      if (!exists) {
+        await prisma.room.create({
+          data: {
+            number: item.number,
+            purpose: item.purpose,
+            accessType: item.accessType,
+            gender: item.gender,
+            status: item.status,
+          },
+        });
+        createdCount++;
+      }
+    }
+
+    await logAudit({
+      userId: adminUser.id,
+      performerId: actingPerformer?.id,
+      action: AuditAction.ROOM_SEED,
+      entity: "Room",
+      status: AuditStatus.SUCCESS,
+      details: {
+        createdCount,
+        totalDefaultBatched: DEFAULT_ROOM_PRESETS.length,
+        actingAdminPerformer: actingPerformer
+          ? `${actingPerformer.name} (${actingPerformer.phone})`
+          : "System Admin",
+      },
+    });
+
+    revalidatePath("/admin/rooms");
+    revalidatePath("/admin");
+    revalidatePath("/admin/audit");
+
+    return {
+      success: true,
+      createdCount,
+      message:
+        createdCount > 0
+          ? `Standard clinic rooms seeded successfully (${createdCount} new rooms created, Rooms 200 - 215).`
+          : "All 16 standard clinic rooms (Rooms 200 - 215) already exist in your facility inventory.",
+    };
+  } catch (error: any) {
+    console.error("[Seed Default Rooms Error]:", error);
+    return {
+      success: false,
+      message: error?.message || "Failed to seed default clinic rooms.",
+    };
+  }
+}
+

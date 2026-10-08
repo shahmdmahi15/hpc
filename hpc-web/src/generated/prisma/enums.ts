@@ -36,6 +36,7 @@ export const AuditAction = {
   ROOM_UPDATE: 'ROOM_UPDATE',
   ROOM_STATUS_CHANGE: 'ROOM_STATUS_CHANGE',
   ROOM_DELETE: 'ROOM_DELETE',
+  ROOM_SEED: 'ROOM_SEED',
   PROFILE_UPDATE: 'PROFILE_UPDATE',
   PASSWORD_UPDATE: 'PASSWORD_UPDATE',
   THERAPY_SLOT_CREATE: 'THERAPY_SLOT_CREATE',
@@ -71,7 +72,8 @@ export const RoomAccessType = {
   PRIVATE: 'PRIVATE',
   DOCTOR: 'DOCTOR',
   STAFF: 'STAFF',
-  THERAPY: 'THERAPY'
+  THERAPY: 'THERAPY',
+  CASHIER: 'CASHIER'
 } as const
 
 export type RoomAccessType = (typeof RoomAccessType)[keyof typeof RoomAccessType]

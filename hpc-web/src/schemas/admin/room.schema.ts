@@ -61,3 +61,119 @@ export interface RoomActionState {
   message: string;
   fieldErrors?: Record<string, string[] | undefined>;
 }
+
+export const DEFAULT_ROOM_PRESETS = [
+  {
+    number: "200",
+    purpose: "Waiting Room",
+    accessType: RoomAccessType.PUBLIC,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "201",
+    purpose: "Cashier Register",
+    accessType: RoomAccessType.CASHIER,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "202",
+    purpose: "Private Room",
+    accessType: RoomAccessType.PRIVATE,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "203",
+    purpose: "Private Room",
+    accessType: RoomAccessType.PRIVATE,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "204",
+    purpose: "Kitchen",
+    accessType: RoomAccessType.STAFF,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "205",
+    purpose: "Doctor Consultation",
+    accessType: RoomAccessType.DOCTOR,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "206",
+    purpose: "Equipment Room",
+    accessType: RoomAccessType.STAFF,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "207",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "208",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "209",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "210",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "211",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "212",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "213",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "214",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+  {
+    number: "215",
+    purpose: "Therapy Room",
+    accessType: RoomAccessType.THERAPY,
+    gender: RoomGender.COMMON,
+    status: RoomStatus.AVAILABLE,
+  },
+] as const;
+

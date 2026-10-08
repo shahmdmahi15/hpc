@@ -169,37 +169,36 @@ export async function main() {
   console.log("✅ Queues: Therapy & Consultation created.");
 
   // ----------------------------------------------------
-  // 4. Seed Chambers & Rooms
+  // 4. Seed Chambers & Rooms (Preset Rooms 200 - 215)
   // ----------------------------------------------------
-  console.log("\n🏥 Seeding clinic chambers and rooms...");
-  const room101 = await prisma.room.create({
-    data: {
-      number: "101",
-      purpose: "Doctor Consultation Chamber",
-      accessType: RoomAccessType.DOCTOR,
-      gender: RoomGender.COMMON,
-      status: RoomStatus.AVAILABLE,
-    },
-  });
-  const room102 = await prisma.room.create({
-    data: {
-      number: "102",
-      purpose: "Therapy Room 1 (Main Hall)",
-      accessType: RoomAccessType.THERAPY,
-      gender: RoomGender.COMMON,
-      status: RoomStatus.AVAILABLE,
-    },
-  });
-  const room103 = await prisma.room.create({
-    data: {
-      number: "103",
-      purpose: "Therapy Room 2 (Specialized Rehab)",
-      accessType: RoomAccessType.THERAPY,
-      gender: RoomGender.COMMON,
-      status: RoomStatus.AVAILABLE,
-    },
-  });
-  console.log("✅ Rooms: 101 (Doctor), 102 (Therapy 1), 103 (Therapy 2) created.");
+  console.log("\n🏥 Seeding clinic chambers and rooms (Preset Rooms 200 - 215)...");
+  const defaultRoomsData = [
+    { number: "200", purpose: "Waiting Room", accessType: RoomAccessType.PUBLIC, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "201", purpose: "Cashier Register", accessType: RoomAccessType.CASHIER, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "202", purpose: "Private Room", accessType: RoomAccessType.PRIVATE, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "203", purpose: "Private Room", accessType: RoomAccessType.PRIVATE, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "204", purpose: "Kitchen", accessType: RoomAccessType.STAFF, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "205", purpose: "Doctor Consultation", accessType: RoomAccessType.DOCTOR, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "206", purpose: "Equipment Room", accessType: RoomAccessType.STAFF, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "207", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "208", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "209", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "210", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "211", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "212", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "213", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "214", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+    { number: "215", purpose: "Therapy Room", accessType: RoomAccessType.THERAPY, gender: RoomGender.COMMON, status: RoomStatus.AVAILABLE },
+  ];
+
+  const createdRooms: Record<string, string> = {};
+  for (const r of defaultRoomsData) {
+    const created = await prisma.room.create({
+      data: r,
+    });
+    createdRooms[r.number] = created.id;
+  }
+  console.log(`✅ Seeded ${defaultRoomsData.length} clinic rooms (Rooms 200 - 215, all COMMON gender).`);
 
   // ----------------------------------------------------
   // 5. Seed Predefined Hourly Therapy Slots
@@ -228,7 +227,7 @@ export async function main() {
         status: SlotStatus.OPEN,
         isActive: true,
         weekDays: "ALL",
-        roomId: room102.id,
+        roomId: createdRooms["207"],
         regularMaleCapacity: 3,
         regularFemaleCapacity: 3,
         extraMaleCapacity: 1,
