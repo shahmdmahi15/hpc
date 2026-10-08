@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -152,7 +153,7 @@ function EditRoomForm({
   return (
     <>
       {/* Header */}
-      <div className="p-6 border-b border-border/60 bg-muted/20">
+      <div className="shrink-0 p-4 sm:p-5 border-b border-border/60 bg-muted/20">
         <DialogHeader className="pr-10 sm:pr-12">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
@@ -171,7 +172,8 @@ function EditRoomForm({
       </div>
 
       {/* Form Body */}
-      <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
         {generalError && (
           <div className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
             <AlertCircle className="size-4 shrink-0 mt-0.5" />
@@ -400,14 +402,17 @@ function EditRoomForm({
           />
         </div>
 
+        </div>
+
         {/* Dialog Action Buttons */}
-        <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/60">
+        <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onClose}
             disabled={isPending}
+            className="rounded-xl h-9 text-xs cursor-pointer"
           >
             Cancel
           </Button>
@@ -415,7 +420,7 @@ function EditRoomForm({
             type="submit"
             size="sm"
             disabled={isPending}
-            className="gap-1.5"
+            className="rounded-xl h-9 text-xs font-bold gap-1.5 cursor-pointer"
           >
             {isPending ? (
               <>
@@ -429,7 +434,7 @@ function EditRoomForm({
               </>
             )}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </>
   );
@@ -446,7 +451,7 @@ export function EditRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[86vh] flex flex-col p-0 gap-0 border-border/80 shadow-2xl rounded-2xl overflow-hidden">
+      <DialogContent className="w-[96vw] max-w-xl max-h-[92dvh] flex flex-col p-0 gap-0 border-border/80 shadow-2xl rounded-2xl overflow-hidden">
         <EditRoomForm
           key={room.id}
           room={room}

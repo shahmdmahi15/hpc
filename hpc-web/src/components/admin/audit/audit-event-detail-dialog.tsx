@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -70,9 +71,9 @@ export function AuditEventDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[86vh] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+      <DialogContent className="w-[96vw] max-w-2xl lg:max-w-3xl max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
         {/* Header Banner */}
-        <div className="shrink-0 bg-muted/40 p-5 pb-4 border-b border-border/60">
+        <div className="shrink-0 bg-muted/40 p-4 sm:p-5 border-b border-border/60">
           <DialogHeader className="pr-10 sm:pr-12">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -130,7 +131,7 @@ export function AuditEventDetailDialog({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4 text-xs">
           {/* Actor & Attribution Card */}
           <div className="rounded-xl border border-border/70 bg-card p-3.5 space-y-2.5">
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -272,7 +273,7 @@ export function AuditEventDetailDialog({
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 px-6 py-3.5 bg-muted/30 border-t border-border/60 flex items-center justify-end">
+        <DialogFooter className="shrink-0 p-3 sm:p-4 bg-muted/30 border-t border-border/60 flex items-center justify-end">
           <Button
             type="button"
             variant="outline"
@@ -282,7 +283,7 @@ export function AuditEventDetailDialog({
           >
             Close
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -155,10 +156,10 @@ export function CreatePerformerDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
-        <form onSubmit={handleSubmit} className="flex flex-col">
+      <DialogContent className="w-[96vw] max-w-xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           {/* Header */}
-          <div className="bg-muted/40 p-4 sm:p-5 border-b border-border/60">
+          <div className="shrink-0 bg-muted/40 p-4 sm:p-5 border-b border-border/60">
             <DialogHeader className="pr-10 sm:pr-12">
               <div className="flex items-center gap-2.5">
                 <div className="size-9 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
@@ -176,7 +177,7 @@ export function CreatePerformerDialog({
             </DialogHeader>
           </div>
 
-          <div className="p-4 sm:p-5 space-y-3.5">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
             {generalError && (
               <div className="p-2.5 rounded-xl border border-destructive/30 bg-destructive/10 text-xs text-destructive flex items-center gap-2 font-medium">
                 <AlertCircle className="size-3.5 shrink-0" />
@@ -214,127 +215,133 @@ export function CreatePerformerDialog({
               </div>
             </div>
 
-            {/* Staff Name */}
-            <div className="space-y-1">
-              <Label htmlFor="perfName" className="text-xs font-bold text-foreground">
-                Staff Full Name <span className="text-destructive">*</span>
-              </Label>
-              <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                <Input
-                  id="perfName"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Ayesha Siddiqua"
-                  required
-                  disabled={isPending}
-                  className="pl-9 h-9 text-xs rounded-xl"
-                />
-              </div>
-              {fieldErrors.name && (
-                <p className="text-[11px] text-destructive font-medium">
-                  {fieldErrors.name[0]}
-                </p>
-              )}
-            </div>
-
-            {/* Email (Optional) */}
-            <div className="space-y-1">
-              <Label htmlFor="perfEmail" className="text-xs font-bold text-foreground">
-                Email Address <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                <Input
-                  id="perfEmail"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. staff@hpc.com"
-                  disabled={isPending}
-                  className="pl-9 h-9 text-xs rounded-xl"
-                />
-              </div>
-              {fieldErrors.email && (
-                <p className="text-[11px] text-destructive font-medium">
-                  {fieldErrors.email[0]}
-                </p>
-              )}
-            </div>
-
-            {/* WhatsApp Number */}
-            <div className="space-y-1">
-              <Label htmlFor="perfWhatsapp" className="text-xs font-bold text-foreground">
-                WhatsApp / Phone Number <span className="text-destructive">*</span>
-              </Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                <Input
-                  id="perfWhatsapp"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="e.g. 01811111101 or +8801811111101"
-                  required
-                  disabled={isPending}
-                  className="pl-9 h-9 text-xs rounded-xl"
-                />
-              </div>
-              {fieldErrors.whatsapp && (
-                <p className="text-[11px] text-destructive font-medium">
-                  {fieldErrors.whatsapp[0]}
-                </p>
-              )}
-            </div>
-
-            {/* 4-Digit Security PIN */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="perfPin" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <KeyRound className="size-3.5 text-amber-500" />
-                  <span>4-Digit Authorization PIN</span>
-                  <span className="text-destructive">*</span>
+            {/* Responsive 2-col inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+              {/* Staff Name */}
+              <div className="space-y-1">
+                <Label htmlFor="perfName" className="text-xs font-bold text-foreground">
+                  Staff Full Name <span className="text-destructive">*</span>
                 </Label>
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">
-                  Strictly 4 Digits
-                </span>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                  <Input
+                    id="perfName"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Ayesha Siddiqua"
+                    required
+                    disabled={isPending}
+                    className="pl-9 h-9 text-xs rounded-xl"
+                  />
+                </div>
+                {fieldErrors.name && (
+                  <p className="text-[11px] text-destructive font-medium">
+                    {fieldErrors.name[0]}
+                  </p>
+                )}
               </div>
-              <Input
-                id="perfPin"
-                type="password"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                name="new_performer_auth_pin"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-form-type="other"
-                maxLength={4}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                placeholder="e.g. 1234"
-                required
-                disabled={isPending}
-                className="h-9 text-xs font-mono tracking-widest text-center rounded-xl bg-amber-500/5 border-amber-500/30"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Staff member will enter this 4-digit PIN whenever authorizing bookings, therapies, or cash transactions.
-              </p>
-              {fieldErrors.pin && (
-                <p className="text-[11px] text-destructive font-medium">
-                  {fieldErrors.pin[0]}
-                </p>
-              )}
+
+              {/* Email (Optional) */}
+              <div className="space-y-1">
+                <Label htmlFor="perfEmail" className="text-xs font-bold text-foreground">
+                  Email Address <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                  <Input
+                    id="perfEmail"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. staff@hpc.com"
+                    disabled={isPending}
+                    className="pl-9 h-9 text-xs rounded-xl"
+                  />
+                </div>
+                {fieldErrors.email && (
+                  <p className="text-[11px] text-destructive font-medium">
+                    {fieldErrors.email[0]}
+                  </p>
+                )}
+              </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+              {/* WhatsApp Number */}
+              <div className="space-y-1">
+                <Label htmlFor="perfWhatsapp" className="text-xs font-bold text-foreground">
+                  WhatsApp / Phone <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                  <Input
+                    id="perfWhatsapp"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="e.g. 01811111101"
+                    required
+                    disabled={isPending}
+                    className="pl-9 h-9 text-xs rounded-xl"
+                  />
+                </div>
+                {fieldErrors.whatsapp && (
+                  <p className="text-[11px] text-destructive font-medium">
+                    {fieldErrors.whatsapp[0]}
+                  </p>
+                )}
+              </div>
+
+              {/* 4-Digit Security PIN */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="perfPin" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <KeyRound className="size-3.5 text-amber-500" />
+                    <span>4-Digit PIN</span>
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">
+                    4 Digits
+                  </span>
+                </div>
+                <Input
+                  id="perfPin"
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  name="new_performer_auth_pin"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-form-type="other"
+                  maxLength={4}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                  placeholder="e.g. 1234"
+                  required
+                  disabled={isPending}
+                  className="h-9 text-xs font-mono tracking-widest text-center rounded-xl bg-amber-500/5 border-amber-500/30"
+                />
+                {fieldErrors.pin && (
+                  <p className="text-[11px] text-destructive font-medium">
+                    {fieldErrors.pin[0]}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <p className="text-[10px] text-muted-foreground bg-muted/30 p-2.5 rounded-lg border border-border/50">
+              Staff member will enter this 4-digit PIN whenever authorizing bookings, therapies, or cash transactions.
+            </p>
           </div>
 
           {/* Footer */}
-          <div className="p-4 sm:p-5 pt-3 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+          <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               disabled={isPending}
               onClick={() => handleClose(false)}
-              className="rounded-xl h-8.5 text-xs cursor-pointer"
+              className="rounded-xl h-9 text-xs cursor-pointer"
             >
               Cancel
             </Button>
@@ -342,7 +349,7 @@ export function CreatePerformerDialog({
               type="submit"
               size="sm"
               disabled={isPending}
-              className="rounded-xl h-8.5 text-xs font-bold cursor-pointer"
+              className="rounded-xl h-9 text-xs font-bold cursor-pointer"
             >
               {isPending ? (
                 <>
@@ -356,7 +363,7 @@ export function CreatePerformerDialog({
                 </>
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

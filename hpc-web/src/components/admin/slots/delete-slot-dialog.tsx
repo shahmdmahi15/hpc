@@ -76,8 +76,8 @@ export function DeleteSlotDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[96vw] max-w-xl lg:max-w-2xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
-        <DialogHeader className="p-5 sm:p-6 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0">
+      <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-rose-500/5">
           <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400">
             <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
               <AlertTriangle className="size-5" />
@@ -98,7 +98,7 @@ export function DeleteSlotDialog({
           onSubmit={handleDelete}
           className="flex flex-col flex-1 min-h-0 overflow-hidden"
         >
-          <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
             <div className="p-3.5 rounded-xl bg-muted/50 border border-border/80 text-xs space-y-1.5">
               <div className="font-semibold text-foreground text-sm">
                 {slot.label}
@@ -145,13 +145,14 @@ export function DeleteSlotDialog({
             </div>
           </div>
 
-          <DialogFooter className="p-4 sm:px-6 py-3.5 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-end gap-2.5">
+          <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isPending}
+              className="rounded-xl h-9 text-xs cursor-pointer"
             >
               Cancel
             </Button>
@@ -159,7 +160,7 @@ export function DeleteSlotDialog({
               type="submit"
               variant="destructive"
               size="sm"
-              className="gap-1.5 font-semibold px-4"
+              className="rounded-xl h-9 text-xs font-bold gap-1.5 cursor-pointer"
               disabled={isPending || totalBookings > 0}
             >
               {isPending ? (

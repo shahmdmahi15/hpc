@@ -148,7 +148,7 @@ export function AdminExportDialog({ isOpen, onOpenChange }: AdminExportDialogPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[86vh] flex flex-col p-0 overflow-hidden bg-background border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[92dvh] flex flex-col p-0 overflow-hidden bg-background border-border/80 shadow-2xl rounded-2xl">
         {/* Compact, Wide Header */}
         <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/70 bg-muted/20 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -180,7 +180,7 @@ export function AdminExportDialog({ isOpen, onOpenChange }: AdminExportDialogPro
         </DialogHeader>
 
         {/* Responsive 2-Column Wide Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
             
             {/* ──────── LEFT COLUMN: Format, Date Range & Compatibility (5 of 12 cols) ──────── */}

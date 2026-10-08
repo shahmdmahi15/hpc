@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -99,9 +100,9 @@ export function DeleteRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[96vw] max-w-xl lg:max-w-2xl max-h-[86vh] flex flex-col p-0 gap-0 border-destructive/30 shadow-2xl rounded-2xl overflow-hidden">
+      <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 gap-0 border-destructive/30 shadow-2xl rounded-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-6 pr-12 sm:pr-14 border-b border-border/60 bg-destructive/5">
+        <div className="shrink-0 p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-destructive/5">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive border border-destructive/20 shrink-0">
               <Trash2 className="size-5" />
@@ -118,75 +119,78 @@ export function DeleteRoomDialog({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleDelete} className="p-6 space-y-4">
-          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Room Purpose:</span>
-              <span className="font-semibold text-foreground">
-                {room.purpose}
-              </span>
+        <form onSubmit={handleDelete} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+            <div className="p-3.5 rounded-xl bg-muted/40 border border-border/70 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Room Purpose:</span>
+                <span className="font-semibold text-foreground">
+                  {room.purpose}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Access Type:</span>
+                <span className="font-semibold text-foreground">
+                  {room.accessType}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Status:</span>
+                <span className="font-semibold text-foreground">
+                  {room.status}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Access Type:</span>
-              <span className="font-semibold text-foreground">
-                {room.accessType}
-              </span>
+
+            {error && (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+                <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                <p className="font-medium">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="confirm-room-number"
+                className="text-xs font-semibold"
+              >
+                Type{" "}
+                <span className="font-mono font-bold text-destructive">
+                  {room.number}
+                </span>{" "}
+                to confirm:
+              </Label>
+              <Input
+                id="confirm-room-number"
+                placeholder={`Type "${room.number}"`}
+                value={confirmNumber}
+                onChange={(e) => setConfirmNumber(e.target.value)}
+                disabled={isPending}
+                className="font-mono"
+                autoFocus
+              />
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Status:</span>
-              <span className="font-semibold text-foreground">
-                {room.status}
-              </span>
+
+            {/* Mandatory Admin Performer Selection */}
+            <div className="pt-2 border-t border-border/50">
+              <AdminPerformerSelect
+                adminPerformers={adminPerformers}
+                selectedPerformerId={selectedAdminPerformerId}
+                onSelectPerformerId={setSelectedAdminPerformerId}
+                disabled={isPending}
+                label="Authorizing Administrator"
+              />
             </div>
           </div>
 
-          {error && (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-              <p className="font-medium">{error}</p>
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <Label
-              htmlFor="confirm-room-number"
-              className="text-xs font-semibold"
-            >
-              Type{" "}
-              <span className="font-mono font-bold text-destructive">
-                {room.number}
-              </span>{" "}
-              to confirm:
-            </Label>
-            <Input
-              id="confirm-room-number"
-              placeholder={`Type "${room.number}"`}
-              value={confirmNumber}
-              onChange={(e) => setConfirmNumber(e.target.value)}
-              disabled={isPending}
-              className="font-mono"
-              autoFocus
-            />
-          </div>
-
-          {/* Mandatory Admin Performer Selection */}
-          <div className="pt-2 border-t border-border/50">
-            <AdminPerformerSelect
-              adminPerformers={adminPerformers}
-              selectedPerformerId={selectedAdminPerformerId}
-              onSelectPerformerId={setSelectedAdminPerformerId}
-              disabled={isPending}
-              label="Authorizing Administrator"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/60">
+          <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => handleClose(false)}
               disabled={isPending}
+              className="rounded-xl h-9 text-xs cursor-pointer"
             >
               Cancel
             </Button>
@@ -198,7 +202,7 @@ export function DeleteRoomDialog({
                 isPending ||
                 !isMatch
               }
-              className="gap-1.5"
+              className="rounded-xl h-9 text-xs font-bold gap-1.5 cursor-pointer"
             >
               {isPending ? (
                 <>
@@ -212,7 +216,7 @@ export function DeleteRoomDialog({
                 </>
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,7 +123,7 @@ export function PatientMedicalHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-6xl lg:max-w-7xl max-h-[86vh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
+      <DialogContent className="w-[96vw] max-w-6xl lg:max-w-7xl max-h-[92dvh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
         {/* Header */}
         <DialogHeader className="p-3.5 sm:p-4 pr-12 sm:pr-14 bg-muted/40 border-b border-border space-y-2 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -201,7 +202,7 @@ export function PatientMedicalHistoryDialog({
         </DialogHeader>
 
         {/* Body Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4 text-xs">
           {isLoading ? (
             <div className="py-16 text-center text-xs text-muted-foreground space-y-3">
               <div className="size-7 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -610,6 +611,18 @@ export function PatientMedicalHistoryDialog({
             </div>
           )}
         </div>
+
+        <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="h-8 text-xs cursor-pointer"
+          >
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

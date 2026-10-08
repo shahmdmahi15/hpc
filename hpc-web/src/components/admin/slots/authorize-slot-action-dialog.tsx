@@ -85,9 +85,9 @@ export function AuthorizeSlotActionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-xl lg:max-w-2xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
         {/* Header */}
-        <DialogHeader className="p-5 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0">
+        <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <UserCheck className="size-5" />
@@ -105,7 +105,7 @@ export function AuthorizeSlotActionDialog({
         </DialogHeader>
 
         {/* Body */}
-        <div className="p-5 space-y-4 overflow-y-auto flex-1">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
           {/* Action Preview Card */}
           <div className="p-3.5 rounded-xl border border-border/70 bg-muted/20 space-y-2.5">
             <div className="flex items-center justify-between">
@@ -173,14 +173,14 @@ export function AuthorizeSlotActionDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="p-4 sm:px-6 py-3.5 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-end gap-2.5">
+        <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="cursor-pointer text-xs"
+            className="rounded-xl h-9 text-xs cursor-pointer"
           >
             Cancel
           </Button>
@@ -189,7 +189,7 @@ export function AuthorizeSlotActionDialog({
             size="sm"
             onClick={handleConfirm}
             disabled={isSubmitting}
-            className="cursor-pointer gap-1.5 text-xs font-semibold"
+            className="rounded-xl h-9 text-xs font-bold gap-1.5 cursor-pointer"
           >
             {isSubmitting ? (
               <>

@@ -108,7 +108,7 @@ export function DoctorPrescriptionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[86vh] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[92dvh] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl">
         <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <DialogTitle className="text-base font-bold flex items-center gap-2">
@@ -122,7 +122,7 @@ export function DoctorPrescriptionDialog({
         </DialogHeader>
 
         {/* Scrollable Document Preview (Formatted for 5.5" x 8.27" custom Wi-Fi paper) */}
-        <div className="p-3 sm:p-6 flex-1 overflow-y-auto overflow-x-hidden bg-neutral-200/70 dark:bg-neutral-950 flex justify-center">
+        <div className="p-3 sm:p-6 flex-1 min-h-0 overflow-y-auto overscroll-contain overflow-x-hidden bg-neutral-200/70 dark:bg-neutral-950 flex justify-center">
           <div
             id="doctor-prescription-print"
             className="w-full max-w-[520px] min-h-[750px] bg-white text-black p-4 sm:p-5 rounded-xs border border-black font-sans text-xs leading-normal shadow-xl flex flex-col justify-between"

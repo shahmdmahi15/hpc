@@ -66,9 +66,9 @@ export function RevokeSessionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[96vw] max-w-2xl lg:max-w-3xl max-h-[86vh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
+      <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
         {/* Header Banner */}
-        <div className="shrink-0 bg-muted/40 p-5 pb-4 border-b border-border/60">
+        <div className="shrink-0 bg-muted/40 p-4 sm:p-5 border-b border-border/60">
           <DialogHeader className="pr-10 sm:pr-12">
             <div className="flex items-center gap-2.5">
               <div className="size-9 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center justify-center text-destructive shrink-0">
@@ -89,7 +89,7 @@ export function RevokeSessionsDialog({
         </div>
 
         {/* Content Body - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
           {/* Mandatory Admin Performer Selection */}
           <AdminPerformerSelect
             adminPerformers={adminPerformers}
@@ -114,7 +114,7 @@ export function RevokeSessionsDialog({
         </div>
 
         {/* Fixed Footer */}
-        <div className="shrink-0 px-6 py-3.5 bg-muted/30 border-t border-border/60 flex items-center justify-between sm:justify-end gap-2">
+        <DialogFooter className="shrink-0 p-3 sm:p-4 bg-muted/30 border-t border-border/60 flex items-center justify-end gap-2">
           <Button
             type="button"
             variant="outline"
@@ -145,7 +145,7 @@ export function RevokeSessionsDialog({
               </>
             )}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

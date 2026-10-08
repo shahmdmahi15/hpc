@@ -405,9 +405,9 @@ export function ExtraSlotsApprovalTab({
         open={Boolean(selectedAppointment)}
         onOpenChange={(open) => !open && handleCloseReview()}
       >
-        <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <DialogContent className="w-[96vw] max-w-lg md:max-w-xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
           <DialogHeader
-            className={`p-4 border-b ${
+            className={`p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b shrink-0 ${
               decisionType === "APPROVE"
                 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-100"
                 : "bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-100"
@@ -415,7 +415,7 @@ export function ExtraSlotsApprovalTab({
           >
             <div className="flex items-center gap-2">
               <div
-                className={`size-8 rounded-lg flex items-center justify-center ${
+                className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
                   decisionType === "APPROVE"
                     ? "bg-emerald-500 text-white"
                     : "bg-rose-500 text-white"
@@ -443,7 +443,7 @@ export function ExtraSlotsApprovalTab({
           </DialogHeader>
 
           {selectedAppointment && (
-            <div className="p-4 space-y-3.5">
+            <div className="p-4 sm:p-5 space-y-3.5 flex-1 min-h-0 overflow-y-auto overscroll-contain">
               {/* Patient & Slot Mini Summary */}
               <div className="p-2.5 rounded-lg bg-muted/40 border border-border/70 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between font-bold">
@@ -534,7 +534,7 @@ export function ExtraSlotsApprovalTab({
             </div>
           )}
 
-          <DialogFooter className="p-3 px-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+          <DialogFooter className="shrink-0 p-3 px-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"

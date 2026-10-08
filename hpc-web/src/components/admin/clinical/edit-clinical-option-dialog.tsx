@@ -138,133 +138,137 @@ function EditClinicalOptionForm({
   };
 
   return (
-    <div className="space-y-4">
-      <DialogHeader className="space-y-1 pr-10 sm:pr-12 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
-            <Edit3 className="size-4" />
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="shrink-0 p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20">
+        <DialogHeader className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+              <Edit3 className="size-4" />
+            </div>
+            <div>
+              <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                Edit Clinical Option
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Update naming, display sequence, or category assignment.
+              </DialogDescription>
+            </div>
           </div>
-          <div>
-            <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
-              Edit Clinical Option
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Update naming, display sequence, or category assignment.
-            </DialogDescription>
-          </div>
-        </div>
-      </DialogHeader>
+        </DialogHeader>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3.5">
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">
-            Category
-          </label>
-          <Select
-            items={CATEGORY_OPTIONS}
-            value={category}
-            onValueChange={(val) =>
-              val && setCategory(val as ClinicalOptionCategory)
-            }
-          >
-            <SelectTrigger className="w-full text-xs h-9">
-              <SelectValue placeholder="Select Category">
-                {(val: string | null) =>
-                  val
-                    ? CATEGORY_LABELS[String(val)] || String(val)
-                    : "Select Category"
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORY_OPTIONS.map((opt) => (
-                <SelectItem
-                  key={opt.value}
-                  value={opt.value}
-                  className="text-xs"
-                >
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">
-            Option Name <span className="text-destructive">*</span>
-          </label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Cervical Traction, Knee Pain, Sharp..."
-            className="text-xs h-9"
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">
-            Description / Clinical Notes (Optional)
-          </label>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Short details or instructions for this modality..."
-            className="text-xs h-9"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 pt-1">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-3.5">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-foreground">
-              Display Sequence
+              Category
+            </label>
+            <Select
+              items={CATEGORY_OPTIONS}
+              value={category}
+              onValueChange={(val) =>
+                val && setCategory(val as ClinicalOptionCategory)
+              }
+            >
+              <SelectTrigger className="w-full text-xs h-9">
+                <SelectValue placeholder="Select Category">
+                  {(val: string | null) =>
+                    val
+                      ? CATEGORY_LABELS[String(val)] || String(val)
+                      : "Select Category"
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <SelectItem
+                    key={opt.value}
+                    value={opt.value}
+                    className="text-xs"
+                  >
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">
+              Option Name <span className="text-destructive">*</span>
             </label>
             <Input
-              type="number"
-              value={order}
-              onChange={(e) => setOrder(e.target.value)}
-              placeholder="0"
-              className="text-xs h-9 font-mono"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Cervical Traction, Knee Pain, Sharp..."
+              className="text-xs h-9"
+              required
             />
           </div>
 
           <div className="space-y-1">
             <label className="text-xs font-semibold text-foreground">
-              Status
+              Description / Clinical Notes (Optional)
             </label>
-            <div className="flex items-center gap-2 h-9">
-              <Button
-                type="button"
-                size="sm"
-                variant={isActive ? "default" : "outline"}
-                className={`text-xs flex-1 cursor-pointer ${
-                  isActive
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : ""
-                }`}
-                onClick={() => setIsActive(!isActive)}
-              >
-                {isActive ? (
-                  <>
-                    <Check className="size-3 mr-1" /> Active
-                  </>
-                ) : (
-                  "Disabled"
-                )}
-              </Button>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Short details or instructions for this modality..."
+              className="text-xs h-9"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">
+                Display Sequence
+              </label>
+              <Input
+                type="number"
+                value={order}
+                onChange={(e) => setOrder(e.target.value)}
+                placeholder="0"
+                className="text-xs h-9 font-mono"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">
+                Status
+              </label>
+              <div className="flex items-center gap-2 h-9">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isActive ? "default" : "outline"}
+                  className={`text-xs flex-1 cursor-pointer ${
+                    isActive
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : ""
+                  }`}
+                  onClick={() => setIsActive(!isActive)}
+                >
+                  {isActive ? (
+                    <>
+                      <Check className="size-3 mr-1" /> Active
+                    </>
+                  ) : (
+                    "Disabled"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="pt-3 border-t border-border flex flex-row items-center justify-between gap-2">
+        <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex flex-row items-center justify-between gap-2">
           <Button
             type="button"
             variant="destructive"
             size="sm"
             onClick={handleDelete}
             disabled={isDeleting || isSubmitting}
-            className="text-xs cursor-pointer gap-1.5"
+            className="rounded-xl text-xs h-9 cursor-pointer gap-1.5"
           >
             <Trash2 className="size-3" />
             <span>{isDeleting ? "Deleting..." : "Delete"}</span>
@@ -277,7 +281,7 @@ function EditClinicalOptionForm({
               size="sm"
               onClick={onClose}
               disabled={isSubmitting}
-              className="text-xs cursor-pointer"
+              className="rounded-xl text-xs h-9 cursor-pointer"
             >
               Cancel
             </Button>
@@ -285,7 +289,7 @@ function EditClinicalOptionForm({
               type="submit"
               size="sm"
               disabled={isSubmitting}
-              className="text-xs bg-sky-600 hover:bg-sky-700 text-white font-semibold cursor-pointer"
+              className="rounded-xl text-xs h-9 bg-sky-600 hover:bg-sky-700 text-white font-semibold cursor-pointer"
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
@@ -306,7 +310,7 @@ export function EditClinicalOptionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-2xl lg:max-w-3xl max-h-[86vh] overflow-y-auto p-5 space-y-4 rounded-2xl border-border/80 shadow-2xl">
+      <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
         <EditClinicalOptionForm
           key={option.id}
           option={option}

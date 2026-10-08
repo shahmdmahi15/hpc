@@ -110,24 +110,27 @@ export function EditDoctorRoomDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-md p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
-        <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-              <DoorClosed className="size-5" />
+      <DialogContent className="w-[96vw] max-w-md max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
+        <div className="shrink-0 p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <DoorClosed className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Set Consultation Chamber
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Assign a default clinic room/chamber for this doctor
+                </DialogDescription>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-base font-bold text-foreground">
-                Set Consultation Chamber
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                Assign a default clinic room/chamber for this doctor
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
           {/* Doctor Info Card */}
           <div className="p-3 rounded-xl border border-border/80 bg-muted/40 space-y-1">
             <div className="flex items-center justify-between">
@@ -248,8 +251,9 @@ export function EditDoctorRoomDialog({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          <DialogFooter className="pt-2 flex flex-row items-center justify-end gap-2 border-t border-border/60">
+        <DialogFooter className="shrink-0 p-3 sm:p-4 flex flex-row items-center justify-end gap-2 border-t border-border/60 bg-muted/20">
             <Button
               type="button"
               variant="outline"

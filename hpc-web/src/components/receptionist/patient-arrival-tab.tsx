@@ -840,8 +840,8 @@ export function PatientArrivalTab({
             }
           }}
         >
-          <DialogContent className="w-[96vw] max-w-lg p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
-            <DialogHeader className="p-4 sm:p-5 pr-12 border-b border-border/60 bg-muted/20">
+          <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
+            <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="size-10 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
                   <UserCheck className="size-5" />
@@ -857,8 +857,9 @@ export function PatientArrivalTab({
               </div>
             </DialogHeader>
 
-            <form onSubmit={handleConfirmCheckIn} className="p-4 sm:p-5 space-y-4">
-              {/* Arriving Patient Profile Summary */}
+            <form onSubmit={handleConfirmCheckIn} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 flex-1 min-h-0">
+                {/* Arriving Patient Profile Summary */}
               <div className="p-3 rounded-xl border border-border/80 bg-muted/30 space-y-1 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-foreground text-sm">
@@ -1009,39 +1010,40 @@ export function PatientArrivalTab({
                 label="Authorizing Receptionist / Desk Staff"
                 pinLabel="Staff 4-Digit PIN:"
               />
+            </div>
 
-              <DialogFooter className="pt-2 border-t border-border/60 flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCheckInModalPatient(null)}
-                  disabled={isSubmittingCheckIn}
-                  className="rounded-xl h-8.5 text-xs cursor-pointer"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isSubmittingCheckIn || !activePin || activePin.length !== 4}
-                  className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
-                >
-                  {isSubmittingCheckIn ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      <span>Checking In...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="size-3.5" />
-                      <span>Confirm & Check In Patient</span>
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
+            <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCheckInModalPatient(null)}
+                disabled={isSubmittingCheckIn}
+                className="rounded-xl h-8.5 text-xs cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmittingCheckIn || !activePin || activePin.length !== 4}
+                className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+              >
+                {isSubmittingCheckIn ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>Checking In...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="size-3.5" />
+                    <span>Confirm & Check In Patient</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
         </Dialog>
       )}
 
@@ -1056,8 +1058,8 @@ export function PatientArrivalTab({
             }
           }}
         >
-          <DialogContent className="w-[96vw] max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
-            <DialogHeader className="p-4 sm:p-5 pr-12 border-b border-border/60 bg-muted/20 shrink-0">
+          <DialogContent className="w-[96vw] max-w-2xl max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
+            <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
                   <UserPlus className="size-5" />
@@ -1075,9 +1077,10 @@ export function PatientArrivalTab({
 
             <form
               onSubmit={handleConfirmRegisterAndCheckIn}
-              className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"
+              className="flex flex-col flex-1 min-h-0 overflow-hidden"
             >
-              {/* Mandatory Fields Block */}
+              <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 flex-1 min-h-0">
+                {/* Mandatory Fields Block */}
               <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/5 space-y-3">
                 <div className="flex items-center justify-between text-xs font-bold text-sky-700 dark:text-sky-300">
                   <span>Mandatory Registration Details</span>
@@ -1337,45 +1340,46 @@ export function PatientArrivalTab({
                 label="Authorizing Receptionist / Desk Staff"
                 pinLabel="Staff 4-Digit PIN:"
               />
+            </div>
 
-              <DialogFooter className="pt-2 border-t border-border/60 shrink-0 flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsRegisterModalOpen(false)}
-                  disabled={isSubmittingRegister}
-                  className="rounded-xl h-8.5 text-xs cursor-pointer"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={
-                    isSubmittingRegister ||
-                    !regName.trim() ||
-                    !regPhone.trim() ||
-                    !activePin ||
-                    activePin.length !== 4
-                  }
-                  className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
-                >
-                  {isSubmittingRegister ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      <span>Registering & Checking In...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="size-3.5" />
-                      <span>Register & Check In Arriving Patient</span>
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
+            <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsRegisterModalOpen(false)}
+                disabled={isSubmittingRegister}
+                className="rounded-xl h-8.5 text-xs cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={
+                  isSubmittingRegister ||
+                  !regName.trim() ||
+                  !regPhone.trim() ||
+                  !activePin ||
+                  activePin.length !== 4
+                }
+                className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+              >
+                {isSubmittingRegister ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>Registering & Checking In...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="size-3.5" />
+                    <span>Register & Check In Arriving Patient</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
         </Dialog>
       )}
     </div>

@@ -137,8 +137,8 @@ export function CreatePatientDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
-        <DialogHeader className="p-5 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
+      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <UserPlus className="size-5" />
@@ -157,9 +157,9 @@ export function CreatePatientDialog({
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col flex-1 overflow-hidden"
+          className="flex flex-col flex-1 min-h-0 overflow-hidden"
         >
-          <div className="p-5 overflow-y-auto space-y-4 flex-1">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left Column: Demographics & Contact */}
               <div className="space-y-3.5">
@@ -393,14 +393,14 @@ export function CreatePatientDialog({
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t border-border/60 bg-muted/10 shrink-0 flex items-center justify-between gap-2">
+          <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="cursor-pointer"
+              className="rounded-xl h-9 text-xs cursor-pointer"
             >
               Cancel
             </Button>
@@ -414,7 +414,7 @@ export function CreatePatientDialog({
                 !phone.trim() ||
                 Boolean(performers && performers.length > 0 && !performerId)
               }
-              className="gap-2 font-semibold cursor-pointer shadow-sm"
+              className="rounded-xl h-9 text-xs font-bold gap-2 cursor-pointer shadow-sm"
             >
               {isSubmitting ? (
                 <>

@@ -1392,7 +1392,7 @@ export function CreateMedicalRecordDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-6xl lg:max-w-7xl max-h-[86vh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
+      <DialogContent className="w-[96vw] max-w-6xl lg:max-w-7xl max-h-[92dvh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
         <CreateMedicalRecordForm
           key={appointment?.patient?.id || appointment?.id || "form"}
           appointment={appointment}

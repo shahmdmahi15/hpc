@@ -166,8 +166,8 @@ export function CallToChamberDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[86vh] overflow-y-auto p-5 sm:p-6 space-y-4 rounded-2xl shadow-2xl border-border/80">
-        <DialogHeader className="space-y-1 pr-10 sm:pr-12 shrink-0">
+      <DialogContent className="w-[96vw] max-w-xl lg:max-w-2xl max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
+        <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="size-8.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
               <Volume2 className="size-4.5 animate-pulse" />
@@ -184,7 +184,8 @@ export function CallToChamberDialog({
           </div>
         </DialogHeader>
 
-        {/* 1. Patient Summary Card */}
+        <div className="p-4 sm:p-5 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain">
+          {/* 1. Patient Summary Card */}
         <div className="p-3 rounded-xl border border-border/80 bg-muted/30 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -351,37 +352,38 @@ export function CallToChamberDialog({
             {activeDoctor ? ` with ${activeDoctor.name}` : ""}.&rdquo;
           </p>
         </div>
+      </div>
 
-        <DialogFooter className="pt-1 gap-1.5 sm:gap-0">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={isCalling}
-            className="h-8 text-xs cursor-pointer"
-          >
-            Cancel
-          </Button>
+      <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onOpenChange(false)}
+          disabled={isCalling}
+          className="h-8 text-xs cursor-pointer"
+        >
+          Cancel
+        </Button>
 
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleConfirmCall}
-            disabled={isCalling || !selectedRoomId}
-            className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white gap-1.5 shadow-xs cursor-pointer"
-          >
-            {isCalling ? (
-              <span>Calling...</span>
-            ) : (
-              <>
-                <Volume2 className="size-3.5" />
-                <span>Call to Room {activeRoom?.number || ""}</span>
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleConfirmCall}
+          disabled={isCalling || !selectedRoomId}
+          className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white gap-1.5 shadow-xs cursor-pointer"
+        >
+          {isCalling ? (
+            <span>Calling...</span>
+          ) : (
+            <>
+              <Volume2 className="size-3.5" />
+              <span>Call to Room {activeRoom?.number || ""}</span>
+            </>
+          )}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
     </Dialog>
   );
 }

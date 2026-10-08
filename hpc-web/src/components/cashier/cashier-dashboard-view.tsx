@@ -36,6 +36,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -784,16 +785,19 @@ export function CashierDashboardView({
           if (!open) setCollectingAppointment(null);
         }}
       >
-        <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl p-5 space-y-4 rounded-2xl shadow-2xl border-border/80">
-          <DialogHeader>
+        <DialogContent className="w-[96vw] max-w-lg md:max-w-xl max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
+          <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <CreditCard className="size-4 text-amber-500" />
               <span>Collect Patient Fee</span>
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Record patient billing transaction, payment method, and issue receipt
+            </DialogDescription>
           </DialogHeader>
 
           {collectingAppointment && (
-            <div className="space-y-3.5 text-xs">
+            <div className="p-4 sm:p-5 space-y-3.5 text-xs flex-1 min-h-0 overflow-y-auto overscroll-contain">
               {/* Patient Info Card */}
               <div className="p-3 rounded-xl bg-muted/40 border border-border/80 space-y-1">
                 <div className="flex items-center justify-between">
@@ -933,13 +937,13 @@ export function CashierDashboardView({
             </div>
           )}
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCollectingAppointment(null)}
               disabled={isSubmittingPayment}
-              className="h-8 text-xs"
+              className="h-8 text-xs cursor-pointer"
             >
               Cancel
             </Button>
@@ -947,7 +951,7 @@ export function CashierDashboardView({
               size="sm"
               onClick={handleConfirmPayment}
               disabled={isSubmittingPayment}
-              className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+              className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white gap-1.5 cursor-pointer shadow-xs"
             >
               {isSubmittingPayment ? (
                 <span>Recording...</span>

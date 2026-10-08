@@ -93,7 +93,7 @@ export function AdminDailyClosingDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[86vh] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl">
+      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[92dvh] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl">
         <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
@@ -107,7 +107,7 @@ export function AdminDailyClosingDialog({
         </DialogHeader>
 
         {/* Scrollable Printable Area */}
-        <div className="p-3 sm:p-6 flex-1 overflow-y-auto overflow-x-hidden flex justify-center bg-neutral-200/70 dark:bg-neutral-950">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain overflow-x-hidden p-3 sm:p-6 flex justify-center bg-neutral-200/70 dark:bg-neutral-950">
           <div
             id="admin-z-report-print"
             className="w-full max-w-[500px] min-h-[750px] p-4 sm:p-5 bg-white text-black font-sans text-xs leading-normal border border-black rounded-xs shadow-xl flex flex-col justify-between"

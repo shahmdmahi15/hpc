@@ -273,9 +273,9 @@ function AuthorizeReceptionistActionDialogBody({
   };
 
   return (
-    <DialogContent className="w-[96vw] max-w-xl lg:max-w-2xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+    <DialogContent className="w-[96vw] max-w-xl lg:max-w-2xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
       {/* Header */}
-      <DialogHeader className="p-5 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
+      <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
         <div className="flex items-center gap-2.5">
           <div className={`p-2 rounded-xl border ${iconContainerClass}`}>
             {dialogIcon}
@@ -290,7 +290,7 @@ function AuthorizeReceptionistActionDialogBody({
       </DialogHeader>
 
       {/* Body */}
-      <div className="p-5 space-y-4 overflow-y-auto flex-1">
+      <div className="p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0">
         {/* Appointment Summary Card */}
         <div className="p-3.5 rounded-xl border border-border/70 bg-card space-y-1.5">
           <div className="flex items-center justify-between">

@@ -155,7 +155,7 @@ function TreatmentPlanDialogInner({
   };
 
   return (
-    <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[86vh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+    <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
       {/* Header */}
       <DialogHeader className="p-5 pb-3.5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
         <div className="flex items-center justify-between gap-3">
@@ -239,7 +239,7 @@ function TreatmentPlanDialogInner({
       </DialogHeader>
 
       {/* Content Body */}
-      <div className="p-5 flex-1 overflow-y-auto space-y-4">
+      <div className="p-4 sm:p-5 flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-4">
         {isLoading ? (
           <div className="py-14 text-center space-y-2">
             <Loader2 className="size-6 animate-spin mx-auto text-primary" />

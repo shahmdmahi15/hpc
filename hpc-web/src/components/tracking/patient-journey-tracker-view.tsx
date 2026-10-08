@@ -844,8 +844,8 @@ function TransferStationDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-lg p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl max-h-[min(90dvh,calc(100dvh-1.5rem))] flex flex-col">
-        <DialogHeader className="p-5 pb-4 border-b border-border/60 bg-muted/20 shrink-0">
+      <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+        <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <Compass className="size-5" />
@@ -861,8 +861,9 @@ function TransferStationDialog({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1 overscroll-contain">
-          {/* Target Station Radio Grid */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0">
+            {/* Target Station Radio Grid */}
           <div className="space-y-2">
             <Label className="text-xs font-bold text-foreground">
               Select Destination Station
@@ -962,29 +963,30 @@ function TransferStationDialog({
               className="text-xs h-9"
             />
           </div>
+        </div>
 
-          <DialogFooter className="pt-2 border-t border-border/60 flex items-center justify-end gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-              className="text-xs cursor-pointer"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isSubmitting}
-              className="text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
-            >
-              {isSubmitting ? "Updating Station..." : "Confirm Move"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+        <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+            className="text-xs cursor-pointer"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={isSubmitting}
+            className="text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+          >
+            {isSubmitting ? "Updating Station..." : "Confirm Move"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
     </Dialog>
   );
 }
@@ -1108,8 +1110,8 @@ function QuickCheckInWithoutSlotDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
-        <DialogHeader className="p-5 pb-4 border-b border-border/60 bg-muted/20 shrink-0">
+      <DialogContent className="w-[96vw] max-w-xl max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+        <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <Plus className="size-5" />
@@ -1126,8 +1128,8 @@ function QuickCheckInWithoutSlotDialog({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="p-5 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0">
             {/* 1. Patient Picker */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-foreground">
@@ -1424,7 +1426,7 @@ function QuickCheckInWithoutSlotDialog({
             </div>
           </div>
 
-          <DialogFooter className="p-4 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-end gap-2">
+          <DialogFooter className="p-3 sm:p-4 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"

@@ -221,8 +221,8 @@ function AddToQueueDialogBody({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[min(90dvh,calc(100dvh-1.5rem))] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
-        <DialogHeader className="p-5 pb-4 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
+      <DialogContent className="w-[96vw] max-w-3xl lg:max-w-4xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
+        <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 shrink-0 bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
               <UserCheck className="size-5" />
@@ -239,8 +239,8 @@ function AddToQueueDialogBody({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="p-5 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
             {/* 1. Patient Selection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -547,14 +547,14 @@ function AddToQueueDialogBody({
             </div>
           </div>
 
-          <DialogFooter className="p-4 sm:px-6 py-3 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-end gap-2.5">
+          <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="cursor-pointer text-xs"
+              className="rounded-xl h-9 text-xs cursor-pointer"
             >
               Cancel
             </Button>
@@ -562,7 +562,7 @@ function AddToQueueDialogBody({
               type="submit"
               size="sm"
               disabled={isSubmitting || !selectedPatientId}
-              className="cursor-pointer gap-1.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
+              className="rounded-xl h-9 text-xs font-bold cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {isSubmitting ? (
                 <>

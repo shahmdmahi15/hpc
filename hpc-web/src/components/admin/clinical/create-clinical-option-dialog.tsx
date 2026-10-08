@@ -107,112 +107,116 @@ function CreateClinicalOptionForm({
   };
 
   return (
-    <div className="space-y-4">
-      <DialogHeader className="space-y-1 pr-10 sm:pr-12 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
-            <PlusCircle className="size-4" />
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="shrink-0 p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20">
+        <DialogHeader className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+              <PlusCircle className="size-4" />
+            </div>
+            <div>
+              <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
+                Add Clinical Option
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Add a new dynamic treatment modality, pain region, or assessment
+                factor.
+              </DialogDescription>
+            </div>
           </div>
-          <div>
-            <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
-              Add Clinical Option
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Add a new dynamic treatment modality, pain region, or assessment
-              factor.
-            </DialogDescription>
+        </DialogHeader>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-3.5">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">
+              Category
+            </label>
+            <Select
+              items={CATEGORY_OPTIONS}
+              value={category}
+              onValueChange={(val) =>
+                val && setCategory(val as ClinicalOptionCategory)
+              }
+            >
+              <SelectTrigger className="w-full text-xs h-9">
+                <SelectValue placeholder="Select category">
+                  {(val: string | null) =>
+                    val
+                      ? CATEGORY_LABELS[String(val)] || String(val)
+                      : "Select category"
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <SelectItem
+                    key={opt.value}
+                    value={opt.value}
+                    className="text-xs"
+                  >
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">
+              Option Name <span className="text-rose-500">*</span>
+            </label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Dry Needling, Heel, Burning..."
+              className="text-xs h-9"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">
+              Description{" "}
+              <span className="text-muted-foreground text-[10px] font-normal">
+                (Optional)
+              </span>
+            </label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description or clinical instruction..."
+              className="text-xs h-9"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">
+              Display Order{" "}
+              <span className="text-muted-foreground text-[10px] font-normal">
+                (Lower numbers appear first)
+              </span>
+            </label>
+            <Input
+              type="number"
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+              min="0"
+              className="text-xs h-9 font-mono"
+            />
           </div>
         </div>
-      </DialogHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">
-            Category
-          </label>
-          <Select
-            items={CATEGORY_OPTIONS}
-            value={category}
-            onValueChange={(val) =>
-              val && setCategory(val as ClinicalOptionCategory)
-            }
-          >
-            <SelectTrigger className="w-full text-xs h-9">
-              <SelectValue placeholder="Select category">
-                {(val: string | null) =>
-                  val
-                    ? CATEGORY_LABELS[String(val)] || String(val)
-                    : "Select category"
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORY_OPTIONS.map((opt) => (
-                <SelectItem
-                  key={opt.value}
-                  value={opt.value}
-                  className="text-xs"
-                >
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">
-            Option Name <span className="text-rose-500">*</span>
-          </label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Dry Needling, Heel, Burning..."
-            className="text-xs h-9"
-            required
-            autoFocus
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">
-            Description{" "}
-            <span className="text-muted-foreground text-[10px] font-normal">
-              (Optional)
-            </span>
-          </label>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Brief description or clinical instruction..."
-            className="text-xs h-9"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-foreground">
-            Display Order{" "}
-            <span className="text-muted-foreground text-[10px] font-normal">
-              (Lower numbers appear first)
-            </span>
-          </label>
-          <Input
-            type="number"
-            value={order}
-            onChange={(e) => setOrder(e.target.value)}
-            min="0"
-            className="text-xs h-9 font-mono"
-          />
-        </div>
-
-        <DialogFooter className="pt-3 border-t border-border flex items-center justify-end gap-2">
+        <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-xs h-8 cursor-pointer"
+            className="rounded-xl text-xs h-9 cursor-pointer"
           >
             Cancel
           </Button>
@@ -220,7 +224,7 @@ function CreateClinicalOptionForm({
             type="submit"
             size="sm"
             disabled={isSubmitting}
-            className="text-xs h-8 bg-sky-600 hover:bg-sky-700 text-white font-bold cursor-pointer gap-1.5 shadow-2xs"
+            className="rounded-xl text-xs h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold cursor-pointer gap-1.5 shadow-2xs"
           >
             <Sparkles className="size-3.5" />
             <span>{isSubmitting ? "Creating..." : "Create Option"}</span>
@@ -241,7 +245,7 @@ export function CreateClinicalOptionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-2xl lg:max-w-3xl max-h-[86vh] overflow-y-auto p-5 space-y-4 rounded-2xl border-border/80 shadow-2xl">
+      <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
         <CreateClinicalOptionForm
           key={defaultCategory}
           defaultCategory={defaultCategory}

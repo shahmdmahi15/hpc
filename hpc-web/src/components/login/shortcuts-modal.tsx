@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Keyboard, Sparkles } from "lucide-react";
@@ -20,9 +21,9 @@ interface ShortcutsModalProps {
 export function ShortcutsModal({ open, onOpenChange }: ShortcutsModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[86vh] overflow-y-auto bg-card/95 dark:bg-card/90 backdrop-blur-2xl border-border/80 shadow-2xl rounded-2xl sm:rounded-3xl p-5 sm:p-7 gap-5">
+      <DialogContent className="w-[96vw] max-w-4xl lg:max-w-5xl max-h-[92dvh] flex flex-col p-0 overflow-hidden bg-card/95 dark:bg-card/90 backdrop-blur-2xl border-border/80 shadow-2xl rounded-2xl sm:rounded-3xl gap-0">
         {/* Header */}
-        <DialogHeader className="space-y-1.5 text-left border-b border-border/60 pb-3.5 pr-10 sm:pr-12">
+        <DialogHeader className="space-y-1.5 text-left border-b border-border/60 p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 shrink-0 bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary ring-2 ring-primary/5">
               <Keyboard className="h-4 w-4" />
@@ -43,7 +44,8 @@ export function ShortcutsModal({ open, onOpenChange }: ShortcutsModalProps) {
         </DialogHeader>
 
         {/* 2-Column Responsive Body */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-xs">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-xs">
           {/* Column 1: Quick Role Selection (1-5) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -177,9 +179,10 @@ export function ShortcutsModal({ open, onOpenChange }: ShortcutsModalProps) {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-border/60 text-xs">
+      {/* Pinned Footer */}
+        <DialogFooter className="flex items-center justify-between p-3 sm:p-4 border-t border-border/60 bg-muted/20 text-xs shrink-0">
           <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
             <span>Press</span>
             <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono font-bold">
@@ -196,7 +199,7 @@ export function ShortcutsModal({ open, onOpenChange }: ShortcutsModalProps) {
           >
             Got it
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
