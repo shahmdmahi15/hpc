@@ -986,7 +986,7 @@ export function WaitingRoomLiveQueueView({
   };
 
   return (
-    <div className="min-h-screen md:h-dvh md:max-h-dvh w-full max-w-full overflow-x-hidden overflow-y-auto md:overflow-hidden flex flex-col justify-between bg-white dark:bg-black text-zinc-950 dark:text-white select-none pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] transition-colors duration-200">
+    <div className="min-h-screen lg:h-dvh lg:max-h-dvh w-full max-w-full overflow-x-hidden overflow-y-auto lg:overflow-hidden flex flex-col justify-between bg-white dark:bg-black text-zinc-950 dark:text-white select-none pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] transition-colors duration-200">
       {/* ---------------------------------------------------- */}
       {/* 1. Header (Adaptive Across Mobile to 4K TV)          */}
       {/* ---------------------------------------------------- */}
@@ -1007,18 +1007,18 @@ export function WaitingRoomLiveQueueView({
 
         {/* Center: Live Digital Clock & Date */}
         <div className="flex items-center justify-center shrink-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 shadow-2xs 3xl:px-5 3xl:py-2">
-            <Clock className="size-3.5 sm:size-4 3xl:size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <div className="flex items-baseline gap-1.5 sm:gap-2 leading-none font-mono">
+          <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 shadow-2xs 3xl:px-5 3xl:py-2">
+            <Clock className="size-3 sm:size-4 3xl:size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div className="flex items-baseline gap-1 sm:gap-2 leading-none font-mono">
               <span
-                className="text-xs sm:text-sm md:text-base 2xl:text-lg 3xl:text-2xl font-black tracking-tight text-zinc-950 dark:text-white"
+                className="text-[11px] sm:text-sm md:text-base 2xl:text-lg 3xl:text-2xl font-black text-zinc-950 dark:text-white"
                 suppressHydrationWarning
               >
                 {formattedTime}
               </span>
-              <span className="text-zinc-300 dark:text-zinc-700 hidden sm:inline">&bull;</span>
+              <span className="text-zinc-300 dark:text-zinc-700 hidden md:inline">&bull;</span>
               <span
-                className="text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base text-zinc-500 dark:text-zinc-400 font-sans hidden sm:inline"
+                className="text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base text-zinc-500 dark:text-zinc-400 font-sans hidden md:inline"
                 suppressHydrationWarning
               >
                 {formattedDate}
@@ -1027,14 +1027,14 @@ export function WaitingRoomLiveQueueView({
           </div>
         </div>
 
-        {/* Right: Department Switcher, Health Badges, Audio, Fullscreen, Theme, Portal */}
+        {/* Right: Department Switcher (Desktop), Connection Badge, Audio, Language, Theme, Portal */}
         <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
-          {/* Department View Switcher */}
-          <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 shadow-2xs">
+          {/* Department View Switcher (Desktop / TV: xl and up only) */}
+          <div className="hidden xl:flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 shadow-2xs">
             <button
               type="button"
               onClick={() => setDepartmentFilter("ALL")}
-              className={`px-1.5 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] 2xl:text-xs font-bold rounded-md transition-all cursor-pointer ${
+              className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                 departmentFilter === "ALL"
                   ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-2xs font-black"
                   : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
@@ -1045,7 +1045,7 @@ export function WaitingRoomLiveQueueView({
             <button
               type="button"
               onClick={() => setDepartmentFilter("CONSULTATION")}
-              className={`px-1.5 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] 2xl:text-xs font-bold rounded-md transition-all cursor-pointer ${
+              className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                 departmentFilter === "CONSULTATION"
                   ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-2xs font-black"
                   : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
@@ -1056,7 +1056,7 @@ export function WaitingRoomLiveQueueView({
             <button
               type="button"
               onClick={() => setDepartmentFilter("THERAPY")}
-              className={`px-1.5 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] 2xl:text-xs font-bold rounded-md transition-all cursor-pointer ${
+              className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
                 departmentFilter === "THERAPY"
                   ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-2xs font-black"
                   : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
@@ -1066,9 +1066,9 @@ export function WaitingRoomLiveQueueView({
             </button>
           </div>
 
-          {/* Screen Wake Lock Status Badge */}
+          {/* Screen Wake Lock Status Badge (TV / Ultra-wide only) */}
           <div
-            className={`hidden lg:flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] 2xl:text-xs font-semibold border ${
+            className={`hidden 2xl:flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] 2xl:text-xs font-semibold border ${
               isWakeLockActive
                 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                 : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800"
@@ -1084,7 +1084,7 @@ export function WaitingRoomLiveQueueView({
             }
           >
             <Tv className="size-2.5 sm:size-3" />
-            <span className="hidden xl:inline">
+            <span>
               {isWakeLockActive
                 ? lang === "bn"
                   ? "সজাগ"
@@ -1097,7 +1097,7 @@ export function WaitingRoomLiveQueueView({
 
           {/* SSE Connection Health */}
           <div
-            className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] 2xl:text-xs font-semibold border ${
+            className={`flex items-center gap-1 px-1 sm:px-1.5 py-0.5 rounded-lg text-[10px] 2xl:text-xs font-semibold border ${
               connectionStatus === "connected"
                 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                 : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 animate-pulse"
@@ -1114,16 +1114,16 @@ export function WaitingRoomLiveQueueView({
           >
             {connectionStatus === "connected" ? (
               <>
-                <Wifi className="size-2.5 sm:size-3 text-emerald-600 dark:text-emerald-400" />
-                <span className="hidden xl:inline">
+                <Wifi className="size-2.5 sm:size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="hidden 2xl:inline">
                   {lang === "bn" ? "লাইভ" : "Live"}
                 </span>
               </>
             ) : (
               <>
-                <WifiOff className="size-2.5 sm:size-3 text-amber-600 dark:text-amber-400" />
-                <span className="hidden xl:inline">
-                  {lang === "bn" ? "সিঙ্ক হচ্ছে..." : "Syncing..."}
+                <WifiOff className="size-2.5 sm:size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="hidden 2xl:inline">
+                  {lang === "bn" ? "সিঙ্ক..." : "Syncing..."}
                 </span>
               </>
             )}
@@ -1143,20 +1143,20 @@ export function WaitingRoomLiveQueueView({
                     ? "ভয়েস ঘোষণা বন্ধ (চালু করতে ক্লিক করুন)"
                     : "Voice announcements muted (Click to enable)"
               }
-              className={`size-7 sm:size-7.5 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+              className={`size-6.5 sm:size-7.5 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                 isAudioEnabled
                   ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                   : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-800"
               }`}
             >
               {isAudioEnabled ? (
-                <Volume2 className="size-3.5" />
+                <Volume2 className="size-3 sm:size-3.5" />
               ) : (
-                <VolumeX className="size-3.5" />
+                <VolumeX className="size-3 sm:size-3.5" />
               )}
             </button>
 
-            {/* Test Audio Button (Collapsed on <1024px) */}
+            {/* Test Audio Button (Collapsed on < 2xl) */}
             <button
               type="button"
               onClick={testAnnouncementSound}
@@ -1165,21 +1165,92 @@ export function WaitingRoomLiveQueueView({
                   ? "সাউন্ড টেস্ট: অফলাইন হসপিটাল বেল ও ভয়েস ঘোষণা শুনুন"
                   : "Test Sound: Play offline hospital chime & speech announcement"
               }
-              className="h-7 sm:h-7.5 px-1.5 sm:px-2 text-[10px] 2xl:text-xs font-bold rounded-md border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
+              className="hidden 2xl:flex h-7 px-1.5 text-[10px] font-bold rounded-md border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 items-center gap-1 cursor-pointer transition-colors"
             >
-              <Bell className="size-2.5 sm:size-3 text-emerald-600 dark:text-emerald-400 animate-pulse" />
-              <span className="hidden xl:inline">
-                {lang === "bn" ? "সাউন্ড টেস্ট" : "Test Sound"}
-              </span>
+              <Bell className="size-2.5 text-emerald-600 animate-pulse" />
+              <span>{lang === "bn" ? "সাউন্ড টেস্ট" : "Test Sound"}</span>
             </button>
           </div>
 
-          <LanguageSwitcher className="h-7 sm:h-8 px-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[10.5px] sm:text-xs shadow-2xs" />
-          <FullscreenToggle className="size-7 sm:size-8 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/40 cursor-pointer flex items-center justify-center shrink-0 shadow-2xs transition-colors" />
-          <ThemeToggle variant="compact" className="size-7 sm:size-8" />
+          <LanguageSwitcher className="h-6.5 sm:h-8 px-1 sm:px-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[10px] sm:text-xs shadow-2xs" />
+          <FullscreenToggle className="size-6.5 sm:size-8 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/40 cursor-pointer flex items-center justify-center shrink-0 shadow-2xs transition-colors" />
+          <ThemeToggle variant="compact" className="size-6.5 sm:size-8" />
           {renderUserPortalButton()}
         </div>
       </header>
+
+      {/* ---------------------------------------------------- */}
+      {/* 1.2. Responsive Department Switcher (Mobile & Tablet) */}
+      {/* ---------------------------------------------------- */}
+      <nav
+        aria-label="Department view switcher"
+        className="xl:hidden w-full px-2.5 sm:px-4 py-1 sm:py-1.5 bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800/80 shrink-0 z-10 flex items-center justify-center"
+      >
+        <div className="w-full max-w-lg grid grid-cols-3 bg-zinc-200/70 dark:bg-zinc-800/80 p-0.5 sm:p-1 rounded-xl text-center shadow-inner">
+          <button
+            type="button"
+            onClick={() => setDepartmentFilter("ALL")}
+            className={`py-1 sm:py-1.5 px-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              departmentFilter === "ALL"
+                ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs font-black"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+            }`}
+          >
+            <span>{lang === "bn" ? "সকল" : "All"}</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] sm:text-xs font-mono font-bold ${
+                departmentFilter === "ALL"
+                  ? "bg-white/20 text-white"
+                  : "bg-zinc-300 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+              }`}
+            >
+              {formatNumberByLang(stats.total, lang)}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setDepartmentFilter("CONSULTATION")}
+            className={`py-1 sm:py-1.5 px-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              departmentFilter === "CONSULTATION"
+                ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs font-black"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+            }`}
+          >
+            <Stethoscope className="size-3.5 sm:size-4 shrink-0" />
+            <span>{lang === "bn" ? "চেম্বার" : "Chambers"}</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] sm:text-xs font-mono font-bold ${
+                departmentFilter === "CONSULTATION"
+                  ? "bg-white/20 text-white"
+                  : "bg-zinc-300 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+              }`}
+            >
+              {formatNumberByLang(consultationQueue.length, lang)}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setDepartmentFilter("THERAPY")}
+            className={`py-1 sm:py-1.5 px-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              departmentFilter === "THERAPY"
+                ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-xs font-black"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+            }`}
+          >
+            <Activity className="size-3.5 sm:size-4 shrink-0" />
+            <span>{lang === "bn" ? "থেরাপি" : "Therapy"}</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] sm:text-xs font-mono font-bold ${
+                departmentFilter === "THERAPY"
+                  ? "bg-white/20 text-white"
+                  : "bg-zinc-300 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+              }`}
+            >
+              {formatNumberByLang(therapyQueue.length, lang)}
+            </span>
+          </button>
+        </div>
+      </nav>
 
       {/* ---------------------------------------------------- */}
       {/* 1.5. Realtime Doctor Calling Large Popup Announcement */}
@@ -1294,22 +1365,22 @@ export function WaitingRoomLiveQueueView({
       {/* 2. Main Live Queue: Responsive Adaptive Layout       */}
       {/* ---------------------------------------------------- */}
       <main
-        className={`flex-1 min-h-0 w-full max-w-full px-2.5 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 overflow-y-auto md:overflow-hidden grid gap-2.5 sm:gap-3.5 md:gap-4 ${
+        className={`flex-1 min-h-0 w-full max-w-full px-2 sm:px-4 md:px-5 lg:px-6 py-2 sm:py-2.5 md:py-3 overflow-y-auto lg:overflow-hidden grid gap-2.5 sm:gap-3.5 md:gap-4 ${
           departmentFilter === "ALL"
-            ? "grid-cols-1 md:grid-cols-2"
+            ? "grid-cols-1 lg:grid-cols-2"
             : "grid-cols-1"
         }`}
       >
         {/* Column 1: Therapy Queue */}
         {(departmentFilter === "ALL" || departmentFilter === "THERAPY") && (
-          <section className="flex flex-col min-h-[340px] md:min-h-0 md:h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
-            {/* Compact Column Header */}
+          <section className="flex flex-col min-h-[160px] sm:min-h-[220px] lg:min-h-0 lg:h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
+            {/* Column Header */}
             <div className="px-3 sm:px-4 2xl:px-6 py-2 sm:py-2.5 2xl:py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
               <div className="flex items-center gap-2 2xl:gap-3">
                 <div className="p-1.5 2xl:p-2.5 rounded-lg 2xl:rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                   <Activity className="size-4 2xl:size-6" />
                 </div>
-                <h2 className="text-sm sm:text-base 2xl:text-xl 3xl:text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
+                <h2 className="text-sm sm:text-base 2xl:text-xl 3xl:text-2xl font-bold sm:font-extrabold tracking-normal text-zinc-950 dark:text-white">
                   {lang === "bn" ? "থেরাপি সিরিয়াল" : "Therapy Queue"}
                 </h2>
                 <span className="px-2 2xl:px-3 py-0.5 2xl:py-1 rounded-full text-xs 2xl:text-base font-mono font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
@@ -1340,7 +1411,7 @@ export function WaitingRoomLiveQueueView({
                   className={`grid gap-2 2xl:gap-3 auto-rows-max ${
                     departmentFilter === "THERAPY"
                       ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2500px]:grid-cols-6 min-[3200px]:grid-cols-7"
-                      : "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
+                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
                   }`}
                 >
                   {therapyQueue.map((item, idx) => (
@@ -1358,14 +1429,14 @@ export function WaitingRoomLiveQueueView({
 
         {/* Column 2: Consultation Queue */}
         {(departmentFilter === "ALL" || departmentFilter === "CONSULTATION") && (
-          <section className="flex flex-col min-h-[340px] md:min-h-0 md:h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
-            {/* Compact Column Header */}
+          <section className="flex flex-col min-h-[160px] sm:min-h-[220px] lg:min-h-0 lg:h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
+            {/* Column Header */}
             <div className="px-3 sm:px-4 2xl:px-6 py-2 sm:py-2.5 2xl:py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
               <div className="flex items-center gap-2 2xl:gap-3">
                 <div className="p-1.5 2xl:p-2.5 rounded-lg 2xl:rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                   <Stethoscope className="size-4 2xl:size-6" />
                 </div>
-                <h2 className="text-sm sm:text-base 2xl:text-xl 3xl:text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
+                <h2 className="text-sm sm:text-base 2xl:text-xl 3xl:text-2xl font-bold sm:font-extrabold tracking-normal text-zinc-950 dark:text-white">
                   {lang === "bn" ? "কনসাল্টেশন সিরিয়াল" : "Consultation Queue"}
                 </h2>
                 <span className="px-2 2xl:px-3 py-0.5 2xl:py-1 rounded-full text-xs 2xl:text-base font-mono font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
@@ -1396,7 +1467,7 @@ export function WaitingRoomLiveQueueView({
                   className={`grid gap-2 2xl:gap-3 auto-rows-max ${
                     departmentFilter === "CONSULTATION"
                       ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2500px]:grid-cols-6 min-[3200px]:grid-cols-7"
-                      : "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
+                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
                   }`}
                 >
                   {consultationQueue.map((item, idx) => (
@@ -1555,7 +1626,7 @@ function QueueItemCard({
             #{formatNumberByLang(serialNumber, lang)}
           </span>
 
-          <h3 className="text-xs sm:text-sm 2xl:text-base 3xl:text-lg font-black text-zinc-950 dark:text-white tracking-tight truncate">
+          <h3 className="text-xs sm:text-sm 2xl:text-base 3xl:text-lg font-bold sm:font-black text-zinc-950 dark:text-white tracking-normal truncate">
             {item.patient?.name || (lang === "bn" ? "রোগী" : "Patient")}
           </h3>
 
@@ -1735,23 +1806,23 @@ function QueueItemCard({
 function EmptyQueueCard({ title }: { title: string }) {
   const { lang } = useI18n();
   return (
-    <div className="flex-1 min-h-[220px] 2xl:min-h-[340px] 3xl:min-h-[440px] rounded-xl flex flex-col items-center justify-center p-6 sm:p-10 2xl:p-16 3xl:p-20 text-center space-y-3 sm:space-y-4 2xl:space-y-6 text-zinc-400 dark:text-zinc-500 my-auto">
-      <div className="relative p-4 sm:p-5 2xl:p-8 3xl:p-10 rounded-2xl 2xl:rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-inner flex items-center justify-center">
-        <div className="absolute inset-0 rounded-2xl 2xl:rounded-3xl bg-emerald-500/10 animate-ping opacity-25" />
-        <Users className="size-8 sm:size-10 2xl:size-16 3xl:size-20 text-emerald-600 dark:text-emerald-400 relative z-10" />
+    <div className="flex-1 min-h-[140px] sm:min-h-[180px] lg:min-h-[220px] 2xl:min-h-[340px] 3xl:min-h-[440px] rounded-xl flex flex-col items-center justify-center p-3.5 sm:p-5 lg:p-8 2xl:p-16 3xl:p-20 text-center space-y-2 sm:space-y-3.5 2xl:space-y-6 text-zinc-400 dark:text-zinc-500 my-auto">
+      <div className="relative p-2.5 sm:p-4 2xl:p-8 3xl:p-10 rounded-xl sm:rounded-2xl 2xl:rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-inner flex items-center justify-center">
+        <div className="absolute inset-0 rounded-xl sm:rounded-2xl 2xl:rounded-3xl bg-emerald-500/10 animate-ping opacity-25" />
+        <Users className="size-6 sm:size-8 2xl:size-16 3xl:size-20 text-emerald-600 dark:text-emerald-400 relative z-10" />
       </div>
-      <div className="space-y-1.5 2xl:space-y-3 max-w-lg">
-        <h3 className="text-base sm:text-lg 2xl:text-2xl 3xl:text-3xl font-black text-zinc-800 dark:text-zinc-100 tracking-tight">
+      <div className="space-y-1 sm:space-y-1.5 2xl:space-y-3 max-w-lg">
+        <h3 className="text-sm sm:text-base md:text-lg 2xl:text-2xl 3xl:text-3xl font-bold sm:font-extrabold text-zinc-800 dark:text-zinc-100 tracking-normal">
           {title}
         </h3>
-        <p className="text-xs sm:text-sm 2xl:text-lg 3xl:text-xl font-mono text-zinc-500 dark:text-zinc-400">
+        <p className="text-[11px] sm:text-xs 2xl:text-lg 3xl:text-xl font-mono text-zinc-500 dark:text-zinc-400 tracking-normal">
           {lang === "bn"
             ? "নতুন রোগীর চেক-ইনের জন্য অপেক্ষা করা হচ্ছে • লাইভ মনিটরিং সক্রিয়"
             : "Listening for real-time check-ins • Live system monitoring active"}
         </p>
       </div>
-      <div className="inline-flex items-center gap-2 px-3 py-1 2xl:px-4 2xl:py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] sm:text-xs 2xl:text-sm font-bold font-mono">
-        <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+      <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 2xl:px-4 2xl:py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[9.5px] sm:text-xs 2xl:text-sm font-bold font-mono">
+        <span className="size-1.5 sm:size-2 rounded-full bg-emerald-500 animate-pulse" />
         <span>
           {lang === "bn" ? "অপেক্ষমান তালিকা শূন্য" : "Queue Empty / Standby"}
         </span>
