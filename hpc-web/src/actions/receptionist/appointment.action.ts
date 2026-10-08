@@ -775,6 +775,7 @@ export interface SlotTelemetry {
 export type AppointmentWithRelations = AppointmentModel & {
   roomId?: string | null;
   willCallTime?: string | null;
+  serialNumber?: number | null;
   patient?: PatientModel | null;
   therapySlot?: (TherapySlotModel & { room?: RoomModel | null }) | null;
   room?: RoomModel | null;
