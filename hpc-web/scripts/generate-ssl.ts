@@ -40,6 +40,7 @@ console.log(`[INFO] Using OpenSSL binary: ${openSslBin}`);
 // 2. Discover Local Network IPs
 const allIps = new Set<string>();
 allIps.add("127.0.0.1");
+allIps.add("0.0.0.0");
 
 const interfaces = os.networkInterfaces();
 const discoveredSubnets = new Set<string>([

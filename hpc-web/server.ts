@@ -82,6 +82,20 @@ if (hasSsl) {
     } catch {
       // Ignore if unable to hook
     }
+
+    try {
+      // Allow loopback 0.0.0.0 host identity verification against 127.0.0.1/localhost
+      const origCheckServerIdentity = tls.checkServerIdentity;
+      tls.checkServerIdentity = function (host: string, cert: any) {
+        if (host === "0.0.0.0") {
+          const loopbackErr = origCheckServerIdentity("127.0.0.1", cert);
+          if (!loopbackErr) return undefined;
+        }
+        return origCheckServerIdentity(host, cert);
+      };
+    } catch {
+      // Ignore if unable to hook
+    }
   }
 }
 
@@ -100,9 +114,13 @@ const getLocalIps = (): string[] => {
   return ips;
 };
 
+// Use "localhost" for Next.js internal Server Actions / flight fetches so loopbacks match SSL certs,
+// while allowing the outer HTTPS server to listen on "0.0.0.0" for LAN access.
+const internalHostname = hostname === "0.0.0.0" ? "localhost" : hostname;
+
 const app = next({
   dev: isDev,
-  hostname,
+  hostname: internalHostname,
   port,
 });
 const handle = app.getRequestHandler();
