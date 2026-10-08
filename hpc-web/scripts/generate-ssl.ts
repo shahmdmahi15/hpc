@@ -136,22 +136,38 @@ for (const ip of allIps) {
 
 fs.writeFileSync(cnfPath, cnfContent, "utf8");
 
-// 4. Generate Root CA Key and Certificate
+// 4. Ensure Root CA Key and Certificate exist (Preserve existing CA so client devices keep trust!)
 const rootKeyPath = path.join(certDir, "rootCA.key");
 const rootPemPath = path.join(certDir, "rootCA.pem");
 const rootCrtPath = path.join(certDir, "rootCA.crt");
 
-console.log("[INFO] Generating Root Certificate Authority (Root CA)...");
-execSync(`${openSslBin} genrsa -out "${rootKeyPath}" 2048`, { stdio: "inherit" });
-execSync(
-  `${openSslBin} req -x509 -new -nodes -key "${rootKeyPath}" -sha256 -days 3650 -out "${rootPemPath}" -config "${cnfPath}" -extensions v3_ca -subj "/C=BD/ST=Jessore/O=Health and Pain Care Center/OU=Medical IT/CN=HPC Local Root CA"`,
-  { stdio: "inherit" },
-);
+const hasExistingCa =
+  fs.existsSync(rootKeyPath) &&
+  (fs.existsSync(rootPemPath) || fs.existsSync(rootCrtPath));
 
-fs.copyFileSync(rootPemPath, rootCrtPath);
+if (hasExistingCa && !process.argv.includes("--force-ca")) {
+  console.log(
+    "[INFO] Existing Root CA found. Preserving Root CA so client devices remain trusted.",
+  );
+} else {
+  console.log("[INFO] Generating new Root Certificate Authority (Root CA)...");
+  execSync(`${openSslBin} genrsa -out "${rootKeyPath}" 2048`, {
+    stdio: "inherit",
+  });
+  execSync(
+    `${openSslBin} req -x509 -new -nodes -key "${rootKeyPath}" -sha256 -days 3650 -out "${rootPemPath}" -config "${cnfPath}" -extensions v3_ca -subj "/C=BD/ST=Jessore/O=Health and Pain Care Center/OU=Medical IT/CN=HPC Local Root CA"`,
+    { stdio: "inherit" },
+  );
+}
+
+if (fs.existsSync(rootPemPath) && !fs.existsSync(rootCrtPath)) {
+  fs.copyFileSync(rootPemPath, rootCrtPath);
+} else if (fs.existsSync(rootCrtPath) && !fs.existsSync(rootPemPath)) {
+  fs.copyFileSync(rootCrtPath, rootPemPath);
+}
 fs.copyFileSync(rootPemPath, path.join(publicDir, "rootCA.pem"));
 fs.copyFileSync(rootCrtPath, path.join(publicDir, "rootCA.crt"));
-console.log("[SUCCESS] Root CA generated and published to public/rootCA.crt");
+console.log("[SUCCESS] Root CA verified and synced to public/ directory.");
 
 // 5. Generate Server Key and Signed Certificate
 const serverKeyPath = path.join(certDir, "server.key");

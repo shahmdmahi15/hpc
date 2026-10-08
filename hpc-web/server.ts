@@ -206,18 +206,13 @@ app.prepare().then(() => {
   let server: any;
 
   if (hasSsl) {
-    const caPath = fs.existsSync(rootPemPath) ? rootPemPath : fs.existsSync(rootCrtPath) ? rootCrtPath : null;
     const httpsOptions: {
       key: Buffer;
       cert: Buffer;
-      ca?: Buffer;
     } = {
       key: fs.readFileSync(serverKeyPath),
       cert: fs.readFileSync(serverCrtPath),
     };
-    if (caPath) {
-      httpsOptions.ca = fs.readFileSync(caPath);
-    }
     server = createHttpsServer(httpsOptions, requestHandler);
 
     // Gracefully handle plain HTTP request sent to HTTPS port: redirect to HTTPS
@@ -225,8 +220,21 @@ app.prepare().then(() => {
       if (err.code === "ERR_SSL_HTTP_REQUEST") {
         const raw = err.rawPacket ? err.rawPacket.toString("ascii") : "";
         const hostMatch = raw.match(/host:\s*([^\r\n]+)/i);
-        const host = hostMatch ? hostMatch[1].trim() : `localhost:${port}`;
-        const hostnameOnly = host.split(":")[0];
+        const host = hostMatch ? hostMatch[1].trim() : "";
+        let hostnameOnly = host ? host.split(":")[0] : "";
+
+        // If Host header was absent or loopback (e.g. rawPacket unavailable in Node 22),
+        // determine the host from socket.localAddress or server LAN IP instead of defaulting to localhost
+        if (!hostnameOnly || hostnameOnly === "0.0.0.0" || hostnameOnly === "::") {
+          const incomingIp = socket.localAddress;
+          if (incomingIp && incomingIp !== "0.0.0.0" && incomingIp !== "::" && incomingIp !== "::1") {
+            hostnameOnly = incomingIp;
+          } else {
+            const localIps = getLocalIps();
+            hostnameOnly = localIps[0] || "localhost";
+          }
+        }
+
         const targetSocket = socket._parent || socket;
         try {
           targetSocket.end(
