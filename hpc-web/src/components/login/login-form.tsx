@@ -69,6 +69,14 @@ export function LoginForm({
     <form
       action={formAction}
       suppressHydrationWarning
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      data-lpignore="true"
+      data-1p-ignore="true"
+      data-bwignore="true"
+      data-form-type="other"
       className="w-full max-w-full mx-auto"
     >
       <Card
@@ -225,7 +233,14 @@ export function LoginForm({
                     : "e.g. admin@hpc.com or +8801700000001"
                 }
                 required
-                autoComplete="username"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
                 disabled={isPending}
                 className="h-9 sm:h-9.5 px-3 text-xs rounded-xl bg-background/60 border-border/80 focus-visible:ring-primary/30"
               />
@@ -281,7 +296,14 @@ export function LoginForm({
                   "Enter authorized password...",
                 )}
                 required
-                autoComplete="current-password"
+                autoComplete="new-password"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
                 disabled={isPending}
                 onKeyDown={handleKeyDown}
                 onKeyUp={handleKeyUp}

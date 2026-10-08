@@ -622,6 +622,14 @@ function PlanForm({
   return (
     <form
       onSubmit={handleSubmit}
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      data-lpignore="true"
+      data-1p-ignore="true"
+      data-bwignore="true"
+      data-form-type="other"
       className="space-y-4 animate-in fade-in duration-200"
     >
       {/* Informational Guidance */}

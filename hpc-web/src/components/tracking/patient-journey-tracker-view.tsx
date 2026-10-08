@@ -262,29 +262,6 @@ export function PatientJourneyTrackerView({
 
   return (
     <div className="w-full space-y-3 pb-8">
-      {/* Anti-Autofill Credential Trap: Isolates browser password managers from hijacking live search inputs */}
-      <form
-        autoComplete="off"
-        aria-hidden="true"
-        className="sr-only absolute -left-[9999px] -top-[9999px] h-0 w-0 opacity-0 pointer-events-none"
-        tabIndex={-1}
-      >
-        <input
-          type="text"
-          name="dummy_tracker_username_trap"
-          tabIndex={-1}
-          autoComplete="username"
-          defaultValue=""
-        />
-        <input
-          type="password"
-          name="dummy_tracker_password_trap"
-          tabIndex={-1}
-          autoComplete="current-password"
-          defaultValue=""
-        />
-      </form>
-
       {/* 1. Header & Live Indicator Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3.5 rounded-2xl bg-card/70 backdrop-blur-xl border border-border/80 shadow-xs">
         <div className="flex items-center gap-3">
@@ -319,6 +296,11 @@ export function PatientJourneyTrackerView({
                 setSelectedDate(e.target.value);
                 loadTrackingData(e.target.value);
               }}
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-form-type="other"
               className="bg-transparent text-xs font-semibold focus:outline-hidden cursor-pointer"
             />
           </div>
@@ -861,7 +843,18 @@ function TransferStationDialog({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col flex-1 min-h-0 overflow-hidden"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          data-form-type="other"
+        >
           <div className="p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0">
             {/* Target Station Radio Grid */}
           <div className="space-y-2">
@@ -1128,7 +1121,18 @@ function QuickCheckInWithoutSlotDialog({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col flex-1 min-h-0 overflow-hidden"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          data-form-type="other"
+        >
           <div className="p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0">
             {/* 1. Patient Picker */}
             <div className="space-y-2">

@@ -157,7 +157,18 @@ export function CreatePerformerDialog({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[96vw] max-w-xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border-border/80 shadow-2xl rounded-2xl">
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          data-form-type="other"
+          className="flex flex-col flex-1 min-h-0 overflow-hidden"
+        >
           {/* Header */}
           <div className="shrink-0 bg-muted/40 p-4 sm:p-5 border-b border-border/60">
             <DialogHeader className="pr-10 sm:pr-12">

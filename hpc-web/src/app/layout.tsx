@@ -162,6 +162,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import { LandscapeLockGuard } from "@/components/layout/landscape-lock-guard";
+import { AutofillDisabler } from "@/components/common/autofill-disabler";
 
 export default function RootLayout({
   children,
@@ -185,6 +186,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <I18nProvider>
+            <AutofillDisabler />
             <PwaRegister />
             <LandscapeLockGuard />
             {children}

@@ -97,6 +97,14 @@ export function DeleteSlotDialog({
         <form
           onSubmit={handleDelete}
           className="flex flex-col flex-1 min-h-0 overflow-hidden"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          data-form-type="other"
         >
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
             <div className="p-3.5 rounded-xl bg-muted/50 border border-border/80 text-xs space-y-1.5">

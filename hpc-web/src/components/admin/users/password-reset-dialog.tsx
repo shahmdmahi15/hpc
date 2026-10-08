@@ -201,6 +201,14 @@ export function PasswordResetDialog({
       <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl shadow-2xl border-border/80">
         <form
           onSubmit={handleSubmit}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          data-form-type="other"
           className="flex flex-col flex-1 min-h-0 overflow-hidden"
         >
           {/* Header Banner */}

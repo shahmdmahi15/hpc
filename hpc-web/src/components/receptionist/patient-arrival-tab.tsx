@@ -857,7 +857,18 @@ export function PatientArrivalTab({
               </div>
             </DialogHeader>
 
-            <form onSubmit={handleConfirmCheckIn} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <form
+              onSubmit={handleConfirmCheckIn}
+              className="flex flex-col flex-1 min-h-0 overflow-hidden"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-form-type="other"
+            >
               <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 flex-1 min-h-0">
                 {/* Arriving Patient Profile Summary */}
               <div className="p-3 rounded-xl border border-border/80 bg-muted/30 space-y-1 text-xs">
@@ -1078,6 +1089,14 @@ export function PatientArrivalTab({
             <form
               onSubmit={handleConfirmRegisterAndCheckIn}
               className="flex flex-col flex-1 min-h-0 overflow-hidden"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-form-type="other"
             >
               <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 flex-1 min-h-0">
                 {/* Mandatory Fields Block */}

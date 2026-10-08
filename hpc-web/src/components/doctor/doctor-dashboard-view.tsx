@@ -323,29 +323,6 @@ export function DoctorDashboardView({
 
       {/* 2. Main Workspace */}
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
-        {/* Anti-Autofill Credential Trap: Isolates browser password managers from hijacking live search inputs */}
-        <form
-          autoComplete="off"
-          aria-hidden="true"
-          className="sr-only absolute -left-[9999px] -top-[9999px] h-0 w-0 opacity-0 pointer-events-none"
-          tabIndex={-1}
-        >
-          <input
-            type="text"
-            name="dummy_doctor_username_trap"
-            tabIndex={-1}
-            autoComplete="username"
-            defaultValue=""
-          />
-          <input
-            type="password"
-            name="dummy_doctor_password_trap"
-            tabIndex={-1}
-            autoComplete="current-password"
-            defaultValue=""
-          />
-        </form>
-
         {/* Calling Spotlight Banner (If a patient is being called right now) */}
         {!activeConsultation && callingAppointment && (
           <div className="relative overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-sky-500/10 p-3 px-4 shadow-sm backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">

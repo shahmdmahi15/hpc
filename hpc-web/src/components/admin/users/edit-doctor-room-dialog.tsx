@@ -129,7 +129,18 @@ export function EditDoctorRoomDialog({
           </DialogHeader>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          data-form-type="other"
+          className="flex flex-col flex-1 min-h-0 overflow-hidden"
+        >
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
           {/* Doctor Info Card */}
           <div className="p-3 rounded-xl border border-border/80 bg-muted/40 space-y-1">

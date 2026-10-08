@@ -410,7 +410,18 @@ function CreateMedicalRecordForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+    <form
+      onSubmit={handleSubmit}
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      data-lpignore="true"
+      data-1p-ignore="true"
+      data-bwignore="true"
+      data-form-type="other"
+      className="flex flex-col flex-1 min-h-0"
+    >
       {/* Header matching physical assessment form */}
       <DialogHeader className="p-3.5 sm:p-4 pr-12 sm:pr-14 bg-muted/40 border-b border-border space-y-2 shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

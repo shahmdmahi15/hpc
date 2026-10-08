@@ -17,9 +17,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "seed": "tsx prisma/seed.ts",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts"
+    "db:hard-reset": "prisma migrate reset",
+    "db:reseed": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

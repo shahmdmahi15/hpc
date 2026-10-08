@@ -297,6 +297,14 @@ export function DoctorQueueCard({
                 placeholder="e.g. 11:30 AM"
                 value={callTimeInput}
                 onChange={(e) => setCallTimeInput(e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
                 className="flex-1 h-5 px-1.5 text-[10.5px] font-mono rounded bg-muted/30 border border-border focus:border-sky-500 focus:outline-none"
                 autoFocus
                 onKeyDown={(e) => {
