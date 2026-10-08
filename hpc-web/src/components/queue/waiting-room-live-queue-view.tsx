@@ -933,7 +933,7 @@ export function WaitingRoomLiveQueueView({
                 ? "ডাক্তার কনসাল্টেশন ডেস্ক"
                 : "Doctor Consultation Desk"
             }
-            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-sky-500/30 bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
+            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
           >
             <Stethoscope className="size-3.5 sm:size-4 2xl:size-4.5" />
           </Link>
@@ -943,7 +943,7 @@ export function WaitingRoomLiveQueueView({
           <Link
             href={destination}
             title={lang === "bn" ? "রিসেপশনিস্ট ডেস্ক" : "Receptionist Desk"}
-            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-primary/30 bg-primary/15 hover:bg-primary/25 text-primary transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
+            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-emerald-500/40 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
           >
             <ClipboardList className="size-3.5 sm:size-4 2xl:size-4.5" />
           </Link>
@@ -955,7 +955,7 @@ export function WaitingRoomLiveQueueView({
             title={
               lang === "bn" ? "ফিজিওথেরাপি ফ্লোর ডেস্ক" : "Physical Therapy Desk"
             }
-            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-emerald-500/30 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
+            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
           >
             <Activity className="size-3.5 sm:size-4 2xl:size-4.5" />
           </Link>
@@ -967,7 +967,7 @@ export function WaitingRoomLiveQueueView({
             title={
               lang === "bn" ? "ক্যাশিয়ার ও বিলিং ডেস্ক" : "Billing & Cashier Desk"
             }
-            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-amber-500/30 bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
+            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
           >
             <CreditCard className="size-3.5 sm:size-4 2xl:size-4.5" />
           </Link>
@@ -977,7 +977,7 @@ export function WaitingRoomLiveQueueView({
           <Link
             href={destination}
             title={lang === "bn" ? "স্টাফ পোর্টাল" : "Staff Portal"}
-            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-border/80 bg-card hover:bg-muted text-foreground transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
+            className="size-7 sm:size-8 2xl:size-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-emerald-500/40 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer flex items-center justify-center shrink-0 shadow-2xs"
           >
             <LogIn className="size-3.5 sm:size-4 2xl:size-4.5" />
           </Link>
@@ -986,12 +986,12 @@ export function WaitingRoomLiveQueueView({
   };
 
   return (
-    <div className="min-h-screen md:h-dvh md:max-h-dvh w-full max-w-full overflow-x-hidden overflow-y-auto md:overflow-hidden flex flex-col justify-between bg-slate-50/95 dark:bg-slate-950 text-slate-900 dark:text-slate-100 select-none pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] transition-colors duration-200">
+    <div className="min-h-screen md:h-dvh md:max-h-dvh w-full max-w-full overflow-x-hidden overflow-y-auto md:overflow-hidden flex flex-col justify-between bg-white dark:bg-black text-zinc-950 dark:text-white select-none pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] transition-colors duration-200">
       {/* ---------------------------------------------------- */}
       {/* 1. Header (Adaptive Across Mobile to 4K TV)          */}
       {/* ---------------------------------------------------- */}
-      <header className="w-full px-2.5 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 flex items-center justify-between gap-2 sm:gap-3 border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/80 backdrop-blur-xl shrink-0 shadow-xs z-20">
-        {/* Left: Brand Identity (Scales to icon/compact on mobile, full on desktop/TV) */}
+      <header className="w-full px-2.5 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 flex items-center justify-between gap-2 sm:gap-3 border-b border-zinc-200 dark:border-zinc-800/90 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl shrink-0 shadow-xs z-20">
+        {/* Left: Brand Identity */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <BrandLogo
             size="sm"
@@ -1007,18 +1007,18 @@ export function WaitingRoomLiveQueueView({
 
         {/* Center: Live Digital Clock & Date */}
         <div className="flex items-center justify-center shrink-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/90 shadow-2xs 3xl:px-5 3xl:py-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/90 shadow-2xs 3xl:px-5 3xl:py-2">
             <Clock className="size-3.5 sm:size-4 3xl:size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <div className="flex items-baseline gap-1.5 sm:gap-2 leading-none font-mono">
               <span
-                className="text-xs sm:text-sm md:text-base 2xl:text-lg 3xl:text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50"
+                className="text-xs sm:text-sm md:text-base 2xl:text-lg 3xl:text-2xl font-black tracking-tight text-zinc-950 dark:text-white"
                 suppressHydrationWarning
               >
                 {formattedTime}
               </span>
-              <span className="text-border hidden sm:inline">&bull;</span>
+              <span className="text-zinc-300 dark:text-zinc-700 hidden sm:inline">&bull;</span>
               <span
-                className="text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base text-slate-500 dark:text-slate-400 font-sans hidden sm:inline"
+                className="text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base text-zinc-500 dark:text-zinc-400 font-sans hidden sm:inline"
                 suppressHydrationWarning
               >
                 {formattedDate}
@@ -1030,14 +1030,14 @@ export function WaitingRoomLiveQueueView({
         {/* Right: Department Switcher, Health Badges, Audio, Fullscreen, Theme, Portal */}
         <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
           {/* Department View Switcher */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 shadow-2xs">
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 shadow-2xs">
             <button
               type="button"
               onClick={() => setDepartmentFilter("ALL")}
               className={`px-1.5 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] 2xl:text-xs font-bold rounded-md transition-all cursor-pointer ${
                 departmentFilter === "ALL"
-                  ? "bg-emerald-600 text-white shadow-2xs font-black"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-2xs font-black"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
               }`}
             >
               {lang === "bn" ? "সকল" : "All"}
@@ -1047,8 +1047,8 @@ export function WaitingRoomLiveQueueView({
               onClick={() => setDepartmentFilter("CONSULTATION")}
               className={`px-1.5 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] 2xl:text-xs font-bold rounded-md transition-all cursor-pointer ${
                 departmentFilter === "CONSULTATION"
-                  ? "bg-sky-600 text-white shadow-2xs font-black"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-2xs font-black"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
               }`}
             >
               {lang === "bn" ? "চেম্বার" : "Chambers"}
@@ -1058,8 +1058,8 @@ export function WaitingRoomLiveQueueView({
               onClick={() => setDepartmentFilter("THERAPY")}
               className={`px-1.5 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] 2xl:text-xs font-bold rounded-md transition-all cursor-pointer ${
                 departmentFilter === "THERAPY"
-                  ? "bg-emerald-600 text-white shadow-2xs font-black"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  ? "bg-emerald-600 dark:bg-emerald-500 text-white shadow-2xs font-black"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
               }`}
             >
               {lang === "bn" ? "থেরাপি" : "Therapy"}
@@ -1068,10 +1068,10 @@ export function WaitingRoomLiveQueueView({
 
           {/* Screen Wake Lock Status Badge */}
           <div
-            className={`hidden md:flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] 2xl:text-xs font-semibold border ${
+            className={`hidden lg:flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] 2xl:text-xs font-semibold border ${
               isWakeLockActive
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                : "bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800"
+                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800"
             }`}
             title={
               isWakeLockActive
@@ -1099,8 +1099,8 @@ export function WaitingRoomLiveQueueView({
           <div
             className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] 2xl:text-xs font-semibold border ${
               connectionStatus === "connected"
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 animate-pulse"
+                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 animate-pulse"
             }`}
             title={
               connectionStatus === "connected"
@@ -1130,7 +1130,7 @@ export function WaitingRoomLiveQueueView({
           </div>
 
           {/* Offline Audio / Speech Controls */}
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 shadow-2xs">
+          <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 shadow-2xs">
             <button
               type="button"
               onClick={toggleAudio}
@@ -1145,8 +1145,8 @@ export function WaitingRoomLiveQueueView({
               }
               className={`size-7 sm:size-7.5 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                 isAudioEnabled
-                  ? "text-sky-600 dark:text-sky-400 hover:bg-sky-500/10"
-                  : "text-slate-400 dark:text-slate-500 hover:bg-muted"
+                  ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                  : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-800"
               }`}
             >
               {isAudioEnabled ? (
@@ -1165,18 +1165,18 @@ export function WaitingRoomLiveQueueView({
                   ? "সাউন্ড টেস্ট: অফলাইন হসপিটাল বেল ও ভয়েস ঘোষণা শুনুন"
                   : "Test Sound: Play offline hospital chime & speech announcement"
               }
-              className="h-7 sm:h-7.5 px-1.5 sm:px-2 text-[10px] 2xl:text-xs font-bold rounded-md border border-sky-500/20 bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 flex items-center gap-1 cursor-pointer transition-colors"
+              className="h-7 sm:h-7.5 px-1.5 sm:px-2 text-[10px] 2xl:text-xs font-bold rounded-md border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <Bell className="size-2.5 sm:size-3 animate-pulse" />
-              <span className="hidden lg:inline">
+              <Bell className="size-2.5 sm:size-3 text-emerald-600 dark:text-emerald-400 animate-pulse" />
+              <span className="hidden xl:inline">
                 {lang === "bn" ? "সাউন্ড টেস্ট" : "Test Sound"}
               </span>
             </button>
           </div>
 
-          <LanguageSwitcher className="h-7 sm:h-8 px-1.5 rounded-lg bg-card border-border/80 text-[10.5px] sm:text-xs shadow-xs" />
-          <FullscreenToggle className="size-7 sm:size-8 rounded-lg border border-border/80 bg-card hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center shrink-0" />
-          <ThemeToggle className="size-7 sm:size-8" />
+          <LanguageSwitcher className="h-7 sm:h-8 px-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[10.5px] sm:text-xs shadow-2xs" />
+          <FullscreenToggle className="size-7 sm:size-8 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/40 cursor-pointer flex items-center justify-center shrink-0 shadow-2xs transition-colors" />
+          <ThemeToggle variant="compact" className="size-7 sm:size-8" />
           {renderUserPortalButton()}
         </div>
       </header>
@@ -1189,47 +1189,47 @@ export function WaitingRoomLiveQueueView({
           role="status"
           aria-live="assertive"
           aria-label="Doctor Calling Announcement"
-          className="fixed inset-0 z-50 pointer-events-auto flex items-center justify-center p-2.5 sm:p-4 md:p-6 lg:p-8 bg-black/85 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 select-none overflow-y-auto"
+          className="fixed inset-0 z-50 pointer-events-auto flex items-center justify-center p-2.5 sm:p-4 md:p-6 lg:p-8 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 select-none overflow-y-auto"
         >
-          <div className="w-full max-w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl max-h-[92dvh] overflow-y-auto p-4 sm:p-6 md:p-8 2xl:p-12 3xl:p-16 rounded-2xl sm:rounded-3xl md:rounded-4xl 3xl:rounded-[2.5rem] border-2 sm:border-4 3xl:border-8 border-sky-400 bg-background/98 shadow-[0_0_80px_rgba(56,189,248,0.45)] dark:shadow-[0_0_120px_rgba(56,189,248,0.65)] space-y-3 sm:space-y-4 md:space-y-6 text-center relative overflow-hidden ring-4 sm:ring-8 3xl:ring-12 ring-sky-500/25 flex flex-col justify-between my-auto">
+          <div className="w-full max-w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl max-h-[92dvh] overflow-y-auto p-4 sm:p-6 md:p-8 2xl:p-12 3xl:p-16 rounded-2xl sm:rounded-3xl md:rounded-4xl 3xl:rounded-[2.5rem] border-2 sm:border-4 3xl:border-8 border-emerald-500 dark:border-emerald-500 bg-white dark:bg-zinc-950 shadow-[0_0_80px_rgba(16,185,129,0.25)] dark:shadow-[0_0_120px_rgba(16,185,129,0.4)] space-y-3 sm:space-y-4 md:space-y-6 text-center relative overflow-hidden ring-4 sm:ring-8 3xl:ring-12 ring-emerald-500/20 flex flex-col justify-between my-auto text-zinc-950 dark:text-white">
             {/* Animated Ambient Radial Glows */}
-            <div className="absolute -top-32 -left-32 w-72 md:w-96 h-72 md:h-96 bg-sky-500/30 rounded-full blur-3xl pointer-events-none animate-pulse" />
-            <div className="absolute -bottom-32 -right-32 w-72 md:w-96 h-72 md:h-96 bg-indigo-500/25 rounded-full blur-3xl pointer-events-none animate-pulse" />
+            <div className="absolute -top-32 -left-32 w-72 md:w-96 h-72 md:h-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
+            <div className="absolute -bottom-32 -right-32 w-72 md:w-96 h-72 md:h-96 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
 
             {/* Calling Header Pill */}
-            <div className="inline-flex items-center self-center gap-2 sm:gap-3 px-3 sm:px-6 py-1 sm:py-2 rounded-full bg-sky-500/15 border border-sky-500/40 text-sky-700 dark:text-sky-300 text-xs sm:text-sm md:text-base 2xl:text-xl font-black tracking-widest uppercase shadow-xs animate-pulse">
-              <Megaphone className="size-4 sm:size-5 2xl:size-6 text-sky-600 dark:text-sky-400 animate-bounce" />
+            <div className="inline-flex items-center self-center gap-2 sm:gap-3 px-3 sm:px-6 py-1 sm:py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm md:text-base 2xl:text-xl font-black tracking-widest uppercase shadow-xs animate-pulse">
+              <Megaphone className="size-4 sm:size-5 2xl:size-6 text-emerald-600 dark:text-emerald-400 animate-bounce" />
               <span>
                 {lang === "bn"
                   ? "রোগীকে ডাকা হচ্ছে • NOW CALLING PATIENT"
                   : "NOW CALLING PATIENT • ডাক্তার ডাকছেন"}
               </span>
-              <Volume2 className="size-4 sm:size-5 2xl:size-6 text-sky-600 dark:text-sky-400" />
+              <Volume2 className="size-4 sm:size-5 2xl:size-6 text-emerald-600 dark:text-emerald-400" />
             </div>
 
             {/* Patient Name Section */}
             <div className="space-y-1.5 sm:space-y-3">
-              <p className="text-[11px] sm:text-xs md:text-sm 2xl:text-lg uppercase tracking-widest font-mono text-muted-foreground font-bold">
+              <p className="text-[11px] sm:text-xs md:text-sm 2xl:text-lg uppercase tracking-widest font-mono text-zinc-500 dark:text-zinc-400 font-bold">
                 {lang === "bn"
                   ? "অনুগ্রহ করে আপনার নির্ধারিত কনসাল্টেশন চেম্বারে যান"
                   : "Please proceed to assigned consultation chamber"}
               </p>
               <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
                 {activeAnnouncement.serialNumber !== undefined && (
-                  <span className="px-3 sm:px-5 py-1 sm:py-1.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 font-mono font-black text-base sm:text-xl md:text-2xl 2xl:text-3xl 3xl:text-4xl shadow-xs">
+                  <span className="px-3 sm:px-5 py-1 sm:py-1.5 rounded-xl bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 font-mono font-black text-base sm:text-xl md:text-2xl 2xl:text-3xl 3xl:text-4xl shadow-xs">
                     {lang === "bn"
                       ? `টোকেন #${formatNumberByLang(activeAnnouncement.serialNumber, lang)}`
                       : `TOKEN #${activeAnnouncement.serialNumber}`}
                   </span>
                 )}
-                <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl 3xl:text-8xl font-black text-foreground tracking-tight drop-shadow-xs break-words">
+                <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl 3xl:text-8xl font-black text-zinc-950 dark:text-white tracking-tight drop-shadow-xs break-words">
                   {activeAnnouncement.patientName}
                 </h2>
                 {activeAnnouncement.gender && (
                   <span
                     className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-xs sm:text-sm 2xl:text-base font-black uppercase tracking-wider border shadow-2xs ${
                       activeAnnouncement.gender === "MALE"
-                        ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30"
+                        ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-700"
                         : "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/30"
                     }`}
                   >
@@ -1246,12 +1246,12 @@ export function WaitingRoomLiveQueueView({
             </div>
 
             {/* Chamber Callout Box */}
-            <div className="p-4 sm:p-6 md:p-8 2xl:p-10 3xl:p-14 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 text-white border border-sky-300/60 shadow-xl flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 2xl:gap-8">
+            <div className="p-4 sm:p-6 md:p-8 2xl:p-10 3xl:p-14 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 dark:from-emerald-700 dark:via-emerald-800 dark:to-zinc-900 text-white border border-emerald-400/50 shadow-xl flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 2xl:gap-8">
               <div className="p-3 sm:p-4 md:p-5 2xl:p-6 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-inner shrink-0">
                 <DoorOpen className="size-10 sm:size-14 md:size-16 2xl:size-20 3xl:size-24 text-white" />
               </div>
               <div className="text-center sm:text-left space-y-0.5 sm:space-y-1">
-                <div className="text-xs sm:text-sm md:text-base 2xl:text-xl font-bold uppercase tracking-widest text-sky-100">
+                <div className="text-xs sm:text-sm md:text-base 2xl:text-xl font-bold uppercase tracking-widest text-emerald-100">
                   {lang === "bn"
                     ? "ডাক্তার কনসাল্টেশন • চেম্বারে প্রবেশ করুন"
                     : `${activeAnnouncement.roomPurpose || "Doctor Consultation"} • PLEASE PROCEED TO`}
@@ -1265,21 +1265,21 @@ export function WaitingRoomLiveQueueView({
             </div>
 
             {/* Visual Countdown Progress Bar & Kiosk Auto-Dismiss Status */}
-            <div className="space-y-2 pt-1 border-t border-border/60">
-              <div className="w-full h-2 sm:h-2.5 2xl:h-3 rounded-full bg-muted/60 overflow-hidden shadow-inner">
+            <div className="space-y-2 pt-1 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="w-full h-2 sm:h-2.5 2xl:h-3 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden shadow-inner">
                 <div
-                  className="h-full bg-gradient-to-r from-sky-500 to-indigo-500 transition-all duration-1000 ease-linear rounded-full"
+                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-1000 ease-linear rounded-full"
                   style={{ width: `${(countdownSeconds / 16) * 100}%` }}
                 />
               </div>
 
-              <div className="flex items-center justify-center gap-2 text-xs sm:text-sm 2xl:text-base font-mono text-muted-foreground">
-                <Volume2 className="size-3.5 sm:size-4 2xl:size-5 text-sky-500 animate-pulse shrink-0" />
+              <div className="flex items-center justify-center gap-2 text-xs sm:text-sm 2xl:text-base font-mono text-zinc-500 dark:text-zinc-400">
+                <Volume2 className="size-3.5 sm:size-4 2xl:size-5 text-emerald-500 animate-pulse shrink-0" />
                 <span>
                   {lang === "bn"
                     ? "ভয়েস ঘোষণা সম্পন্ন • স্বয়ংক্রিয়ভাবে বন্ধ হবে "
                     : "Chime & Voice Broadcast • Clearing automatically in "}
-                  <strong className="text-foreground font-black">
+                  <strong className="text-zinc-950 dark:text-white font-black">
                     {formatNumberByLang(countdownSeconds, lang)}
                     {lang === "bn" ? " সেকেন্ডে" : "s"}
                   </strong>
@@ -1302,22 +1302,22 @@ export function WaitingRoomLiveQueueView({
       >
         {/* Column 1: Therapy Queue */}
         {(departmentFilter === "ALL" || departmentFilter === "THERAPY") && (
-          <section className="flex flex-col min-h-[340px] md:min-h-0 md:h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl overflow-hidden shadow-xs">
+          <section className="flex flex-col min-h-[340px] md:min-h-0 md:h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
             {/* Compact Column Header */}
-            <div className="px-3 sm:px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-100/70 dark:bg-slate-900/80 shrink-0">
+            <div className="px-3 sm:px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                   <Activity className="size-4 2xl:size-5" />
                 </div>
-                <h2 className="text-sm sm:text-base 2xl:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100">
+                <h2 className="text-sm sm:text-base 2xl:text-lg font-black tracking-tight text-zinc-950 dark:text-white">
                   {lang === "bn" ? "থেরাপি সিরিয়াল" : "Therapy Queue"}
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-xs 2xl:text-sm font-mono font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30">
+                <span className="px-2 py-0.5 rounded-full text-xs 2xl:text-sm font-mono font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
                   {formatNumberByLang(therapyQueue.length, lang)}
                 </span>
               </div>
 
-              <span className="text-[10.5px] sm:text-xs 2xl:text-sm font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-[10.5px] sm:text-xs 2xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">
                 {lang === "bn" ? "থেরাপি রুমসমূহ" : "Therapy Rooms"}
               </span>
             </div>
@@ -1358,22 +1358,22 @@ export function WaitingRoomLiveQueueView({
 
         {/* Column 2: Consultation Queue */}
         {(departmentFilter === "ALL" || departmentFilter === "CONSULTATION") && (
-          <section className="flex flex-col min-h-[340px] md:min-h-0 md:h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl overflow-hidden shadow-xs">
+          <section className="flex flex-col min-h-[340px] md:min-h-0 md:h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
             {/* Compact Column Header */}
-            <div className="px-3 sm:px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-100/70 dark:bg-slate-900/80 shrink-0">
+            <div className="px-3 sm:px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
+                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                   <Stethoscope className="size-4 2xl:size-5" />
                 </div>
-                <h2 className="text-sm sm:text-base 2xl:text-lg font-black tracking-tight text-slate-900 dark:text-slate-100">
+                <h2 className="text-sm sm:text-base 2xl:text-lg font-black tracking-tight text-zinc-950 dark:text-white">
                   {lang === "bn" ? "কনসাল্টেশন সিরিয়াল" : "Consultation Queue"}
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-xs 2xl:text-sm font-mono font-bold bg-sky-500/15 text-sky-800 dark:text-sky-200 border border-sky-500/30">
+                <span className="px-2 py-0.5 rounded-full text-xs 2xl:text-sm font-mono font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
                   {formatNumberByLang(consultationQueue.length, lang)}
                 </span>
               </div>
 
-              <span className="text-[10.5px] sm:text-xs 2xl:text-sm font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-[10.5px] sm:text-xs 2xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">
                 {lang === "bn" ? "ডাক্তার চেম্বারসমূহ" : "Doctor Chambers"}
               </span>
             </div>
@@ -1416,11 +1416,11 @@ export function WaitingRoomLiveQueueView({
       {/* ---------------------------------------------------- */}
       {/* 2.5 Clinical Health & Patient Guidance Marquee Ticker */}
       {/* ---------------------------------------------------- */}
-      <div className="w-full bg-sky-50/90 dark:bg-sky-950/30 border-y border-sky-200/80 dark:border-sky-500/20 py-1 sm:py-1.5 px-3 sm:px-4 text-xs font-semibold text-foreground overflow-hidden whitespace-nowrap flex items-center gap-2.5 sm:gap-3 shrink-0">
-        <span className="bg-sky-600 text-white text-[9.5px] sm:text-[10px] 2xl:text-xs px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 shadow-2xs">
+      <div className="w-full bg-zinc-100 dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800 py-1 sm:py-1.5 px-3 sm:px-4 text-xs font-semibold text-zinc-900 dark:text-zinc-100 overflow-hidden whitespace-nowrap flex items-center gap-2.5 sm:gap-3 shrink-0">
+        <span className="bg-emerald-600 dark:bg-emerald-500 text-white text-[9.5px] sm:text-[10px] 2xl:text-xs px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 shadow-2xs">
           {lang === "bn" ? "জরুরি নোটিশ" : "CLINIC NOTICE"}
         </span>
-        <div className="overflow-hidden relative w-full text-[11px] sm:text-xs 2xl:text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">
+        <div className="overflow-hidden relative w-full text-[11px] sm:text-xs 2xl:text-sm text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
           <div className="inline-block animate-marquee whitespace-nowrap font-medium space-x-6 sm:space-x-8">
             {lang === "bn" ? (
               <>
@@ -1446,21 +1446,21 @@ export function WaitingRoomLiveQueueView({
       {/* ---------------------------------------------------- */}
       {/* 3. Screen Footer Ticker (Live Summary Counts)        */}
       {/* ---------------------------------------------------- */}
-      <footer className="w-full px-2.5 sm:px-4 md:px-6 py-1.5 sm:py-2 border-t border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/80 backdrop-blur-xl shrink-0 shadow-xs z-20 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs">
+      <footer className="w-full px-2.5 sm:px-4 md:px-6 py-1.5 sm:py-2 border-t border-zinc-200 dark:border-zinc-800/90 bg-white dark:bg-black shrink-0 shadow-xs z-20 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs text-zinc-900 dark:text-white">
         {/* Left: Queue Counters & Punctuality Breakdown */}
         <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-center sm:justify-start">
-          <div className="flex items-center gap-1 font-semibold text-slate-900 dark:text-slate-100 text-[11px] sm:text-[11.5px] 2xl:text-sm">
+          <div className="flex items-center gap-1 font-semibold text-zinc-950 dark:text-white text-[11px] sm:text-[11.5px] 2xl:text-sm">
             <Users className="size-3 sm:size-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>{lang === "bn" ? "মোট অপেক্ষমান:" : "Total Waiting:"}</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 font-bold font-mono text-[11px] sm:text-xs">
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 font-bold font-mono text-[11px] sm:text-xs">
               {formatNumberByLang(stats.total, lang)}
             </span>
           </div>
 
-          <div className="h-3 w-px bg-border hidden sm:block" />
+          <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
 
-          <div className="flex items-center gap-2 text-[10.5px] sm:text-[11px] 2xl:text-xs">
-            <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-300">
+          <div className="flex items-center gap-2.5 text-[10.5px] sm:text-[11px] 2xl:text-xs">
+            <span className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-zinc-100">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               <span>
                 {lang === "bn" ? "থেরাপি: " : "Therapy: "}
@@ -1468,8 +1468,8 @@ export function WaitingRoomLiveQueueView({
               </span>
             </span>
 
-            <span className="inline-flex items-center gap-1 font-semibold text-sky-700 dark:text-sky-300">
-              <span className="size-1.5 rounded-full bg-sky-500" />
+            <span className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-zinc-100">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
               <span>
                 {lang === "bn" ? "কনসাল্টেশন: " : "Consultation: "}
                 {formatNumberByLang(stats.consultationCount, lang)}
@@ -1477,10 +1477,10 @@ export function WaitingRoomLiveQueueView({
             </span>
           </div>
 
-          <div className="h-3 w-px bg-border hidden md:block" />
+          <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 hidden md:block" />
 
           {/* Punctuality counters */}
-          <div className="hidden md:flex items-center gap-2 text-[10px] sm:text-[10.5px] 2xl:text-xs text-muted-foreground">
+          <div className="hidden md:flex items-center gap-2 text-[10px] sm:text-[10.5px] 2xl:text-xs text-zinc-500 dark:text-zinc-400">
             <span className="inline-flex items-center gap-1">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               <span>
@@ -1506,7 +1506,7 @@ export function WaitingRoomLiveQueueView({
         </div>
 
         {/* Right: Hospital Notice */}
-        <div className="text-[10px] sm:text-[10.5px] 2xl:text-xs text-muted-foreground flex items-center gap-1">
+        <div className="text-[10px] sm:text-[10.5px] 2xl:text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
           <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
           <span>
             {lang === "bn"
@@ -1543,26 +1543,26 @@ function QueueItemCard({
     <div
       className={`rounded-xl border px-2.5 sm:px-3 py-1.5 sm:py-2 flex flex-col justify-between gap-1 shadow-2xs transition-all duration-150 ${
         isCalling
-          ? "bg-amber-500/15 dark:bg-amber-950/40 border-amber-500/60 ring-2 ring-amber-500/35 shadow-sm"
-          : `${p.cardClass} ${p.borderClass}`
+          ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/60 ring-2 ring-emerald-500/35 shadow-sm"
+          : `${p.cardClass} ${p.borderClass} bg-white dark:bg-zinc-950`
       }`}
     >
       {/* Top Row: Token #, Patient Name, Gender tag, Room #, Punctuality Badge */}
       <div className="flex items-center justify-between gap-1.5 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           {/* Prominent Token Badge */}
-          <span className="px-1.5 py-0.2 rounded font-mono font-black text-[10px] sm:text-[11px] 2xl:text-xs bg-slate-900/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shrink-0">
+          <span className="px-1.5 py-0.2 rounded font-mono font-black text-[10px] sm:text-[11px] 2xl:text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 shrink-0">
             #{formatNumberByLang(serialNumber, lang)}
           </span>
 
-          <h3 className="text-xs sm:text-sm 2xl:text-base font-black text-foreground tracking-tight truncate">
+          <h3 className="text-xs sm:text-sm 2xl:text-base font-black text-zinc-950 dark:text-white tracking-tight truncate">
             {item.patient?.name || (lang === "bn" ? "রোগী" : "Patient")}
           </h3>
 
           <span
             className={`px-1 py-0.2 rounded text-[9px] 2xl:text-[10px] font-bold shrink-0 border ${
               isMale
-                ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
+                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
                 : isFemale
                   ? "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20"
                   : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
@@ -1604,13 +1604,13 @@ function QueueItemCard({
             <span
               className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9.5px] 2xl:text-[10.5px] font-bold shrink-0 border ${
                 isCalling
-                  ? "bg-amber-500/25 text-amber-800 dark:text-amber-200 border-amber-500/50 animate-pulse font-bold"
+                  ? "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 border-emerald-500/50 animate-pulse font-bold"
                   : isServing
-                    ? "bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/40 animate-pulse"
-                    : "bg-muted text-muted-foreground border-border"
+                    ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 animate-pulse"
+                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
               }`}
             >
-              <DoorOpen className="size-2.5 2xl:size-3" />
+              <DoorOpen className="size-2.5 2xl:size-3 text-emerald-600 dark:text-emerald-400" />
               <span>
                 {lang === "bn"
                   ? `রুম ${formatNumberByLang(roomNumber, lang)}`
@@ -1622,7 +1622,7 @@ function QueueItemCard({
 
         {/* Late time / punctuality status badge */}
         {isCalling ? (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] 2xl:text-xs font-black border shrink-0 bg-amber-500 text-white border-amber-600 animate-pulse shadow-xs">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] sm:text-[10px] 2xl:text-xs font-black border shrink-0 bg-emerald-600 text-white border-emerald-700 animate-pulse shadow-xs">
             <Radio className="size-2.5 2xl:size-3 shrink-0" />
             <span>{lang === "bn" ? "ডাকছেন • CALLING" : "CALLING • ডাকছেন"}</span>
           </span>
@@ -1644,14 +1644,14 @@ function QueueItemCard({
 
       {/* Middle Row: Prominent "Will Call Time" or Calling Banner */}
       {isCalling ? (
-        <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/50 text-amber-950 dark:text-amber-100 shadow-xs animate-pulse ring-1 ring-amber-500/30">
-          <div className="flex items-center gap-1.5 text-[11px] 2xl:text-xs font-black text-amber-800 dark:text-amber-200">
-            <Radio className="size-3.5 2xl:size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+        <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-950 dark:text-emerald-100 shadow-xs animate-pulse ring-1 ring-emerald-500/30">
+          <div className="flex items-center gap-1.5 text-[11px] 2xl:text-xs font-black text-emerald-800 dark:text-emerald-200">
+            <Radio className="size-3.5 2xl:size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="tracking-wide text-[10.5px] 2xl:text-xs uppercase font-black">
               {lang === "bn" ? "চেম্বারে প্রবেশ করুন:" : "Please Enter Chamber:"}
             </span>
           </div>
-          <span className="text-xs sm:text-sm 2xl:text-base font-black font-mono tracking-tight text-amber-900 dark:text-amber-100 bg-amber-500/30 px-2 py-0.5 rounded border border-amber-500/40">
+          <span className="text-xs sm:text-sm 2xl:text-base font-black font-mono tracking-tight text-emerald-900 dark:text-emerald-100 bg-emerald-500/30 px-2 py-0.5 rounded border border-emerald-500/40">
             {roomNumber
               ? lang === "bn"
                 ? `রুম ${formatNumberByLang(roomNumber, lang)}`
@@ -1680,44 +1680,44 @@ function QueueItemCard({
           </span>
         </div>
       ) : item.willCallTime ? (
-        <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-sky-500/15 dark:bg-sky-950/50 border border-sky-500/35 text-sky-950 dark:text-sky-100 shadow-2xs">
-          <div className="flex items-center gap-1.5 text-[11px] 2xl:text-xs font-bold text-sky-700 dark:text-sky-300">
-            <Clock className="size-3.5 2xl:size-4 text-sky-600 dark:text-sky-400 shrink-0 animate-pulse" />
+        <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-500/30 text-emerald-950 dark:text-emerald-100 shadow-2xs">
+          <div className="flex items-center gap-1.5 text-[11px] 2xl:text-xs font-bold text-emerald-700 dark:text-emerald-300">
+            <Clock className="size-3.5 2xl:size-4 text-emerald-600 dark:text-emerald-400 shrink-0 animate-pulse" />
             <span className="tracking-wide text-[10.5px] 2xl:text-xs font-bold">
               {lang === "bn" ? "সম্ভাব্য ডাক:" : "Will Call:"}
             </span>
           </div>
-          <div className="flex items-center gap-1 bg-sky-500/20 dark:bg-sky-900/70 px-2 py-0.5 rounded border border-sky-500/30">
-            <span className="text-xs sm:text-sm 2xl:text-base font-black font-mono tracking-tight text-sky-900 dark:text-sky-100">
+          <div className="flex items-center gap-1 bg-emerald-500/20 dark:bg-emerald-900/60 px-2 py-0.5 rounded border border-emerald-500/30">
+            <span className="text-xs sm:text-sm 2xl:text-base font-black font-mono tracking-tight text-emerald-900 dark:text-emerald-100">
               {formatNumberByLang(item.willCallTime, lang)}
             </span>
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between px-2.5 py-0.5 rounded bg-muted/25 border border-border/40 text-[10px] 2xl:text-xs text-muted-foreground font-mono">
+        <div className="flex items-center justify-between px-2.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-[10px] 2xl:text-xs text-zinc-500 font-mono">
           <div className="flex items-center gap-1 text-[9.5px] 2xl:text-[10.5px]">
-            <Clock className="size-2.5 2xl:size-3 opacity-60 text-muted-foreground" />
+            <Clock className="size-2.5 2xl:size-3 opacity-60 text-zinc-400 dark:text-zinc-600" />
             <span>{lang === "bn" ? "সম্ভাব্য ডাক:" : "Will Call:"}</span>
           </div>
-          <span className="text-[10px] 2xl:text-xs text-muted-foreground/80 font-sans italic">
+          <span className="text-[10px] 2xl:text-xs text-zinc-400 dark:text-zinc-600 font-sans italic">
             {lang === "bn" ? "হিসাব হচ্ছে..." : "Estimating..."}
           </span>
         </div>
       )}
 
       {/* Bottom Row: Told Time & In Time */}
-      <div className="flex items-center justify-between text-[10px] sm:text-[10.5px] 2xl:text-xs font-mono pt-1 border-t border-border/40 leading-none">
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <span className="text-[9px] 2xl:text-[10px] uppercase font-semibold text-muted-foreground/75">
+      <div className="flex items-center justify-between text-[10px] sm:text-[10.5px] 2xl:text-xs font-mono pt-1 border-t border-zinc-200 dark:border-zinc-800 leading-none">
+        <div className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+          <span className="text-[9px] 2xl:text-[10px] uppercase font-semibold text-zinc-400 dark:text-zinc-500">
             {lang === "bn" ? "বলা:" : "Told:"}
           </span>
-          <span className="font-bold text-foreground">
+          <span className="font-bold text-zinc-900 dark:text-zinc-100">
             {formatNumberByLang(item.toldTime, lang) || "--:--"}
           </span>
         </div>
 
         <div className="flex items-center gap-1">
-          <span className="text-[9px] 2xl:text-[10px] uppercase font-semibold text-muted-foreground/75">
+          <span className="text-[9px] 2xl:text-[10px] uppercase font-semibold text-zinc-400 dark:text-zinc-500">
             {lang === "bn" ? "প্রবেশ:" : "In:"}
           </span>
           <span className={`font-bold ${p.textClass}`} suppressHydrationWarning>
@@ -1735,12 +1735,12 @@ function QueueItemCard({
 function EmptyQueueCard({ title }: { title: string }) {
   const { lang } = useI18n();
   return (
-    <div className="h-full min-h-[140px] rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 flex flex-col items-center justify-center p-4 text-center space-y-1.5 text-muted-foreground">
-      <Users className="size-5 2xl:size-6 text-muted-foreground/50" />
-      <span className="text-xs sm:text-sm 2xl:text-base font-semibold text-foreground/80">
+    <div className="h-full min-h-[140px] rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/40 flex flex-col items-center justify-center p-4 text-center space-y-1.5 text-zinc-400 dark:text-zinc-500">
+      <Users className="size-5 2xl:size-6 text-zinc-400 dark:text-zinc-600" />
+      <span className="text-xs sm:text-sm 2xl:text-base font-semibold text-zinc-800 dark:text-zinc-200">
         {title}
       </span>
-      <span className="text-[10px] sm:text-xs 2xl:text-sm font-mono text-muted-foreground/60">
+      <span className="text-[10px] sm:text-xs 2xl:text-sm font-mono text-zinc-400 dark:text-zinc-600">
         {lang === "bn"
           ? "নতুন রোগীর চেক-ইনের জন্য অপেক্ষা করা হচ্ছে..."
           : "Listening for real-time check-ins..."}
