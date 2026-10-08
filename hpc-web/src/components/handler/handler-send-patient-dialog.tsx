@@ -31,7 +31,6 @@ import {
   Check,
   FileText,
   Timer,
-  KeyRound,
 } from "lucide-react";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import type { PerformerModel } from "@/generated/prisma/models";
@@ -41,6 +40,7 @@ import {
 } from "@/actions/doctor/doctor.action";
 import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
 import { toast } from "sonner";
+import { StaffPerformerSelect } from "@/components/shared/staff-performer-select";
 import { DEFAULT_FEE } from "@/lib/billing";
 import { formatTime12h } from "@/lib/queue-punctuality";
 
@@ -359,141 +359,23 @@ function HandlerSendPatientDialogContent({
           </Badge>
         </div>
 
-        {/* 2. Therapy Performed By - Dedicated Performer Selector */}
-        <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-2.5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                <User className="size-4" />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <span>Therapy Performed By</span>
-                  <span className="text-rose-500">*</span>
-                </label>
-                <p className="text-[11px] text-muted-foreground">
-                  Select the physical therapist / handler who performed this session
-                </p>
-              </div>
-            </div>
-
-            {handlers.length === 1 ? (
-              <Badge
-                variant="outline"
-                className="self-start sm:self-auto bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-bold text-[10px] px-2 py-0.5"
-              >
-                Auto-selected (Sole Performer)
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="self-start sm:self-auto bg-muted text-muted-foreground text-[10px] font-mono px-2 py-0.5"
-              >
-                {handlers.length} Handlers Available
-              </Badge>
-            )}
-          </div>
-
-          {handlers.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic py-1">
-              No on-duty handlers configured.
-            </p>
-          ) : handlers.length === 1 ? (
-            <div className="flex items-center justify-between p-2.5 rounded-xl border border-emerald-500/40 bg-background shadow-2xs">
-              <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs">
-                  {handlers[0].name.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground">
-                    {handlers[0].name}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground font-mono">
-                    {handlers[0].phone || "Attending Physical Therapist"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold">
-                <Check className="size-3.5" />
-                <span>Selected</span>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-              {handlers.map((h) => {
-                const isSelected = selectedHandlerId === h.id;
-                return (
-                  <button
-                    type="button"
-                    key={h.id}
-                    onClick={() => setSelectedHandlerId(h.id)}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/25 shadow-2xs font-bold"
-                        : "border-border/80 bg-background/80 hover:border-border hover:bg-muted/40"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                          isSelected
-                            ? "bg-emerald-600 text-white"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {h.name.charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-foreground truncate">
-                          {h.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground font-mono truncate">
-                          {h.phone || "Therapist"}
-                        </p>
-                      </div>
-                    </div>
-                    {isSelected && (
-                      <div className="size-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 ml-1">
-                        <Check className="size-3 stroke-[2.5]" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Handler Performer PIN Code */}
-          {handlers.length > 0 && (
-            <div className="space-y-1.5 p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 mt-2">
-              <div className="flex items-center justify-between">
-                <label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                  <KeyRound className="size-3.5 text-emerald-500" />
-                  <span>Therapist 4-Digit PIN</span>
-                </label>
-                <span className="text-[10px] text-muted-foreground font-medium">
-                  Required for desk verification
-                </span>
-              </div>
-              <Input
-                type="password"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                name="handler_send_patient_auth_pin"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-form-type="other"
-                maxLength={4}
-                placeholder="Enter your 4-digit PIN"
-                value={handlerPin}
-                onChange={(e) =>
-                  setHandlerPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-                }
-                className="font-mono text-center tracking-widest text-base font-bold h-9 bg-background"
-              />
-            </div>
-          )}
-        </div>
+        {/* 2. Attending Physical Therapist Selector */}
+        <StaffPerformerSelect
+          performers={handlers.map((h) => ({
+            id: h.id,
+            name: h.name,
+            phone: h.phone || "",
+          }))}
+          selectedPerformerId={selectedHandlerId}
+          onSelectPerformerId={(id) => setSelectedHandlerId(id)}
+          pin={handlerPin}
+          onPinChange={(p) => setHandlerPin(p)}
+          label="Therapy Performed By"
+          pinLabel="Therapist 4-Digit PIN:"
+          fallbackRoleName="Therapy Floor"
+          roleIcon={Activity}
+          pinInputName="handler_send_patient_auth_pin"
+        />
 
         {/* 2. Billing Due Amount Editor Card */}
         <div className="p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-3">

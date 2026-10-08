@@ -56,10 +56,10 @@ import {
   ChevronRight,
   RotateCw,
   Calculator,
-  KeyRound,
   Compass,
 } from "lucide-react";
 import { CashDrawerCloseoutDialog } from "@/components/cashier/cash-drawer-closeout-dialog";
+import { StaffPerformerSelect } from "@/components/shared/staff-performer-select";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
@@ -814,112 +814,22 @@ export function CashierDashboardView({
               </div>
 
               {/* Cashier Performer Selection */}
-              {initialData.cashierPerformers.length === 1 ? (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                      <UserCheck className="size-3.5 text-amber-500" />
-                      <span>Authorizing Cashier</span>
-                    </label>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                      Auto-Selected
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-7 rounded-lg bg-amber-500/20 text-amber-800 dark:text-amber-200 font-bold flex items-center justify-center text-xs">
-                        {initialData.cashierPerformers[0].name
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground text-xs">
-                          {initialData.cashierPerformers[0].name}
-                        </p>
-                        <p className="text-[10px] font-mono text-muted-foreground">
-                          {initialData.cashierPerformers[0].phone}
-                        </p>
-                      </div>
-                    </div>
-                    <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                  </div>
-                </div>
-              ) : initialData.cashierPerformers.length > 1 ? (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                      <UserCheck className="size-3.5 text-amber-500" />
-                      <span>Authorizing Cashier</span>
-                    </label>
-                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                      Select Performer
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 max-h-28 overflow-y-auto pr-1">
-                    {initialData.cashierPerformers.map((cashier) => {
-                      const isSelected =
-                        selectedCashierPerformerId === cashier.id;
-                      return (
-                        <button
-                          key={cashier.id}
-                          type="button"
-                          onClick={() =>
-                            setSelectedCashierPerformerId(cashier.id)
-                          }
-                          className={`p-2 rounded-xl border text-left flex items-center justify-between cursor-pointer transition-all ${
-                            isSelected
-                              ? "border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-200 shadow-xs ring-1 ring-amber-500/40"
-                              : "border-border/80 bg-background text-muted-foreground hover:bg-muted/50"
-                          }`}
-                        >
-                          <div className="truncate">
-                            <p className="font-bold text-xs text-foreground truncate">
-                              {cashier.name}
-                            </p>
-                            <p className="text-[10px] font-mono text-muted-foreground">
-                              {cashier.phone}
-                            </p>
-                          </div>
-                          {isSelected && (
-                            <CheckCircle2 className="size-3.5 text-amber-600 dark:text-amber-400 shrink-0 ml-1" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Cashier Performer PIN Code */}
-              {initialData.cashierPerformers.length > 0 && (
-                <div className="space-y-1.5 p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5">
-                  <div className="flex items-center justify-between">
-                    <label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                      <KeyRound className="size-3.5 text-amber-500" />
-                      <span>Authorizing Cashier 4-Digit PIN</span>
-                    </label>
-                    <span className="text-[10px] text-muted-foreground font-medium">
-                      Required for desk verification
-                    </span>
-                  </div>
-                  <Input
-                    type="password"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    name="cashier_desk_auth_pin"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-form-type="other"
-                    maxLength={4}
-                    placeholder="Enter your 4-digit PIN"
-                    value={cashierPin}
-                    onChange={(e) =>
-                      setCashierPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-                    }
-                    className="font-mono text-center tracking-widest text-base font-bold h-9 bg-background"
-                  />
-                </div>
-              )}
+              <StaffPerformerSelect
+                performers={initialData.cashierPerformers.map((c) => ({
+                  id: c.id,
+                  name: c.name,
+                  phone: c.phone || "",
+                }))}
+                selectedPerformerId={selectedCashierPerformerId}
+                onSelectPerformerId={(id) => setSelectedCashierPerformerId(id)}
+                pin={cashierPin}
+                onPinChange={(p) => setCashierPin(p)}
+                label="Authorizing Cashier"
+                pinLabel="Cashier 4-Digit PIN:"
+                fallbackRoleName="Cashier Desk"
+                roleIcon={Banknote}
+                pinInputName="cashier_desk_auth_pin"
+              />
 
               {/* Amount Selection & Presets */}
               <div className="space-y-1.5">

@@ -189,12 +189,6 @@ export function PatientArrivalTab({
     }));
   }, [doctors]);
 
-  const performerSelectItems = React.useMemo(() => {
-    return performers.map((p) => ({
-      value: p.id,
-      label: p.name,
-    }));
-  }, [performers]);
 
   // Load Today Arrivals
   const loadTodayArrivals = React.useCallback(async () => {
@@ -1034,56 +1028,15 @@ export function PatientArrivalTab({
               </div>
 
               {/* Authorizing Receptionist Confirmation */}
-              <div className="p-3 rounded-xl border border-border/80 bg-muted/40 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Lock className="size-3.5 text-muted-foreground" />
-                    <span>Receptionist PIN Verification *</span>
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-normal">
-                    Accountability audit
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Select
-                    items={performerSelectItems}
-                    value={activePerformerId || ""}
-                    onValueChange={(val) => handlePerformerChange(val || "")}
-                  >
-                    <SelectTrigger className="w-full h-9 text-xs font-semibold bg-background border-border text-foreground">
-                      <SelectValue placeholder="Select Staff">
-                        {(val: string | null) => {
-                          const item = performerSelectItems.find((p) => p.value === val);
-                          return item ? item.label : "Select Staff";
-                        }}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="z-50 max-h-56">
-                      {performerSelectItems.map((p) => (
-                        <SelectItem key={p.value} value={p.value} className="text-xs">
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Input
-                    type="password"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    name="checkin_modal_auth_pin"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-form-type="other"
-                    maxLength={4}
-                    value={activePin}
-                    onChange={(e) => setActivePin(e.target.value.replace(/\D/g, ""))}
-                    placeholder="4-digit PIN"
-                    className="h-8.5 text-xs font-mono font-bold tracking-widest text-center rounded-lg bg-background"
-                    required
-                  />
-                </div>
-              </div>
+              <ReceptionistPerformerSelect
+                performers={performers}
+                selectedPerformerId={activePerformerId}
+                onSelectPerformerId={handlePerformerChange}
+                pin={activePin}
+                onPinChange={setActivePin}
+                label="Authorizing Receptionist / Desk Staff"
+                pinLabel="Staff 4-Digit PIN:"
+              />
 
               <DialogFooter className="pt-2 border-t border-border/60 flex items-center justify-end gap-2">
                 <Button
@@ -1398,53 +1351,15 @@ export function PatientArrivalTab({
               </div>
 
               {/* Staff PIN Authorization */}
-              <div className="p-3 rounded-xl border border-border/80 bg-muted/40 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Lock className="size-3.5 text-muted-foreground" />
-                    <span>Authorizing Receptionist & PIN *</span>
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Select
-                    items={performerSelectItems}
-                    value={activePerformerId || ""}
-                    onValueChange={(val) => handlePerformerChange(val || "")}
-                  >
-                    <SelectTrigger className="w-full h-9 text-xs font-semibold bg-background border-border text-foreground">
-                      <SelectValue placeholder="Select Staff">
-                        {(val: string | null) => {
-                          const item = performerSelectItems.find((p) => p.value === val);
-                          return item ? item.label : "Select Staff";
-                        }}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="z-50 max-h-56">
-                      {performerSelectItems.map((p) => (
-                        <SelectItem key={p.value} value={p.value} className="text-xs">
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Input
-                    type="password"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    name="register_modal_auth_pin"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-form-type="other"
-                    maxLength={4}
-                    value={activePin}
-                    onChange={(e) => setActivePin(e.target.value.replace(/\D/g, ""))}
-                    placeholder="4-digit PIN"
-                    className="h-8.5 text-xs font-mono font-bold tracking-widest text-center rounded-lg bg-background"
-                    required
-                  />
-                </div>
-              </div>
+              <ReceptionistPerformerSelect
+                performers={performers}
+                selectedPerformerId={activePerformerId}
+                onSelectPerformerId={handlePerformerChange}
+                pin={activePin}
+                onPinChange={setActivePin}
+                label="Authorizing Receptionist / Desk Staff"
+                pinLabel="Staff 4-Digit PIN:"
+              />
 
               <DialogFooter className="pt-2 border-t border-border/60 shrink-0 flex items-center justify-end gap-2">
                 <Button

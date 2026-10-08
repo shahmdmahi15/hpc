@@ -30,8 +30,9 @@ import {
   User,
   Radio,
   AlertCircle,
-  KeyRound,
+  Activity,
 } from "lucide-react";
+import { StaffPerformerSelect } from "@/components/shared/staff-performer-select";
 import { toast } from "sonner";
 import { evaluatePunctuality, formatTime12h } from "@/lib/queue-punctuality";
 
@@ -320,108 +321,22 @@ export function CallToTherapyRoomDialog({
           </div>
 
           {/* Section 2: Handler Performer Selection */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <User className="size-3.5 text-emerald-500" />
-                <span>Attending Therapist / Handler</span>
-                {handlers.length === 1 && (
-                  <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold">
-                    Auto-selected
-                  </span>
-                )}
-              </label>
-            </div>
-
-            {handlers.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">
-                No on-duty handlers configured.
-              </p>
-            ) : handlers.length === 1 ? (
-              <div className="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-6 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-[11px]">
-                    {handlers[0].name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">
-                      {handlers[0].name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-mono">
-                      Therapy Performer
-                    </p>
-                  </div>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="text-[9.5px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25"
-                >
-                  Sole Performer
-                </Badge>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {handlers.map((h) => {
-                  const isSelected = selectedHandlerId === h.id;
-                  return (
-                    <button
-                      type="button"
-                      key={h.id}
-                      onClick={() => setSelectedHandlerId(h.id)}
-                      className={`flex items-center justify-between p-2 rounded-xl border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/25 font-bold"
-                          : "border-border/80 bg-muted/20 hover:border-border hover:bg-muted/40"
-                      }`}
-                    >
-                      <div className="min-w-0">
-                        <p className="text-xs text-foreground truncate">
-                          {h.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground font-mono truncate">
-                          {h.phone || "Therapist"}
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <Check className="size-3.5 text-emerald-500 shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Handler Performer PIN Code */}
-          {handlers.length > 0 && (
-            <div className="space-y-1.5 p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-              <div className="flex items-center justify-between">
-                <label className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                  <KeyRound className="size-3.5 text-emerald-500" />
-                  <span>Therapist 4-Digit PIN</span>
-                </label>
-                <span className="text-[10px] text-muted-foreground font-medium">
-                  Required for desk verification
-                </span>
-              </div>
-              <Input
-                type="password"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                name="handler_call_room_auth_pin"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-form-type="other"
-                maxLength={4}
-                placeholder="Enter your 4-digit PIN"
-                value={handlerPin}
-                onChange={(e) =>
-                  setHandlerPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-                }
-                className="font-mono text-center tracking-widest text-base font-bold h-9 bg-background"
-              />
-            </div>
-          )}
+          <StaffPerformerSelect
+            performers={handlers.map((h) => ({
+              id: h.id,
+              name: h.name,
+              phone: h.phone || "",
+            }))}
+            selectedPerformerId={selectedHandlerId}
+            onSelectPerformerId={(id) => setSelectedHandlerId(id)}
+            pin={handlerPin}
+            onPinChange={(p) => setHandlerPin(p)}
+            label="Attending Therapist / Handler"
+            pinLabel="Therapist 4-Digit PIN:"
+            fallbackRoleName="Therapy Floor"
+            roleIcon={Activity}
+            pinInputName="handler_call_room_auth_pin"
+          />
 
           {/* Announcement Preview Box */}
           <div className="p-3 rounded-xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent flex items-center gap-3">
