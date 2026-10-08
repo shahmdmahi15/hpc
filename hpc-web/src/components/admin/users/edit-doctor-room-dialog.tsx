@@ -228,7 +228,7 @@ export function EditDoctorRoomDialog({
                 <SelectValue placeholder="Choose a chamber room..." />
               </SelectTrigger>
               <SelectContent className="max-h-56">
-                <SelectItem value="none">
+                <SelectItem value="none" label="-- No Chamber Assigned (Clear) --">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <XCircle className="size-3.5" />
                     <span>-- No Chamber Assigned (Clear) --</span>
@@ -240,9 +240,10 @@ export function EditDoctorRoomDialog({
                     room.accessType === RoomAccessType.DOCTOR ||
                     (room.purpose &&
                       room.purpose.toLowerCase().includes("consultation"));
+                  const roomLabel = `Room ${room.number}${room.purpose ? ` - ${room.purpose}` : ` (${room.accessType})`}`;
 
                   return (
-                    <SelectItem key={room.id} value={room.id}>
+                    <SelectItem key={room.id} value={room.id} label={roomLabel}>
                       <div className="flex items-center justify-between gap-3 w-full">
                         <span className="font-mono font-bold">
                           Room {room.number}

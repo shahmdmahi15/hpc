@@ -266,7 +266,11 @@ export function EditPerformerDialog({
                     const cfg = ROLES.find((r) => r.value === desk.role);
                     const Icon = cfg?.icon || Building2;
                     return (
-                      <SelectItem key={desk.id} value={desk.id}>
+                      <SelectItem
+                        key={desk.id}
+                        value={desk.id}
+                        label={`${cfg?.defaultLabel || desk.role} Desk`}
+                      >
                         <div className="flex items-center gap-2.5">
                           <div
                             className={cn(

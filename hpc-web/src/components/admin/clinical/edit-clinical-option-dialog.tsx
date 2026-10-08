@@ -195,6 +195,7 @@ function EditClinicalOptionForm({
                   <SelectItem
                     key={opt.value}
                     value={opt.value}
+                    label={opt.label}
                     className="text-xs"
                   >
                     {opt.label}

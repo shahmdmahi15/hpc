@@ -453,7 +453,12 @@ function AddToQueueDialogBody({
                     </SelectTrigger>
                     <SelectContent className="z-50 max-h-56">
                       {doctorSelectItems.map((item) => (
-                        <SelectItem key={item.value} value={item.value} className="text-xs">
+                        <SelectItem
+                          key={item.value}
+                          value={item.value}
+                          label={item.label}
+                          className="text-xs"
+                        >
                           {item.label}
                         </SelectItem>
                       ))}

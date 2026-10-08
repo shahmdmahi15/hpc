@@ -961,7 +961,12 @@ export function PatientArrivalTab({
                     </SelectTrigger>
                     <SelectContent className="z-50 max-h-56">
                       {doctorSelectItems.map((d) => (
-                        <SelectItem key={d.value} value={d.value} className="text-xs">
+                        <SelectItem
+                          key={d.value}
+                          value={d.value}
+                          label={d.label}
+                          className="text-xs"
+                        >
                           {d.label}
                         </SelectItem>
                       ))}
@@ -1339,7 +1344,12 @@ export function PatientArrivalTab({
                       </SelectTrigger>
                       <SelectContent className="z-50 max-h-56">
                         {doctorSelectItems.map((d) => (
-                          <SelectItem key={d.value} value={d.value} className="text-xs">
+                          <SelectItem
+                            key={d.value}
+                            value={d.value}
+                            label={d.label}
+                            className="text-xs"
+                          >
                             {d.label}
                           </SelectItem>
                         ))}

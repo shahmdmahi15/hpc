@@ -273,37 +273,37 @@ function EditRoomForm({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={RoomAccessType.THERAPY}>
+                <SelectItem value={RoomAccessType.THERAPY} label="Therapy Room (Physical Therapy)">
                   <div className="flex items-center gap-2">
                     <Activity className="size-3.5 text-teal-500" />
                     <span>Therapy Room (Physical Therapy)</span>
                   </div>
                 </SelectItem>
-                <SelectItem value={RoomAccessType.PUBLIC}>
+                <SelectItem value={RoomAccessType.PUBLIC} label="Public (All Visitors)">
                   <div className="flex items-center gap-2">
                     <Globe className="size-3.5 text-emerald-500" />
                     <span>Public (All Visitors)</span>
                   </div>
                 </SelectItem>
-                <SelectItem value={RoomAccessType.STAFF}>
+                <SelectItem value={RoomAccessType.STAFF} label="Staff Only">
                   <div className="flex items-center gap-2">
                     <Users className="size-3.5 text-blue-500" />
                     <span>Staff Only</span>
                   </div>
                 </SelectItem>
-                <SelectItem value={RoomAccessType.DOCTOR}>
+                <SelectItem value={RoomAccessType.DOCTOR} label="Doctor Console">
                   <div className="flex items-center gap-2">
                     <Stethoscope className="size-3.5 text-purple-500" />
                     <span>Doctor Console</span>
                   </div>
                 </SelectItem>
-                <SelectItem value={RoomAccessType.CASHIER}>
+                <SelectItem value={RoomAccessType.CASHIER} label="Cashier Register / Billing">
                   <div className="flex items-center gap-2">
                     <Banknote className="size-3.5 text-amber-500" />
                     <span>Cashier Register / Billing</span>
                   </div>
                 </SelectItem>
-                <SelectItem value={RoomAccessType.PRIVATE}>
+                <SelectItem value={RoomAccessType.PRIVATE} label="Private / VIP">
                   <div className="flex items-center gap-2">
                     <DoorOpen className="size-3.5 text-amber-500" />
                     <span>Private / VIP</span>
@@ -338,15 +338,15 @@ function EditRoomForm({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={RoomGender.COMMON}>
+                <SelectItem value={RoomGender.COMMON} label="All / Common">
                   <span className="font-medium">All / Common</span>
                 </SelectItem>
-                <SelectItem value={RoomGender.MALE}>
+                <SelectItem value={RoomGender.MALE} label="Male Dedicated">
                   <span className="text-sky-600 dark:text-sky-400 font-medium">
                     Male Dedicated
                   </span>
                 </SelectItem>
-                <SelectItem value={RoomGender.FEMALE}>
+                <SelectItem value={RoomGender.FEMALE} label="Female Dedicated">
                   <span className="text-pink-600 dark:text-pink-400 font-medium">
                     Female Dedicated
                   </span>
@@ -382,19 +382,19 @@ function EditRoomForm({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={RoomStatus.AVAILABLE}>
+              <SelectItem value={RoomStatus.AVAILABLE} label="Available (Ready for Use)">
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-emerald-500" />
                   <span>Available (Ready for Use)</span>
                 </div>
               </SelectItem>
-              <SelectItem value={RoomStatus.OCCUPIED}>
+              <SelectItem value={RoomStatus.OCCUPIED} label="Occupied (In Active Use)">
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-amber-500" />
                   <span>Occupied (In Active Use)</span>
                 </div>
               </SelectItem>
-              <SelectItem value={RoomStatus.MAINTENANCE}>
+              <SelectItem value={RoomStatus.MAINTENANCE} label="Maintenance (Out of Service)">
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-rose-500" />
                   <span>Maintenance (Out of Service)</span>

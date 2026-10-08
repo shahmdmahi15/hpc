@@ -519,7 +519,7 @@ export function SlotManagementView({ initialData }: SlotManagementViewProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
+                    <SelectItem key={item.value} value={item.value} label={item.label}>
                       {item.label}
                     </SelectItem>
                   ))}
@@ -542,7 +542,7 @@ export function SlotManagementView({ initialData }: SlotManagementViewProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {STATE_OPTIONS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
+                    <SelectItem key={item.value} value={item.value} label={item.label}>
                       {item.label}
                     </SelectItem>
                   ))}
@@ -565,7 +565,7 @@ export function SlotManagementView({ initialData }: SlotManagementViewProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {DAY_OPTIONS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
+                    <SelectItem key={item.value} value={item.value} label={item.label}>
                       {item.label}
                     </SelectItem>
                   ))}
@@ -590,7 +590,7 @@ export function SlotManagementView({ initialData }: SlotManagementViewProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {roomFilterOptions.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
+                    <SelectItem key={item.value} value={item.value} label={item.label}>
                       {item.label}
                     </SelectItem>
                   ))}

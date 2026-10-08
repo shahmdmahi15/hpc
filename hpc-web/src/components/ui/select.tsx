@@ -6,7 +6,78 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react";
 
-const Select = SelectPrimitive.Root;
+function extractText(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).filter(Boolean).join(" ");
+  if (React.isValidElement(node)) {
+    const props = node.props as { children?: React.ReactNode };
+    return extractText(props.children);
+  }
+  return "";
+}
+
+function collectItemLabels(
+  node: React.ReactNode,
+  acc: Record<string, React.ReactNode> = {},
+): Record<string, React.ReactNode> {
+  if (!node) return acc;
+  React.Children.forEach(node, (child) => {
+    if (!React.isValidElement(child)) return;
+    const props = child.props as {
+      value?: any;
+      label?: React.ReactNode;
+      children?: React.ReactNode;
+    };
+    if (props && "value" in props && props.value !== undefined) {
+      const val = String(props.value);
+      const label =
+        props.label !== undefined
+          ? props.label
+          : extractText(props.children) || val;
+      acc[val] = label;
+      if (typeof props.value !== "string") {
+        acc[props.value] = label;
+      }
+    }
+    if (props && props.children) {
+      collectItemLabels(props.children, acc);
+    }
+  });
+  return acc;
+}
+
+function Select<Value = any, Multiple extends boolean | undefined = false>({
+  children,
+  items,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  const autoItems = React.useMemo(() => {
+    if (items) {
+      if (Array.isArray(items)) {
+        const map: Record<string, React.ReactNode> = {};
+        for (const it of items) {
+          if (it && typeof it === "object" && "value" in it) {
+            const val = String((it as any).value);
+            map[val] = (it as any).label ?? val;
+            if (typeof (it as any).value !== "string") {
+              map[(it as any).value] = (it as any).label ?? val;
+            }
+          }
+        }
+        return map;
+      }
+      return items;
+    }
+    return collectItemLabels(children);
+  }, [children, items]);
+
+  return (
+    <SelectPrimitive.Root items={autoItems} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  );
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -114,11 +185,13 @@ function SelectLabel({
 function SelectItem({
   className,
   children,
+  label,
   ...props
-}: SelectPrimitive.Item.Props) {
+}: SelectPrimitive.Item.Props & { label?: string }) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
+      label={label}
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,

@@ -273,10 +273,10 @@ function EditPatientForm({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={Gender.MALE} className="text-xs">
+                  <SelectItem value={Gender.MALE} label="Male" className="text-xs">
                     Male
                   </SelectItem>
-                  <SelectItem value={Gender.FEMALE} className="text-xs">
+                  <SelectItem value={Gender.FEMALE} label="Female" className="text-xs">
                     Female
                   </SelectItem>
                 </SelectContent>

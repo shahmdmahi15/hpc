@@ -214,7 +214,7 @@ export function AuditFilterBar({
           </SelectTrigger>
           <SelectContent>
             {DATE_RANGE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
+              <SelectItem key={opt.value} value={opt.value} label={opt.label}>
                 {opt.label}
               </SelectItem>
             ))}
@@ -242,7 +242,7 @@ export function AuditFilterBar({
           </SelectTrigger>
           <SelectContent>
             {AUDIT_STATUS_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
+              <SelectItem key={opt.value} value={opt.value} label={opt.label}>
                 {opt.label}
               </SelectItem>
             ))}
@@ -270,7 +270,7 @@ export function AuditFilterBar({
           </SelectTrigger>
           <SelectContent>
             {AUDIT_ACTION_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
+              <SelectItem key={opt.value} value={opt.value} label={opt.label}>
                 {opt.label}
               </SelectItem>
             ))}
@@ -298,7 +298,7 @@ export function AuditFilterBar({
           </SelectTrigger>
           <SelectContent>
             {ROLE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
+              <SelectItem key={opt.value} value={opt.value} label={opt.label}>
                 {opt.label}
               </SelectItem>
             ))}
@@ -333,9 +333,15 @@ export function AuditFilterBar({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Performers</SelectItem>
+              <SelectItem value="ALL" label="All Performers">
+                All Performers
+              </SelectItem>
               {performers.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
+                <SelectItem
+                  key={p.id}
+                  value={p.id}
+                  label={`${p.name} (${p.phone.slice(-4)})`}
+                >
                   {p.name} ({p.phone.slice(-4)})
                 </SelectItem>
               ))}

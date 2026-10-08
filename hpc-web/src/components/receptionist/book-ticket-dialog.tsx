@@ -497,6 +497,7 @@ export function BookTicketDialog({
                       <SelectItem
                         key={s.value}
                         value={s.value}
+                        label={s.label}
                         className="text-xs"
                       >
                         {s.label}
@@ -546,6 +547,7 @@ export function BookTicketDialog({
                         <SelectItem
                           key={h.value}
                           value={h.value}
+                          label={h.label}
                           className="text-xs font-mono"
                         >
                           {h.label}
@@ -584,6 +586,7 @@ export function BookTicketDialog({
                         <SelectItem
                           key={m.value}
                           value={m.value}
+                          label={m.label}
                           className="text-xs font-mono"
                         >
                           {m.label}

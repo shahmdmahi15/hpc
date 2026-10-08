@@ -164,7 +164,7 @@ export function PatientDirectoryView({
             </SelectTrigger>
             <SelectContent className="text-xs z-50">
               {GENDER_FILTER_ITEMS.map((item) => (
-                <SelectItem key={item.value} value={item.value} className="text-xs">
+                <SelectItem key={item.value} value={item.value} label={item.label} className="text-xs">
                   {item.label}
                 </SelectItem>
               ))}

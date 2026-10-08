@@ -320,7 +320,7 @@ export function CreateSlotDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {roomItems.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>
+                      <SelectItem key={r.value} value={r.value} label={r.label}>
                         {r.label}
                       </SelectItem>
                     ))}
@@ -347,7 +347,7 @@ export function CreateSlotDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {SLOT_STATUS_ITEMS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
+                      <SelectItem key={s.value} value={s.value} label={s.label}>
                         {s.label}
                       </SelectItem>
                     ))}

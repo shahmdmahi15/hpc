@@ -25,6 +25,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Activity,
   ArrowRight,
   Banknote,
@@ -905,19 +912,29 @@ function TransferStationDialog({
                 <Stethoscope className="size-3.5" />
                 <span>Assign Consulting Doctor</span>
               </Label>
-              <select
-                value={selectedDoctorId}
-                onChange={(e) => setSelectedDoctorId(e.target.value)}
-                className="w-full text-xs h-9 px-3 rounded-lg border border-border/80 bg-background text-foreground cursor-pointer font-medium"
+              <Select
+                value={selectedDoctorId || "ANY"}
+                onValueChange={(val) =>
+                  setSelectedDoctorId(val === "ANY" || !val ? "" : val)
+                }
               >
-                <option value="">Keep current / Any Doctor</option>
-                {doctors.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.name || "Doctor"} (Fee: ৳
-                    {(doc.consultationFee ?? 1000).toLocaleString()})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full text-xs h-9 bg-background border-border/80 text-foreground font-medium">
+                  <SelectValue placeholder="Keep current / Any Doctor" />
+                </SelectTrigger>
+                <SelectContent className="max-h-56">
+                  <SelectItem value="ANY" label="Keep current / Any Doctor">
+                    Keep current / Any Doctor
+                  </SelectItem>
+                  {doctors.map((doc) => {
+                    const docLabel = `${doc.name || "Doctor"} (Fee: ৳${(doc.consultationFee ?? 1000).toLocaleString()})`;
+                    return (
+                      <SelectItem key={doc.id} value={doc.id} label={docLabel}>
+                        {docLabel}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -929,18 +946,29 @@ function TransferStationDialog({
                 <DoorOpen className="size-3.5 text-muted-foreground" />
                 <span>Assign Room (Optional)</span>
               </Label>
-              <select
-                value={selectedRoomId}
-                onChange={(e) => setSelectedRoomId(e.target.value)}
-                className="w-full text-xs h-9 px-3 rounded-lg border border-border/80 bg-background text-foreground cursor-pointer font-medium"
+              <Select
+                value={selectedRoomId || "NONE"}
+                onValueChange={(val) =>
+                  setSelectedRoomId(val === "NONE" || !val ? "" : val)
+                }
               >
-                <option value="">No specific room</option>
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    Room {r.number} ({r.purpose})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full text-xs h-9 bg-background border-border/80 text-foreground font-medium">
+                  <SelectValue placeholder="No specific room" />
+                </SelectTrigger>
+                <SelectContent className="max-h-56">
+                  <SelectItem value="NONE" label="No specific room">
+                    No specific room
+                  </SelectItem>
+                  {rooms.map((r) => {
+                    const rLabel = `Room ${r.number}${r.purpose ? ` (${r.purpose})` : ""}`;
+                    return (
+                      <SelectItem key={r.id} value={r.id} label={rLabel}>
+                        {rLabel}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -1319,19 +1347,33 @@ function QuickCheckInWithoutSlotDialog({
                       Preset fee loads automatically
                     </span>
                   </Label>
-                  <select
-                    value={selectedDoctorId}
-                    onChange={(e) => handleDoctorChange(e.target.value)}
-                    className="w-full text-xs h-9 px-3 rounded-lg border border-border/80 bg-background text-foreground cursor-pointer font-medium"
+                  <Select
+                    value={selectedDoctorId || "GENERAL"}
+                    onValueChange={(val) => {
+                      const finalVal = val === "GENERAL" || !val ? "" : val;
+                      handleDoctorChange(finalVal);
+                    }}
                   >
-                    <option value="">General Consultation (No Doctor)</option>
-                    {doctors.map((doc) => (
-                      <option key={doc.id} value={doc.id}>
-                        {doc.name || "Doctor"} — Preset: ৳
-                        {(doc.consultationFee ?? 1000).toLocaleString()}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full text-xs h-9 bg-background border-border/80 text-foreground font-medium">
+                      <SelectValue placeholder="General Consultation (No Doctor)" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      <SelectItem
+                        value="GENERAL"
+                        label="General Consultation (No Doctor)"
+                      >
+                        General Consultation (No Doctor)
+                      </SelectItem>
+                      {doctors.map((doc) => {
+                        const docLabel = `${doc.name || "Doctor"} — Preset: ৳${(doc.consultationFee ?? 1000).toLocaleString()}`;
+                        return (
+                          <SelectItem key={doc.id} value={doc.id} label={docLabel}>
+                            {docLabel}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
@@ -1390,18 +1432,29 @@ function QuickCheckInWithoutSlotDialog({
                 <Label className="text-xs font-bold text-foreground">
                   Room (Optional)
                 </Label>
-                <select
-                  value={selectedRoomId}
-                  onChange={(e) => setSelectedRoomId(e.target.value)}
-                  className="w-full text-xs h-9 px-3 rounded-lg border border-border/80 bg-background text-foreground cursor-pointer font-medium"
+                <Select
+                  value={selectedRoomId || "NONE"}
+                  onValueChange={(val) =>
+                    setSelectedRoomId(val === "NONE" || !val ? "" : val)
+                  }
                 >
-                  <option value="">No Room Assigned</option>
-                  {rooms.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      Room {r.number} ({r.purpose})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full text-xs h-9 bg-background border-border/80 text-foreground font-medium">
+                    <SelectValue placeholder="No Room Assigned" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-56">
+                    <SelectItem value="NONE" label="No Room Assigned">
+                      No Room Assigned
+                    </SelectItem>
+                    {rooms.map((r) => {
+                      const rLabel = `Room ${r.number}${r.purpose ? ` (${r.purpose})` : ""}`;
+                      return (
+                        <SelectItem key={r.id} value={r.id} label={rLabel}>
+                          {rLabel}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1.5">
