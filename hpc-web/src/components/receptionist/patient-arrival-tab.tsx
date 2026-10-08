@@ -56,6 +56,7 @@ import {
   Ticket,
   ArrowRight,
   Filter,
+  DoorOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBSTShortDate } from "@/lib/date";
@@ -108,6 +109,8 @@ interface PatientSearchResult {
     paymentStatus: string | null;
     doctorName: string | null;
     slotLabel: string | null;
+    roomId?: string | null;
+    roomNumber?: string | null;
   } | null;
 }
 
@@ -168,12 +171,7 @@ export function PatientArrivalTab({
   const [regEmergencyPhone, setRegEmergencyPhone] = React.useState<string>("");
   const [regProfession, setRegProfession] = React.useState<string>("");
   const [regBloodGroup, setRegBloodGroup] = React.useState<string>("");
-  const [regQueueType, setRegQueueType] = React.useState<QueueType>(
-    QueueType.THERAPY,
-  );
-  const [regDoctorId, setRegDoctorId] = React.useState<string>(
-    () => (doctors[0]?.id ?? ""),
-  );
+  const [regCheckInNow, setRegCheckInNow] = React.useState<boolean>(true);
   const [regToldTime, setRegToldTime] = React.useState<string>("");
   const [regNotes, setRegNotes] = React.useState<string>("");
   const [isSubmittingRegister, setIsSubmittingRegister] =
@@ -253,8 +251,7 @@ export function PatientArrivalTab({
     setRegEmergencyPhone("");
     setRegProfession("");
     setRegBloodGroup("");
-    setRegQueueType(QueueType.THERAPY);
-    setRegDoctorId(doctors[0]?.id ?? "");
+    setRegCheckInNow(true);
     setRegToldTime("");
     setRegNotes("");
     setActivePin("");
@@ -298,20 +295,12 @@ export function PatientArrivalTab({
 
     setIsSubmittingCheckIn(true);
     try {
-      const selectedDoc =
-        checkInQueueType === QueueType.CONSULTATION && checkInDoctorId
-          ? doctors.find((d) => d.id === checkInDoctorId)
-          : undefined;
-
       const res = await checkInArrivingPatientAction({
         patientId: checkInModalPatient.id,
         performerId: activePerformerId,
         pin: activePin,
-        queueType: checkInQueueType,
-        doctorId: checkInQueueType === QueueType.CONSULTATION ? checkInDoctorId : undefined,
         toldTime: checkInToldTime.trim() || undefined,
         notes: checkInNotes.trim() || undefined,
-        feeAmount: selectedDoc?.consultationFee,
       });
 
       if (res.success) {
@@ -332,7 +321,7 @@ export function PatientArrivalTab({
     }
   };
 
-  // Submit Registration and Immediate Check-In
+  // Submit Registration and Immediate Check-In (places in Waiting Room 200)
   const handleConfirmRegisterAndCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -361,11 +350,6 @@ export function PatientArrivalTab({
 
     setIsSubmittingRegister(true);
     try {
-      const selectedDoc =
-        regQueueType === QueueType.CONSULTATION && regDoctorId
-          ? doctors.find((d) => d.id === regDoctorId)
-          : undefined;
-
       const res = await createPatientAction({
         name: regName.trim(),
         phone: cleanedPhone,
@@ -378,12 +362,9 @@ export function PatientArrivalTab({
         bloodGroup: regBloodGroup.trim() || undefined,
         performerId: activePerformerId,
         pin: activePin,
-        checkInNow: true,
-        queueType: regQueueType,
-        doctorId: regQueueType === QueueType.CONSULTATION ? regDoctorId : undefined,
+        checkInNow: regCheckInNow,
         toldTime: regToldTime.trim() || undefined,
         notes: regNotes.trim() || undefined,
-        feeAmount: selectedDoc?.consultationFee,
       });
 
       if (res.success) {
@@ -644,7 +625,9 @@ export function PatientArrivalTab({
                       <div>
                         {hasArrivedToday ? (
                           <div className="text-[11px] text-center font-bold py-1 text-emerald-600 dark:text-emerald-400">
-                            Station: {patient.todayAppointment?.currentStation || "Active Queue"}
+                            {patient.todayAppointment?.currentStation === "RECEPTIONIST_DESK" || patient.todayAppointment?.roomNumber === "200"
+                              ? "Waiting Room 200 (Checked In)"
+                              : `Station: ${patient.todayAppointment?.currentStation || "Active Queue"}`}
                           </div>
                         ) : (
                           <Button
@@ -773,14 +756,18 @@ export function PatientArrivalTab({
                           </span>
                           <span
                             className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded border ${
-                              apt.queueType === QueueType.CONSULTATION
-                                ? "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20"
-                                : "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
+                              apt.room?.number === "200" || apt.currentStation === "RECEPTIONIST_DESK"
+                                ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
+                                : apt.queueType === QueueType.CONSULTATION
+                                  ? "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20"
+                                  : "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
                             }`}
                           >
-                            {apt.queueType === QueueType.CONSULTATION
-                              ? "Doctor Consultation"
-                              : "Physical Therapy"}
+                            {apt.room?.number === "200" || apt.currentStation === "RECEPTIONIST_DESK"
+                              ? "Waiting Room 200"
+                              : apt.queueType === QueueType.CONSULTATION
+                                ? "Doctor Consultation"
+                                : "Physical Therapy"}
                           </span>
                         </div>
 
@@ -809,7 +796,9 @@ export function PatientArrivalTab({
 
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                       <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-muted text-foreground border">
-                        {apt.currentStation || "RECEPTIONIST_DESK"}
+                        {apt.currentStation === "RECEPTIONIST_DESK" || apt.room?.number === "200"
+                          ? "Waiting Room 200"
+                          : apt.currentStation || "RECEPTIONIST_DESK"}
                       </span>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -893,87 +882,25 @@ export function PatientArrivalTab({
                 </div>
               </div>
 
-              {/* Destination Queue Selection */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">
-                  Clinical Queue Destination *
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCheckInQueueType(QueueType.THERAPY)}
-                    className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-                      checkInQueueType === QueueType.THERAPY
-                        ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500 ring-1 ring-sky-500"
-                        : "bg-background border-border text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Activity className="size-3.5 text-sky-500" />
-                      <span>Physical Therapy</span>
+              {/* Destination Indicator: Waiting Room 200 */}
+              <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 shrink-0">
+                  <DoorOpen className="size-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-foreground">
+                      Destination: Waiting Room 200
                     </span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      Queue
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 font-bold">
+                      Public Waiting Lounge
                     </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setCheckInQueueType(QueueType.CONSULTATION)}
-                    className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-                      checkInQueueType === QueueType.CONSULTATION
-                        ? "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500 ring-1 ring-indigo-500"
-                        : "bg-background border-border text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Stethoscope className="size-3.5 text-indigo-500" />
-                      <span>Doctor Consultation</span>
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      Chamber
-                    </span>
-                  </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Patient will be marked as checked in and placed into Waiting Room 200. Specific queue or doctor chamber assignment is deferred until called.
+                  </p>
                 </div>
               </div>
-
-              {/* If Doctor Consultation Queue: Select Doctor */}
-              {checkInQueueType === QueueType.CONSULTATION && doctors.length > 0 && (
-                <div className="space-y-1.5 p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5">
-                  <Label className="text-xs font-bold text-foreground flex items-center justify-between">
-                    <span>Consulting Doctor</span>
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      Fee automatically populated
-                    </span>
-                  </Label>
-                  <Select
-                    items={doctorSelectItems}
-                    value={checkInDoctorId || ""}
-                    onValueChange={(val) => setCheckInDoctorId(val || "")}
-                  >
-                    <SelectTrigger className="w-full h-9 text-xs font-semibold bg-background border-border text-foreground">
-                      <SelectValue placeholder="Select Doctor">
-                        {(val: string | null) => {
-                          const item = doctorSelectItems.find((d) => d.value === val);
-                          return item ? item.label : "Select Doctor";
-                        }}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="z-50 max-h-56">
-                      {doctorSelectItems.map((d) => (
-                        <SelectItem
-                          key={d.value}
-                          value={d.value}
-                          label={d.label}
-                          className="text-xs"
-                        >
-                          {d.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               {/* Check-In Timestamp & Told Time */}
               <div className="grid grid-cols-2 gap-3">
@@ -1285,78 +1212,25 @@ export function PatientArrivalTab({
                 </div>
               </div>
 
-              {/* Immediate Check-In Settings */}
-              <div className="p-3.5 rounded-xl border border-border/80 bg-muted/30 space-y-3">
-                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <UserCheck className="size-3.5 text-sky-500" />
-                  <span>Immediate Arrival Check-In Routing</span>
-                </span>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRegQueueType(QueueType.THERAPY)}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-                      regQueueType === QueueType.THERAPY
-                        ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500 ring-1 ring-sky-500"
-                        : "bg-background border-border text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <span>Physical Therapy</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      Queue
+              {/* Immediate Check-In Settings: Checkbox & Waiting Room 200 */}
+              <div className="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5 space-y-2.5">
+                <label className="flex items-start gap-2.5 text-xs text-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={regCheckInNow}
+                    onChange={(e) => setRegCheckInNow(e.target.checked)}
+                    className="size-4 mt-0.5 rounded text-emerald-600 accent-emerald-600 cursor-pointer shrink-0"
+                  />
+                  <div>
+                    <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                      <DoorOpen className="size-4 text-emerald-600 dark:text-emerald-400" />
+                      Mark check-in now (Waiting Room 200)
                     </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRegQueueType(QueueType.CONSULTATION)}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-                      regQueueType === QueueType.CONSULTATION
-                        ? "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500 ring-1 ring-indigo-500"
-                        : "bg-background border-border text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <span>Doctor Consultation</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      Queue
-                    </span>
-                  </button>
-                </div>
-
-                {regQueueType === QueueType.CONSULTATION && doctors.length > 0 && (
-                  <div className="space-y-1 pt-1">
-                    <Label className="text-xs font-semibold text-foreground">
-                      Assigned Doctor
-                    </Label>
-                    <Select
-                      items={doctorSelectItems}
-                      value={regDoctorId || ""}
-                      onValueChange={(val) => setRegDoctorId(val || "")}
-                    >
-                      <SelectTrigger className="w-full h-9 text-xs font-semibold bg-background border-border text-foreground">
-                        <SelectValue placeholder="Select Doctor">
-                          {(val: string | null) => {
-                            const item = doctorSelectItems.find((d) => d.value === val);
-                            return item ? item.label : "Select Doctor";
-                          }}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="z-50 max-h-56">
-                        {doctorSelectItems.map((d) => (
-                          <SelectItem
-                            key={d.value}
-                            value={d.value}
-                            label={d.label}
-                            className="text-xs"
-                          >
-                            {d.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Automatically checks in patient to Waiting Room 200 upon registration without queue assignment.
+                    </p>
                   </div>
-                )}
+                </label>
               </div>
 
               {/* Staff PIN Authorization */}

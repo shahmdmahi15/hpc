@@ -16,6 +16,8 @@ import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 import { logAudit } from "@/lib/audit";
 import { syncBillingForAppointment } from "@/lib/billing-sync";
 import { revalidatePath } from "next/cache";
+import { getOrCreateWaitingRoom200 } from "@/actions/receptionist/patient.action";
+import { verifyPerformerPin } from "@/lib/performer-auth";
 
 export type PatientStation =
   | "RECEPTIONIST_DESK"
@@ -277,6 +279,7 @@ export interface TransferStationInput {
   doctorId?: string;
   notes?: string;
   performerId?: string;
+  pin?: string;
 }
 
 /**
@@ -295,6 +298,16 @@ export async function transferPatientStationAction(
   ]);
 
   try {
+    if (input.performerId && input.pin) {
+      const pinRes = await verifyPerformerPin(input.performerId, input.pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid security PIN for authorizing staff.",
+        };
+      }
+    }
+
     const apt = await prisma.appointment.findUnique({
       where: { id: input.appointmentId },
       include: { patient: true, doctor: true, room: true },
@@ -336,6 +349,10 @@ export async function transferPatientStationAction(
       case "RECEPTIONIST_DESK":
         updateData.status = AppointmentStatus.CHECKED_IN;
         if (!apt.checkInTime) updateData.checkInTime = now;
+        if (!input.roomId) {
+          const room200 = await getOrCreateWaitingRoom200();
+          updateData.roomId = room200.id;
+        }
         break;
 
       case "CONSULTATION_ROOM":
@@ -410,7 +427,7 @@ export async function transferPatientStationAction(
     revalidatePath("/admin/tracking");
 
     const stationLabelMap: Record<PatientStation, string> = {
-      RECEPTIONIST_DESK: "Receptionist Desk (Waiting Area)",
+      RECEPTIONIST_DESK: "Waiting Room 200 (Arrival Desk)",
       CONSULTATION_ROOM: "Doctor Consultation Room",
       CASHIER_REGISTER: "Cashier Register",
       THERAPY_ROOM: "Therapy Room",
@@ -437,6 +454,7 @@ export interface QuickCheckInWithoutSlotInput {
   toldTime?: string;
   notes?: string;
   performerId?: string;
+  pin?: string;
 }
 
 /**
@@ -455,6 +473,16 @@ export async function quickCheckInWithoutSlotAction(
   ]);
 
   try {
+    if (input.performerId && input.pin) {
+      const pinRes = await verifyPerformerPin(input.performerId, input.pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid security PIN for authorizing staff.",
+        };
+      }
+    }
+
     const patient = await prisma.patient.findUnique({
       where: { id: input.patientId },
     });
@@ -486,6 +514,12 @@ export async function quickCheckInWithoutSlotAction(
     const station = input.station || "RECEPTIONIST_DESK";
     const queueType = input.queueType || QueueType.CONSULTATION;
 
+    let targetRoomId = input.roomId;
+    if (!targetRoomId && station === "RECEPTIONIST_DESK") {
+      const room200 = await getOrCreateWaitingRoom200();
+      targetRoomId = room200.id;
+    }
+
     // Check if patient already has an active appointment today
     const existing = await prisma.appointment.findFirst({
       where: {
@@ -513,7 +547,7 @@ export async function quickCheckInWithoutSlotAction(
           checkInTime: existing.checkInTime || now,
           queueType,
           ...(input.doctorId ? { doctorId: input.doctorId } : {}),
-          ...(input.roomId ? { roomId: input.roomId } : {}),
+          ...(targetRoomId ? { roomId: targetRoomId } : {}),
           ...(input.toldTime ? { toldTime: input.toldTime } : {}),
           ...(input.notes
             ? {
@@ -583,7 +617,7 @@ export async function quickCheckInWithoutSlotAction(
           checkInTime: now,
           queueType,
           doctorId: input.doctorId || undefined,
-          roomId: input.roomId || undefined,
+          roomId: targetRoomId || undefined,
           toldTime: input.toldTime || undefined,
           notes: input.notes || undefined,
           feeAmount: fee,
@@ -635,7 +669,10 @@ export async function quickCheckInWithoutSlotAction(
 
     return {
       success: true,
-      message: `Checked in ${patient.name} to ${station.replace(/_/g, " ")}.`,
+      message:
+        station === "RECEPTIONIST_DESK"
+          ? `Checked in ${patient.name} to Waiting Room 200.`
+          : `Checked in ${patient.name} to ${station.replace(/_/g, " ")}.`,
       appointmentId: appointment.id,
     };
   } catch (error) {

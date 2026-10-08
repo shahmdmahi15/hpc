@@ -65,7 +65,7 @@ export async function main() {
   console.log(`✅ ADMIN: ${adminUser.name} (${adminUser.email})`);
 
   // DOCTOR
-  const doctorPassword = await hashPassword("admin123");
+  const doctorPassword = await hashPassword("doctor123");
   const doctorUser = await prisma.user.create({
     data: {
       role: Role.DOCTOR,

@@ -74,15 +74,15 @@ const STATION_CONFIG: Record<
   }
 > = {
   RECEPTIONIST_DESK: {
-    label: "Receptionist Desk",
-    shortLabel: "Reception Desk",
-    description: "Waiting area & check-in queue",
-    icon: UserCheck,
+    label: "Waiting Room 200 (Arrival Desk)",
+    shortLabel: "Waiting Room 200",
+    description: "Checked in & waiting in Room 200",
+    icon: DoorOpen,
     badgeClass:
-      "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
-    pillClass: "bg-indigo-500 text-white",
-    borderClass: "border-indigo-500/40",
-    bgHoverClass: "hover:bg-indigo-500/10",
+      "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30",
+    pillClass: "bg-emerald-600 text-white",
+    borderClass: "border-emerald-500/40",
+    bgHoverClass: "hover:bg-emerald-500/10",
   },
   CONSULTATION_ROOM: {
     label: "Doctor Consultation Room",
@@ -112,10 +112,10 @@ const STATION_CONFIG: Record<
     description: "Under active rehabilitation / modalities",
     icon: Activity,
     badgeClass:
-      "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-    pillClass: "bg-emerald-500 text-white",
-    borderClass: "border-emerald-500/40",
-    bgHoverClass: "hover:bg-emerald-500/10",
+      "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
+    pillClass: "bg-purple-600 text-white",
+    borderClass: "border-purple-500/40",
+    bgHoverClass: "hover:bg-purple-500/10",
   },
   CHECKED_OUT: {
     label: "Checked Out (Discharged)",
@@ -272,11 +272,11 @@ export function PatientJourneyTrackerView({
       {/* 1. Header & Live Indicator Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3.5 rounded-2xl bg-card/70 backdrop-blur-xl border border-border/80 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/20 to-sky-500/20 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300">
-            <Compass className="size-6" />
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-sky-500/20 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 shrink-0">
+            <Compass className="size-5 sm:size-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground">
                 Patient Journey & Station Tracking
               </h2>
@@ -286,16 +286,16 @@ export function PatientJourneyTrackerView({
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Real-time multi-counter patient tracking across Reception, Doctor
+              Real-time multi-counter tracking across Waiting Room 200, Doctor
               Chambers, Cashier & Therapy without requiring slot assignments.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
           {/* Date Picker Input */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-background border border-border text-xs font-medium">
-            <Clock className="size-3.5 text-muted-foreground" />
+            <Clock className="size-3.5 text-muted-foreground shrink-0" />
             <input
               type="date"
               value={selectedDate}
@@ -322,67 +322,67 @@ export function PatientJourneyTrackerView({
             <RefreshCw
               className={`size-3.5 ${isLoading ? "animate-spin" : ""}`}
             />
-            <span>Refresh</span>
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
 
           <Button
             size="sm"
             onClick={() => setIsQuickCheckInOpen(true)}
-            className="h-8.5 px-3 rounded-xl text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+            className="h-8.5 px-3 rounded-xl text-xs font-bold gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-xs"
           >
             <Plus className="size-3.5" />
-            <span>+ Quick Check-in (No Slot)</span>
+            <span>+ Quick Check-in (Room 200)</span>
           </Button>
         </div>
       </div>
 
       {/* 2. Live Station Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
         {/* Total Metric */}
         <button
           type="button"
           onClick={() => setSelectedStationFilter("ALL")}
-          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
+          className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
             selectedStationFilter === "ALL"
               ? "border-primary bg-primary/10 ring-2 ring-primary/20 text-foreground"
               : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground">
+            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground">
               Total Today
             </span>
-            <Users className="size-4 text-primary" />
+            <Users className="size-3.5 sm:size-4 text-primary shrink-0" />
           </div>
-          <div className="text-2xl font-black font-mono tracking-tight text-foreground">
+          <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-foreground">
             {stats.totalPatients}
           </div>
-          <span className="text-[10px] text-muted-foreground font-medium">
+          <span className="text-[9.5px] sm:text-[10px] text-muted-foreground font-medium truncate">
             All registered visits
           </span>
         </button>
 
-        {/* Reception Desk */}
+        {/* Waiting Room 200 */}
         <button
           type="button"
           onClick={() => setSelectedStationFilter("RECEPTIONIST_DESK")}
-          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
+          className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
             selectedStationFilter === "RECEPTIONIST_DESK"
-              ? "border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/20 text-indigo-950 dark:text-indigo-200"
+              ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 text-emerald-950 dark:text-emerald-200"
               : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
-              Reception Desk
+            <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-400 truncate">
+              Waiting Room 200
             </span>
-            <UserCheck className="size-4 text-indigo-500" />
+            <DoorOpen className="size-3.5 sm:size-4 text-emerald-500 shrink-0" />
           </div>
-          <div className="text-2xl font-black font-mono tracking-tight text-indigo-600 dark:text-indigo-400">
+          <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
             {stats.atReception}
           </div>
-          <span className="text-[10px] text-muted-foreground font-medium">
-            Waiting in lobby
+          <span className="text-[9.5px] sm:text-[10px] text-muted-foreground font-medium truncate">
+            Checked in & waiting
           </span>
         </button>
 
@@ -390,22 +390,22 @@ export function PatientJourneyTrackerView({
         <button
           type="button"
           onClick={() => setSelectedStationFilter("CONSULTATION_ROOM")}
-          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
+          className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
             selectedStationFilter === "CONSULTATION_ROOM"
               ? "border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/20 text-sky-950 dark:text-sky-200"
               : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-sky-600 dark:text-sky-400">
+            <span className="text-[10px] sm:text-[11px] font-bold text-sky-600 dark:text-sky-400">
               Doctor Rooms
             </span>
-            <Stethoscope className="size-4 text-sky-500" />
+            <Stethoscope className="size-3.5 sm:size-4 text-sky-500 shrink-0" />
           </div>
-          <div className="text-2xl font-black font-mono tracking-tight text-sky-600 dark:text-sky-400">
+          <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-sky-600 dark:text-sky-400">
             {stats.inConsultation}
           </div>
-          <span className="text-[10px] text-muted-foreground font-medium">
+          <span className="text-[9.5px] sm:text-[10px] text-muted-foreground font-medium truncate">
             In consultation
           </span>
         </button>
@@ -414,22 +414,22 @@ export function PatientJourneyTrackerView({
         <button
           type="button"
           onClick={() => setSelectedStationFilter("CASHIER_REGISTER")}
-          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
+          className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
             selectedStationFilter === "CASHIER_REGISTER"
               ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/20 text-amber-950 dark:text-amber-200"
               : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+            <span className="text-[10px] sm:text-[11px] font-bold text-amber-600 dark:text-amber-400">
               Cashier Register
             </span>
-            <CreditCard className="size-4 text-amber-500" />
+            <CreditCard className="size-3.5 sm:size-4 text-amber-500 shrink-0" />
           </div>
-          <div className="text-2xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400">
+          <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400">
             {stats.atCashier}
           </div>
-          <span className="text-[10px] text-muted-foreground font-medium">
+          <span className="text-[9.5px] sm:text-[10px] text-muted-foreground font-medium truncate">
             Billing counter
           </span>
         </button>
@@ -438,22 +438,22 @@ export function PatientJourneyTrackerView({
         <button
           type="button"
           onClick={() => setSelectedStationFilter("THERAPY_ROOM")}
-          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
+          className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
             selectedStationFilter === "THERAPY_ROOM"
-              ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20 text-emerald-950 dark:text-emerald-200"
+              ? "border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/20 text-purple-950 dark:text-purple-200"
               : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="text-[10px] sm:text-[11px] font-bold text-purple-600 dark:text-purple-400">
               Therapy Floor
             </span>
-            <Activity className="size-4 text-emerald-500" />
+            <Activity className="size-3.5 sm:size-4 text-purple-500 shrink-0" />
           </div>
-          <div className="text-2xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
+          <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-purple-600 dark:text-purple-400">
             {stats.inTherapy}
           </div>
-          <span className="text-[10px] text-muted-foreground font-medium">
+          <span className="text-[9.5px] sm:text-[10px] text-muted-foreground font-medium truncate">
             Under rehabilitation
           </span>
         </button>
@@ -462,22 +462,22 @@ export function PatientJourneyTrackerView({
         <button
           type="button"
           onClick={() => setSelectedStationFilter("CHECKED_OUT")}
-          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
+          className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 shadow-2xs ${
             selectedStationFilter === "CHECKED_OUT"
               ? "border-slate-500 bg-slate-500/10 ring-2 ring-slate-500/20 text-foreground"
               : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground">
+            <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground">
               Checked Out
             </span>
-            <CheckCircle2 className="size-4 text-slate-500" />
+            <CheckCircle2 className="size-3.5 sm:size-4 text-slate-500 shrink-0" />
           </div>
-          <div className="text-2xl font-black font-mono tracking-tight text-muted-foreground">
+          <div className="text-xl sm:text-2xl font-black font-mono tracking-tight text-muted-foreground">
             {stats.checkedOut}
           </div>
-          <span className="text-[10px] text-muted-foreground font-medium">
+          <span className="text-[9.5px] sm:text-[10px] text-muted-foreground font-medium truncate">
             Visit completed
           </span>
         </button>
@@ -522,7 +522,7 @@ export function PatientJourneyTrackerView({
               key={st}
               type="button"
               onClick={() => setSelectedStationFilter(st)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 selectedStationFilter === st
                   ? "bg-primary text-primary-foreground shadow-2xs"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -618,21 +618,30 @@ export function PatientJourneyTrackerView({
                       </span>
                     )}
 
-                    {/* Room */}
-                    {patient.roomNumber && (
+                    {/* Room / Waiting Room 200 */}
+                    {patient.currentStation === "RECEPTIONIST_DESK" || patient.roomNumber === "200" ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 font-mono font-bold">
+                        <DoorOpen className="size-3 text-emerald-600 dark:text-emerald-400" />
+                        <span>Waiting Room 200</span>
+                      </span>
+                    ) : patient.roomNumber ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20 font-mono font-bold">
                         <DoorOpen className="size-3" />
                         <span>Room {patient.roomNumber}</span>
                       </span>
-                    )}
+                    ) : null}
 
                     {/* Doctor */}
-                    {patient.doctorName && (
+                    {patient.doctorName ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 font-medium">
                         <Stethoscope className="size-3" />
                         <span>Dr. {patient.doctorName}</span>
                       </span>
-                    )}
+                    ) : patient.currentStation === "RECEPTIONIST_DESK" ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/50 text-[10.5px]">
+                        <span>Waiting to be called</span>
+                      </span>
+                    ) : null}
 
                     {/* Elapsed Time */}
                     {patient.checkInTime && !isCheckedOut && (
@@ -687,8 +696,8 @@ export function PatientJourneyTrackerView({
                 </div>
 
                 {/* Card Bottom: Station Transfer & Actions */}
-                <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 flex-1">
+                <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-[130px]">
                     <Button
                       size="sm"
                       variant="outline"
@@ -707,7 +716,7 @@ export function PatientJourneyTrackerView({
                       onClick={() => handleQuickCheckOut(patient)}
                       disabled={checkingOutPatientId === patient.id}
                       title="Complete visit & check out patient"
-                      className="h-8 px-2.5 text-xs font-bold gap-1 text-slate-600 dark:text-slate-400 hover:text-destructive hover:bg-destructive/10 cursor-pointer disabled:opacity-50"
+                      className="h-8 px-2.5 text-xs font-bold gap-1 text-slate-600 dark:text-slate-400 hover:text-destructive hover:bg-destructive/10 cursor-pointer disabled:opacity-50 shrink-0"
                     >
                       {checkingOutPatientId === patient.id ? (
                         <RefreshCw className="size-3.5 animate-spin" />
@@ -752,6 +761,7 @@ export function PatientJourneyTrackerView({
           onOpenChange={setIsQuickCheckInOpen}
           rooms={data?.rooms || []}
           doctors={data?.doctors || []}
+          performers={data?.performers || []}
           onSuccess={() => {
             setIsQuickCheckInOpen(false);
             loadTrackingData(selectedDate);
@@ -1020,6 +1030,7 @@ function QuickCheckInWithoutSlotDialog({
   onOpenChange,
   rooms,
   doctors,
+  performers = [],
   onSuccess,
 }: {
   isOpen: boolean;
@@ -1030,6 +1041,11 @@ function QuickCheckInWithoutSlotDialog({
     name: string | null;
     email: string | null;
     consultationFee: number;
+  }[];
+  performers?: {
+    id: string;
+    name: string;
+    role: any;
   }[];
   onSuccess: () => void;
 }) {
@@ -1042,7 +1058,14 @@ function QuickCheckInWithoutSlotDialog({
   const [queueType, setQueueType] = React.useState<QueueType>(QueueType.CONSULTATION);
   const [selectedDoctorId, setSelectedDoctorId] = React.useState<string>("");
   const [consultationFee, setConsultationFee] = React.useState<string>("1000");
-  const [selectedRoomId, setSelectedRoomId] = React.useState<string>("");
+  const [selectedRoomId, setSelectedRoomId] = React.useState<string>(() => {
+    const room200 = rooms.find((r) => r.number === "200");
+    return room200 ? room200.id : "";
+  });
+  const [authorizingPerformerId, setAuthorizingPerformerId] = React.useState<string>(() => {
+    return performers.length > 0 ? performers[0].id : "";
+  });
+  const [pin, setPin] = React.useState<string>("");
   const [toldTime, setToldTime] = React.useState<string>(() => {
     const now = new Date();
     const hours = now.getHours();
@@ -1053,6 +1076,14 @@ function QuickCheckInWithoutSlotDialog({
   });
   const [notes, setNotes] = React.useState<string>("");
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
+
+  // Auto assign Waiting Room 200 when station is RECEPTIONIST_DESK
+  React.useEffect(() => {
+    if (station === "RECEPTIONIST_DESK") {
+      const room200 = rooms.find((r) => r.number === "200");
+      if (room200) setSelectedRoomId(room200.id);
+    }
+  }, [station, rooms]);
 
   // Search patients
   React.useEffect(() => {
@@ -1097,22 +1128,32 @@ function QuickCheckInWithoutSlotDialog({
       return;
     }
 
+    if (authorizingPerformerId && pin.trim().length !== 4) {
+      toast.error("Please enter the 4-digit security PIN for authorizing staff.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      const isReception = station === "RECEPTIONIST_DESK";
       const parsedFee =
-        queueType === QueueType.CONSULTATION
+        !isReception && queueType === QueueType.CONSULTATION
           ? Math.max(0, parseFloat(consultationFee) || 0)
-          : undefined;
+          : isReception
+            ? 0
+            : undefined;
 
       const res = await quickCheckInWithoutSlotAction({
         patientId: selectedPatient.id,
         station,
-        queueType,
-        doctorId: selectedDoctorId || undefined,
+        queueType: isReception ? undefined : queueType,
+        doctorId: isReception ? undefined : (selectedDoctorId || undefined),
         feeAmount: parsedFee,
         roomId: selectedRoomId || undefined,
         toldTime: toldTime.trim() || undefined,
         notes: notes.trim() || undefined,
+        performerId: authorizingPerformerId || undefined,
+        pin: pin.trim() || undefined,
       });
 
       if (res.success) {
@@ -1290,52 +1331,67 @@ function QuickCheckInWithoutSlotDialog({
               </div>
             </div>
 
-            {/* 3. Queue Type */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-foreground">
-                Visit Category
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setQueueType(QueueType.CONSULTATION)}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
-                    queueType === QueueType.CONSULTATION
-                      ? "border-sky-500 bg-sky-500/10 text-sky-900 dark:text-sky-200 ring-2 ring-sky-500/20 font-bold"
-                      : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
-                  }`}
-                >
-                  <Stethoscope className="size-4 text-sky-500" />
-                  <div>
-                    <div className="text-xs font-bold">Doctor Consultation</div>
-                    <div className="text-[10px] text-muted-foreground">
-                      Chamber visit & assessment
-                    </div>
+            {/* Waiting Room 200 banner if Receptionist Desk */}
+            {station === "RECEPTIONIST_DESK" && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 text-xs text-emerald-950 dark:text-emerald-200">
+                <DoorOpen className="size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <div className="font-bold">Destination: Waiting Room 200 (Arrival Lounge)</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Patient will be placed directly into Waiting Room 200. No doctor or therapy queue assigned yet.
                   </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setQueueType(QueueType.THERAPY)}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
-                    queueType === QueueType.THERAPY
-                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20 font-bold"
-                      : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
-                  }`}
-                >
-                  <Activity className="size-4 text-emerald-500" />
-                  <div>
-                    <div className="text-xs font-bold">Therapy Treatment</div>
-                    <div className="text-[10px] text-muted-foreground">
-                      Walk-in physiotherapy
-                    </div>
-                  </div>
-                </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* 4. Doctor Selection & Fee Modifier (if Consultation) */}
-            {queueType === QueueType.CONSULTATION && (
+            {/* 3. Queue Type (if NOT Reception Desk) */}
+            {station !== "RECEPTIONIST_DESK" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">
+                  Visit Category
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQueueType(QueueType.CONSULTATION)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
+                      queueType === QueueType.CONSULTATION
+                        ? "border-sky-500 bg-sky-500/10 text-sky-900 dark:text-sky-200 ring-2 ring-sky-500/20 font-bold"
+                        : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
+                    }`}
+                  >
+                    <Stethoscope className="size-4 text-sky-500" />
+                    <div>
+                      <div className="text-xs font-bold">Doctor Consultation</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Chamber visit & assessment
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setQueueType(QueueType.THERAPY)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
+                      queueType === QueueType.THERAPY
+                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20 font-bold"
+                        : "border-border/80 bg-card hover:bg-muted/50 text-foreground"
+                    }`}
+                  >
+                    <Activity className="size-4 text-emerald-500" />
+                    <div>
+                      <div className="text-xs font-bold">Therapy Treatment</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Walk-in physiotherapy
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 4. Doctor Selection & Fee Modifier (if Consultation & NOT Reception Desk) */}
+            {station !== "RECEPTIONIST_DESK" && queueType === QueueType.CONSULTATION && (
               <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/5 space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-foreground flex items-center justify-between">
@@ -1426,36 +1482,82 @@ function QuickCheckInWithoutSlotDialog({
               </div>
             )}
 
-            {/* 5. Room & Notes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">
-                  Room (Optional)
-                </Label>
-                <Select
-                  value={selectedRoomId || "NONE"}
-                  onValueChange={(val) =>
-                    setSelectedRoomId(val === "NONE" || !val ? "" : val)
-                  }
-                >
-                  <SelectTrigger className="w-full text-xs h-9 bg-background border-border/80 text-foreground font-medium">
-                    <SelectValue placeholder="No Room Assigned" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-56">
-                    <SelectItem value="NONE" label="No Room Assigned">
-                      No Room Assigned
-                    </SelectItem>
-                    {rooms.map((r) => {
-                      const rLabel = `Room ${r.number}${r.purpose ? ` (${r.purpose})` : ""}`;
-                      return (
-                        <SelectItem key={r.id} value={r.id} label={rLabel}>
-                          {rLabel}
+            {/* 5. Authorizing Staff & Security PIN */}
+            {performers.length > 0 && (
+              <div className="p-3.5 rounded-xl border border-border/80 bg-muted/20 space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-foreground">
+                    Authorizing Staff Performer
+                  </Label>
+                  <Select
+                    value={authorizingPerformerId}
+                    onValueChange={(val) => setAuthorizingPerformerId(val ?? "")}
+                  >
+                    <SelectTrigger className="w-full text-xs h-9 bg-background border-border/80 text-foreground font-medium">
+                      <SelectValue placeholder="Select Staff Member" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      {performers.map((perf) => (
+                        <SelectItem key={perf.id} value={perf.id} label={`${perf.name} (${perf.role})`}>
+                          {perf.name} ({perf.role})
                         </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {authorizingPerformerId && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-foreground">
+                      Staff Security PIN (4 Digits) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      type="password"
+                      maxLength={4}
+                      pattern="[0-9]{4}"
+                      inputMode="numeric"
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="••••"
+                      className="text-xs h-9 font-mono tracking-widest text-center"
+                    />
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* 6. Room & Notes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {station !== "RECEPTIONIST_DESK" && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-foreground">
+                    Room (Optional)
+                  </Label>
+                  <Select
+                    value={selectedRoomId || "NONE"}
+                    onValueChange={(val) =>
+                      setSelectedRoomId(val === "NONE" || !val ? "" : val)
+                    }
+                  >
+                    <SelectTrigger className="w-full text-xs h-9 bg-background border-border/80 text-foreground font-medium">
+                      <SelectValue placeholder="No Room Assigned" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      <SelectItem value="NONE" label="No Room Assigned">
+                        No Room Assigned
+                      </SelectItem>
+                      {rooms.map((r) => {
+                        const rLabel = `Room ${r.number}${r.purpose ? ` (${r.purpose})` : ""}`;
+                        return (
+                          <SelectItem key={r.id} value={r.id} label={rLabel}>
+                            {rLabel}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">

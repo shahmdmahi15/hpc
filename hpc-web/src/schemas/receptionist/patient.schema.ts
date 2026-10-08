@@ -72,13 +72,13 @@ export const createPatientSchema = z.object({
   performerId: z.string().trim().optional(),
   pin: z.string().trim().optional(),
 
-  // Immediate Arrival Check-In options
+  // Immediate Arrival Check-In options (places into Waiting Room 200)
   checkInNow: z.boolean().optional().default(true),
   queueType: z
     .enum([QueueType.THERAPY, QueueType.CONSULTATION])
     .optional()
-    .default(QueueType.THERAPY),
-  doctorId: z.string().optional(),
+    .nullable(),
+  doctorId: z.string().optional().nullable(),
   checkInTime: z.string().optional(),
   toldTime: z.string().optional(),
   notes: z.string().trim().optional(),
@@ -101,8 +101,8 @@ export const checkInArrivingPatientSchema = z.object({
   queueType: z
     .enum([QueueType.THERAPY, QueueType.CONSULTATION])
     .optional()
-    .default(QueueType.THERAPY),
-  doctorId: z.string().optional(),
+    .nullable(),
+  doctorId: z.string().optional().nullable(),
   checkInTime: z.string().optional(),
   toldTime: z.string().optional(),
   notes: z.string().trim().optional(),

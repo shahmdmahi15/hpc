@@ -13,6 +13,9 @@ import {
   AppointmentType,
   QueueType,
   BookingType,
+  RoomAccessType,
+  RoomGender,
+  RoomStatus,
 } from "@/generated/prisma/enums";
 import {
   createPatientSchema,
@@ -30,8 +33,29 @@ import { syncBillingForAppointment } from "@/lib/billing-sync";
 import { revalidatePath } from "next/cache";
 
 /**
+ * Ensures Room 200 (Designated Public Waiting Room) exists in the database
+ */
+export async function getOrCreateWaitingRoom200() {
+  let room200 = await prisma.room.findFirst({
+    where: { number: "200" },
+  });
+  if (!room200) {
+    room200 = await prisma.room.create({
+      data: {
+        number: "200",
+        purpose: "Waiting Room",
+        accessType: RoomAccessType.PUBLIC,
+        gender: RoomGender.COMMON,
+        status: RoomStatus.AVAILABLE,
+      },
+    });
+  }
+  return room200;
+}
+
+/**
  * Registers a new patient with automated Medical Record Number (MRN) generation.
- * Supports immediate Arrival Check-In if checkInNow is requested.
+ * Supports immediate Arrival Check-In if checkInNow is requested (placed into Waiting Room 200).
  */
 export async function createPatientAction(
   data: CreatePatientInput,
@@ -152,7 +176,7 @@ export async function createPatientAction(
 
     let createdAppointment = null;
 
-    // If checkInNow is requested, mark patient as checked in today
+    // If checkInNow is requested, mark patient as checked in today in Waiting Room 200
     if (checkInNow) {
       const now = new Date();
       const checkInDateObj = checkInTime ? new Date(checkInTime) : now;
@@ -175,43 +199,8 @@ export async function createPatientAction(
         999,
       );
 
-      // Ensure Queue master record exists
-      const targetQueueType = queueType || QueueType.THERAPY;
-      const queueRecord = await prisma.queue.upsert({
-        where: { type: targetQueueType },
-        update: {},
-        create: {
-          type: targetQueueType,
-          name:
-            targetQueueType === QueueType.CONSULTATION
-              ? "Consultation Queue"
-              : "Therapy Queue",
-          description:
-            targetQueueType === QueueType.CONSULTATION
-              ? "Queue for doctor consultation"
-              : "Queue for physical therapy",
-        },
-      });
-
-      // Resolve Doctor if provided
-      let resolvedDoctorId: string | undefined = undefined;
-      let resolvedFee = feeAmount;
-      if (doctorId) {
-        const doc = await prisma.user.findFirst({
-          where: { id: doctorId, role: Role.DOCTOR },
-          select: { id: true, consultationFee: true },
-        });
-        if (doc) {
-          resolvedDoctorId = doc.id;
-          if (resolvedFee === undefined) {
-            resolvedFee = doc.consultationFee ?? 1000;
-          }
-        }
-      }
-
-      if (resolvedFee === undefined) {
-        resolvedFee = targetQueueType === QueueType.CONSULTATION ? 1000 : 800;
-      }
+      // Ensure Room 200 (Designated Public Waiting Room) exists
+      const room200 = await getOrCreateWaitingRoom200();
 
       // Check if patient already has an active appointment for today
       const existingAppointment = await prisma.appointment.findFirst({
@@ -224,10 +213,8 @@ export async function createPatientAction(
         },
       });
 
-      const stationToSet =
-        targetQueueType === QueueType.CONSULTATION
-          ? "CONSULTATION_ROOM"
-          : "RECEPTIONIST_DESK";
+      // Automatic assignment to Waiting Room 200 (no queue or doctor assigned yet)
+      const stationToSet = "RECEPTIONIST_DESK";
 
       if (existingAppointment) {
         createdAppointment = await prisma.appointment.update({
@@ -235,14 +222,13 @@ export async function createPatientAction(
           data: {
             status: AppointmentStatus.CHECKED_IN,
             currentStation: stationToSet,
+            roomId: room200.id,
             checkInTime: checkInDateObj,
-            queueId: queueRecord.id,
-            queueType: targetQueueType,
-            toldTime: toldTime || undefined,
-            notes: notes || undefined,
-            doctorId: resolvedDoctorId || existingAppointment.doctorId || undefined,
+            toldTime: toldTime || existingAppointment.toldTime || undefined,
+            notes: notes || existingAppointment.notes || undefined,
+            performerId: validation.data.performerId || existingAppointment.performerId || undefined,
           },
-          include: { patient: true, doctor: true, therapySlot: true },
+          include: { patient: true, doctor: true, therapySlot: true, room: true },
         });
       } else {
         const middayToday = new Date(
@@ -257,30 +243,28 @@ export async function createPatientAction(
 
         createdAppointment = await prisma.appointment.create({
           data: {
-            type:
-              targetQueueType === QueueType.CONSULTATION
-                ? AppointmentType.CONSULTATION
-                : AppointmentType.THERAPY,
+            type: AppointmentType.CONSULTATION,
             patientId: targetPatient.id,
             appointmentDate: middayToday,
             gender: targetPatient.gender,
             bookingType: BookingType.REGULAR,
             status: AppointmentStatus.CHECKED_IN,
             currentStation: stationToSet,
+            roomId: room200.id,
             checkInTime: checkInDateObj,
-            queueId: queueRecord.id,
-            queueType: targetQueueType,
+            queueId: null,
+            queueType: null,
+            doctorId: null,
             toldTime: toldTime || undefined,
             notes: notes || undefined,
             bookedById: validation.data.performerId || undefined,
             performerId: validation.data.performerId || undefined,
-            doctorId: resolvedDoctorId || undefined,
-            feeAmount: resolvedFee,
+            feeAmount: 0,
             paidAmount: 0,
-            dueAmount: resolvedFee,
-            paymentStatus: resolvedFee === 0 ? "PAID" : "PENDING",
+            dueAmount: 0,
+            paymentStatus: "PENDING",
           },
-          include: { patient: true, doctor: true, therapySlot: true },
+          include: { patient: true, doctor: true, therapySlot: true, room: true },
         });
       }
 
@@ -295,23 +279,33 @@ export async function createPatientAction(
         entityId: createdAppointment.id,
         status: AuditStatus.SUCCESS,
         details: {
-          action: "PATIENT_ARRIVAL_CHECKIN",
+          action: "PATIENT_ARRIVAL_CHECKIN_ROOM_200",
           patientName: targetPatient.name,
           mrn: targetPatient.mrn,
-          queueType: targetQueueType,
+          roomNumber: "200",
+          station: "RECEPTIONIST_DESK",
           checkInTime: checkInDateObj.toISOString(),
           performerId: validation.data.performerId,
         },
       });
 
-      // Broadcast appointment update
+      // Broadcast appointment update & station changed
       emitRealtimeEvent("APPOINTMENT_CREATED", {
         id: createdAppointment.id,
         patientName: targetPatient.name,
         gender: targetPatient.gender,
         status: AppointmentStatus.CHECKED_IN,
-        queueType: targetQueueType,
+        roomNumber: "200",
+        currentStation: "RECEPTIONIST_DESK",
         checkInTime: checkInDateObj.toISOString(),
+      });
+      emitRealtimeEvent("STATION_CHANGED", {
+        appointmentId: createdAppointment.id,
+        patientId: targetPatient.id,
+        patientName: targetPatient.name,
+        toStation: "RECEPTIONIST_DESK",
+        status: AppointmentStatus.CHECKED_IN,
+        roomNumber: "200",
       });
     }
 
@@ -326,7 +320,7 @@ export async function createPatientAction(
     );
 
     const successMsg = checkInNow
-      ? `Patient "${targetPatient.name}" (${targetPatient.mrn}) registered & marked as CHECKED IN at ${timeStr}.`
+      ? `Patient "${targetPatient.name}" (${targetPatient.mrn}) registered & placed in Waiting Room 200 at ${timeStr}.`
       : `Patient "${targetPatient.name}" registered successfully with MRN ${targetPatient.mrn}.`;
 
     return {
@@ -428,47 +422,10 @@ export async function checkInArrivingPatientAction(
       999,
     );
 
-    // Ensure queue record exists
-    const queueRecord = await prisma.queue.upsert({
-      where: { type: queueType },
-      update: {},
-      create: {
-        type: queueType,
-        name:
-          queueType === QueueType.CONSULTATION
-            ? "Consultation Queue"
-            : "Therapy Queue",
-        description:
-          queueType === QueueType.CONSULTATION
-            ? "Queue for doctor consultation"
-            : "Queue for physical therapy",
-      },
-    });
+    // Ensure Room 200 (Designated Public Waiting Room) exists
+    const room200 = await getOrCreateWaitingRoom200();
 
-    // Resolve doctor and fee
-    let resolvedDoctorId: string | undefined = undefined;
-    let resolvedFee = feeAmount;
-    if (doctorId) {
-      const doc = await prisma.user.findFirst({
-        where: { id: doctorId, role: Role.DOCTOR },
-        select: { id: true, consultationFee: true },
-      });
-      if (doc) {
-        resolvedDoctorId = doc.id;
-        if (resolvedFee === undefined) {
-          resolvedFee = doc.consultationFee ?? 1000;
-        }
-      }
-    }
-
-    if (resolvedFee === undefined) {
-      resolvedFee = queueType === QueueType.CONSULTATION ? 1000 : 800;
-    }
-
-    const stationToSet =
-      queueType === QueueType.CONSULTATION
-        ? "CONSULTATION_ROOM"
-        : "RECEPTIONIST_DESK";
+    const stationToSet = "RECEPTIONIST_DESK";
 
     // Check for existing appointment today
     const existingAppointment = await prisma.appointment.findFirst({
@@ -489,27 +446,13 @@ export async function checkInArrivingPatientAction(
         data: {
           status: AppointmentStatus.CHECKED_IN,
           currentStation: stationToSet,
+          roomId: room200.id,
           checkInTime: checkInDateObj,
-          queueId: queueRecord.id,
-          queueType,
+          performerId,
           ...(toldTime ? { toldTime } : {}),
           ...(notes ? { notes } : {}),
-          ...(resolvedDoctorId ? { doctorId: resolvedDoctorId } : {}),
-          ...(feeAmount !== undefined
-            ? {
-                feeAmount: resolvedFee,
-                dueAmount: Math.max(
-                  0,
-                  resolvedFee - (existingAppointment.paidAmount ?? 0),
-                ),
-                paymentStatus:
-                  resolvedFee <= (existingAppointment.paidAmount ?? 0)
-                    ? "PAID"
-                    : "PARTIAL",
-              }
-            : {}),
         },
-        include: { patient: true, doctor: true, therapySlot: true },
+        include: { patient: true, doctor: true, therapySlot: true, room: true },
       });
     } else {
       const middayToday = new Date(
@@ -524,30 +467,28 @@ export async function checkInArrivingPatientAction(
 
       updatedAppointment = await prisma.appointment.create({
         data: {
-          type:
-            queueType === QueueType.CONSULTATION
-              ? AppointmentType.CONSULTATION
-              : AppointmentType.THERAPY,
+          type: AppointmentType.CONSULTATION,
           patientId: patient.id,
           appointmentDate: middayToday,
           gender: patient.gender,
           bookingType: BookingType.REGULAR,
           status: AppointmentStatus.CHECKED_IN,
           currentStation: stationToSet,
+          roomId: room200.id,
           checkInTime: checkInDateObj,
-          queueId: queueRecord.id,
-          queueType,
+          queueId: null,
+          queueType: null,
+          doctorId: null,
           toldTime: toldTime || undefined,
           notes: notes || undefined,
-          bookedById: performerId || undefined,
-          performerId: performerId || undefined,
-          doctorId: resolvedDoctorId || undefined,
-          feeAmount: resolvedFee,
+          bookedById: performerId,
+          performerId: performerId,
+          feeAmount: 0,
           paidAmount: 0,
-          dueAmount: resolvedFee,
-          paymentStatus: resolvedFee === 0 ? "PAID" : "PENDING",
+          dueAmount: 0,
+          paymentStatus: "PENDING",
         },
-        include: { patient: true, doctor: true, therapySlot: true },
+        include: { patient: true, doctor: true, therapySlot: true, room: true },
       });
     }
 
@@ -562,10 +503,11 @@ export async function checkInArrivingPatientAction(
       entityId: updatedAppointment.id,
       status: AuditStatus.SUCCESS,
       details: {
-        action: "ARRIVAL_CHECK_IN",
+        action: "ARRIVAL_CHECK_IN_ROOM_200",
         patientName: patient.name,
         mrn: patient.mrn,
-        queueType,
+        roomNumber: "200",
+        station: stationToSet,
         checkInTime: checkInDateObj.toISOString(),
       },
     });
@@ -575,9 +517,17 @@ export async function checkInArrivingPatientAction(
       id: updatedAppointment.id,
       patientName: patient.name,
       status: AppointmentStatus.CHECKED_IN,
-      queueType,
+      roomNumber: "200",
       checkInTime: checkInDateObj.toISOString(),
       currentStation: stationToSet,
+    });
+    emitRealtimeEvent("STATION_CHANGED", {
+      appointmentId: updatedAppointment.id,
+      patientId: patient.id,
+      patientName: patient.name,
+      toStation: stationToSet,
+      status: AppointmentStatus.CHECKED_IN,
+      roomNumber: "200",
     });
 
     revalidatePath("/receptionist");
@@ -593,7 +543,7 @@ export async function checkInArrivingPatientAction(
 
     return {
       success: true,
-      message: `Patient "${patient.name}" (${patient.mrn || "No MRN"}) marked as CHECKED IN at ${timeStr}.`,
+      message: `Patient "${patient.name}" (${patient.mrn || "No MRN"}) checked in to Waiting Room 200 at ${timeStr}.`,
       appointment: updatedAppointment,
     };
   } catch (error) {
@@ -660,6 +610,7 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
           include: {
             doctor: { select: { id: true, name: true, consultationFee: true } },
             therapySlot: { select: { id: true, label: true, startTime: true, endTime: true } },
+            room: true,
           },
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -698,6 +649,9 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
               paymentStatus: todayAppointment.paymentStatus,
               doctorName: todayAppointment.doctor?.name || null,
               slotLabel: todayAppointment.therapySlot?.label || null,
+              roomId: todayAppointment.roomId || null,
+              roomNumber: todayAppointment.room?.number || null,
+              roomPurpose: todayAppointment.room?.purpose || null,
             }
           : null,
       };
@@ -756,6 +710,7 @@ export async function getTodayArrivalsDataAction() {
       },
       include: {
         patient: true,
+        room: true,
         doctor: {
           select: {
             id: true,
