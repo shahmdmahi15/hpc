@@ -430,12 +430,14 @@ model Appointment {
   notes  String?
 
   // Billing & Payment tracking
-  feeAmount     Float?
-  paidAmount    Float?    @default(0)
-  dueAmount     Float?    @default(0)
-  paymentStatus String?   @default("PENDING")
-  paidAt        DateTime?
-  paymentMethod String?
+  feeAmount       Float?
+  consultationFee Float?    @default(0)
+  therapyFee      Float?    @default(0)
+  paidAmount      Float?    @default(0)
+  dueAmount       Float?    @default(0)
+  paymentStatus   String?   @default("PENDING")
+  paidAt          DateTime?
+  paymentMethod   String?
 
   // Patient arrival / told time (e.g. "10:30 AM")
   toldTime String?

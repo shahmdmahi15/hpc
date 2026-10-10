@@ -1137,13 +1137,26 @@ export function CashierDashboardView({
                                       variant="outline"
                                       className="text-[10px] uppercase font-bold tracking-wider py-0"
                                     >
-                                      {item.type}
+                                      {((item as any).consultationFee ?? 0) > 0 && ((item as any).therapyFee ?? 0) > 0
+                                        ? "COMBINED"
+                                        : item.type}
                                     </Badge>
                                   </div>
                                   <span className="text-[10.5px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md">
                                     ৳{estimatedFee} DUE
                                   </span>
                                 </div>
+
+                                {((item as any).consultationFee ?? 0) > 0 && ((item as any).therapyFee ?? 0) > 0 && (
+                                  <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                                    <span className="text-[10px] font-semibold font-mono px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
+                                      🩺 Doctor: ৳{(item as any).consultationFee}
+                                    </span>
+                                    <span className="text-[10px] font-semibold font-mono px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                                      ⚡ Therapy: ৳{(item as any).therapyFee}
+                                    </span>
+                                  </div>
+                                )}
 
                                 <div>
                                   <div className="font-bold text-xs text-foreground group-hover:text-amber-600 transition-colors truncate">

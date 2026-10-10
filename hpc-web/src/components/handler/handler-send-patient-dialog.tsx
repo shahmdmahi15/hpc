@@ -111,12 +111,17 @@ function HandlerSendPatientDialogContent({
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
 }) {
-  // Due amount state
-  const [dueAmount, setDueAmount] = React.useState<number>(
-    typeof appointment.feeAmount === "number"
-      ? appointment.feeAmount
-      : DEFAULT_FEE,
-  );
+  // Therapy Fee initialized exclusively (never polluted by doctor consultation fee)
+  const initialTherapyFee =
+    typeof (appointment as any).therapyFee === "number" && (appointment as any).therapyFee > 0
+      ? (appointment as any).therapyFee
+      : (typeof appointment.feeAmount === "number" && ((appointment as any).consultationFee ?? 0) === 0)
+        ? appointment.feeAmount
+        : (typeof appointment.feeAmount === "number" && ((appointment as any).consultationFee ?? 0) > 0)
+          ? Math.max(0, appointment.feeAmount - ((appointment as any).consultationFee ?? 0))
+          : (appointment.type === "THERAPY" ? (appointment.feeAmount ?? 300) : 300);
+
+  const [dueAmount, setDueAmount] = React.useState<number>(initialTherapyFee);
   const [isRouting, setIsRouting] = React.useState(false);
   const [routingDestination, setRoutingDestination] = React.useState<
     "CASHIER" | "DOCTOR" | "RECEPTIONIST" | null
@@ -245,10 +250,17 @@ function HandlerSendPatientDialogContent({
         return;
       }
 
+      const docFeeForRouting =
+        doctorDueInfo.hasConsultationToday && !doctorDueInfo.isPaid
+          ? doctorDueInfo.doctorDue
+          : ((appointment as any).consultationFee || 0);
+
       const res = await routePatientAction({
         appointmentId: appointment.id,
         destination,
-        feeAmount: Number(dueAmount),
+        therapyFee: Number(dueAmount),
+        consultationFee: docFeeForRouting > 0 ? docFeeForRouting : undefined,
+        feeAmount: Number(dueAmount) + (doctorDueInfo.isPaid ? 0 : docFeeForRouting),
         performerId: effectivePerformerId,
         pin: handlerPin || undefined,
         routingNote: routingNote.trim() || undefined,

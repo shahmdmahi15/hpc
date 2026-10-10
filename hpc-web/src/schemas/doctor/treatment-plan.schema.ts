@@ -78,6 +78,7 @@ export interface TodayTherapySlotInfo {
   startTime: string;
   endTime: string;
   roomNumber: string | null;
+  isCompleted?: boolean;
 }
 
 export interface PatientPlansResult {
@@ -85,6 +86,8 @@ export interface PatientPlansResult {
   nextPlan: TreatmentPlanRecord | null;
   historyPlans: TreatmentPlanRecord[];
   todayTherapySlot?: TodayTherapySlotInfo | null;
+  hasUnservedTherapySlotToday?: boolean;
+  isTherapySlotCompletedToday?: boolean;
 }
 
 export interface RawTreatmentPlan {

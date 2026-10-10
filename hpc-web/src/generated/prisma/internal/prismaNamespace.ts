@@ -2098,6 +2098,8 @@ export const AppointmentScalarFieldEnum = {
   status: 'status',
   notes: 'notes',
   feeAmount: 'feeAmount',
+  consultationFee: 'consultationFee',
+  therapyFee: 'therapyFee',
   paidAmount: 'paidAmount',
   dueAmount: 'dueAmount',
   paymentStatus: 'paymentStatus',

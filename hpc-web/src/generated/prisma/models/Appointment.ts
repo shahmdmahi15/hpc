@@ -28,12 +28,16 @@ export type AggregateAppointment = {
 
 export type AppointmentAvgAggregateOutputType = {
   feeAmount: number | null
+  consultationFee: number | null
+  therapyFee: number | null
   paidAmount: number | null
   dueAmount: number | null
 }
 
 export type AppointmentSumAggregateOutputType = {
   feeAmount: number | null
+  consultationFee: number | null
+  therapyFee: number | null
   paidAmount: number | null
   dueAmount: number | null
 }
@@ -59,6 +63,8 @@ export type AppointmentMinAggregateOutputType = {
   status: $Enums.AppointmentStatus | null
   notes: string | null
   feeAmount: number | null
+  consultationFee: number | null
+  therapyFee: number | null
   paidAmount: number | null
   dueAmount: number | null
   paymentStatus: string | null
@@ -107,6 +113,8 @@ export type AppointmentMaxAggregateOutputType = {
   status: $Enums.AppointmentStatus | null
   notes: string | null
   feeAmount: number | null
+  consultationFee: number | null
+  therapyFee: number | null
   paidAmount: number | null
   dueAmount: number | null
   paymentStatus: string | null
@@ -155,6 +163,8 @@ export type AppointmentCountAggregateOutputType = {
   status: number
   notes: number
   feeAmount: number
+  consultationFee: number
+  therapyFee: number
   paidAmount: number
   dueAmount: number
   paymentStatus: number
@@ -186,12 +196,16 @@ export type AppointmentCountAggregateOutputType = {
 
 export type AppointmentAvgAggregateInputType = {
   feeAmount?: true
+  consultationFee?: true
+  therapyFee?: true
   paidAmount?: true
   dueAmount?: true
 }
 
 export type AppointmentSumAggregateInputType = {
   feeAmount?: true
+  consultationFee?: true
+  therapyFee?: true
   paidAmount?: true
   dueAmount?: true
 }
@@ -217,6 +231,8 @@ export type AppointmentMinAggregateInputType = {
   status?: true
   notes?: true
   feeAmount?: true
+  consultationFee?: true
+  therapyFee?: true
   paidAmount?: true
   dueAmount?: true
   paymentStatus?: true
@@ -265,6 +281,8 @@ export type AppointmentMaxAggregateInputType = {
   status?: true
   notes?: true
   feeAmount?: true
+  consultationFee?: true
+  therapyFee?: true
   paidAmount?: true
   dueAmount?: true
   paymentStatus?: true
@@ -313,6 +331,8 @@ export type AppointmentCountAggregateInputType = {
   status?: true
   notes?: true
   feeAmount?: true
+  consultationFee?: true
+  therapyFee?: true
   paidAmount?: true
   dueAmount?: true
   paymentStatus?: true
@@ -448,6 +468,8 @@ export type AppointmentGroupByOutputType = {
   status: $Enums.AppointmentStatus
   notes: string | null
   feeAmount: number | null
+  consultationFee: number | null
+  therapyFee: number | null
   paidAmount: number | null
   dueAmount: number | null
   paymentStatus: string | null
@@ -519,6 +541,8 @@ export type AppointmentWhereInput = {
   status?: Prisma.EnumAppointmentStatusFilter<"Appointment"> | $Enums.AppointmentStatus
   notes?: Prisma.StringNullableFilter<"Appointment"> | string | null
   feeAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
+  consultationFee?: Prisma.FloatNullableFilter<"Appointment"> | number | null
+  therapyFee?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   paidAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   dueAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   paymentStatus?: Prisma.StringNullableFilter<"Appointment"> | string | null
@@ -581,6 +605,8 @@ export type AppointmentOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   feeAmount?: Prisma.SortOrderInput | Prisma.SortOrder
+  consultationFee?: Prisma.SortOrderInput | Prisma.SortOrder
+  therapyFee?: Prisma.SortOrderInput | Prisma.SortOrder
   paidAmount?: Prisma.SortOrderInput | Prisma.SortOrder
   dueAmount?: Prisma.SortOrderInput | Prisma.SortOrder
   paymentStatus?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -646,6 +672,8 @@ export type AppointmentWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumAppointmentStatusFilter<"Appointment"> | $Enums.AppointmentStatus
   notes?: Prisma.StringNullableFilter<"Appointment"> | string | null
   feeAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
+  consultationFee?: Prisma.FloatNullableFilter<"Appointment"> | number | null
+  therapyFee?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   paidAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   dueAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   paymentStatus?: Prisma.StringNullableFilter<"Appointment"> | string | null
@@ -708,6 +736,8 @@ export type AppointmentOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   feeAmount?: Prisma.SortOrderInput | Prisma.SortOrder
+  consultationFee?: Prisma.SortOrderInput | Prisma.SortOrder
+  therapyFee?: Prisma.SortOrderInput | Prisma.SortOrder
   paidAmount?: Prisma.SortOrderInput | Prisma.SortOrder
   dueAmount?: Prisma.SortOrderInput | Prisma.SortOrder
   paymentStatus?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -764,6 +794,8 @@ export type AppointmentScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumAppointmentStatusWithAggregatesFilter<"Appointment"> | $Enums.AppointmentStatus
   notes?: Prisma.StringNullableWithAggregatesFilter<"Appointment"> | string | null
   feeAmount?: Prisma.FloatNullableWithAggregatesFilter<"Appointment"> | number | null
+  consultationFee?: Prisma.FloatNullableWithAggregatesFilter<"Appointment"> | number | null
+  therapyFee?: Prisma.FloatNullableWithAggregatesFilter<"Appointment"> | number | null
   paidAmount?: Prisma.FloatNullableWithAggregatesFilter<"Appointment"> | number | null
   dueAmount?: Prisma.FloatNullableWithAggregatesFilter<"Appointment"> | number | null
   paymentStatus?: Prisma.StringNullableWithAggregatesFilter<"Appointment"> | string | null
@@ -804,6 +836,8 @@ export type AppointmentCreateInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -863,6 +897,8 @@ export type AppointmentUncheckedCreateInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -906,6 +942,8 @@ export type AppointmentUpdateInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -965,6 +1003,8 @@ export type AppointmentUncheckedUpdateInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1016,6 +1056,8 @@ export type AppointmentCreateManyInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -1056,6 +1098,8 @@ export type AppointmentUpdateManyMutationInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1101,6 +1145,8 @@ export type AppointmentUncheckedUpdateManyInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1159,6 +1205,8 @@ export type AppointmentCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   feeAmount?: Prisma.SortOrder
+  consultationFee?: Prisma.SortOrder
+  therapyFee?: Prisma.SortOrder
   paidAmount?: Prisma.SortOrder
   dueAmount?: Prisma.SortOrder
   paymentStatus?: Prisma.SortOrder
@@ -1188,6 +1236,8 @@ export type AppointmentCountOrderByAggregateInput = {
 
 export type AppointmentAvgOrderByAggregateInput = {
   feeAmount?: Prisma.SortOrder
+  consultationFee?: Prisma.SortOrder
+  therapyFee?: Prisma.SortOrder
   paidAmount?: Prisma.SortOrder
   dueAmount?: Prisma.SortOrder
 }
@@ -1213,6 +1263,8 @@ export type AppointmentMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   feeAmount?: Prisma.SortOrder
+  consultationFee?: Prisma.SortOrder
+  therapyFee?: Prisma.SortOrder
   paidAmount?: Prisma.SortOrder
   dueAmount?: Prisma.SortOrder
   paymentStatus?: Prisma.SortOrder
@@ -1261,6 +1313,8 @@ export type AppointmentMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   feeAmount?: Prisma.SortOrder
+  consultationFee?: Prisma.SortOrder
+  therapyFee?: Prisma.SortOrder
   paidAmount?: Prisma.SortOrder
   dueAmount?: Prisma.SortOrder
   paymentStatus?: Prisma.SortOrder
@@ -1290,6 +1344,8 @@ export type AppointmentMinOrderByAggregateInput = {
 
 export type AppointmentSumOrderByAggregateInput = {
   feeAmount?: Prisma.SortOrder
+  consultationFee?: Prisma.SortOrder
+  therapyFee?: Prisma.SortOrder
   paidAmount?: Prisma.SortOrder
   dueAmount?: Prisma.SortOrder
 }
@@ -1842,6 +1898,8 @@ export type AppointmentCreateWithoutDoctorInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -1899,6 +1957,8 @@ export type AppointmentUncheckedCreateWithoutDoctorInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -1951,6 +2011,8 @@ export type AppointmentCreateWithoutExtraApprovedByInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2008,6 +2070,8 @@ export type AppointmentUncheckedCreateWithoutExtraApprovedByInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2087,6 +2151,8 @@ export type AppointmentScalarWhereInput = {
   status?: Prisma.EnumAppointmentStatusFilter<"Appointment"> | $Enums.AppointmentStatus
   notes?: Prisma.StringNullableFilter<"Appointment"> | string | null
   feeAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
+  consultationFee?: Prisma.FloatNullableFilter<"Appointment"> | number | null
+  therapyFee?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   paidAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   dueAmount?: Prisma.FloatNullableFilter<"Appointment"> | number | null
   paymentStatus?: Prisma.StringNullableFilter<"Appointment"> | string | null
@@ -2143,6 +2209,8 @@ export type AppointmentCreateWithoutPerformerInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2200,6 +2268,8 @@ export type AppointmentUncheckedCreateWithoutPerformerInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2252,6 +2322,8 @@ export type AppointmentCreateWithoutBookedByInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2309,6 +2381,8 @@ export type AppointmentUncheckedCreateWithoutBookedByInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2393,6 +2467,8 @@ export type AppointmentCreateWithoutRoomInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2451,6 +2527,8 @@ export type AppointmentUncheckedCreateWithoutRoomInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2518,6 +2596,8 @@ export type AppointmentCreateWithoutTherapySlotInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2575,6 +2655,8 @@ export type AppointmentUncheckedCreateWithoutTherapySlotInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2643,6 +2725,8 @@ export type AppointmentCreateWithoutPatientInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2700,6 +2784,8 @@ export type AppointmentUncheckedCreateWithoutPatientInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2768,6 +2854,8 @@ export type AppointmentCreateWithoutQueueInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2826,6 +2914,8 @@ export type AppointmentUncheckedCreateWithoutQueueInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2893,6 +2983,8 @@ export type AppointmentCreateWithoutMedicalRecordsInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2951,6 +3043,8 @@ export type AppointmentUncheckedCreateWithoutMedicalRecordsInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -2998,6 +3092,8 @@ export type AppointmentCreateWithoutMedicalFileInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3056,6 +3152,8 @@ export type AppointmentUncheckedCreateWithoutMedicalFileInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3118,6 +3216,8 @@ export type AppointmentUpdateWithoutMedicalRecordsInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3176,6 +3276,8 @@ export type AppointmentUncheckedUpdateWithoutMedicalRecordsInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3234,6 +3336,8 @@ export type AppointmentCreateWithoutTreatmentPlansInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3292,6 +3396,8 @@ export type AppointmentUncheckedCreateWithoutTreatmentPlansInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3350,6 +3456,8 @@ export type AppointmentUpdateWithoutTreatmentPlansInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3408,6 +3516,8 @@ export type AppointmentUncheckedUpdateWithoutTreatmentPlansInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3450,6 +3560,8 @@ export type AppointmentCreateWithoutVisitInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3507,6 +3619,8 @@ export type AppointmentUncheckedCreateWithoutVisitInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3575,6 +3689,8 @@ export type AppointmentCreateWithoutInvoiceInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3632,6 +3748,8 @@ export type AppointmentUncheckedCreateWithoutInvoiceInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3700,6 +3818,8 @@ export type AppointmentCreateWithoutPrescriptionsInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3758,6 +3878,8 @@ export type AppointmentUncheckedCreateWithoutPrescriptionsInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3816,6 +3938,8 @@ export type AppointmentUpdateWithoutPrescriptionsInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3874,6 +3998,8 @@ export type AppointmentUncheckedUpdateWithoutPrescriptionsInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3923,6 +4049,8 @@ export type AppointmentCreateManyDoctorInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -3970,6 +4098,8 @@ export type AppointmentCreateManyExtraApprovedByInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -4010,6 +4140,8 @@ export type AppointmentUpdateWithoutDoctorInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4067,6 +4199,8 @@ export type AppointmentUncheckedUpdateWithoutDoctorInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4117,6 +4251,8 @@ export type AppointmentUncheckedUpdateManyWithoutDoctorInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4157,6 +4293,8 @@ export type AppointmentUpdateWithoutExtraApprovedByInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4214,6 +4352,8 @@ export type AppointmentUncheckedUpdateWithoutExtraApprovedByInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4264,6 +4404,8 @@ export type AppointmentUncheckedUpdateManyWithoutExtraApprovedByInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4311,6 +4453,8 @@ export type AppointmentCreateManyPerformerInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -4358,6 +4502,8 @@ export type AppointmentCreateManyBookedByInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -4398,6 +4544,8 @@ export type AppointmentUpdateWithoutPerformerInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4455,6 +4603,8 @@ export type AppointmentUncheckedUpdateWithoutPerformerInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4505,6 +4655,8 @@ export type AppointmentUncheckedUpdateManyWithoutPerformerInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4545,6 +4697,8 @@ export type AppointmentUpdateWithoutBookedByInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4602,6 +4756,8 @@ export type AppointmentUncheckedUpdateWithoutBookedByInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4652,6 +4808,8 @@ export type AppointmentUncheckedUpdateManyWithoutBookedByInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4700,6 +4858,8 @@ export type AppointmentCreateManyRoomInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -4739,6 +4899,8 @@ export type AppointmentUpdateWithoutRoomInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4797,6 +4959,8 @@ export type AppointmentUncheckedUpdateWithoutRoomInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4847,6 +5011,8 @@ export type AppointmentUncheckedUpdateManyWithoutRoomInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4893,6 +5059,8 @@ export type AppointmentCreateManyTherapySlotInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -4933,6 +5101,8 @@ export type AppointmentUpdateWithoutTherapySlotInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4990,6 +5160,8 @@ export type AppointmentUncheckedUpdateWithoutTherapySlotInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5040,6 +5212,8 @@ export type AppointmentUncheckedUpdateManyWithoutTherapySlotInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5087,6 +5261,8 @@ export type AppointmentCreateManyPatientInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -5127,6 +5303,8 @@ export type AppointmentUpdateWithoutPatientInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5184,6 +5362,8 @@ export type AppointmentUncheckedUpdateWithoutPatientInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5234,6 +5414,8 @@ export type AppointmentUncheckedUpdateManyWithoutPatientInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5282,6 +5464,8 @@ export type AppointmentCreateManyQueueInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -5321,6 +5505,8 @@ export type AppointmentUpdateWithoutQueueInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5379,6 +5565,8 @@ export type AppointmentUncheckedUpdateWithoutQueueInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5429,6 +5617,8 @@ export type AppointmentUncheckedUpdateManyWithoutQueueInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5476,6 +5666,8 @@ export type AppointmentCreateManyMedicalFileInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -5515,6 +5707,8 @@ export type AppointmentUpdateWithoutMedicalFileInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5573,6 +5767,8 @@ export type AppointmentUncheckedUpdateWithoutMedicalFileInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5623,6 +5819,8 @@ export type AppointmentUncheckedUpdateManyWithoutMedicalFileInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5669,6 +5867,8 @@ export type AppointmentCreateManyVisitInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -5709,6 +5909,8 @@ export type AppointmentUpdateWithoutVisitInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5766,6 +5968,8 @@ export type AppointmentUncheckedUpdateWithoutVisitInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5816,6 +6020,8 @@ export type AppointmentUncheckedUpdateManyWithoutVisitInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5863,6 +6069,8 @@ export type AppointmentCreateManyInvoiceInput = {
   status?: $Enums.AppointmentStatus
   notes?: string | null
   feeAmount?: number | null
+  consultationFee?: number | null
+  therapyFee?: number | null
   paidAmount?: number | null
   dueAmount?: number | null
   paymentStatus?: string | null
@@ -5903,6 +6111,8 @@ export type AppointmentUpdateWithoutInvoiceInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -5960,6 +6170,8 @@ export type AppointmentUncheckedUpdateWithoutInvoiceInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6010,6 +6222,8 @@ export type AppointmentUncheckedUpdateManyWithoutInvoiceInput = {
   status?: Prisma.EnumAppointmentStatusFieldUpdateOperationsInput | $Enums.AppointmentStatus
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   feeAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  consultationFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  therapyFee?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paidAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   dueAmount?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   paymentStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -6107,6 +6321,8 @@ export type AppointmentSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   status?: boolean
   notes?: boolean
   feeAmount?: boolean
+  consultationFee?: boolean
+  therapyFee?: boolean
   paidAmount?: boolean
   dueAmount?: boolean
   paymentStatus?: boolean
@@ -6170,6 +6386,8 @@ export type AppointmentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   status?: boolean
   notes?: boolean
   feeAmount?: boolean
+  consultationFee?: boolean
+  therapyFee?: boolean
   paidAmount?: boolean
   dueAmount?: boolean
   paymentStatus?: boolean
@@ -6229,6 +6447,8 @@ export type AppointmentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   status?: boolean
   notes?: boolean
   feeAmount?: boolean
+  consultationFee?: boolean
+  therapyFee?: boolean
   paidAmount?: boolean
   dueAmount?: boolean
   paymentStatus?: boolean
@@ -6288,6 +6508,8 @@ export type AppointmentSelectScalar = {
   status?: boolean
   notes?: boolean
   feeAmount?: boolean
+  consultationFee?: boolean
+  therapyFee?: boolean
   paidAmount?: boolean
   dueAmount?: boolean
   paymentStatus?: boolean
@@ -6315,7 +6537,7 @@ export type AppointmentSelectScalar = {
   updatedAt?: boolean
 }
 
-export type AppointmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "therapySlotId" | "patientId" | "visitId" | "invoiceId" | "appointmentDate" | "gender" | "bookingType" | "extraStatus" | "extraReason" | "extraApprovedById" | "extraApprovedAt" | "extraApprovalNote" | "doctorId" | "performerId" | "bookedById" | "status" | "notes" | "feeAmount" | "paidAmount" | "dueAmount" | "paymentStatus" | "paidAt" | "paymentMethod" | "toldTime" | "checkInTime" | "inConsultationTime" | "outConsultationTime" | "inTherapyTime" | "outTherapyTime" | "checkOutTime" | "willCallTime" | "routingOrigin" | "routingNote" | "routedAt" | "queueId" | "queueType" | "currentStation" | "roomId" | "medicalRecordId" | "consultationDate" | "consultationTime" | "createdAt" | "updatedAt", ExtArgs["result"]["appointment"]>
+export type AppointmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "therapySlotId" | "patientId" | "visitId" | "invoiceId" | "appointmentDate" | "gender" | "bookingType" | "extraStatus" | "extraReason" | "extraApprovedById" | "extraApprovedAt" | "extraApprovalNote" | "doctorId" | "performerId" | "bookedById" | "status" | "notes" | "feeAmount" | "consultationFee" | "therapyFee" | "paidAmount" | "dueAmount" | "paymentStatus" | "paidAt" | "paymentMethod" | "toldTime" | "checkInTime" | "inConsultationTime" | "outConsultationTime" | "inTherapyTime" | "outTherapyTime" | "checkOutTime" | "willCallTime" | "routingOrigin" | "routingNote" | "routedAt" | "queueId" | "queueType" | "currentStation" | "roomId" | "medicalRecordId" | "consultationDate" | "consultationTime" | "createdAt" | "updatedAt", ExtArgs["result"]["appointment"]>
 export type AppointmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   therapySlot?: boolean | Prisma.Appointment$therapySlotArgs<ExtArgs>
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
@@ -6399,6 +6621,8 @@ export type $AppointmentPayload<ExtArgs extends runtime.Types.Extensions.Interna
     status: $Enums.AppointmentStatus
     notes: string | null
     feeAmount: number | null
+    consultationFee: number | null
+    therapyFee: number | null
     paidAmount: number | null
     dueAmount: number | null
     paymentStatus: string | null
@@ -6881,6 +7105,8 @@ export interface AppointmentFieldRefs {
   readonly status: Prisma.FieldRef<"Appointment", 'AppointmentStatus'>
   readonly notes: Prisma.FieldRef<"Appointment", 'String'>
   readonly feeAmount: Prisma.FieldRef<"Appointment", 'Float'>
+  readonly consultationFee: Prisma.FieldRef<"Appointment", 'Float'>
+  readonly therapyFee: Prisma.FieldRef<"Appointment", 'Float'>
   readonly paidAmount: Prisma.FieldRef<"Appointment", 'Float'>
   readonly dueAmount: Prisma.FieldRef<"Appointment", 'Float'>
   readonly paymentStatus: Prisma.FieldRef<"Appointment", 'String'>

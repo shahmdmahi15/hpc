@@ -38,6 +38,7 @@ import type { AppointmentWithRelations } from "@/actions/receptionist/appointmen
 import {
   routePatientAction,
   updateAppointmentFeeAction,
+  getPatientTodayTherapyDueAction,
 } from "@/actions/doctor/doctor.action";
 import {
   getPatientTreatmentPlansAction,
@@ -102,14 +103,14 @@ function SendPatientDialogContent({
   onSuccess?: () => void;
   onOpenTreatmentPlan?: (tab: "today" | "next") => void;
 }) {
-  const initialFee =
-    typeof appointment.feeAmount === "number"
-      ? appointment.feeAmount
-      : appointment.type === "CONSULTATION" && !appointment.therapySlotId
-        ? 0
+  const initialDoctorFee =
+    typeof (appointment as any).consultationFee === "number" && (appointment as any).consultationFee > 0
+      ? (appointment as any).consultationFee
+      : appointment.type === "CONSULTATION" && typeof appointment.feeAmount === "number"
+        ? appointment.feeAmount
         : DEFAULT_FEE;
 
-  const [dueAmount, setDueAmount] = React.useState<number>(initialFee);
+  const [dueAmount, setDueAmount] = React.useState<number>(initialDoctorFee);
   const [isRouting, setIsRouting] = React.useState(false);
   const [routingDestination, setRoutingDestination] = React.useState<
     "CASHIER" | "HANDLER" | "RECEPTIONIST" | null
@@ -124,6 +125,19 @@ function SendPatientDialogContent({
   );
   const [todayTherapySlot, setTodayTherapySlot] =
     React.useState<TodayTherapySlotInfo | null>(null);
+  const [todayTherapyDueInfo, setTodayTherapyDueInfo] = React.useState<{
+    hasTherapyToday: boolean;
+    isPaid: boolean;
+    therapyFee: number;
+    therapyPaid: number;
+    therapyDue: number;
+    slotLabel?: string | null;
+  } | null>(null);
+  const [slotStatusFlags, setSlotStatusFlags] = React.useState<{
+    hasUnserved: boolean;
+    isCompleted: boolean;
+  }>({ hasUnserved: false, isCompleted: false });
+
   const [isLoadingPlan, setIsLoadingPlan] = React.useState<boolean>(
     Boolean(appointment.patientId),
   );
@@ -131,17 +145,29 @@ function SendPatientDialogContent({
     React.useState(false);
   const [isMissingSlotPromptOpen, setIsMissingSlotPromptOpen] =
     React.useState(false);
+  const [isCompletedSlotPromptOpen, setIsCompletedSlotPromptOpen] =
+    React.useState(false);
+  const [completedSlotPromptMessage, setCompletedSlotPromptMessage] =
+    React.useState("");
 
   const refreshPlanAndSlotStatus = React.useCallback(async () => {
     if (!appointment.patientId) return;
     setIsLoadingPlan(true);
     try {
-      const res = await getPatientTreatmentPlansAction(
-        appointment.patientId,
-        appointment.id,
-      );
-      setTodayPlan(res.todayPlan || null);
-      setTodayTherapySlot(res.todayTherapySlot || null);
+      const [planRes, therapyDueRes] = await Promise.all([
+        getPatientTreatmentPlansAction(
+          appointment.patientId,
+          appointment.id,
+        ),
+        getPatientTodayTherapyDueAction(appointment.patientId),
+      ]);
+      setTodayPlan(planRes.todayPlan || null);
+      setTodayTherapySlot(planRes.todayTherapySlot || null);
+      setTodayTherapyDueInfo(therapyDueRes);
+      setSlotStatusFlags({
+        hasUnserved: Boolean(planRes.hasUnservedTherapySlotToday),
+        isCompleted: Boolean(planRes.isTherapySlotCompletedToday),
+      });
     } catch (err) {
       console.error("[Fetch Treatment Plan & Slot Error]:", err);
     } finally {
@@ -173,17 +199,35 @@ function SendPatientDialogContent({
     },
   });
 
-  const hasTherapySlotToday = Boolean(
-    appointment.therapySlotId || todayTherapySlot?.slotId,
+  // Slot completion vs available detection
+  const isCurrentAptTherapyCompleted = Boolean(appointment.outTherapyTime);
+  const isTodaySlotCompleted = Boolean(
+    todayTherapySlot?.isCompleted ||
+    (slotStatusFlags.isCompleted && !slotStatusFlags.hasUnserved)
   );
+  const hasPendingUnservedSlot = Boolean(
+    slotStatusFlags.hasUnserved ||
+    (todayTherapySlot?.slotId && !todayTherapySlot.isCompleted && !isCurrentAptTherapyCompleted) ||
+    (appointment.therapySlotId && !isCurrentAptTherapyCompleted)
+  );
+  const isSlotAlreadyCompleted = Boolean(
+    (isCurrentAptTherapyCompleted || isTodaySlotCompleted) && !hasPendingUnservedSlot
+  );
+  const hasTherapySlotToday = Boolean(
+    appointment.therapySlotId ||
+    todayTherapySlot?.slotId ||
+    slotStatusFlags.hasUnserved ||
+    slotStatusFlags.isCompleted
+  );
+
   const effectiveSlotLabel =
-    appointment.therapySlot?.label || todayTherapySlot?.label || null;
+    appointment.therapySlot?.label || todayTherapySlot?.label || todayTherapyDueInfo?.slotLabel || null;
   const effectiveSlotRoom =
     appointment.therapySlot?.room?.number ||
     todayTherapySlot?.roomNumber ||
     null;
 
-  const currentFee = appointment.feeAmount ?? initialFee;
+  const currentFee = (appointment as any).consultationFee ?? initialDoctorFee;
   const isFeeModified = dueAmount !== currentFee;
   const isPaid = appointment.paymentStatus === "PAID";
 
@@ -194,10 +238,15 @@ function SendPatientDialogContent({
     setIsRouting(true);
     setRoutingDestination(destination);
     try {
+      const therapyFeeForRouting =
+        todayTherapyDueInfo?.therapyFee || (appointment as any).therapyFee || 0;
+
       const res = await routePatientAction({
         appointmentId: appointment.id,
         destination,
-        feeAmount: Number(dueAmount),
+        consultationFee: Number(dueAmount),
+        therapyFee: therapyFeeForRouting,
+        feeAmount: Number(dueAmount) + therapyFeeForRouting,
         performerId: doctorId,
         pin: undefined,
         routingNote: routingNote.trim() || undefined,
@@ -208,9 +257,15 @@ function SendPatientDialogContent({
         onOpenChange(false);
         setIsMissingPlanPromptOpen(false);
         setIsMissingSlotPromptOpen(false);
+        setIsCompletedSlotPromptOpen(false);
         onSuccess?.();
       } else {
-        toast.error(res.message);
+        if (res.code === "SLOT_ALREADY_COMPLETED") {
+          setCompletedSlotPromptMessage(res.message);
+          setIsCompletedSlotPromptOpen(true);
+        } else {
+          toast.error(res.message);
+        }
       }
     } catch {
       toast.error("Failed to route patient.");
@@ -230,22 +285,31 @@ function SendPatientDialogContent({
     }
 
     if (destination === "HANDLER") {
-      // 1. Check if there is a therapy slot booked for today
-      if (!hasTherapySlotToday) {
+      // 1. Guard against already completed therapy slot
+      if (isSlotAlreadyCompleted) {
+        setCompletedSlotPromptMessage(
+          `Today's booked physical therapy session${effectiveSlotLabel ? ` (${effectiveSlotLabel})` : ""} has already been completed. To conduct another therapy session today, please send the patient to the Receptionist Desk to book a new slot (or Extra Slot).`
+        );
+        setIsCompletedSlotPromptOpen(true);
+        return;
+      }
+
+      // 2. Check if there is an unserved therapy slot booked for today
+      if (!hasPendingUnservedSlot && !hasTherapySlotToday) {
         if (!todayPlan) {
           toast.warning(
             "No therapy slot booked for today, and there is no treatment plan for today!",
           );
         } else {
           toast.error(
-            "There must be a therapy slot booked for today before sending to Handler.",
+            "There must be an active therapy slot booked for today before sending to Handler.",
           );
         }
         setIsMissingSlotPromptOpen(true);
         return;
       }
 
-      // 2. Check if there is a treatment plan for today
+      // 3. Check if there is a treatment plan for today
       if (!todayPlan) {
         toast.warning("Warning: There is no treatment plan for today!");
         setIsMissingPlanPromptOpen(true);
@@ -425,23 +489,107 @@ function SendPatientDialogContent({
               </div>
             </div>
 
+            {/* 2B. Physical Therapy & Patient Due Breakdown (Read-Only context for Doctor) */}
+            <div className="p-3.5 rounded-xl border border-sky-500/25 bg-sky-500/[0.03] space-y-2.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 rounded-md bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                    <Activity className="size-3.5" />
+                  </div>
+                  <h5 className="text-xs font-bold text-foreground">
+                    Physical Therapy &amp; Patient Due Status
+                  </h5>
+                </div>
+                <div className="text-[11px] font-bold text-foreground font-mono">
+                  Total Collectible Today:{" "}
+                  <span className="text-amber-600 dark:text-amber-400 font-bold">
+                    ৳{((dueAmount || 0) + (todayTherapyDueInfo?.isPaid ? 0 : (todayTherapyDueInfo?.therapyFee || 0))).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* Physical Therapy Session Fee */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/70 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="text-[10px] text-muted-foreground font-medium">Physical Therapy Fee</div>
+                    <div className="font-mono font-bold text-xs text-foreground">
+                      {todayTherapyDueInfo?.hasTherapyToday
+                        ? `৳${todayTherapyDueInfo.therapyFee}`
+                        : "No therapy today"}
+                    </div>
+                  </div>
+                  {todayTherapyDueInfo?.hasTherapyToday && (
+                    <Badge
+                      variant="outline"
+                      className={`text-[9.5px] font-bold py-0 ${
+                        todayTherapyDueInfo.isPaid
+                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                          : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                      }`}
+                    >
+                      {todayTherapyDueInfo.isPaid ? "Paid" : "Pending Bill"}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Patient Lifetime Due */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/70 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="text-[10px] text-muted-foreground font-medium">Prior Outstanding Due</div>
+                    <div className="font-mono font-bold text-xs text-foreground">
+                      ৳{(appointment.patient?.totalDue || 0).toLocaleString()}
+                    </div>
+                  </div>
+                  {(appointment.patient?.totalDue || 0) > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="text-[9.5px] font-bold py-0 bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30"
+                    >
+                      Due
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Combined Status */}
+                <div className="p-2 rounded-lg bg-background/80 border border-border/70 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="text-[10px] text-muted-foreground font-medium">Cashier Invoice</div>
+                    <div className="font-mono font-bold text-xs text-muted-foreground">
+                      Itemized on send
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[9.5px] font-bold py-0 bg-primary/10 text-primary border-primary/20"
+                  >
+                    Separated
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
             {/* 3. Today's Therapy Slot & Treatment Plan Status Banners */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* 3A. Today's Therapy Slot Status Banner */}
               <div
                 className={`p-3.5 rounded-xl border transition-all ${
-                  hasTherapySlotToday
+                  hasPendingUnservedSlot
                     ? "bg-emerald-500/5 border-emerald-500/30"
-                    : "bg-rose-500/5 border-rose-500/30"
+                    : isSlotAlreadyCompleted
+                      ? "bg-amber-500/5 border-amber-500/30"
+                      : "bg-rose-500/5 border-rose-500/30"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2.5">
                   <div className="flex items-start gap-2.5">
                     <div
                       className={`p-1.5 rounded-lg shrink-0 ${
-                        hasTherapySlotToday
+                        hasPendingUnservedSlot
                           ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                          : "bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                          : isSlotAlreadyCompleted
+                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                            : "bg-rose-500/15 text-rose-700 dark:text-rose-300"
                       }`}
                     >
                       <Ticket className="size-4" />
@@ -453,9 +601,16 @@ function SendPatientDialogContent({
                         </h5>
                         {isLoadingPlan ? (
                           <Loader2 className="size-3 animate-spin text-muted-foreground" />
-                        ) : hasTherapySlotToday ? (
+                        ) : hasPendingUnservedSlot ? (
                           <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10.5px] font-bold">
-                            Slot Booked
+                            Slot Booked &amp; Available
+                          </Badge>
+                        ) : isSlotAlreadyCompleted ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10.5px] font-bold"
+                          >
+                            Slot Completed Today
                           </Badge>
                         ) : (
                           <Badge
@@ -467,9 +622,11 @@ function SendPatientDialogContent({
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {hasTherapySlotToday
+                        {hasPendingUnservedSlot
                           ? `${effectiveSlotLabel || "Therapy Slot"}${effectiveSlotRoom ? ` • Room ${effectiveSlotRoom}` : ""}`
-                          : "A therapy slot must be booked for today to send this patient to Handler Queue."}
+                          : isSlotAlreadyCompleted
+                            ? `Completed today${effectiveSlotLabel ? ` (${effectiveSlotLabel})` : ""}. Additional session requires booking a new slot.`
+                            : "A therapy slot must be booked for today to send this patient to Handler Queue."}
                       </p>
                     </div>
                   </div>
@@ -692,10 +849,15 @@ function SendPatientDialogContent({
                         <Activity className="size-5" />
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        {hasTherapySlotToday ? (
+                        {hasPendingUnservedSlot ? (
                           <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30 flex items-center gap-1">
                             <CheckCircle2 className="size-3" />
-                            Slot Booked
+                            Slot Available
+                          </span>
+                        ) : isSlotAlreadyCompleted ? (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/30 flex items-center gap-1">
+                            <AlertTriangle className="size-3" />
+                            Slot Completed
                           </span>
                         ) : (
                           <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-800 dark:text-rose-200 border border-rose-500/30 flex items-center gap-1">
@@ -946,6 +1108,81 @@ function SendPatientDialogContent({
               variant="ghost"
               size="sm"
               onClick={() => setIsMissingPlanPromptOpen(false)}
+              className="w-full h-8 text-xs text-muted-foreground cursor-pointer"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Completed Therapy Slot Warning Prompt */}
+      <Dialog
+        open={isCompletedSlotPromptOpen}
+        onOpenChange={setIsCompletedSlotPromptOpen}
+      >
+        <DialogContent className="w-[90vw] sm:max-w-md max-h-[92dvh] overflow-y-auto p-5 border-amber-500/40 shadow-2xl rounded-2xl">
+          <div className="flex items-start gap-3.5">
+            <div className="size-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <AlertTriangle className="size-5" />
+            </div>
+            <div className="space-y-2">
+              <DialogTitle className="text-base font-bold text-foreground">
+                Therapy Slot Already Completed
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                {completedSlotPromptMessage ||
+                  `Today's booked therapy session has already been completed for this patient. To conduct another physical therapy session today, a new therapy slot must be booked.`}
+              </DialogDescription>
+              <div className="p-2.5 rounded-xl bg-muted/60 border border-border text-xs text-muted-foreground">
+                Please select an alternative destination: route the patient to the{" "}
+                <strong className="text-foreground">Receptionist Desk</strong> to book an additional slot, or forward directly to the{" "}
+                <strong className="text-foreground">Cashier Counter</strong>.
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-3">
+            <Button
+              type="button"
+              onClick={() => {
+                setIsCompletedSlotPromptOpen(false);
+                executeRouting("RECEPTIONIST");
+              }}
+              disabled={isRouting}
+              className="w-full h-9 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs"
+            >
+              {isRouting && routingDestination === "RECEPTIONIST" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Users className="size-3.5" />
+              )}
+              <span>Forward to Receptionist (To Book New Slot)</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCompletedSlotPromptOpen(false);
+                executeRouting("CASHIER");
+              }}
+              disabled={isRouting}
+              className="w-full h-9 text-xs font-bold gap-1.5 border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer shadow-xs"
+            >
+              {isRouting && routingDestination === "CASHIER" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <CreditCard className="size-3.5" />
+              )}
+              <span>Send to Cashier (Settlement)</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCompletedSlotPromptOpen(false)}
               className="w-full h-8 text-xs text-muted-foreground cursor-pointer"
             >
               Cancel

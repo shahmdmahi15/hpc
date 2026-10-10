@@ -118,22 +118,49 @@ export function ThermalReceiptDialog({
       });
     });
   } else {
-    const mainFee = appointment.feeAmount ?? CLINIC_CONFIG.defaultConsultationFee;
-    lineItems.push({
-      type: appointment.type,
-      title:
-        appointment.type === "CONSULTATION"
-          ? "Doctor Consultation & Clinical Evaluation"
-          : "Physical Therapy & Rehabilitation Session",
-      subtitle: appointment.therapySlot?.label
-        ? `Assigned: ${appointment.therapySlot.label}`
-        : appointment.doctor?.name
+    const consultFee = (appointment as any).consultationFee ?? 0;
+    const therapyFee = (appointment as any).therapyFee ?? 0;
+
+    if (consultFee > 0 && therapyFee > 0) {
+      lineItems.push({
+        type: "CONSULTATION",
+        title: "Doctor Consultation & Clinical Evaluation",
+        subtitle: appointment.doctor?.name
           ? `Attending: ${appointment.doctor.name}`
-          : "Standard Clinical Protocol",
-      qty: 1,
-      rate: mainFee,
-      total: mainFee,
-    });
+          : "Doctor Chamber Evaluation",
+        qty: 1,
+        rate: consultFee,
+        total: consultFee,
+      });
+
+      lineItems.push({
+        type: "THERAPY",
+        title: "Physical Therapy & Rehabilitation Session",
+        subtitle: appointment.therapySlot?.label
+          ? `Assigned: ${appointment.therapySlot.label}`
+          : "Physical Therapy Session",
+        qty: 1,
+        rate: therapyFee,
+        total: therapyFee,
+      });
+    } else {
+      const mainFee = appointment.feeAmount ?? CLINIC_CONFIG.defaultConsultationFee;
+      lineItems.push({
+        type: appointment.type,
+        title:
+          appointment.type === "CONSULTATION"
+            ? "Doctor Consultation & Clinical Evaluation"
+            : "Physical Therapy & Rehabilitation Session",
+        subtitle: appointment.therapySlot?.label
+          ? `Assigned: ${appointment.therapySlot.label}`
+          : appointment.doctor?.name
+            ? `Attending: ${appointment.doctor.name}`
+            : "Standard Clinical Protocol",
+        qty: 1,
+        rate: mainFee,
+        total: mainFee,
+      });
+    }
 
     const prevDue = (appointment as any).previousDueCollected;
     if (typeof prevDue === "number" && prevDue > 0) {

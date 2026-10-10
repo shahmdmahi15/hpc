@@ -402,6 +402,8 @@ export interface RoutePatientParams {
   appointmentId: string;
   destination: "CASHIER" | "HANDLER" | "RECEPTIONIST" | "DOCTOR";
   feeAmount?: number;
+  consultationFee?: number;
+  therapyFee?: number;
   performerId?: string;
   pin?: string;
   notes?: string;
@@ -424,6 +426,7 @@ export interface RoutePatientParams {
 export async function routePatientAction(params: RoutePatientParams): Promise<{
   success: boolean;
   message: string;
+  code?: string;
   appointment?: AppointmentWithRelations;
 }> {
   try {
@@ -464,17 +467,32 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       return { success: false, message: "Appointment record not found." };
     }
 
-    const defaultFee =
-      appointment.type === AppointmentType.CONSULTATION && !appointment.therapySlotId
-        ? (appointment.feeAmount ?? 0)
-        : (appointment.feeAmount ?? 500);
+    // Differentiate Consultation Fee vs Therapy Fee
+    let newConsultationFee: number = appointment.consultationFee ?? 0;
+    let newTherapyFee: number = appointment.therapyFee ?? 0;
 
-    let feeToSet =
-      typeof params.feeAmount === "number" &&
-      !isNaN(params.feeAmount) &&
-      params.feeAmount >= 0
-        ? params.feeAmount
-        : defaultFee;
+    if (params.consultationFee !== undefined) {
+      newConsultationFee = Math.max(0, params.consultationFee);
+    } else if (sessionData.user.role === Role.DOCTOR && params.feeAmount !== undefined) {
+      newConsultationFee = Math.max(0, params.feeAmount);
+    }
+
+    if (params.therapyFee !== undefined) {
+      newTherapyFee = Math.max(0, params.therapyFee);
+    } else if (sessionData.user.role === Role.HANDLER && params.feeAmount !== undefined) {
+      newTherapyFee = Math.max(0, params.feeAmount);
+    }
+
+    let feeToSet = newConsultationFee + newTherapyFee;
+    if (
+      feeToSet === 0 &&
+      (appointment.feeAmount ?? 0) > 0 &&
+      params.feeAmount === undefined &&
+      params.consultationFee === undefined &&
+      params.therapyFee === undefined
+    ) {
+      feeToSet = appointment.feeAmount ?? 0;
+    }
 
     let newStatus: AppointmentStatus = AppointmentStatus.CHECKED_IN;
     let targetQueueType: QueueType | null = appointment.queueType;
@@ -497,19 +515,24 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       targetQueueType = null;
       targetQueueId = null;
     } else if (params.destination === "HANDLER") {
-      // Requirement: To send a patient to Handler (Therapy Queue), there MUST be a therapy slot booked for today
+      // Requirement: To send a patient to Handler (Therapy Queue), there MUST be an unserved therapy slot booked for today
       const startOfDay = new Date(appointment.appointmentDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(appointment.appointmentDate);
       endOfDay.setHours(23, 59, 59, 999);
 
-      if (!appointment.therapySlotId) {
+      // Check if this appointment's therapy was ALREADY served (outTherapyTime was stamped)
+      const currentSessionAlreadyServed = Boolean(appointment.outTherapyTime);
+
+      if (!appointment.therapySlotId || currentSessionAlreadyServed) {
+        // Look for ANOTHER unserved therapy slot booking for today
         const separateTherapyApt = await prisma.appointment.findFirst({
           where: {
             patientId: appointment.patientId,
             id: { not: appointment.id },
             appointmentDate: { gte: startOfDay, lte: endOfDay },
             therapySlotId: { not: null },
+            outTherapyTime: null, // Must not be already served!
             status: {
               notIn: [
                 AppointmentStatus.CANCELLED,
@@ -522,14 +545,24 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         });
 
         if (!separateTherapyApt) {
-          return {
-            success: false,
-            message:
-              "Cannot send to Handler Queue: No Therapy Slot is booked for today for this patient. Please book a Therapy Slot for today or send the patient to Receptionist first.",
-          };
+          if (currentSessionAlreadyServed) {
+            return {
+              success: false,
+              code: "SLOT_ALREADY_COMPLETED",
+              message:
+                "Today's booked therapy slot has already been completed for this patient. To conduct another therapy session today, please send the patient to the Receptionist Desk to book a new slot (or Extra Slot).",
+            };
+          } else {
+            return {
+              success: false,
+              code: "NO_SLOT_BOOKED",
+              message:
+                "Cannot send to Handler Queue: No Therapy Slot is booked for today for this patient. Please book a Therapy Slot for today or send the patient to Receptionist first.",
+            };
+          }
         }
 
-        // Merge the separate therapy slot booking into this active visit appointment so there is a single unified record
+        // Merge the separate unserved therapy slot booking into this active visit appointment
         mergedTherapyFields = {
           type: AppointmentType.THERAPY,
           therapySlotId: separateTherapyApt.therapySlotId,
@@ -538,8 +571,9 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
           extraReason: separateTherapyApt.extraReason,
           toldTime: separateTherapyApt.toldTime || appointment.toldTime,
         };
-        if (feeToSet === 0 && (separateTherapyApt.feeAmount ?? 0) > 0) {
-          feeToSet = separateTherapyApt.feeAmount ?? 500;
+        if (newTherapyFee === 0 && (separateTherapyApt.therapyFee ?? separateTherapyApt.feeAmount ?? 0) > 0) {
+          newTherapyFee = separateTherapyApt.therapyFee ?? separateTherapyApt.feeAmount ?? 800;
+          feeToSet = newConsultationFee + newTherapyFee;
         }
 
         await prisma.appointment
@@ -668,14 +702,18 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         ? routeTime
         : appointment.outConsultationTime;
 
-    // If leaving therapy, stamp outTherapyTime
-    const outTherapyTime =
+    // If leaving therapy, stamp outTherapyTime; if entering therapy queue, reset to null
+    let outTherapyTime: Date | null = appointment.outTherapyTime;
+    if (params.destination === "HANDLER") {
+      outTherapyTime = null; // Clears exit time so patient is active in therapy queue!
+    } else if (
       appointment.status === AppointmentStatus.IN_THERAPY ||
       appointment.queueType === QueueType.THERAPY ||
       params.destination === "DOCTOR" ||
       (routingOrigin === "THERAPY" && !appointment.outTherapyTime)
-        ? routeTime
-        : appointment.outTherapyTime;
+    ) {
+      outTherapyTime = routeTime;
+    }
 
     // Validate performerId: only assign if exists in Performer table
     let validatedPerformerId: string | null | undefined = undefined;
@@ -729,6 +767,8 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
             : appointment.routingNote,
         outConsultationTime,
         outTherapyTime,
+        consultationFee: newConsultationFee,
+        therapyFee: newTherapyFee,
         feeAmount: feeToSet,
         paidAmount:
           paymentStatus === "PAID" ? feeToSet : (appointment.paidAmount ?? 0),
@@ -1096,6 +1136,38 @@ export async function getPatientTodayConsultationDueAction(patientId: string): P
     });
 
     if (!serial) {
+      // Check if an appointment has consultation fee for today
+      const apt = await prisma.appointment.findFirst({
+        where: {
+          patientId,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          OR: [
+            { type: AppointmentType.CONSULTATION },
+            { consultationFee: { gt: 0 } },
+          ],
+          status: { notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW] },
+        },
+        include: { doctor: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (apt) {
+        const docFee =
+          apt.consultationFee ??
+          (apt.type === AppointmentType.CONSULTATION ? (apt.feeAmount ?? 500) : 0);
+        const isPaid =
+          apt.paymentStatus === "PAID" ||
+          (apt.dueAmount === 0 && (apt.paidAmount ?? 0) > 0);
+        return {
+          hasConsultationToday: docFee > 0 || apt.type === AppointmentType.CONSULTATION,
+          isPaid,
+          doctorFee: docFee,
+          doctorPaid: isPaid ? docFee : (apt.paidAmount ?? 0),
+          doctorDue: isPaid ? 0 : docFee,
+          doctorName: apt.doctor?.name || null,
+        };
+      }
+
       return {
         hasConsultationToday: false,
         isPaid: false,
@@ -1125,6 +1197,81 @@ export async function getPatientTodayConsultationDueAction(patientId: string): P
       doctorFee: 0,
       doctorPaid: 0,
       doctorDue: 0,
+    };
+  }
+}
+
+/**
+ * Checks whether a patient had a physical therapy session or booked slot today and whether it is paid or unpaid.
+ * Used by Doctor Send Dialog to show therapy fee breakdown and prevent overwriting.
+ */
+export async function getPatientTodayTherapyDueAction(patientId: string): Promise<{
+  hasTherapyToday: boolean;
+  isPaid: boolean;
+  therapyFee: number;
+  therapyPaid: number;
+  therapyDue: number;
+  slotLabel?: string | null;
+}> {
+  try {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    const apt = await prisma.appointment.findFirst({
+      where: {
+        patientId,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        OR: [
+          { therapySlotId: { not: null } },
+          { therapyFee: { gt: 0 } },
+        ],
+        status: { notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW] },
+      },
+      include: {
+        therapySlot: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!apt) {
+      return {
+        hasTherapyToday: false,
+        isPaid: false,
+        therapyFee: 0,
+        therapyPaid: 0,
+        therapyDue: 0,
+      };
+    }
+
+    const therapyFee =
+      apt.therapyFee ??
+      ((apt.consultationFee ?? 0) > 0
+        ? Math.max(0, (apt.feeAmount ?? 0) - (apt.consultationFee ?? 0))
+        : (apt.type === AppointmentType.THERAPY ? (apt.feeAmount ?? 0) : 0));
+
+    const isPaid =
+      apt.paymentStatus === "PAID" ||
+      (apt.dueAmount === 0 && (apt.paidAmount ?? 0) > 0);
+    const therapyPaid = isPaid ? therapyFee : (apt.paidAmount ?? 0);
+    const therapyDue = isPaid ? 0 : therapyFee;
+
+    return {
+      hasTherapyToday: therapyFee > 0 || Boolean(apt.therapySlotId),
+      isPaid,
+      therapyFee,
+      therapyPaid,
+      therapyDue,
+      slotLabel: apt.therapySlot?.label || null,
+    };
+  } catch (err) {
+    console.error("[getPatientTodayTherapyDueAction Error]:", err);
+    return {
+      hasTherapyToday: false,
+      isPaid: false,
+      therapyFee: 0,
+      therapyPaid: 0,
+      therapyDue: 0,
     };
   }
 }

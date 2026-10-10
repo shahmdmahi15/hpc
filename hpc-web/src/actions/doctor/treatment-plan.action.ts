@@ -78,7 +78,7 @@ export async function getPatientTreatmentPlansAction(
       999,
     );
 
-    const [plans, therapyApt] = await Promise.all([
+    const [plans, todayTherapyAppointments] = await Promise.all([
       prisma.treatmentPlan.findMany({
         where: {
           patientId,
@@ -91,11 +91,11 @@ export async function getPatientTreatmentPlansAction(
         },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.appointment.findFirst({
+      prisma.appointment.findMany({
         where: {
           patientId,
           therapySlotId: { not: null },
-          status: { notIn: ["CANCELLED", "COMPLETED"] },
+          status: { notIn: ["CANCELLED", "NO_SHOW"] },
           OR: [
             ...(appointmentId ? [{ id: appointmentId }] : []),
             { appointmentDate: { gte: startOfToday, lte: endOfToday } },
@@ -153,15 +153,32 @@ export async function getPatientTreatmentPlansAction(
       (p) => p.id !== todayPlan?.id && p.id !== nextPlan?.id,
     );
 
+    // Differentiate between unserved vs completed therapy slots
+    const unservedTherapyApt = todayTherapyAppointments.find(
+      (a) =>
+        Boolean(a.therapySlotId) &&
+        !a.outTherapyTime &&
+        a.status !== "COMPLETED",
+    );
+
+    const completedTherapyApt = todayTherapyAppointments.find(
+      (a) =>
+        Boolean(a.therapySlotId) &&
+        (Boolean(a.outTherapyTime) || a.status === "COMPLETED"),
+    );
+
+    const effectiveApt = unservedTherapyApt || completedTherapyApt || null;
+
     const todayTherapySlot: TodayTherapySlotInfo | null =
-      therapyApt && therapyApt.therapySlotId && therapyApt.therapySlot
+      effectiveApt && effectiveApt.therapySlotId && effectiveApt.therapySlot
         ? {
-            appointmentId: therapyApt.id,
-            slotId: therapyApt.therapySlotId,
-            label: therapyApt.therapySlot.label,
-            startTime: therapyApt.therapySlot.startTime,
-            endTime: therapyApt.therapySlot.endTime,
-            roomNumber: therapyApt.therapySlot.room?.number || null,
+            appointmentId: effectiveApt.id,
+            slotId: effectiveApt.therapySlotId,
+            label: effectiveApt.therapySlot.label,
+            startTime: effectiveApt.therapySlot.startTime,
+            endTime: effectiveApt.therapySlot.endTime,
+            roomNumber: effectiveApt.therapySlot.room?.number || null,
+            isCompleted: Boolean(effectiveApt.outTherapyTime || effectiveApt.status === "COMPLETED"),
           }
         : null;
 
@@ -170,6 +187,8 @@ export async function getPatientTreatmentPlansAction(
       nextPlan,
       historyPlans,
       todayTherapySlot,
+      hasUnservedTherapySlotToday: Boolean(unservedTherapyApt),
+      isTherapySlotCompletedToday: Boolean(!unservedTherapyApt && completedTherapyApt),
     };
   } catch (error) {
     console.error("[getPatientTreatmentPlansAction Error]:", error);

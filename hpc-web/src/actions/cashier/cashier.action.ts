@@ -395,20 +395,62 @@ export async function collectPaymentAction(params: {
       },
     });
 
-    // 1. Separate Physical Therapy line item payment record
-    await prisma.patientPayment.create({
-      data: {
-        patientId: appointment.patientId,
-        visitId: appointment.visitId || undefined,
-        invoiceId: invoice.id,
-        serviceType: "THERAPY",
-        amount: sessionPaid,
-        paymentMethod: params.paymentMethod,
-        isDue,
-        cashierPerformerId: params.performerId || undefined,
-        notes: params.notes || undefined,
-      },
-    });
+    // 1. Separate Physical Therapy and Doctor Consultation line item payment records
+    const aptConsultFee = appointment.consultationFee ?? 0;
+    const aptTherapyFee =
+      appointment.therapyFee ??
+      (aptConsultFee > 0 ? Math.max(0, feeAmount - aptConsultFee) : (appointment.type === AppointmentType.THERAPY ? feeAmount : 0));
+
+    if (aptConsultFee > 0 && aptTherapyFee > 0) {
+      // Split payment into Physical Therapy and Doctor Consultation itemized payments
+      const therapyShare = Math.min(sessionPaid, aptTherapyFee);
+      const consultShare = Math.max(0, sessionPaid - therapyShare);
+
+      await prisma.patientPayment.create({
+        data: {
+          patientId: appointment.patientId,
+          visitId: appointment.visitId || undefined,
+          invoiceId: invoice.id,
+          serviceType: "THERAPY",
+          amount: therapyShare,
+          paymentMethod: params.paymentMethod,
+          isDue,
+          cashierPerformerId: params.performerId || undefined,
+          notes: params.notes || "Physical Therapy Fee",
+        },
+      });
+
+      await prisma.patientPayment.create({
+        data: {
+          patientId: appointment.patientId,
+          visitId: appointment.visitId || undefined,
+          invoiceId: invoice.id,
+          serviceType: "CONSULTATION",
+          amount: consultShare,
+          paymentMethod: params.paymentMethod,
+          isDue,
+          cashierPerformerId: params.performerId || undefined,
+          notes: params.notes || "Doctor Consultation Fee",
+        },
+      });
+    } else {
+      await prisma.patientPayment.create({
+        data: {
+          patientId: appointment.patientId,
+          visitId: appointment.visitId || undefined,
+          invoiceId: invoice.id,
+          serviceType:
+            appointment.type === AppointmentType.CONSULTATION || aptConsultFee > 0
+              ? "CONSULTATION"
+              : "THERAPY",
+          amount: sessionPaid,
+          paymentMethod: params.paymentMethod,
+          isDue,
+          cashierPerformerId: params.performerId || undefined,
+          notes: params.notes || undefined,
+        },
+      });
+    }
 
     // 2. Separate Doctor Consultation line item payment record (if bundled)
     if (includedSerial) {
