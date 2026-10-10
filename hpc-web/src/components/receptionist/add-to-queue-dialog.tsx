@@ -384,8 +384,11 @@ function AddToQueueDialogBody({
                   </div>
                   <div>
                     <div className="text-xs font-black">Therapy Queue</div>
-                    <div className="text-[10.5px] text-muted-foreground leading-tight">
+                    <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
                       Physical therapy & rehabilitation
+                    </div>
+                    <div className="mt-1.5 text-[9.5px] font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                      <span>• Must have Therapy Slot for today</span>
                     </div>
                   </div>
                 </button>
@@ -417,11 +420,30 @@ function AddToQueueDialogBody({
                   </div>
                   <div>
                     <div className="text-xs font-black">Consultation Queue</div>
-                    <div className="text-[10.5px] text-muted-foreground leading-tight">
+                    <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
                       Doctor chambers & consultations
+                    </div>
+                    <div className="mt-1.5 text-[9.5px] font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                      <span>• Must have Serial for today + Cashier billing</span>
                     </div>
                   </div>
                 </button>
+              </div>
+
+              {/* Requirement Hint Banner */}
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/70 text-[11px] text-muted-foreground flex items-start gap-2">
+                <Clock className="size-3.5 text-sky-500 shrink-0 mt-0.5" />
+                <span>
+                  {selectedQueueType === QueueType.THERAPY ? (
+                    <>
+                      <strong>Therapy Rule:</strong> Patient must have an active Therapy Slot booked for <strong>today</strong> to enter the Therapy Queue. Walk-ins without a today slot cannot enter.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Consultation Rule:</strong> Patient must have a Consultation Serial booked for <strong>today</strong> AND fee cleared (paid or marked DUE) at the Cashier to enter the Doctor Queue.
+                    </>
+                  )}
+                </span>
               </div>
             </div>
 

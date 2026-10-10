@@ -62,7 +62,13 @@ export const ModelName = {
   Queue: 'Queue',
   ClinicalOption: 'ClinicalOption',
   MedicalRecord: 'MedicalRecord',
-  TreatmentPlan: 'TreatmentPlan'
+  TreatmentPlan: 'TreatmentPlan',
+  PatientVisit: 'PatientVisit',
+  ConsultationSerial: 'ConsultationSerial',
+  PatientStepLog: 'PatientStepLog',
+  PatientInvoice: 'PatientInvoice',
+  PatientPayment: 'PatientPayment',
+  ChatMessage: 'ChatMessage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -208,6 +214,8 @@ export const AppointmentScalarFieldEnum = {
   type: 'type',
   therapySlotId: 'therapySlotId',
   patientId: 'patientId',
+  visitId: 'visitId',
+  invoiceId: 'invoiceId',
   appointmentDate: 'appointmentDate',
   gender: 'gender',
   bookingType: 'bookingType',
@@ -342,6 +350,127 @@ export const TreatmentPlanScalarFieldEnum = {
 } as const
 
 export type TreatmentPlanScalarFieldEnum = (typeof TreatmentPlanScalarFieldEnum)[keyof typeof TreatmentPlanScalarFieldEnum]
+
+
+export const PatientVisitScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  visitNumber: 'visitNumber',
+  visitDate: 'visitDate',
+  checkInTime: 'checkInTime',
+  checkOutTime: 'checkOutTime',
+  status: 'status',
+  checkInPerformerId: 'checkInPerformerId',
+  checkOutPerformerId: 'checkOutPerformerId',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PatientVisitScalarFieldEnum = (typeof PatientVisitScalarFieldEnum)[keyof typeof PatientVisitScalarFieldEnum]
+
+
+export const ConsultationSerialScalarFieldEnum = {
+  id: 'id',
+  serialNumber: 'serialNumber',
+  appointmentDate: 'appointmentDate',
+  doctorId: 'doctorId',
+  patientId: 'patientId',
+  visitId: 'visitId',
+  toldTime: 'toldTime',
+  feeAmount: 'feeAmount',
+  paidAmount: 'paidAmount',
+  dueAmount: 'dueAmount',
+  paymentStatus: 'paymentStatus',
+  status: 'status',
+  inConsultationTime: 'inConsultationTime',
+  outConsultationTime: 'outConsultationTime',
+  bookedById: 'bookedById',
+  cashierPerformerId: 'cashierPerformerId',
+  invoiceId: 'invoiceId',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ConsultationSerialScalarFieldEnum = (typeof ConsultationSerialScalarFieldEnum)[keyof typeof ConsultationSerialScalarFieldEnum]
+
+
+export const PatientStepLogScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  visitId: 'visitId',
+  step: 'step',
+  station: 'station',
+  roomNumber: 'roomNumber',
+  doctorId: 'doctorId',
+  performerId: 'performerId',
+  details: 'details',
+  timestamp: 'timestamp',
+  createdAt: 'createdAt'
+} as const
+
+export type PatientStepLogScalarFieldEnum = (typeof PatientStepLogScalarFieldEnum)[keyof typeof PatientStepLogScalarFieldEnum]
+
+
+export const PatientInvoiceScalarFieldEnum = {
+  id: 'id',
+  invoiceNumber: 'invoiceNumber',
+  patientId: 'patientId',
+  visitId: 'visitId',
+  totalAmount: 'totalAmount',
+  paidAmount: 'paidAmount',
+  dueAmount: 'dueAmount',
+  status: 'status',
+  paymentMethod: 'paymentMethod',
+  cashierPerformerId: 'cashierPerformerId',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PatientInvoiceScalarFieldEnum = (typeof PatientInvoiceScalarFieldEnum)[keyof typeof PatientInvoiceScalarFieldEnum]
+
+
+export const PatientPaymentScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  visitId: 'visitId',
+  invoiceId: 'invoiceId',
+  serviceType: 'serviceType',
+  amount: 'amount',
+  paymentMethod: 'paymentMethod',
+  isDue: 'isDue',
+  cashierPerformerId: 'cashierPerformerId',
+  notes: 'notes',
+  createdAt: 'createdAt'
+} as const
+
+export type PatientPaymentScalarFieldEnum = (typeof PatientPaymentScalarFieldEnum)[keyof typeof PatientPaymentScalarFieldEnum]
+
+
+export const ChatMessageScalarFieldEnum = {
+  id: 'id',
+  dateStr: 'dateStr',
+  messageDate: 'messageDate',
+  channel: 'channel',
+  content: 'content',
+  isUrgent: 'isUrgent',
+  senderId: 'senderId',
+  senderRole: 'senderRole',
+  senderName: 'senderName',
+  performerId: 'performerId',
+  performerName: 'performerName',
+  recipientId: 'recipientId',
+  recipientName: 'recipientName',
+  patientId: 'patientId',
+  patientName: 'patientName',
+  roomNumber: 'roomNumber',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ChatMessageScalarFieldEnum = (typeof ChatMessageScalarFieldEnum)[keyof typeof ChatMessageScalarFieldEnum]
 
 
 export const SortOrder = {

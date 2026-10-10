@@ -15,6 +15,10 @@ export default async function CashierPage() {
   const data = await getCashierDashboardDataAction();
 
   return (
-    <CashierDashboardView initialData={data} currentUserRole={user.role} />
+    <CashierDashboardView
+      initialData={data}
+      currentUserRole={user.role}
+      currentUserId={user.id}
+    />
   );
 }

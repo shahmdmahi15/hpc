@@ -101,3 +101,33 @@ export type MedicalRecord = Prisma.MedicalRecordModel
  * 
  */
 export type TreatmentPlan = Prisma.TreatmentPlanModel
+/**
+ * Model PatientVisit
+ * 
+ */
+export type PatientVisit = Prisma.PatientVisitModel
+/**
+ * Model ConsultationSerial
+ * 
+ */
+export type ConsultationSerial = Prisma.ConsultationSerialModel
+/**
+ * Model PatientStepLog
+ * 
+ */
+export type PatientStepLog = Prisma.PatientStepLogModel
+/**
+ * Model PatientInvoice
+ * 
+ */
+export type PatientInvoice = Prisma.PatientInvoiceModel
+/**
+ * Model PatientPayment
+ * 
+ */
+export type PatientPayment = Prisma.PatientPaymentModel
+/**
+ * Model ChatMessage
+ * 
+ */
+export type ChatMessage = Prisma.ChatMessageModel

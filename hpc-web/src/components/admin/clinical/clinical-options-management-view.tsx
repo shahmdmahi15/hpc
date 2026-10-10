@@ -28,6 +28,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 
 interface ClinicalOptionsManagementViewProps {
   initialOptions: ClinicalOptionModel[];
@@ -115,6 +116,20 @@ export function ClinicalOptionsManagementView({
       }
     });
   }, []);
+
+  useRealtimeEvents({
+    onEvent: (event) => {
+      if (
+        event.type !== "CHAT_MESSAGE_SENT" &&
+        event.type !== "CHAT_MESSAGE_DELETED"
+      ) {
+        refreshOptions();
+      }
+    },
+    onReconnect: () => {
+      refreshOptions();
+    },
+  });
 
   // Filter options by category and search
   const filteredOptions = React.useMemo(() => {

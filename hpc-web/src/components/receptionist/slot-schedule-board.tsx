@@ -31,6 +31,7 @@ interface SlotScheduleBoardProps {
   stats: {
     totalBooked: number;
     checkedInCount: number;
+    checkedOutCount?: number;
     maleBooked: number;
     femaleBooked: number;
     extraBooked: number;
@@ -40,6 +41,7 @@ interface SlotScheduleBoardProps {
   };
   selectedDate: string;
   dayOfWeek: string;
+  showDateSelector?: boolean;
   onSelectDate: (date: string) => void;
   onBookSlot: (slotId: string) => void;
   onCheckIn: (appointmentId: string) => Promise<void>;
@@ -78,6 +80,7 @@ export function SlotScheduleBoard({
   stats,
   selectedDate,
   dayOfWeek,
+  showDateSelector = false,
   onSelectDate,
   onBookSlot,
   onCheckIn,
@@ -86,18 +89,36 @@ export function SlotScheduleBoard({
 }: SlotScheduleBoardProps) {
   const [filterQuery, setFilterQuery] = React.useState("");
 
+  const checkedOutCount = React.useMemo(() => {
+    if (stats.checkedOutCount !== undefined) {
+      return stats.checkedOutCount;
+    }
+    return slots
+      .flatMap((s) => s.appointments || [])
+      .filter(
+        (a) =>
+          a.status === AppointmentStatus.COMPLETED || Boolean(a.checkOutTime),
+      ).length;
+  }, [stats.checkedOutCount, slots]);
+
   return (
     <div className="space-y-3">
       {/* ---------------------------------------------------- */}
       {/* 1. Date Navigation & Filter Bar                      */}
       {/* ---------------------------------------------------- */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-xl bg-card border border-border/70 shadow-2xs">
-        {/* Date Navigator */}
-        <DashboardDateSelector
-          selectedDate={selectedDate}
-          dayOfWeek={dayOfWeek}
-          onSelectDate={onSelectDate}
-        />
+        {showDateSelector ? (
+          <DashboardDateSelector
+            selectedDate={selectedDate}
+            dayOfWeek={dayOfWeek}
+            onSelectDate={onSelectDate}
+          />
+        ) : (
+          <div className="flex items-center gap-2 px-1 text-xs font-semibold text-muted-foreground">
+            <Clock className="size-3.5 text-primary" />
+            <span>Therapy Floor Slots Schedule — {dayOfWeek}</span>
+          </div>
+        )}
 
         {/* Live Filter Search */}
         <div className="relative w-full sm:w-64">
@@ -129,11 +150,11 @@ export function SlotScheduleBoard({
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* 2. Today's Capacity & Queue Telemetry Metrics        */}
+      {/* 2. Today's Capacity & Queue Telemetry Metrics (6 Cards) */}
       {/* ---------------------------------------------------- */}
-      <div className="flex overflow-x-auto pb-1.5 sm:pb-0 sm:grid sm:grid-cols-3 lg:grid-cols-5 gap-2 scrollbar-none snap-x snap-mandatory -mx-1 px-1 sm:mx-0 sm:px-0">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {/* Total Booked */}
-        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs">
+        <Card className="border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Total Booked
@@ -151,7 +172,7 @@ export function SlotScheduleBoard({
         </Card>
 
         {/* Checked-In Patients */}
-        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs">
+        <Card className="border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Checked In
@@ -163,13 +184,31 @@ export function SlotScheduleBoard({
               {stats.checkedInCount}
             </div>
             <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-              Ready in waiting area
+              In waiting area / therapy
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Checked-Out Patients */}
+        <Card className="border-border/80 bg-card/80 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
+            <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Checked Out
+            </CardTitle>
+            <LogOut className="size-3 text-indigo-500" />
+          </CardHeader>
+          <CardContent className="p-2.5 pt-0">
+            <div className="text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400">
+              {checkedOutCount}
+            </div>
+            <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+              Completed today
             </p>
           </CardContent>
         </Card>
 
         {/* Male Patients Booked */}
-        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs">
+        <Card className="border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Male Quota
@@ -187,7 +226,7 @@ export function SlotScheduleBoard({
         </Card>
 
         {/* Female Patients Booked */}
-        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs">
+        <Card className="border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Female Quota
@@ -205,10 +244,10 @@ export function SlotScheduleBoard({
         </Card>
 
         {/* Standby Extra Booked */}
-        <Card className="min-w-[135px] sm:min-w-0 flex-1 shrink-0 snap-start border-border/80 bg-card/80 shadow-2xs sm:col-span-2 lg:col-span-1">
+        <Card className="border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Standby Extra
+              Extra Quota
             </CardTitle>
             <AlertTriangle className="size-3 text-amber-500" />
           </CardHeader>
@@ -224,7 +263,7 @@ export function SlotScheduleBoard({
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* 3. Hourly Slots Booking Matrix                       */}
+      {/* 3. Hourly Slots Booking Matrix (Strictly 2 Columns)   */}
       {/* ---------------------------------------------------- */}
       {slots.length === 0 ? (
         <Card className="p-10 text-center border-dashed border-border/80">
@@ -237,7 +276,7 @@ export function SlotScheduleBoard({
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 w-full min-w-0">
           {slots.map((slot) => {
             const { telemetry, appointments = [] } = slot;
             const filteredAppointments = appointments.filter((a) => {
@@ -252,29 +291,29 @@ export function SlotScheduleBoard({
             return (
               <Card
                 key={slot.id}
-                className="border-border/80 bg-card/90 shadow-2xs hover:border-border transition-all flex flex-col justify-between overflow-hidden"
+                className="border-border/80 bg-card/90 shadow-2xs hover:border-border transition-all flex flex-col justify-between overflow-hidden w-full min-w-0"
               >
                 {/* Slot Card Header */}
-                <CardHeader className="p-2.5 pb-2 border-b border-border/60 bg-muted/15 flex flex-row items-start justify-between space-y-0 gap-2">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-1.5 py-0.2 rounded bg-muted border border-border text-[9.5px] font-mono font-bold">
+                <CardHeader className="p-2.5 pb-2 border-b border-border/60 bg-muted/15 flex flex-row items-start justify-between space-y-0 gap-2 w-full min-w-0">
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="px-1.5 py-0.2 rounded bg-muted border border-border text-[9.5px] font-mono font-bold shrink-0">
                         Slot #{String(slot.order || 1).padStart(2, "0")}
                       </span>
-                      <h3 className="text-xs font-bold text-foreground">
+                      <h3 className="text-xs font-bold text-foreground truncate">
                         {slot.label}
                       </h3>
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
-                      <Clock className="size-2.5 text-primary/70" />
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono flex-wrap">
+                      <Clock className="size-2.5 text-primary/70 shrink-0" />
                       <span>
                         {slot.startTime} — {slot.endTime}
                       </span>
                       {slot.room && (
                         <>
                           <span>•</span>
-                          <span className="flex items-center gap-0.5 text-foreground font-sans font-medium">
+                          <span className="flex items-center gap-0.5 text-foreground font-sans font-medium shrink-0">
                             <DoorOpen className="size-2.5 text-blue-500" />R
                             {slot.room.number}
                           </span>
@@ -284,7 +323,7 @@ export function SlotScheduleBoard({
                   </div>
 
                   {/* Slot Status Badge & Quick Book */}
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {telemetry.isCompletelyFull ? (
                       <span className="px-1.5 py-0.2 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[9.5px] font-bold">
                         Full
@@ -313,16 +352,16 @@ export function SlotScheduleBoard({
                 </CardHeader>
 
                 {/* Quota Progress Meters */}
-                <CardContent className="p-2.5 space-y-2 flex-1">
-                  <div className="grid grid-cols-2 gap-2">
+                <CardContent className="p-2.5 space-y-2 flex-1 w-full min-w-0 overflow-hidden">
+                  <div className="grid grid-cols-2 gap-2 w-full min-w-0">
                     {/* Male Meter */}
-                    <div className="p-2 rounded-lg bg-sky-500/5 border border-sky-500/15 space-y-1">
-                      <div className="flex items-center justify-between text-[10.5px]">
-                        <span className="font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1">
-                          <span className="size-1.5 rounded-full bg-sky-500" />
-                          Male Quota
+                    <div className="p-2 rounded-lg bg-sky-500/5 border border-sky-500/15 space-y-1 w-full min-w-0 overflow-hidden">
+                      <div className="flex items-center justify-between text-[10.5px] min-w-0">
+                        <span className="font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1 min-w-0 truncate">
+                          <span className="size-1.5 rounded-full bg-sky-500 shrink-0" />
+                          <span className="truncate">Male Quota</span>
                         </span>
-                        <span className="font-mono font-bold text-foreground">
+                        <span className="font-mono font-bold text-foreground shrink-0 ml-1">
                           {telemetry.maleTotalBooked} /{" "}
                           {slot.regularMaleCapacity}
                         </span>
@@ -341,14 +380,14 @@ export function SlotScheduleBoard({
                           }}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-[9.5px] text-muted-foreground font-mono">
-                        <span>
+                      <div className="flex items-center justify-between text-[9.5px] text-muted-foreground font-mono min-w-0">
+                        <span className="truncate">
                           {slot.regularMaleCapacity -
                             telemetry.maleRegularBooked}{" "}
                           regular left
                         </span>
                         {telemetry.maleExtraBooked > 0 && (
-                          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold shrink-0 ml-1">
                             +{telemetry.maleExtraBooked} extra
                           </span>
                         )}
@@ -356,13 +395,13 @@ export function SlotScheduleBoard({
                     </div>
 
                     {/* Female Meter */}
-                    <div className="p-2 rounded-lg bg-pink-500/5 border border-pink-500/15 space-y-1">
-                      <div className="flex items-center justify-between text-[10.5px]">
-                        <span className="font-semibold text-pink-700 dark:text-pink-300 flex items-center gap-1">
-                          <span className="size-1.5 rounded-full bg-pink-500" />
-                          Female Quota
+                    <div className="p-2 rounded-lg bg-pink-500/5 border border-pink-500/15 space-y-1 w-full min-w-0 overflow-hidden">
+                      <div className="flex items-center justify-between text-[10.5px] min-w-0">
+                        <span className="font-semibold text-pink-700 dark:text-pink-300 flex items-center gap-1 min-w-0 truncate">
+                          <span className="size-1.5 rounded-full bg-pink-500 shrink-0" />
+                          <span className="truncate">Female Quota</span>
                         </span>
-                        <span className="font-mono font-bold text-foreground">
+                        <span className="font-mono font-bold text-foreground shrink-0 ml-1">
                           {telemetry.femaleTotalBooked} /{" "}
                           {slot.regularFemaleCapacity}
                         </span>
@@ -381,14 +420,14 @@ export function SlotScheduleBoard({
                           }}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-[9.5px] text-muted-foreground font-mono">
-                        <span>
+                      <div className="flex items-center justify-between text-[9.5px] text-muted-foreground font-mono min-w-0">
+                        <span className="truncate">
                           {slot.regularFemaleCapacity -
                             telemetry.femaleRegularBooked}{" "}
                           regular left
                         </span>
                         {telemetry.femaleExtraBooked > 0 && (
-                          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold shrink-0 ml-1">
                             +{telemetry.femaleExtraBooked} extra
                           </span>
                         )}

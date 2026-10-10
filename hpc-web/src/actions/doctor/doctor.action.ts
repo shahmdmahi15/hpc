@@ -670,6 +670,29 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
     // Synchronize billing across Patient, Appointment, and File models
     await syncBillingForAppointment(updated.id);
 
+    // If leaving consultation (routed to CASHIER, HANDLER, or RECEPTIONIST), mark today's ConsultationSerial as COMPLETED
+    if (params.destination !== "DOCTOR") {
+      try {
+        const startOfDay = new Date(updated.appointmentDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(updated.appointmentDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        await prisma.consultationSerial.updateMany({
+          where: {
+            patientId: updated.patientId,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            status: { in: ["QUEUED", "CALLING", "IN_CONSULTATION", "BOOKED"] },
+          },
+          data: {
+            status: "COMPLETED",
+          },
+        });
+      } catch (serialErr) {
+        console.error("[Complete ConsultationSerial on Route Error]:", serialErr);
+      }
+    }
+
     // Optionally assign next day treatment plan if provided
     if (
       params.nextPlan &&

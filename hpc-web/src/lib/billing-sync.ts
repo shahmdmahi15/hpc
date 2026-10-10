@@ -32,9 +32,9 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
     const calculatedPaid = Math.max(0, rawPaid);
     const calculatedDue = isPaid ? 0 : Math.max(0, fee - calculatedPaid);
     const resolvedStatus =
-      calculatedDue === 0
-        ? "PAID"
-        : (calculatedPaid > 0 ? "PARTIAL" : (apt.paymentStatus || "PENDING"));
+      fee > 0
+        ? (calculatedDue === 0 ? "PAID" : (calculatedPaid > 0 ? "PARTIAL" : (apt.paymentStatus || "PENDING")))
+        : (isPaid ? "PAID" : (apt.paymentStatus || "PENDING"));
 
     // Update appointment amounts and status if divergent
     if (
@@ -101,9 +101,39 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
 
     // 3. Sync Patient lifetime billing totals
     if (apt.patientId) {
-      const patientApts = await prisma.appointment.findMany({
+      await syncBillingForPatient(apt.patientId);
+    }
+  } catch (err) {
+    console.error("[syncBillingForAppointment Error]:", err);
+  }
+}
+
+/**
+ * Synchronizes lifetime totalBill, totalPaid, totalDue on the Patient record
+ * across all therapy sessions AND doctor consultation serials.
+ */
+export async function syncBillingForPatient(patientId: string): Promise<void> {
+  try {
+    const [therapyApts, serials, duePayments] = await Promise.all([
+      prisma.appointment.findMany({
         where: {
-          patientId: apt.patientId,
+          patientId,
+          status: { not: "CANCELLED" },
+          OR: [
+            { type: "THERAPY" },
+            { therapySlotId: { not: null } },
+          ],
+        },
+        select: {
+          feeAmount: true,
+          paidAmount: true,
+          dueAmount: true,
+          paymentStatus: true,
+        },
+      }),
+      prisma.consultationSerial.findMany({
+        where: {
+          patientId,
           status: { not: "CANCELLED" },
         },
         select: {
@@ -112,39 +142,59 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
           dueAmount: true,
           paymentStatus: true,
         },
-      });
-
-      let patientBill = 0;
-      let patientPaid = 0;
-      let patientDue = 0;
-
-      for (const a of patientApts) {
-        const aFee = a.feeAmount ?? 0;
-        const aIsPaid = a.paymentStatus === "PAID";
-        const aPaid =
-          a.paidAmount !== null && a.paidAmount !== undefined && (a.paidAmount > 0 || !aIsPaid)
-            ? a.paidAmount
-            : (aIsPaid ? aFee : 0);
-        const aDue = aIsPaid
-          ? 0
-          : (a.dueAmount !== null && a.dueAmount !== undefined
-              ? a.dueAmount
-              : Math.max(0, aFee - aPaid));
-        patientBill += aFee;
-        patientPaid += aPaid;
-        patientDue += aDue;
-      }
-
-      await prisma.patient.update({
-        where: { id: apt.patientId },
-        data: {
-          totalBill: patientBill,
-          totalPaid: patientPaid,
-          totalDue: patientDue,
+      }),
+      prisma.patientPayment.findMany({
+        where: {
+          patientId,
+          serviceType: "PREVIOUS_DUE",
+          isDue: false,
         },
-      });
+        select: {
+          amount: true,
+        },
+      }),
+    ]);
+
+    let patientBill = 0;
+    let patientPaid = 0;
+
+    for (const a of therapyApts) {
+      const aFee = a.feeAmount ?? 0;
+      const aIsPaid = a.paymentStatus === "PAID";
+      const aPaid =
+        a.paidAmount !== null && a.paidAmount !== undefined && (a.paidAmount > 0 || !aIsPaid)
+          ? a.paidAmount
+          : (aIsPaid ? aFee : 0);
+      patientBill += aFee;
+      patientPaid += aPaid;
     }
+
+    for (const s of serials) {
+      const sFee = s.feeAmount ?? 0;
+      const sIsPaid = s.paymentStatus === "PAID";
+      const sPaid =
+        s.paidAmount !== null && s.paidAmount !== undefined && (s.paidAmount > 0 || !sIsPaid)
+          ? s.paidAmount
+          : (sIsPaid ? sFee : 0);
+      patientBill += sFee;
+      patientPaid += sPaid;
+    }
+
+    for (const dp of duePayments) {
+      patientPaid += dp.amount || 0;
+    }
+
+    const patientDue = Math.max(0, patientBill - patientPaid);
+
+    await prisma.patient.update({
+      where: { id: patientId },
+      data: {
+        totalBill: patientBill,
+        totalPaid: patientPaid,
+        totalDue: patientDue,
+      },
+    });
   } catch (err) {
-    console.error("[syncBillingForAppointment Error]:", err);
+    console.error("[syncBillingForPatient Error]:", err);
   }
 }

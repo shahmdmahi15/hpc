@@ -56,6 +56,10 @@ export interface LiveTrackedPatient {
   notes: string | null;
   toldTime: string | null;
   elapsedMinutesSinceCheckIn: number | null;
+  serialId?: string | null;
+  serialNumber?: number | null;
+  serialStatus?: string | null;
+  statusMarker?: string | null;
 }
 
 export interface PatientTrackingStats {
@@ -75,6 +79,7 @@ export interface PatientTrackingData {
     id: string;
     number: string;
     purpose: string;
+    accessType?: string;
   }[];
   doctors: {
     id: string;
@@ -144,7 +149,28 @@ export async function getLivePatientTrackingDataAction(
         status: { not: AppointmentStatus.CANCELLED },
       },
       include: {
-        patient: true,
+        patient: {
+          include: {
+            consultationSerials: {
+              where: {
+                appointmentDate: { gte: startOfDay, lte: endOfDay },
+                status: { not: "CANCELLED" },
+              },
+              include: {
+                doctor: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    consultationFee: true,
+                  },
+                },
+              },
+              orderBy: { serialNumber: "desc" },
+              take: 1,
+            },
+          },
+        },
         doctor: {
           select: {
             id: true,
@@ -164,7 +190,7 @@ export async function getLivePatientTrackingDataAction(
     }),
     prisma.room.findMany({
       orderBy: { number: "asc" },
-      select: { id: true, number: true, purpose: true },
+      select: { id: true, number: true, purpose: true, accessType: true },
     }),
     prisma.user.findMany({
       where: { role: Role.DOCTOR },
@@ -187,13 +213,83 @@ export async function getLivePatientTrackingDataAction(
   ]);
 
   const formattedPatients: LiveTrackedPatient[] = appointments.map((apt) => {
-    const station = deriveStation(apt);
+    const activeSerial = apt.patient.consultationSerials?.[0] || null;
+    const isConsultationWithSerial =
+      Boolean(activeSerial) && !apt.therapySlotId;
+
+    let station = deriveStation(apt);
+    if (
+      apt.status === AppointmentStatus.COMPLETED ||
+      apt.checkOutTime ||
+      activeSerial?.status === "COMPLETED"
+    ) {
+      station = "CHECKED_OUT";
+    } else if (activeSerial?.status === "FORWARDED_TO_CASHIER") {
+      station = "CASHIER_REGISTER";
+    } else if (
+      apt.currentStation === "CASHIER_REGISTER" &&
+      activeSerial?.status === "QUEUED"
+    ) {
+      station = "CONSULTATION_ROOM";
+    }
+
     const checkInDate = apt.checkInTime ? new Date(apt.checkInTime) : null;
     const elapsedMinutes = checkInDate
       ? Math.max(0, Math.floor((now.getTime() - checkInDate.getTime()) / 60000))
       : null;
 
     const assignedRoom = apt.room || apt.therapySlot?.room;
+    const doctorObj = apt.doctor || activeSerial?.doctor || null;
+
+    const resolvedFee =
+      isConsultationWithSerial && activeSerial
+        ? (activeSerial.feeAmount ?? 0)
+        : (apt.feeAmount ?? 0);
+    const resolvedPaid =
+      isConsultationWithSerial && activeSerial
+        ? (activeSerial.paidAmount ?? 0)
+        : (apt.paidAmount ?? 0);
+    const resolvedDue =
+      isConsultationWithSerial && activeSerial
+        ? (activeSerial.dueAmount ?? Math.max(0, resolvedFee - resolvedPaid))
+        : (apt.dueAmount ?? 0);
+    const resolvedPaymentStatus =
+      isConsultationWithSerial && activeSerial
+        ? activeSerial.paymentStatus || "PENDING"
+        : apt.paymentStatus || "PENDING";
+
+    const resolvedSlotLabel = apt.therapySlot?.label
+      ? apt.therapySlot.label
+      : activeSerial
+        ? `Serial #${activeSerial.serialNumber} • Dr. ${doctorObj?.name || "Doctor"}`
+        : null;
+
+    let statusMarker: string | null = null;
+    if (activeSerial?.status === "FORWARDED_TO_CASHIER") {
+      statusMarker = "Forwarded to Cashier (Awaiting Payment)";
+    } else if (
+      activeSerial?.status === "QUEUED" &&
+      apt.status === AppointmentStatus.CHECKED_IN
+    ) {
+      statusMarker = "Queued for Doctor Consultation";
+    } else if (
+      apt.status === AppointmentStatus.IN_CONSULTATION ||
+      activeSerial?.status === "IN_CONSULTATION"
+    ) {
+      statusMarker = "In Doctor Consultation";
+    } else if (apt.status === AppointmentStatus.IN_THERAPY) {
+      statusMarker = "In Physical Therapy";
+    } else if (
+      apt.currentStation === "CASHIER_REGISTER" &&
+      apt.therapySlotId
+    ) {
+      statusMarker = "Forwarded to Cashier (Prior Due Clearance)";
+    } else if (
+      apt.queueType === QueueType.THERAPY &&
+      apt.status === AppointmentStatus.CHECKED_IN
+    ) {
+      statusMarker = "Queued for Therapy Floor";
+    }
 
     return {
       id: apt.id,
@@ -220,17 +316,21 @@ export async function getLivePatientTrackingDataAction(
       currentStation: station,
       roomId: apt.roomId || assignedRoom?.id || null,
       roomNumber: assignedRoom?.number || null,
-      doctorId: apt.doctorId || null,
-      doctorName: apt.doctor?.name || null,
-      doctorFee: apt.doctor?.consultationFee ?? null,
-      slotLabel: apt.therapySlot?.label || null,
-      feeAmount: apt.feeAmount ?? 0,
-      paidAmount: apt.paidAmount ?? 0,
-      dueAmount: apt.dueAmount ?? 0,
-      paymentStatus: apt.paymentStatus || "PENDING",
-      notes: apt.notes,
-      toldTime: apt.toldTime,
+      doctorId: apt.doctorId || activeSerial?.doctorId || null,
+      doctorName: doctorObj?.name || null,
+      doctorFee: doctorObj?.consultationFee ?? null,
+      slotLabel: resolvedSlotLabel,
+      feeAmount: resolvedFee,
+      paidAmount: resolvedPaid,
+      dueAmount: resolvedDue,
+      paymentStatus: resolvedPaymentStatus,
+      notes: activeSerial?.notes || apt.notes || null,
+      toldTime: apt.toldTime || activeSerial?.toldTime || null,
       elapsedMinutesSinceCheckIn: elapsedMinutes,
+      serialId: activeSerial?.id || null,
+      serialNumber: activeSerial?.serialNumber ?? null,
+      serialStatus: activeSerial?.status || null,
+      statusMarker,
     };
   });
 
@@ -355,11 +455,51 @@ export async function transferPatientStationAction(
         }
         break;
 
-      case "CONSULTATION_ROOM":
+      case "CONSULTATION_ROOM": {
+        const startOfDay = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          0,
+          0,
+          0,
+          0,
+        );
+        const endOfDay = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59,
+          999,
+        );
+        const todaySerial = await prisma.consultationSerial.findFirst({
+          where: {
+            patientId: apt.patientId,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+          },
+        });
+        if (!todaySerial) {
+          return {
+            success: false,
+            message:
+              "Cannot transfer to Doctor Consultation: Patient must have a Consultation Serial booked for today.",
+          };
+        }
+        if (todaySerial.paymentStatus === "PENDING" && !todaySerial.invoiceId) {
+          return {
+            success: false,
+            message:
+              "Cannot transfer to Doctor Consultation: Consultation fee must be paid or marked as DUE by the Cashier first.",
+          };
+        }
         updateData.status = AppointmentStatus.IN_CONSULTATION;
         updateData.inConsultationTime = now;
         if (!apt.checkInTime) updateData.checkInTime = now;
         break;
+      }
 
       case "CASHIER_REGISTER":
         // Keep active checked-in status so queue is not lost
@@ -369,16 +509,79 @@ export async function transferPatientStationAction(
         }
         break;
 
-      case "THERAPY_ROOM":
+      case "THERAPY_ROOM": {
+        const startOfDay = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          0,
+          0,
+          0,
+          0,
+        );
+        const endOfDay = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59,
+          999,
+        );
+        const todaySlot = await prisma.appointment.findFirst({
+          where: {
+            patientId: apt.patientId,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            type: AppointmentType.THERAPY,
+            therapySlotId: { not: null },
+            status: {
+              notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
+            },
+          },
+        });
+        if (!todaySlot && !apt.therapySlotId) {
+          return {
+            success: false,
+            message:
+              "Cannot transfer to Therapy Room: Patient must have an active Therapy Slot booked for today.",
+          };
+        }
         updateData.status = AppointmentStatus.IN_THERAPY;
         updateData.inTherapyTime = now;
         if (!apt.checkInTime) updateData.checkInTime = now;
         break;
+      }
 
-      case "CHECKED_OUT":
+      case "CHECKED_OUT": {
+        const unbilledSerials = await prisma.consultationSerial.findMany({
+          where: {
+            patientId: apt.patientId,
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+            paymentStatus: "PENDING",
+            invoiceId: null,
+          },
+        });
+        if (unbilledSerials.length > 0) {
+          return {
+            success: false,
+            message: `Cannot check out patient: Consultation Serial #${unbilledSerials[0].serialNumber} has not been invoiced or marked as DUE at the Cashier Register.`,
+          };
+        }
+        if (
+          (apt.type === AppointmentType.THERAPY || apt.therapySlotId) &&
+          apt.paymentStatus === "PENDING" &&
+          !apt.invoiceId
+        ) {
+          return {
+            success: false,
+            message:
+              "Cannot check out patient: Therapy session bill has not been settled or marked as DUE at the Cashier Register.",
+          };
+        }
         updateData.status = AppointmentStatus.COMPLETED;
         updateData.checkOutTime = now;
         break;
+      }
     }
 
     const updated = await prisma.appointment.update({

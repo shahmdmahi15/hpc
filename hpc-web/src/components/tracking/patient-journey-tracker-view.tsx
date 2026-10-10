@@ -53,11 +53,12 @@ import {
   Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatTime12h } from "@/lib/queue-punctuality";
+import { formatTime12h, evaluatePunctuality } from "@/lib/queue-punctuality";
 
 interface PatientJourneyTrackerViewProps {
   initialData?: PatientTrackingData;
   defaultDate?: string;
+  showDateSelector?: boolean;
 }
 
 const STATION_CONFIG: Record<
@@ -74,9 +75,9 @@ const STATION_CONFIG: Record<
   }
 > = {
   RECEPTIONIST_DESK: {
-    label: "Waiting Room 200 (Arrival Desk)",
-    shortLabel: "Waiting Room 200",
-    description: "Checked in & waiting in Room 200",
+    label: "Public Waiting Lounge (Arrival Desk)",
+    shortLabel: "Waiting Lounge",
+    description: "Checked in & waiting in Public Waiting Lounge",
     icon: DoorOpen,
     badgeClass:
       "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30",
@@ -132,6 +133,7 @@ const STATION_CONFIG: Record<
 export function PatientJourneyTrackerView({
   initialData,
   defaultDate,
+  showDateSelector = true,
 }: PatientJourneyTrackerViewProps) {
   const [data, setData] = React.useState<PatientTrackingData | null>(
     initialData || null,
@@ -194,15 +196,13 @@ export function PatientJourneyTrackerView({
   // Real-time Event Subscription for 100% offline sync
   useRealtimeEvents({
     onEvent: (event) => {
-      const type = event.type.toLowerCase();
-      if (
-        type === "station_changed" ||
-        type === "appointment_updated" ||
-        type === "appointment_created" ||
-        type === "appointment_cancelled"
-      ) {
+      const type = (event?.type || "").toUpperCase();
+      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         loadTrackingData(selectedDate);
       }
+    },
+    onReconnect: () => {
+      loadTrackingData(selectedDate);
     },
   });
 
@@ -286,31 +286,38 @@ export function PatientJourneyTrackerView({
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Real-time multi-counter tracking across Waiting Room 200, Doctor
-              Chambers, Cashier & Therapy without requiring slot assignments.
+              Real-time multi-counter tracking across Public Waiting Lounge, Doctor
+              Chambers, Cashier &amp; Therapy without requiring slot assignments.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-          {/* Date Picker Input */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-background border border-border text-xs font-medium">
-            <Clock className="size-3.5 text-muted-foreground shrink-0" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-                loadTrackingData(e.target.value);
-              }}
-              autoComplete="off"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-bwignore="true"
-              data-form-type="other"
-              className="bg-transparent text-xs font-semibold focus:outline-hidden cursor-pointer"
-            />
-          </div>
+          {/* Date Selector or Date Badge */}
+          {showDateSelector ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-background border border-border text-xs font-medium">
+              <Clock className="size-3.5 text-muted-foreground shrink-0" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  loadTrackingData(e.target.value);
+                }}
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
+                className="bg-transparent text-xs font-semibold focus:outline-hidden cursor-pointer"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-muted/40 border border-border/70 text-xs font-medium text-muted-foreground">
+              <Clock className="size-3.5 text-primary shrink-0" />
+              <span className="font-mono text-[11px] font-semibold">{selectedDate}</span>
+            </div>
+          )}
 
           <Button
             variant="outline"
@@ -331,7 +338,7 @@ export function PatientJourneyTrackerView({
             className="h-8.5 px-3 rounded-xl text-xs font-bold gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-xs"
           >
             <Plus className="size-3.5" />
-            <span>+ Quick Check-in (Room 200)</span>
+            <span>+ Quick Check-in (Waiting Lounge)</span>
           </Button>
         </div>
       </div>
@@ -362,7 +369,7 @@ export function PatientJourneyTrackerView({
           </span>
         </button>
 
-        {/* Waiting Room 200 */}
+        {/* Public Waiting Lounge */}
         <button
           type="button"
           onClick={() => setSelectedStationFilter("RECEPTIONIST_DESK")}
@@ -374,7 +381,7 @@ export function PatientJourneyTrackerView({
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-400 truncate">
-              Waiting Room 200
+              Waiting Lounge
             </span>
             <DoorOpen className="size-3.5 sm:size-4 text-emerald-500 shrink-0" />
           </div>
@@ -606,10 +613,14 @@ export function PatientJourneyTrackerView({
 
                   {/* Badges / Routing Details */}
                   <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
-                    {/* Slot vs Walk-in */}
+                    {/* Slot or Consultation Serial vs Walk-in */}
                     {patient.slotLabel ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 font-bold">
-                        <Clock className="size-3" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25 font-bold">
+                        {patient.serialNumber ? (
+                          <Stethoscope className="size-3" />
+                        ) : (
+                          <Clock className="size-3" />
+                        )}
                         <span>{patient.slotLabel}</span>
                       </span>
                     ) : (
@@ -618,11 +629,26 @@ export function PatientJourneyTrackerView({
                       </span>
                     )}
 
-                    {/* Room / Waiting Room 200 */}
-                    {patient.currentStation === "RECEPTIONIST_DESK" || patient.roomNumber === "200" ? (
+                    {/* Punctuality Indicator Badge */}
+                    {patient.checkInTime && (
+                      (() => {
+                        const p = evaluatePunctuality(patient.toldTime, patient.checkInTime);
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${p.badgeClass}`}
+                          >
+                            <span className={`size-1.5 rounded-full ${p.dotClass}`} />
+                            <span>{p.label}</span>
+                          </span>
+                        );
+                      })()
+                    )}
+
+                    {/* Room / Waiting Lounge */}
+                    {patient.currentStation === "RECEPTIONIST_DESK" ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 font-mono font-bold">
                         <DoorOpen className="size-3 text-emerald-600 dark:text-emerald-400" />
-                        <span>Waiting Room 200</span>
+                        <span>{patient.roomNumber ? `Waiting Room ${patient.roomNumber}` : "Waiting Lounge"}</span>
                       </span>
                     ) : patient.roomNumber ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20 font-mono font-bold">
@@ -631,15 +657,25 @@ export function PatientJourneyTrackerView({
                       </span>
                     ) : null}
 
-                    {/* Doctor */}
-                    {patient.doctorName ? (
+                    {/* Status Marker (Forwarded to Cashier, Queued for Doctor, etc.) */}
+                    {patient.statusMarker ? (
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[10.5px] border ${
+                          patient.statusMarker.includes("Forwarded to Cashier")
+                            ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30"
+                            : "bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 border-indigo-500/30"
+                        }`}
+                      >
+                        <span>{patient.statusMarker}</span>
+                      </span>
+                    ) : patient.doctorName && !patient.slotLabel?.includes("Dr.") ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 font-medium">
                         <Stethoscope className="size-3" />
                         <span>Dr. {patient.doctorName}</span>
                       </span>
                     ) : patient.currentStation === "RECEPTIONIST_DESK" ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/50 text-[10.5px]">
-                        <span>Waiting to be called</span>
+                        <span>Waiting in Lounge</span>
                       </span>
                     ) : null}
 
@@ -675,13 +711,19 @@ export function PatientJourneyTrackerView({
                       <span className="text-[11px] text-muted-foreground">
                         Paid: ৳{patient.paidAmount.toLocaleString()}
                       </span>
-                      {patient.dueAmount > 0 ? (
-                        <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                          Due: ৳{patient.dueAmount.toLocaleString()}
+                      {patient.paymentStatus === "PENDING" && patient.paidAmount === 0 ? (
+                        <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                          {patient.feeAmount > 0
+                            ? `PENDING (৳${patient.feeAmount.toLocaleString()})`
+                            : "NO BILL YET"}
+                        </span>
+                      ) : patient.paymentStatus === "DUE" || patient.paymentStatus === "PARTIAL" || patient.dueAmount > 0 ? (
+                        <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                          DUE: ৳{patient.dueAmount.toLocaleString()}
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold uppercase px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                          Paid
+                        <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                          PAID
                         </span>
                       )}
                     </div>
@@ -689,8 +731,9 @@ export function PatientJourneyTrackerView({
 
                   {/* Notes if present */}
                   {patient.notes && (
-                    <div className="text-[11px] text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-lg border border-border/40 italic">
-                      {patient.notes}
+                    <div className="text-[11px] text-amber-900 dark:text-amber-200 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/25 italic">
+                      <span className="font-semibold not-italic">Note: </span>
+                      <span>{patient.notes}</span>
                     </div>
                   )}
                 </div>
@@ -786,7 +829,7 @@ function TransferStationDialog({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   patient: LiveTrackedPatient;
-  rooms: { id: string; number: string; purpose: string }[];
+  rooms: PatientTrackingData["rooms"];
   doctors: {
     id: string;
     name: string | null;
@@ -1035,7 +1078,7 @@ function QuickCheckInWithoutSlotDialog({
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  rooms: { id: string; number: string; purpose: string }[];
+  rooms: PatientTrackingData["rooms"];
   doctors: {
     id: string;
     name: string | null;
@@ -1059,8 +1102,10 @@ function QuickCheckInWithoutSlotDialog({
   const [selectedDoctorId, setSelectedDoctorId] = React.useState<string>("");
   const [consultationFee, setConsultationFee] = React.useState<string>("1000");
   const [selectedRoomId, setSelectedRoomId] = React.useState<string>(() => {
-    const room200 = rooms.find((r) => r.number === "200");
-    return room200 ? room200.id : "";
+    const publicRoom =
+      rooms.find((r) => r.accessType === "PUBLIC") ||
+      rooms.find((r) => r.number === "200");
+    return publicRoom ? publicRoom.id : (rooms[0]?.id || "");
   });
   const [authorizingPerformerId, setAuthorizingPerformerId] = React.useState<string>(() => {
     return performers.length > 0 ? performers[0].id : "";
@@ -1077,11 +1122,13 @@ function QuickCheckInWithoutSlotDialog({
   const [notes, setNotes] = React.useState<string>("");
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
 
-  // Auto assign Waiting Room 200 when station is RECEPTIONIST_DESK
+  // Auto assign Public Waiting Lounge when station is RECEPTIONIST_DESK
   React.useEffect(() => {
     if (station === "RECEPTIONIST_DESK") {
-      const room200 = rooms.find((r) => r.number === "200");
-      if (room200) setSelectedRoomId(room200.id);
+      const publicRoom =
+        rooms.find((r) => r.accessType === "PUBLIC") ||
+        rooms.find((r) => r.number === "200");
+      if (publicRoom) setSelectedRoomId(publicRoom.id);
     }
   }, [station, rooms]);
 
@@ -1331,14 +1378,14 @@ function QuickCheckInWithoutSlotDialog({
               </div>
             </div>
 
-            {/* Waiting Room 200 banner if Receptionist Desk */}
+            {/* Public Waiting Lounge banner if Receptionist Desk */}
             {station === "RECEPTIONIST_DESK" && (
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 text-xs text-emerald-950 dark:text-emerald-200">
                 <DoorOpen className="size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <div className="font-bold">Destination: Waiting Room 200 (Arrival Lounge)</div>
+                  <div className="font-bold">Destination: Public Waiting Lounge (Arrival Desk)</div>
                   <div className="text-[11px] text-muted-foreground">
-                    Patient will be placed directly into Waiting Room 200. No doctor or therapy queue assigned yet.
+                    Patient will be placed directly into the Public Waiting Lounge without queue assignment.
                   </div>
                 </div>
               </div>

@@ -227,7 +227,7 @@ export async function main() {
         status: SlotStatus.OPEN,
         isActive: true,
         weekDays: "ALL",
-        roomId: createdRooms["207"],
+        roomId: null,
         regularMaleCapacity: 3,
         regularFemaleCapacity: 3,
         extraMaleCapacity: 1,

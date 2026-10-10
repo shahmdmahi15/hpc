@@ -25,6 +25,7 @@ import {
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { resolveActingAdminPerformer } from "@/actions/admin/admin-performer-guard";
+import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 
 // --------------------------------------------------------
 // TYPES
@@ -226,8 +227,15 @@ export async function createTherapySlotAction(
       },
     });
 
+    emitRealtimeEvent("SLOT_UPDATED", {
+      slotId: createdSlot.id,
+      label: createdSlot.label,
+      action: "CREATE",
+    });
+
     revalidatePath("/admin/slots");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
 
     return {
       success: true,
@@ -350,8 +358,15 @@ export async function updateTherapySlotAction(
       },
     });
 
+    emitRealtimeEvent("SLOT_UPDATED", {
+      slotId: updated.id,
+      label: updated.label,
+      action: "UPDATE",
+    });
+
     revalidatePath("/admin/slots");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
 
     return {
       success: true,
@@ -433,8 +448,16 @@ export async function toggleTherapySlotActiveAction(
       },
     });
 
+    emitRealtimeEvent("SLOT_UPDATED", {
+      slotId: updated.id,
+      label: updated.label,
+      isActive,
+      action: "TOGGLE_ACTIVE",
+    });
+
     revalidatePath("/admin/slots");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
 
     return {
       success: true,
@@ -517,8 +540,16 @@ export async function updateTherapySlotStatusAction(
       },
     });
 
+    emitRealtimeEvent("SLOT_UPDATED", {
+      slotId: updated.id,
+      label: updated.label,
+      status,
+      action: "STATUS_CHANGE",
+    });
+
     revalidatePath("/admin/slots");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
 
     return {
       success: true,
@@ -612,8 +643,15 @@ export async function deleteTherapySlotAction(
       },
     });
 
+    emitRealtimeEvent("SLOT_UPDATED", {
+      slotId,
+      label: slot.label,
+      action: "DELETE",
+    });
+
     revalidatePath("/admin/slots");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
 
     return {
       success: true,
@@ -760,8 +798,14 @@ export async function seedDefaultHourlySlotsAction(
       },
     });
 
+    emitRealtimeEvent("SLOT_UPDATED", {
+      action: "SEED",
+      createdCount,
+    });
+
     revalidatePath("/admin/slots");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
 
     return {
       success: true,

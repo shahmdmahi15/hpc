@@ -12,6 +12,7 @@ import {
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { resolveActingAdminPerformer } from "@/actions/admin/admin-performer-guard";
+import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 
 /**
  * Creates a new clinical or desk performer assigned to a designated role account.
@@ -132,10 +133,20 @@ export async function createPerformerAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "Performer",
+      action: "CREATE",
+      performerId: newPerformer.id,
+      role: targetUser.role,
+    });
+
     // 8. Revalidate Admin User Management, Overview & Audit Log
     revalidatePath("/admin/users");
     revalidatePath("/admin/audit");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
+    revalidatePath("/cashier");
+    revalidatePath("/handler");
 
     return {
       success: true,
@@ -227,9 +238,19 @@ export async function deletePerformerAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "Performer",
+      action: "DELETE",
+      performerId,
+      role: existingPerformer.user.role,
+    });
+
     revalidatePath("/admin/users");
     revalidatePath("/admin/audit");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
+    revalidatePath("/cashier");
+    revalidatePath("/handler");
 
     return {
       success: true,
@@ -373,9 +394,19 @@ export async function updatePerformerAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "Performer",
+      action: "UPDATE",
+      performerId,
+      role: targetUser.role,
+    });
+
     revalidatePath("/admin/users");
     revalidatePath("/admin/audit");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
+    revalidatePath("/cashier");
+    revalidatePath("/handler");
 
     return {
       success: true,

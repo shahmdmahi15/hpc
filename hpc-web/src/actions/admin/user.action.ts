@@ -19,6 +19,7 @@ import {
 import { hashPassword } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
+import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 
 /**
  * Creates a new independent Administrator or Doctor user account.
@@ -146,9 +147,17 @@ export async function createUserAccountAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "User",
+      action: "CREATE",
+      userId: newUser.id,
+      role,
+    });
+
     revalidatePath("/admin/users");
     revalidatePath("/admin/audit");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
 
     return {
       success: true,
@@ -245,9 +254,17 @@ export async function deleteUserAccountAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "User",
+      action: "DELETE",
+      userId,
+      role: target.role,
+    });
+
     revalidatePath("/admin/users");
     revalidatePath("/admin/audit");
     revalidatePath("/admin");
+    revalidatePath("/receptionist");
 
     return {
       success: true,
@@ -345,6 +362,12 @@ export async function resetUserPasswordAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "User",
+      action: "PASSWORD_RESET",
+      userId: targetUser.id,
+    });
+
     revalidatePath("/admin/users");
     revalidatePath("/admin/audit");
     revalidatePath("/admin");
@@ -411,6 +434,12 @@ export async function revokeAllUserSessionsAction(
           email: adminUser.email,
         },
       },
+    });
+
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "User",
+      action: "REVOKE_SESSIONS",
+      userId: targetUser.id,
     });
 
     revalidatePath("/admin/users");
@@ -608,6 +637,13 @@ export async function updateDoctorConsultationFeeAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "User",
+      action: "UPDATE_DOCTOR_FEE",
+      doctorId,
+      fee,
+    });
+
     revalidatePath("/admin/users");
     revalidatePath("/receptionist");
     revalidatePath("/admin/tracking");
@@ -695,6 +731,13 @@ export async function updateDoctorConsultationRoomAction(
           email: adminUser.email,
         },
       },
+    });
+
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "User",
+      action: "UPDATE_DOCTOR_ROOM",
+      doctorId,
+      roomId: cleanRoomId,
     });
 
     revalidatePath("/admin/users");
@@ -880,6 +923,13 @@ export async function updateUserAccountAction(
           email: adminUser.email,
         },
       },
+    });
+
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "User",
+      action: "UPDATE",
+      userId,
+      role: targetUser.role,
     });
 
     revalidatePath("/admin/users");

@@ -16,6 +16,7 @@ import {
 import { AuditStatus, AuditAction, Role } from "@/generated/prisma/enums";
 import { formatBSTDate, formatBSTShortDate } from "@/lib/date";
 import { toast } from "sonner";
+import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import {
   Shield,
   ShieldCheck,
@@ -63,6 +64,8 @@ export function AuditLogsView({
     pageSize: 25,
     dateRange: "all",
   });
+  const filtersRef = React.useRef(filters);
+  filtersRef.current = filters;
 
   const [selectedLog, setSelectedLog] = React.useState<EnrichedAuditLog | null>(
     null,
@@ -85,6 +88,20 @@ export function AuditLogsView({
       }
     });
   }, []);
+
+  useRealtimeEvents({
+    onEvent: (event) => {
+      if (
+        event.type !== "CHAT_MESSAGE_SENT" &&
+        event.type !== "CHAT_MESSAGE_DELETED"
+      ) {
+        fetchLogs(filtersRef.current);
+      }
+    },
+    onReconnect: () => {
+      fetchLogs(filtersRef.current);
+    },
+  });
 
   const handleFilterChange = (partial: Partial<AuditLogFilterParams>) => {
     const updated = { ...filters, ...partial };

@@ -88,7 +88,7 @@ export function QueueManagementTab({
   // Therapy Queue items
   const therapyQueue = React.useMemo(() => {
     return filteredQueue.filter(
-      (a) => (a.queueType || QueueType.THERAPY) === QueueType.THERAPY,
+      (a) => a.queueType === QueueType.THERAPY || Boolean(a.therapySlotId),
     );
   }, [filteredQueue]);
 
@@ -146,6 +146,16 @@ export function QueueManagementTab({
   };
 
   const handleCheckOut = async (apt: AppointmentWithRelations) => {
+    if (onRequestAction) {
+      onRequestAction({
+        actionType: "CHECK_OUT",
+        appointmentId: apt.id,
+        patientName: apt.patient?.name,
+        slotLabel: apt.therapySlot?.label,
+      });
+      return;
+    }
+
     setActionLoadingId(apt.id);
     try {
       const res = await checkOutPatientAction(apt.id, performerId);
@@ -163,6 +173,16 @@ export function QueueManagementTab({
   };
 
   const handleCancel = async (apt: AppointmentWithRelations) => {
+    if (onRequestAction) {
+      onRequestAction({
+        actionType: "CANCEL",
+        appointmentId: apt.id,
+        patientName: apt.patient?.name,
+        slotLabel: apt.therapySlot?.label,
+      });
+      return;
+    }
+
     const patientName = apt.patient?.name || "Patient";
     if (
       !window.confirm(

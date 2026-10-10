@@ -20,7 +20,7 @@ export default async function AdminLayout({
     <div className="min-h-screen w-full flex flex-col bg-background text-foreground selection:bg-purple-500/20">
       <div className="sticky top-0 z-30 w-full shadow-xs">
         <AdminHeader session={session} user={user} />
-        <AdminTopNav />
+        <AdminTopNav currentUserId={user.id} />
       </div>
       <main className="flex-1 w-full max-w-[1700px] mx-auto px-3 sm:px-5 py-2.5 space-y-2.5">
         {children}

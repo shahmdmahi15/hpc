@@ -22,6 +22,7 @@ import {
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { resolveActingAdminPerformer } from "@/actions/admin/admin-performer-guard";
+import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 
 export interface RoomStats {
   total: number;
@@ -179,6 +180,13 @@ export async function createRoomAction(
       },
     });
 
+    emitRealtimeEvent("ROOM_UPDATED", {
+      id: createdRoom.id,
+      number: createdRoom.number,
+      status: createdRoom.status,
+      action: "CREATE",
+    });
+
     revalidatePath("/admin/rooms");
     revalidatePath("/admin");
     revalidatePath("/admin/audit");
@@ -309,6 +317,13 @@ export async function updateRoomAction(
       },
     });
 
+    emitRealtimeEvent("ROOM_UPDATED", {
+      id: updatedRoom.id,
+      number: updatedRoom.number,
+      status: updatedRoom.status,
+      action: "UPDATE",
+    });
+
     revalidatePath("/admin/rooms");
     revalidatePath("/admin");
     revalidatePath("/admin/audit");
@@ -401,6 +416,13 @@ export async function updateRoomStatusAction(
       },
     });
 
+    emitRealtimeEvent("ROOM_UPDATED", {
+      id: updatedRoom.id,
+      number: updatedRoom.number,
+      status: updatedRoom.status,
+      action: "STATUS_CHANGE",
+    });
+
     revalidatePath("/admin/rooms");
     revalidatePath("/admin");
     revalidatePath("/admin/audit");
@@ -491,6 +513,12 @@ export async function deleteRoomAction(
       },
     });
 
+    emitRealtimeEvent("ROOM_UPDATED", {
+      id,
+      number: existingRoom.number,
+      action: "DELETE",
+    });
+
     revalidatePath("/admin/rooms");
     revalidatePath("/admin");
     revalidatePath("/admin/audit");
@@ -569,6 +597,11 @@ export async function seedDefaultRoomsAction(
           ? `${actingPerformer.name} (${actingPerformer.phone})`
           : "System Admin",
       },
+    });
+
+    emitRealtimeEvent("ROOM_UPDATED", {
+      action: "SEED",
+      createdCount,
     });
 
     revalidatePath("/admin/rooms");

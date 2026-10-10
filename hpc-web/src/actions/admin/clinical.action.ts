@@ -17,6 +17,7 @@ import {
   type ClinicalActionState,
 } from "@/schemas/admin/clinical.schema";
 import { revalidatePath } from "next/cache";
+import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 
 export async function getClinicalOptionsAction() {
   try {
@@ -91,6 +92,13 @@ export async function createClinicalOptionAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "ClinicalOption",
+      action: "CREATE",
+      optionId: created.id,
+      category: created.category,
+    });
+
     revalidatePath("/admin/clinical");
     revalidatePath("/doctor");
 
@@ -162,6 +170,13 @@ export async function updateClinicalOptionAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "ClinicalOption",
+      action: "UPDATE",
+      optionId: updated.id,
+      category: updated.category,
+    });
+
     revalidatePath("/admin/clinical");
     revalidatePath("/doctor");
 
@@ -213,6 +228,13 @@ export async function toggleClinicalOptionStatusAction(
       },
     });
 
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "ClinicalOption",
+      action: "TOGGLE",
+      optionId: updated.id,
+      isActive: updated.isActive,
+    });
+
     revalidatePath("/admin/clinical");
     revalidatePath("/doctor");
 
@@ -260,6 +282,13 @@ export async function deleteClinicalOptionAction(
         name: existing.name,
         category: existing.category,
       },
+    });
+
+    emitRealtimeEvent("ADMIN_CONFIG_UPDATED", {
+      entity: "ClinicalOption",
+      action: "DELETE",
+      optionId: id,
+      category: existing.category,
     });
 
     revalidatePath("/admin/clinical");

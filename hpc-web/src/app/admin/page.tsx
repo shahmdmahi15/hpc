@@ -31,6 +31,7 @@ import {
   Wallet,
   CircleDollarSign,
   FileSpreadsheet,
+  MessageSquare,
 } from "lucide-react";
 import { AdminExportButton } from "@/components/admin/admin-export-button";
 import { AdminBackupButton } from "@/components/admin/admin-backup-button";
@@ -97,6 +98,14 @@ export default async function AdminPage() {
       icon: Activity,
       badge: "Support",
       color: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+    },
+    {
+      title: "Clinic Chat",
+      description: "Real-time communication across all staff desks and doctors.",
+      href: "/admin/chat",
+      icon: MessageSquare,
+      badge: "Messaging",
+      color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
     },
   ];
 

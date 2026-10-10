@@ -29,37 +29,37 @@ import {
   checkInArrivingPatientAction,
   searchPatientsWithArrivalStatusAction,
   getTodayArrivalsDataAction,
+  bookConsultationSerialAction,
+  checkoutPatientVisitAction,
 } from "@/actions/receptionist/patient.action";
 import { Gender, QueueType, AppointmentStatus } from "@/generated/prisma/enums";
 import { BLOOD_GROUPS } from "@/schemas/receptionist/patient.schema";
+import { evaluatePunctuality } from "@/lib/queue-punctuality";
 import {
   UserCheck,
   UserPlus,
   Search,
   Phone,
-  Mail,
-  User,
   Clock,
-  Calendar,
   CheckCircle2,
   AlertCircle,
   LogIn,
+  LogOut,
   Stethoscope,
   Activity,
   MapPin,
-  HeartHandshake,
   Briefcase,
   Droplet,
-  Sparkles,
-  X,
   Loader2,
-  Ticket,
-  ArrowRight,
-  Filter,
   DoorOpen,
+  Receipt,
+  ShieldAlert,
+  ShieldCheck,
+  Calendar,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatBSTShortDate } from "@/lib/date";
+import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 
 export interface PatientArrivalDoctor {
   id: string;
@@ -95,13 +95,20 @@ interface PatientSearchResult {
   emergencyPhone?: string | null;
   profession?: string | null;
   bloodGroup?: string | null;
-  createdAt: Date | string;
+  activeVisit?: {
+    id: string;
+    visitNumber: number;
+    checkInTime: Date | string | null;
+    checkOutTime: Date | string | null;
+    status: string;
+  } | null;
   todayAppointment?: {
     id: string;
     status: AppointmentStatus;
     queueType: QueueType;
     currentStation: string | null;
     checkInTime: Date | string | null;
+    checkOutTime?: Date | string | null;
     toldTime: string | null;
     feeAmount: number | null;
     paidAmount: number | null;
@@ -143,12 +150,6 @@ export function PatientArrivalTab({
   const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState<boolean>(false);
 
   // Check-In Form State (for existing patient)
-  const [checkInQueueType, setCheckInQueueType] = React.useState<QueueType>(
-    QueueType.THERAPY,
-  );
-  const [checkInDoctorId, setCheckInDoctorId] = React.useState<string>(
-    () => (doctors[0]?.id ?? ""),
-  );
   const [checkInTime, setCheckInTime] = React.useState<string>(() => {
     const d = new Date();
     return d.toLocaleTimeString("en-US", {
@@ -177,20 +178,26 @@ export function PatientArrivalTab({
   const [isSubmittingRegister, setIsSubmittingRegister] =
     React.useState<boolean>(false);
 
+  // Book Doctor Consultation Modal State
+  const [bookConsultModalApt, setBookConsultModalApt] = React.useState<any | null>(null);
+  const [consultDoctorId, setConsultDoctorId] = React.useState<string>("");
+  const [consultFee, setConsultFee] = React.useState<number>(1000);
+  const [consultToldTime, setConsultToldTime] = React.useState<string>("");
+  const [consultNotes, setConsultNotes] = React.useState<string>("");
+  const [isSubmittingConsultBooking, setIsSubmittingConsultBooking] =
+    React.useState<boolean>(false);
+
+  // Check Out Modal State
+  const [checkoutModalApt, setCheckoutModalApt] = React.useState<any | null>(null);
+  const [checkoutNotes, setCheckoutNotes] = React.useState<string>("");
+  const [isSubmittingCheckout, setIsSubmittingCheckout] =
+    React.useState<boolean>(false);
+
   // Synchronize performer selection
   const handlePerformerChange = (id: string) => {
     setActivePerformerId(id);
     onSelectPerformerId(id);
   };
-
-  // Memoized Select Items for Base UI / shadcn Select
-  const doctorSelectItems = React.useMemo(() => {
-    return doctors.map((d) => ({
-      value: d.id,
-      label: `${d.name || "Doctor"}${d.consultationRoom ? ` (Room ${d.consultationRoom.number})` : ""} — ৳${(d.consultationFee ?? 1000).toLocaleString()} Fee`,
-    }));
-  }, [doctors]);
-
 
   // Load Today Arrivals
   const loadTodayArrivals = React.useCallback(async () => {
@@ -208,6 +215,25 @@ export function PatientArrivalTab({
   React.useEffect(() => {
     loadTodayArrivals();
   }, [loadTodayArrivals]);
+
+  // Real-time SSE sync for Patient Arrival Tab
+  useRealtimeEvents({
+    onEvent: (event) => {
+      const type = (event?.type || "").toUpperCase();
+      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+        void loadTodayArrivals();
+        const q = searchQuery.trim();
+        if (q) {
+          searchPatientsWithArrivalStatusAction(q)
+            .then((results) => setSearchResults(results as PatientSearchResult[]))
+            .catch(() => {});
+        }
+      }
+    },
+    onReconnect: () => {
+      void loadTodayArrivals();
+    },
+  });
 
   // Debounced Patient Search
   React.useEffect(() => {
@@ -235,7 +261,6 @@ export function PatientArrivalTab({
   // Open Registration Modal with prefilled search query
   const handleOpenRegisterWithQuery = () => {
     const q = searchQuery.trim();
-    // If user searched a number, prefill phone; if name, prefill name
     const cleanedNumber = q.replace(/^(\+880|880)/, "0").replace(/[\s-]/g, "");
     if (/^\d+$/.test(cleanedNumber)) {
       setRegPhone(cleanedNumber);
@@ -262,10 +287,6 @@ export function PatientArrivalTab({
   const handleOpenCheckIn = (patient: PatientSearchResult) => {
     setActivePin("");
     setCheckInModalPatient(patient);
-    setCheckInQueueType(
-      patient.todayAppointment?.queueType || QueueType.THERAPY,
-    );
-    setCheckInDoctorId(doctors[0]?.id ?? "");
     const d = new Date();
     setCheckInTime(
       d.toLocaleTimeString("en-US", {
@@ -321,7 +342,7 @@ export function PatientArrivalTab({
     }
   };
 
-  // Submit Registration and Immediate Check-In (places in Waiting Room 200)
+  // Submit Registration and Immediate Check-In (places in Public Waiting Room)
   const handleConfirmRegisterAndCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -385,21 +406,204 @@ export function PatientArrivalTab({
     }
   };
 
+  // Open Book Doctor Consultation Modal
+  const handleOpenBookConsultation = (apt: any) => {
+    setBookConsultModalApt(apt);
+    const initialDoc = doctors[0];
+    const initialDocId = initialDoc?.id || "";
+    setConsultDoctorId(initialDocId);
+    setConsultFee(initialDoc?.consultationFee ?? 1000);
+    const d = new Date();
+    setConsultToldTime(
+      d.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
+    );
+    setConsultNotes("");
+    setActivePin("");
+  };
+
+  // Handle doctor selection change in consultation booking
+  const handleDoctorSelectionChange = (doctorId: string | null) => {
+    if (!doctorId) return;
+    setConsultDoctorId(doctorId);
+    const selectedDoc = doctors.find((d) => d.id === doctorId);
+    if (selectedDoc) {
+      setConsultFee(selectedDoc.consultationFee ?? 1000);
+    }
+  };
+
+  // Confirm Book Doctor Consultation
+  const handleConfirmBookConsultation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookConsultModalApt) return;
+
+    if (!consultDoctorId) {
+      toast.error("Please select a doctor for consultation.");
+      return;
+    }
+
+    if (!activePerformerId && performers.length > 0) {
+      toast.error("Please select an authorizing receptionist staff member.");
+      return;
+    }
+
+    if (!activePin || activePin.length !== 4) {
+      toast.error("Please enter your 4-digit receptionist security PIN.");
+      return;
+    }
+
+    setIsSubmittingConsultBooking(true);
+    try {
+      const patientId =
+        bookConsultModalApt.patientId || bookConsultModalApt.patient?.id;
+      const visitId =
+        bookConsultModalApt.visitId ||
+        bookConsultModalApt.patient?.visits?.[0]?.id;
+
+      const res = await bookConsultationSerialAction({
+        patientId,
+        visitId: visitId || undefined,
+        doctorId: consultDoctorId,
+        feeAmount: Number(consultFee) || 0,
+        toldTime: consultToldTime.trim() || undefined,
+        performerId: activePerformerId,
+        pin: activePin,
+        notes: consultNotes.trim() || undefined,
+      });
+
+      if (res.success) {
+        toast.success(res.message);
+        setActivePin("");
+        setBookConsultModalApt(null);
+        loadTodayArrivals();
+        onRefresh?.();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to book consultation serial.");
+    } finally {
+      setIsSubmittingConsultBooking(false);
+    }
+  };
+
+  // Open Checkout Modal
+  const handleOpenCheckout = (apt: any) => {
+    setCheckoutModalApt(apt);
+    setCheckoutNotes("");
+    setActivePin("");
+  };
+
+  // Confirm Checkout
+  const handleConfirmCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkoutModalApt) return;
+
+    if (!activePerformerId && performers.length > 0) {
+      toast.error("Please select an authorizing receptionist staff member.");
+      return;
+    }
+
+    if (!activePin || activePin.length !== 4) {
+      toast.error("Please enter your 4-digit receptionist security PIN.");
+      return;
+    }
+
+    setIsSubmittingCheckout(true);
+    try {
+      const patientId =
+        checkoutModalApt.patientId || checkoutModalApt.patient?.id;
+      const visitId =
+        checkoutModalApt.visitId ||
+        checkoutModalApt.patient?.visits?.[0]?.id;
+
+      const res = await checkoutPatientVisitAction({
+        patientId,
+        visitId: visitId || undefined,
+        performerId: activePerformerId,
+        pin: activePin,
+        notes: checkoutNotes.trim() || undefined,
+      });
+
+      if (res.success) {
+        toast.success(res.message);
+        setActivePin("");
+        setCheckoutModalApt(null);
+        loadTodayArrivals();
+        onRefresh?.();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to check out patient.");
+    } finally {
+      setIsSubmittingCheckout(false);
+    }
+  };
+
   // KPI Calculations
   const stats = React.useMemo(() => {
     const total = todayArrivals.length;
-    const therapy = todayArrivals.filter((a) => a.queueType === QueueType.THERAPY).length;
-    const consult = todayArrivals.filter((a) => a.queueType === QueueType.CONSULTATION).length;
+    const therapy = todayArrivals.filter(
+      (a) => a.queueType === QueueType.THERAPY || a.therapySlotId,
+    ).length;
+    const consult = todayArrivals.filter(
+      (a) =>
+        a.queueType === QueueType.CONSULTATION ||
+        a.patient?.consultationSerials?.length > 0,
+    ).length;
     const serving = todayArrivals.filter(
       (a) =>
         a.status === AppointmentStatus.IN_CONSULTATION ||
         a.status === AppointmentStatus.IN_THERAPY ||
         a.status === AppointmentStatus.CALLING,
     ).length;
-    const completed = todayArrivals.filter((a) => a.status === AppointmentStatus.COMPLETED).length;
+    const waiting = todayArrivals.filter(
+      (a) =>
+        a.currentStation === "RECEPTIONIST_DESK" ||
+        a.status === AppointmentStatus.CHECKED_IN,
+    ).length;
 
-    return { total, therapy, consult, serving, completed };
+    return { total, therapy, consult, serving, waiting };
   }, [todayArrivals]);
+
+  // Clearance Check for active checkout modal
+  const checkoutClearance = React.useMemo(() => {
+    if (!checkoutModalApt) return { canCheckout: true, unbilledReason: null };
+
+    // Check consultation serials
+    const serials = checkoutModalApt.patient?.consultationSerials || [];
+    for (const s of serials) {
+      if (s.status !== "CANCELLED" && (!s.invoiceId || s.paymentStatus === "PENDING")) {
+        return {
+          canCheckout: false,
+          unbilledReason: `Doctor Consultation Serial #${s.serialNumber} (Dr. ${s.doctor?.name || "Doctor"}) has not been invoiced at Cashier Desk.`,
+        };
+      }
+    }
+
+    // Check therapy appointment
+    if (
+      checkoutModalApt.type === QueueType.THERAPY ||
+      checkoutModalApt.queueType === QueueType.THERAPY ||
+      checkoutModalApt.therapySlotId
+    ) {
+      if (
+        checkoutModalApt.paymentStatus === "PENDING" &&
+        !checkoutModalApt.invoiceId
+      ) {
+        return {
+          canCheckout: false,
+          unbilledReason: "Physical Therapy session bill has not been settled or marked DUE at Cashier Desk.",
+        };
+      }
+    }
+
+    return { canCheckout: true, unbilledReason: null };
+  }, [checkoutModalApt]);
 
   return (
     <div className="space-y-4">
@@ -414,12 +618,12 @@ export function PatientArrivalTab({
               <h2 className="text-sm sm:text-base font-bold text-foreground">
                 Patient Arrival &amp; Check-In Desk
               </h2>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-300 font-semibold border border-sky-500/20">
-                100% LAN
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-500/20">
+                100% Offline LAN
               </span>
             </div>
             <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
-              Verify arriving patients by MRN, Name or Mobile; register new walk-ins with immediate check-in.
+              Verify arriving patients by MRN, Name or Mobile; place them into Public Waiting Lounge; manage consultations and check-outs.
             </p>
           </div>
         </div>
@@ -435,7 +639,7 @@ export function PatientArrivalTab({
                 <span>Search Arriving Patient</span>
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Check if the arriving patient is already registered in the Directory
+                Search directory by Name, Mobile, MRN, Email or Emergency Contact
               </p>
             </div>
 
@@ -449,75 +653,66 @@ export function PatientArrivalTab({
               <span>Register New Arriving Patient</span>
             </Button>
           </div>
+
+          <div className="pt-3">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by patient name, mobile number (e.g. 017...), MRN, email or emergency contact..."
+                className="pl-10 h-10 text-xs sm:text-sm rounded-xl bg-background border-border/80 focus-visible:ring-sky-500"
+              />
+              {isSearching && (
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
 
-        <CardContent className="p-4 sm:p-5 space-y-4">
-          {/* Prominent Search Input (Protected against password manager autofill) */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              type="search"
-              name="arriving_patient_search_query"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-form-type="other"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search arriving patient by MRN (e.g. HPC-2026-0001), Name, or 11-digit Phone (01XXXXXXXXX)..."
-              className="pl-10 pr-10 h-11 text-sm rounded-xl font-medium bg-background border-border shadow-2xs"
-              autoFocus
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchResults([]);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 size-6 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center cursor-pointer"
-              >
-                <X className="size-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Search Loading */}
-          {isSearching && (
-            <div className="p-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-              <Loader2 className="size-4 animate-spin text-sky-500" />
-              <span>Searching patient directory...</span>
-            </div>
-          )}
-
-          {/* Case A: Results Found */}
-          {!isSearching && searchQuery.trim() && searchResults.length > 0 && (
+        <CardContent className="p-4 sm:p-5">
+          {/* Case A: Search Results Found */}
+          {searchResults.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   Found <strong className="text-foreground">{searchResults.length}</strong> matching patient{searchResults.length > 1 ? "s" : ""}
                 </span>
                 <span className="text-[11px]">
-                  Click <strong>Check In Patient</strong> to mark arrival
+                  Click <strong>Check In Patient</strong> to record arrival in Public Waiting Lounge
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {searchResults.map((patient) => {
-                  const hasArrivedToday =
-                    patient.todayAppointment &&
-                    (patient.todayAppointment.status === AppointmentStatus.CHECKED_IN ||
-                      patient.todayAppointment.status === AppointmentStatus.CALLING ||
-                      patient.todayAppointment.status === AppointmentStatus.IN_CONSULTATION ||
-                      patient.todayAppointment.status === AppointmentStatus.IN_THERAPY ||
-                      patient.todayAppointment.status === AppointmentStatus.COMPLETED);
+                  const isCurrentlyInCenter = Boolean(
+                    (patient.todayAppointment &&
+                      patient.todayAppointment.currentStation !== "CHECKED_OUT" &&
+                      (patient.todayAppointment.status === AppointmentStatus.CHECKED_IN ||
+                        patient.todayAppointment.status === AppointmentStatus.CALLING ||
+                        patient.todayAppointment.status === AppointmentStatus.IN_CONSULTATION ||
+                        patient.todayAppointment.status === AppointmentStatus.IN_THERAPY)) ||
+                    (patient.activeVisit &&
+                      patient.activeVisit.status !== "CHECKED_OUT" &&
+                      patient.todayAppointment?.currentStation !== "CHECKED_OUT" &&
+                      patient.todayAppointment?.status !== AppointmentStatus.COMPLETED)
+                  );
 
-                  const isScheduledToday =
-                    patient.todayAppointment &&
-                    patient.todayAppointment.status === AppointmentStatus.CONFIRMED;
+                  const isCheckedOutToday = Boolean(
+                    !isCurrentlyInCenter &&
+                    (patient.activeVisit?.status === "CHECKED_OUT" ||
+                      patient.todayAppointment?.currentStation === "CHECKED_OUT" ||
+                      patient.todayAppointment?.status === AppointmentStatus.COMPLETED)
+                  );
+
+                  const isScheduledToday = Boolean(
+                    !isCurrentlyInCenter &&
+                    !isCheckedOutToday &&
+                    patient.todayAppointment?.status === AppointmentStatus.CONFIRMED
+                  );
 
                   return (
                     <div
@@ -584,11 +779,11 @@ export function PatientArrivalTab({
 
                         {/* Today's Arrival Status Badge */}
                         <div className="pt-2 border-t border-border/50">
-                          {hasArrivedToday ? (
+                          {isCurrentlyInCenter ? (
                             <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-[11px]">
                               <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300 font-bold">
                                 <CheckCircle2 className="size-3.5 text-emerald-500" />
-                                <span>Checked In Today</span>
+                                <span>Currently in Center</span>
                               </span>
                               <span className="font-mono text-[10px] text-muted-foreground font-semibold">
                                 {patient.todayAppointment?.checkInTime
@@ -600,6 +795,28 @@ export function PatientArrivalTab({
                                       hour12: true,
                                     })
                                   : "Arrived"}
+                              </span>
+                            </div>
+                          ) : isCheckedOutToday ? (
+                            <div className="p-2 rounded-lg bg-zinc-500/10 border border-zinc-500/25 flex items-center justify-between text-[11px]">
+                              <span className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300 font-semibold">
+                                <CheckCircle2 className="size-3.5 text-zinc-500" />
+                                <span>
+                                  {patient.activeVisit?.visitNumber
+                                    ? `Visit #${patient.activeVisit.visitNumber} Completed`
+                                    : "Checked Out Today"}
+                                </span>
+                              </span>
+                              <span className="font-mono text-[10px] text-muted-foreground font-semibold">
+                                {patient.activeVisit?.checkOutTime || patient.todayAppointment?.checkOutTime
+                                  ? `Out: ${new Date(
+                                      patient.activeVisit?.checkOutTime || patient.todayAppointment?.checkOutTime!,
+                                    ).toLocaleTimeString("en-US", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    })}`
+                                  : "Checked Out"}
                               </span>
                             </div>
                           ) : isScheduledToday ? (
@@ -623,12 +840,20 @@ export function PatientArrivalTab({
 
                       {/* Action Button */}
                       <div>
-                        {hasArrivedToday ? (
+                        {isCurrentlyInCenter ? (
                           <div className="text-[11px] text-center font-bold py-1 text-emerald-600 dark:text-emerald-400">
-                            {patient.todayAppointment?.currentStation === "RECEPTIONIST_DESK" || patient.todayAppointment?.roomNumber === "200"
-                              ? "Waiting Room 200 (Checked In)"
-                              : `Station: ${patient.todayAppointment?.currentStation || "Active Queue"}`}
+                            Public Waiting Lounge (Checked In)
                           </div>
+                        ) : isCheckedOutToday ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleOpenCheckIn(patient)}
+                            className="w-full h-8 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
+                          >
+                            <UserCheck className="size-3.5" />
+                            <span>Check In Patient (New Visit)</span>
+                          </Button>
                         ) : (
                           <Button
                             type="button"
@@ -664,7 +889,7 @@ export function PatientArrivalTab({
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   No registered patient matches &quot;<strong>{searchQuery}</strong>&quot;.
-                  Click below to quickly register this patient and complete immediate arrival check-in.
+                  Click below to quickly register this patient and place them into the Public Waiting Lounge.
                 </p>
               </div>
               <Button
@@ -673,14 +898,14 @@ export function PatientArrivalTab({
                 className="h-9 px-4 text-xs font-bold gap-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-sm cursor-pointer"
               >
                 <UserPlus className="size-4" />
-                <span>Register &quot;{searchQuery}&quot; & Check In</span>
+                <span>Register &quot;{searchQuery}&quot; &amp; Check In</span>
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 3. TODAY'S ARRIVALS LIVE STREAM */}
+      {/* 3. TODAY'S ARRIVALS LIVE STREAM & QUEUE DESK */}
       <Card className="border-border/80 shadow-xs rounded-2xl overflow-hidden">
         <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -693,20 +918,23 @@ export function PatientArrivalTab({
                   Patients Arrived Today ({todayArrivals.length})
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Live queue of patients who checked in today ({selectedDate})
+                  Live active arrivals in the center for {selectedDate}
                 </p>
               </div>
             </div>
 
             {/* Quick KPI Strip */}
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <span className="px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-300 font-bold border border-sky-500/20">
-                Therapy: {stats.therapy}
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
+                Waiting: {stats.waiting}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-500/20">
                 Consultation: {stats.consult}
               </span>
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
+              <span className="px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-300 font-bold border border-sky-500/20">
+                Therapy: {stats.therapy}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-700 dark:text-purple-300 font-bold border border-purple-500/20">
                 Serving: {stats.serving}
               </span>
             </div>
@@ -722,7 +950,7 @@ export function PatientArrivalTab({
           ) : todayArrivals.length === 0 ? (
             <div className="p-8 text-center text-xs text-muted-foreground space-y-1">
               <Clock className="size-6 text-muted-foreground mx-auto opacity-50 mb-1" />
-              <p className="font-semibold text-foreground">No arrivals recorded yet today</p>
+              <p className="font-semibold text-foreground">No active arrivals in center right now</p>
               <p>Search or register arriving patients above to populate today&apos;s check-in desk.</p>
             </div>
           ) : (
@@ -736,17 +964,63 @@ export function PatientArrivalTab({
                     })
                   : "N/A";
 
+                const punctuality = evaluatePunctuality(
+                  apt.toldTime,
+                  apt.checkInTime,
+                );
+
+                const existingSerial =
+                  apt.patient?.consultationSerials?.[0];
+
+                const isConsultWithSerial =
+                  Boolean(existingSerial) && !apt.therapySlotId;
+
+                const effectivePaymentStatus = isConsultWithSerial
+                  ? existingSerial.paymentStatus || "PENDING"
+                  : apt.paymentStatus || "PENDING";
+
+                const effectiveFeeAmount = isConsultWithSerial
+                  ? (existingSerial.feeAmount ?? 0)
+                  : (apt.feeAmount ?? existingSerial?.feeAmount ?? 0);
+
+                const effectivePaidAmount = isConsultWithSerial
+                  ? (existingSerial.paidAmount ?? 0)
+                  : (apt.paidAmount ?? 0);
+
+                const effectiveDueAmount = isConsultWithSerial
+                  ? (existingSerial.dueAmount ?? 0)
+                  : (apt.dueAmount ?? 0);
+
+                const effectiveDoctor = apt.doctor || existingSerial?.doctor;
+                const effectiveInvoice = existingSerial?.invoice || apt.invoice;
+                const effectiveToldTime = apt.toldTime || existingSerial?.toldTime;
+
+                const roomBadgeText = apt.room
+                  ? `${apt.room.purpose || "Waiting Room"} (Room ${apt.room.number})`
+                  : "Waiting Room (Public)";
+
+                const stationBadgeText =
+                  apt.currentStation === "RECEPTIONIST_DESK" || !apt.currentStation
+                    ? roomBadgeText
+                    : apt.currentStation === "CASHIER_REGISTER"
+                      ? `${roomBadgeText} • Cashier Desk`
+                      : apt.currentStation === "CONSULTATION_ROOM"
+                        ? `Doctor Chamber (${effectiveDoctor ? `Dr. ${effectiveDoctor.name}` : apt.room?.number || "Chamber"})`
+                        : apt.currentStation === "THERAPY_ROOM"
+                          ? `Therapy Room (${apt.room?.number || "Floor"})`
+                          : apt.currentStation;
+
                 return (
                   <div
                     key={apt.id}
-                    className="p-3.5 sm:px-5 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    className="p-3.5 sm:px-5 hover:bg-muted/30 transition-colors flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-start sm:items-center gap-3">
                       <span className="size-6 rounded-lg bg-muted text-muted-foreground font-mono font-bold text-[11px] flex items-center justify-center shrink-0">
                         #{index + 1}
                       </span>
 
-                      <div className="space-y-0.5">
+                      <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-foreground text-sm">
                             {apt.patient?.name || "Patient"}
@@ -754,61 +1028,128 @@ export function PatientArrivalTab({
                           <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground border font-semibold">
                             MRN: {apt.patient?.mrn || "N/A"}
                           </span>
+
+                          {/* Punctuality Indicator Badge */}
                           <span
-                            className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded border ${
-                              apt.room?.number === "200" || apt.currentStation === "RECEPTIONIST_DESK"
-                                ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
-                                : apt.queueType === QueueType.CONSULTATION
-                                  ? "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20"
-                                  : "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
-                            }`}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1.5 shrink-0 ${punctuality.badgeClass}`}
                           >
-                            {apt.room?.number === "200" || apt.currentStation === "RECEPTIONIST_DESK"
-                              ? "Waiting Room 200"
-                              : apt.queueType === QueueType.CONSULTATION
-                                ? "Doctor Consultation"
-                                : "Physical Therapy"}
+                            <span
+                              className={`size-1.5 rounded-full ${punctuality.dotClass}`}
+                            />
+                            <span>{punctuality.label}</span>
                           </span>
+
+                          {/* Room / Station Badge */}
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/25">
+                            {stationBadgeText}
+                          </span>
+
+                          {/* Existing Consultation Serial Indicator */}
+                          {existingSerial && (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25 font-bold">
+                              Serial #{existingSerial.serialNumber}: Dr. {existingSerial.doctor?.name || "Doctor"} (
+                              {existingSerial.status === "FORWARDED_TO_CASHIER"
+                                ? "Forwarded to Cashier"
+                                : existingSerial.status === "QUEUED"
+                                  ? "Queued for Doctor"
+                                  : existingSerial.status}
+                              )
+                            </span>
+                          )}
                         </div>
 
-                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
+                        <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground font-mono flex-wrap">
                           <span>Phone: {apt.patient?.phone}</span>
                           <span>•</span>
                           <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
                             <Clock className="size-3" />
-                            Checked In: {checkInTimeStr}
+                            In: {checkInTimeStr}
                           </span>
-                          {apt.doctor && (
+                          {effectiveToldTime && (
                             <>
                               <span>•</span>
-                              <span>Dr. {apt.doctor.name}</span>
+                              <span>Told: {effectiveToldTime}</span>
+                            </>
+                          )}
+                          {effectiveDoctor && (
+                            <>
+                              <span>•</span>
+                              <span>Dr. {effectiveDoctor.name}</span>
                             </>
                           )}
                           {apt.therapySlot && (
                             <>
                               <span>•</span>
-                              <span>{apt.therapySlot.label}</span>
+                              <span className="text-sky-600 dark:text-sky-400 font-bold">
+                                {apt.therapySlot.label}
+                              </span>
+                            </>
+                          )}
+                          {effectiveInvoice && (
+                            <>
+                              <span>•</span>
+                              <span className="text-purple-600 dark:text-purple-400 font-bold">
+                                Inv: {effectiveInvoice.invoiceNumber}
+                              </span>
                             </>
                           )}
                         </div>
+
+                        {/* Arrival / Booking Notes display */}
+                        {(apt.notes || existingSerial?.notes || (apt.patient as any)?.visits?.[0]?.notes) && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-amber-900 dark:text-amber-200 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md mt-1 w-fit">
+                            <FileText className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span className="italic">
+                              Note: {existingSerial?.notes || apt.notes || (apt.patient as any)?.visits?.[0]?.notes}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-muted text-foreground border">
-                        {apt.currentStation === "RECEPTIONIST_DESK" || apt.room?.number === "200"
-                          ? "Waiting Room 200"
-                          : apt.currentStation || "RECEPTIONIST_DESK"}
-                      </span>
+                    {/* Right: Actions (Book Consultation, Checkout) & Billing Chip */}
+                    <div className="flex items-center gap-2 self-start xl:self-auto flex-wrap">
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          apt.paymentStatus === "PAID"
-                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                            : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          effectivePaymentStatus === "PAID" && effectiveFeeAmount > 0
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                            : effectivePaymentStatus === "DUE" || effectivePaymentStatus === "PARTIAL"
+                              ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20"
+                              : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
                         }`}
                       >
-                        {apt.paymentStatus || "PENDING"} (৳{(apt.feeAmount ?? 0).toLocaleString()})
+                        {effectivePaymentStatus === "PARTIAL"
+                          ? `PARTIAL (Paid: ৳${effectivePaidAmount.toLocaleString()} • Due: ৳${effectiveDueAmount.toLocaleString()})`
+                          : !existingSerial && !apt.therapySlotId && effectiveFeeAmount === 0
+                            ? "NO BILL YET (৳0)"
+                            : `${effectivePaymentStatus} (৳${effectiveFeeAmount.toLocaleString()})`}
                       </span>
+
+                      {/* Action 1: Book Consultation with Doctor (if none yet today) */}
+                      {!existingSerial && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenBookConsultation(apt)}
+                          className="h-7.5 px-2.5 text-xs font-bold gap-1 rounded-lg border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer shadow-2xs"
+                        >
+                          <Stethoscope className="size-3.5 text-indigo-500" />
+                          <span>Book Consultation</span>
+                        </Button>
+                      )}
+
+                      {/* Action 2: Check Out Patient */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenCheckout(apt)}
+                        className="h-7.5 px-2.5 text-xs font-bold gap-1 rounded-lg border-rose-500/30 text-rose-700 dark:text-rose-300 hover:bg-rose-500/10 cursor-pointer shadow-2xs"
+                      >
+                        <LogOut className="size-3.5 text-rose-500" />
+                        <span>Check Out</span>
+                      </Button>
                     </div>
                   </div>
                 );
@@ -818,7 +1159,7 @@ export function PatientArrivalTab({
         </CardContent>
       </Card>
 
-      {/* 4. MODAL: CHECK-IN EXISTING PATIENT */}
+      {/* 4. MODAL: CHECK-IN EXISTING PATIENT (Places in Public Waiting Room) */}
       {checkInModalPatient && (
         <Dialog
           open={Boolean(checkInModalPatient)}
@@ -840,7 +1181,7 @@ export function PatientArrivalTab({
                     Check In Arriving Patient
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                    Record arrival timestamp and route to clinical waiting queue
+                    Record arrival timestamp and route to Public Waiting Lounge
                   </DialogDescription>
                 </div>
               </div>
@@ -850,143 +1191,136 @@ export function PatientArrivalTab({
               onSubmit={handleConfirmCheckIn}
               className="flex flex-col flex-1 min-h-0 overflow-hidden"
               autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-bwignore="true"
-              data-form-type="other"
             >
               <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 flex-1 min-h-0">
                 {/* Arriving Patient Profile Summary */}
-              <div className="p-3 rounded-xl border border-border/80 bg-muted/30 space-y-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground text-sm">
-                    {checkInModalPatient.name}
-                  </span>
-                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
-                    MRN: {checkInModalPatient.mrn || "Pending"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 font-mono text-muted-foreground text-[11px]">
-                  <span>Phone: {checkInModalPatient.phone}</span>
-                  <span>•</span>
-                  <span>Sex: {checkInModalPatient.gender}</span>
-                  {checkInModalPatient.age && (
-                    <>
-                      <span>•</span>
-                      <span>Age: {checkInModalPatient.age} yrs</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Destination Indicator: Waiting Room 200 */}
-              <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 shrink-0">
-                  <DoorOpen className="size-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-foreground">
-                      Destination: Waiting Room 200
+                <div className="p-3 rounded-xl border border-border/80 bg-muted/30 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground text-sm">
+                      {checkInModalPatient.name}
                     </span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 font-bold">
-                      Public Waiting Lounge
+                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
+                      MRN: {checkInModalPatient.mrn || "Pending"}
                     </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Patient will be marked as checked in and placed into Waiting Room 200. Specific queue or doctor chamber assignment is deferred until called.
-                  </p>
+                  <div className="flex items-center gap-3 font-mono text-muted-foreground text-[11px]">
+                    <span>Phone: {checkInModalPatient.phone}</span>
+                    <span>•</span>
+                    <span>Sex: {checkInModalPatient.gender}</span>
+                    {checkInModalPatient.age && (
+                      <>
+                        <span>•</span>
+                        <span>Age: {checkInModalPatient.age} yrs</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Check-In Timestamp & Told Time */}
-              <div className="grid grid-cols-2 gap-3">
+                {/* Destination Indicator: Public Waiting Lounge */}
+                <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 shrink-0">
+                    <DoorOpen className="size-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-foreground">
+                        Destination: Public Waiting Lounge
+                      </span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 font-bold">
+                        Unassigned Queue
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Patient will be marked as checked in without placing into any doctor or therapy queue. Specific consultations or therapy slots are booked separately.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Check-In Timestamp & Told Time */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-foreground">
+                      Check-In Time *
+                    </Label>
+                    <Input
+                      value={checkInTime}
+                      onChange={(e) => setCheckInTime(e.target.value)}
+                      placeholder="e.g. 10:30 AM"
+                      className="h-9 text-xs font-mono font-bold rounded-xl"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-foreground">
+                      Told / Expected Time (Optional)
+                    </Label>
+                    <Input
+                      value={checkInToldTime}
+                      onChange={(e) => setCheckInToldTime(e.target.value)}
+                      placeholder="e.g. 11:00 AM"
+                      className="h-9 text-xs font-mono rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                {/* Notes */}
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-foreground">
-                    Check-In Time *
+                    Arrival Notes (Optional)
                   </Label>
                   <Input
-                    value={checkInTime}
-                    onChange={(e) => setCheckInTime(e.target.value)}
-                    placeholder="e.g. 10:30 AM"
-                    className="h-9 text-xs font-mono font-bold rounded-xl"
-                    required
+                    value={checkInNotes}
+                    onChange={(e) => setCheckInNotes(e.target.value)}
+                    placeholder="e.g. Complains of knee pain, walk-in"
+                    className="h-9 text-xs rounded-xl"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-foreground">
-                    Told / Expected Time (Optional)
-                  </Label>
-                  <Input
-                    value={checkInToldTime}
-                    onChange={(e) => setCheckInToldTime(e.target.value)}
-                    placeholder="e.g. 11:00 AM"
-                    className="h-9 text-xs font-mono rounded-xl"
-                  />
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-foreground">
-                  Arrival Notes (Optional)
-                </Label>
-                <Input
-                  value={checkInNotes}
-                  onChange={(e) => setCheckInNotes(e.target.value)}
-                  placeholder="e.g. Complains of severe knee pain, walk-in"
-                  className="h-9 text-xs rounded-xl"
+                {/* Authorizing Receptionist Confirmation */}
+                <ReceptionistPerformerSelect
+                  performers={performers}
+                  selectedPerformerId={activePerformerId}
+                  onSelectPerformerId={handlePerformerChange}
+                  pin={activePin}
+                  onPinChange={setActivePin}
+                  label="Authorizing Receptionist / Desk Staff"
+                  pinLabel="Staff 4-Digit PIN:"
                 />
               </div>
 
-              {/* Authorizing Receptionist Confirmation */}
-              <ReceptionistPerformerSelect
-                performers={performers}
-                selectedPerformerId={activePerformerId}
-                onSelectPerformerId={handlePerformerChange}
-                pin={activePin}
-                onPinChange={setActivePin}
-                label="Authorizing Receptionist / Desk Staff"
-                pinLabel="Staff 4-Digit PIN:"
-              />
-            </div>
-
-            <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCheckInModalPatient(null)}
-                disabled={isSubmittingCheckIn}
-                className="rounded-xl h-8.5 text-xs cursor-pointer"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isSubmittingCheckIn || !activePin || activePin.length !== 4}
-                className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
-              >
-                {isSubmittingCheckIn ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>Checking In...</span>
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="size-3.5" />
-                    <span>Confirm & Check In Patient</span>
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
+              <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCheckInModalPatient(null)}
+                  disabled={isSubmittingCheckIn}
+                  className="rounded-xl h-8.5 text-xs cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isSubmittingCheckIn || !activePin || activePin.length !== 4}
+                  className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+                >
+                  {isSubmittingCheckIn ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Checking In...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="size-3.5" />
+                      <span>Confirm &amp; Check In Patient</span>
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
         </Dialog>
       )}
 
@@ -1022,267 +1356,591 @@ export function PatientArrivalTab({
               onSubmit={handleConfirmRegisterAndCheckIn}
               className="flex flex-col flex-1 min-h-0 overflow-hidden"
               autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-bwignore="true"
-              data-form-type="other"
             >
               <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 flex-1 min-h-0">
                 {/* Mandatory Fields Block */}
-              <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/5 space-y-3">
-                <div className="flex items-center justify-between text-xs font-bold text-sky-700 dark:text-sky-300">
-                  <span>Mandatory Registration Details</span>
-                  <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-sky-500/15 border border-sky-500/25">
-                    Required
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {/* Name */}
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-foreground">
-                      Full Name *
-                    </Label>
-                    <Input
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
-                      placeholder="e.g. Mohammad Rahim"
-                      className="h-9 text-xs rounded-xl bg-background"
-                      required
-                      autoFocus
-                    />
+                <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/5 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-sky-700 dark:text-sky-300">
+                    <span>Mandatory Registration Details</span>
+                    <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-sky-500/15 border border-sky-500/25">
+                      Required
+                    </span>
                   </div>
 
-                  {/* Bangladeshi 11-Digit Mobile & Sex */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs font-bold text-foreground flex items-center justify-between">
-                        <span>Mobile Phone (11-Digit) *</span>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          Without +88
-                        </span>
-                      </Label>
-                      <div className="relative">
-                        <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                        <Input
-                          value={regPhone}
-                          onChange={(e) => setRegPhone(e.target.value)}
-                          placeholder="e.g. 01712345678"
-                          className="pl-8 h-9 text-xs font-mono font-bold rounded-xl bg-background"
-                          required
-                          maxLength={15}
-                        />
-                      </div>
-                    </div>
-
+                  <div className="space-y-3">
                     <div className="space-y-1">
                       <Label className="text-xs font-bold text-foreground">
-                        Sex / Gender *
+                        Full Name *
                       </Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setRegGender(Gender.MALE)}
-                          className={`h-9 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                            regGender === Gender.MALE
-                              ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500 ring-1 ring-sky-500"
-                              : "bg-background border-border text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          Male
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRegGender(Gender.FEMALE)}
-                          className={`h-9 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                            regGender === Gender.FEMALE
-                              ? "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500 ring-1 ring-pink-500"
-                              : "bg-background border-border text-foreground hover:bg-muted"
-                          }`}
-                        >
-                          Female
-                        </button>
+                      <Input
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
+                        placeholder="e.g. Mohammad Rahim"
+                        className="h-9 text-xs rounded-xl bg-background"
+                        required
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+                          <span>Mobile Phone (11-Digit) *</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            Without +88
+                          </span>
+                        </Label>
+                        <div className="relative">
+                          <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                          <Input
+                            value={regPhone}
+                            onChange={(e) => setRegPhone(e.target.value)}
+                            placeholder="e.g. 01712345678"
+                            className="pl-8 h-9 text-xs font-mono font-bold rounded-xl bg-background"
+                            required
+                            maxLength={15}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-foreground">
+                          Sex / Gender *
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setRegGender(Gender.MALE)}
+                            className={`h-9 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                              regGender === Gender.MALE
+                                ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500 ring-1 ring-sky-500"
+                                : "bg-background border-border text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            Male
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRegGender(Gender.FEMALE)}
+                            className={`h-9 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                              regGender === Gender.FEMALE
+                                ? "bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500 ring-1 ring-pink-500"
+                                : "bg-background border-border text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            Female
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Optional Fields Block */}
-              <div className="space-y-3 pt-1">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
-                  Optional Patient Information
-                </span>
+                {/* Optional Fields Block */}
+                <div className="space-y-3 pt-1">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                    Optional Patient Information
+                  </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-foreground">
+                        Age (Years)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={regAge}
+                        onChange={(e) => setRegAge(e.target.value)}
+                        placeholder="e.g. 35"
+                        className="h-8.5 text-xs font-mono rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <Label className="text-xs font-medium text-foreground">
+                        Email Address
+                      </Label>
+                      <Input
+                        type="email"
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        placeholder="e.g. patient@example.com"
+                        className="h-8.5 text-xs rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-foreground">
+                        Emergency Contact Number
+                      </Label>
+                      <Input
+                        value={regEmergencyPhone}
+                        onChange={(e) => setRegEmergencyPhone(e.target.value)}
+                        placeholder="e.g. 01812345678"
+                        className="h-8.5 text-xs font-mono rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-foreground">
+                        Profession
+                      </Label>
+                      <Input
+                        value={regProfession}
+                        onChange={(e) => setRegProfession(e.target.value)}
+                        placeholder="e.g. Teacher, Business, Homemaker"
+                        className="h-8.5 text-xs rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Blood Group Pills */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <Droplet className="size-3.5 text-rose-500" />
+                      <span>Blood Group</span>
+                    </Label>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                      {BLOOD_GROUPS.map((bg) => (
+                        <button
+                          key={bg}
+                          type="button"
+                          onClick={() =>
+                            setRegBloodGroup(regBloodGroup === bg ? "" : bg)
+                          }
+                          className={`py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                            regBloodGroup === bg
+                              ? "bg-rose-500 text-white border-rose-600 shadow-xs"
+                              : "bg-background border-border text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {bg}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <Label className="text-xs font-medium text-foreground">
-                      Age (Years)
+                      Address / Area
+                    </Label>
+                    <Input
+                      value={regAddress}
+                      onChange={(e) => setRegAddress(e.target.value)}
+                      placeholder="e.g. Chanchra, Jashore"
+                      className="h-8.5 text-xs rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                {/* Immediate Check-In Settings: Checkbox */}
+                <div className="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5 space-y-2.5">
+                  <label className="flex items-start gap-2.5 text-xs text-foreground cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={regCheckInNow}
+                      onChange={(e) => setRegCheckInNow(e.target.checked)}
+                      className="size-4 mt-0.5 rounded text-emerald-600 accent-emerald-600 cursor-pointer shrink-0"
+                    />
+                    <div>
+                      <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                        <DoorOpen className="size-4 text-emerald-600 dark:text-emerald-400" />
+                        Mark check-in now (Public Waiting Lounge)
+                      </span>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Automatically checks in patient to the Public Waiting Lounge upon registration without queue assignment.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Staff PIN Authorization */}
+                <ReceptionistPerformerSelect
+                  performers={performers}
+                  selectedPerformerId={activePerformerId}
+                  onSelectPerformerId={handlePerformerChange}
+                  pin={activePin}
+                  onPinChange={setActivePin}
+                  label="Authorizing Receptionist / Desk Staff"
+                  pinLabel="Staff 4-Digit PIN:"
+                />
+              </div>
+
+              <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsRegisterModalOpen(false)}
+                  disabled={isSubmittingRegister}
+                  className="rounded-xl h-8.5 text-xs cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={
+                    isSubmittingRegister ||
+                    !regName.trim() ||
+                    !regPhone.trim() ||
+                    !activePin ||
+                    activePin.length !== 4
+                  }
+                  className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+                >
+                  {isSubmittingRegister ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Registering &amp; Checking In...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="size-3.5" />
+                      <span>Register &amp; Check In Arriving Patient</span>
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* 6. NEW MODAL: BOOK DOCTOR CONSULTATION SERIAL (Forwards to Cashier Desk) */}
+      {bookConsultModalApt && (
+        <Dialog
+          open={Boolean(bookConsultModalApt)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setBookConsultModalApt(null);
+              setActivePin("");
+            }
+          }}
+        >
+          <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
+            <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <Stethoscope className="size-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-foreground">
+                    Book Doctor Consultation Serial
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                    Forward patient to Cashier Desk for billing before chamber queue entry
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <form
+              onSubmit={handleConfirmBookConsultation}
+              className="flex flex-col flex-1 min-h-0 overflow-hidden"
+              autoComplete="off"
+            >
+              <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 flex-1 min-h-0">
+                {/* Patient Summary Card */}
+                <div className="p-3 rounded-xl border border-border/80 bg-muted/30 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground text-sm">
+                      {bookConsultModalApt.patient?.name || "Patient"}
+                    </span>
+                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                      MRN: {bookConsultModalApt.patient?.mrn || "Pending"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 font-mono text-muted-foreground text-[11px]">
+                    <span>Phone: {bookConsultModalApt.patient?.phone}</span>
+                    <span>•</span>
+                    <span>Sex: {bookConsultModalApt.patient?.gender}</span>
+                  </div>
+                </div>
+
+                {/* Doctor Selection */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-foreground">
+                    Select Consultation Doctor *
+                  </Label>
+                  <Select
+                    value={consultDoctorId}
+                    onValueChange={handleDoctorSelectionChange}
+                  >
+                    <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-border/80">
+                      <SelectValue placeholder="Choose a doctor..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctors.map((d) => (
+                        <SelectItem key={d.id} value={d.id} className="text-xs">
+                          {d.name || "Doctor"}
+                          {d.consultationRoom
+                            ? ` (Room ${d.consultationRoom.number})`
+                            : ""}{" "}
+                          — ৳{(d.consultationFee ?? 1000).toLocaleString()} Preset Fee
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Editable Consultation Fee & Told Time */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+                      <span>Consultation Fee (৳) *</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        Editable
+                      </span>
                     </Label>
                     <Input
                       type="number"
-                      min={1}
-                      max={120}
-                      value={regAge}
-                      onChange={(e) => setRegAge(e.target.value)}
-                      placeholder="e.g. 35"
-                      className="h-8.5 text-xs font-mono rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-1 sm:col-span-2">
-                    <Label className="text-xs font-medium text-foreground">
-                      Email Address
-                    </Label>
-                    <Input
-                      type="email"
-                      value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="e.g. patient@example.com"
-                      className="h-8.5 text-xs rounded-xl"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-medium text-foreground">
-                      Emergency Contact Number
-                    </Label>
-                    <Input
-                      value={regEmergencyPhone}
-                      onChange={(e) => setRegEmergencyPhone(e.target.value)}
-                      placeholder="e.g. 01812345678"
-                      className="h-8.5 text-xs font-mono rounded-xl"
+                      min={0}
+                      step={50}
+                      value={consultFee}
+                      onChange={(e) => setConsultFee(Number(e.target.value) || 0)}
+                      className="h-9 text-xs font-mono font-bold rounded-xl"
+                      required
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium text-foreground">
-                      Profession
+                    <Label className="text-xs font-bold text-foreground">
+                      Told Arrival Time (Optional)
                     </Label>
                     <Input
-                      value={regProfession}
-                      onChange={(e) => setRegProfession(e.target.value)}
-                      placeholder="e.g. Teacher, Business, Homemaker"
-                      className="h-8.5 text-xs rounded-xl"
+                      value={consultToldTime}
+                      onChange={(e) => setConsultToldTime(e.target.value)}
+                      placeholder="e.g. 10:30 AM"
+                      className="h-9 text-xs font-mono rounded-xl"
                     />
                   </div>
                 </div>
 
-                {/* Blood Group Pills */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <Droplet className="size-3.5 text-rose-500" />
-                    <span>Blood Group</span>
-                  </Label>
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
-                    {BLOOD_GROUPS.map((bg) => (
-                      <button
-                        key={bg}
-                        type="button"
-                        onClick={() =>
-                          setRegBloodGroup(regBloodGroup === bg ? "" : bg)
-                        }
-                        className={`py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                          regBloodGroup === bg
-                            ? "bg-rose-500 text-white border-rose-600 shadow-xs"
-                            : "bg-background border-border text-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {bg}
-                      </button>
-                    ))}
-                  </div>
+                {/* Cashier Routing Notice */}
+                <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center gap-3 text-xs">
+                  <Receipt className="size-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <p className="text-muted-foreground text-[11px]">
+                    Booking will assign a <strong>Serial Number</strong> and forward the patient to the <strong>Cashier Desk</strong>. Patient will enter Doctor Consultation Queue once the invoice is processed (Paid or Due).
+                  </p>
                 </div>
 
+                {/* Notes */}
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium text-foreground">
-                    Address / Area
+                  <Label className="text-xs font-bold text-foreground">
+                    Consultation Notes (Optional)
                   </Label>
                   <Input
-                    value={regAddress}
-                    onChange={(e) => setRegAddress(e.target.value)}
-                    placeholder="e.g. Chanchra, Jashore"
-                    className="h-8.5 text-xs rounded-xl"
+                    value={consultNotes}
+                    onChange={(e) => setConsultNotes(e.target.value)}
+                    placeholder="e.g. Follow-up consultation, knee joint review"
+                    className="h-9 text-xs rounded-xl"
                   />
                 </div>
+
+                {/* Authorizing Receptionist Performer Select */}
+                <ReceptionistPerformerSelect
+                  performers={performers}
+                  selectedPerformerId={activePerformerId}
+                  onSelectPerformerId={handlePerformerChange}
+                  pin={activePin}
+                  onPinChange={setActivePin}
+                  label="Authorizing Receptionist / Desk Staff"
+                  pinLabel="Staff 4-Digit PIN:"
+                />
               </div>
 
-              {/* Immediate Check-In Settings: Checkbox & Waiting Room 200 */}
-              <div className="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5 space-y-2.5">
-                <label className="flex items-start gap-2.5 text-xs text-foreground cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={regCheckInNow}
-                    onChange={(e) => setRegCheckInNow(e.target.checked)}
-                    className="size-4 mt-0.5 rounded text-emerald-600 accent-emerald-600 cursor-pointer shrink-0"
-                  />
-                  <div>
-                    <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
-                      <DoorOpen className="size-4 text-emerald-600 dark:text-emerald-400" />
-                      Mark check-in now (Waiting Room 200)
+              <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBookConsultModalApt(null)}
+                  disabled={isSubmittingConsultBooking}
+                  className="rounded-xl h-8.5 text-xs cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={
+                    isSubmittingConsultBooking ||
+                    !consultDoctorId ||
+                    !activePin ||
+                    activePin.length !== 4
+                  }
+                  className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
+                >
+                  {isSubmittingConsultBooking ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Booking Serial...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Stethoscope className="size-3.5" />
+                      <span>Book Serial &amp; Forward to Cashier</span>
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* 7. NEW MODAL: CHECK OUT PATIENT (Enforces Unbilled Clearance Guard) */}
+      {checkoutModalApt && (
+        <Dialog
+          open={Boolean(checkoutModalApt)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setCheckoutModalApt(null);
+              setActivePin("");
+            }
+          }}
+        >
+          <DialogContent className="w-[96vw] max-w-lg max-h-[92dvh] flex flex-col p-0 overflow-hidden rounded-2xl border bg-card shadow-2xl">
+            <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                  <LogOut className="size-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-foreground">
+                    Check Out Patient from Center
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                    Record checkout timestamp and archive active visit session
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <form
+              onSubmit={handleConfirmCheckout}
+              className="flex flex-col flex-1 min-h-0 overflow-hidden"
+              autoComplete="off"
+            >
+              <div className="p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 flex-1 min-h-0">
+                {/* Patient Summary */}
+                <div className="p-3 rounded-xl border border-border/80 bg-muted/30 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground text-sm">
+                      {checkoutModalApt.patient?.name || "Patient"}
                     </span>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Automatically checks in patient to Waiting Room 200 upon registration without queue assignment.
+                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-muted text-muted-foreground border">
+                      MRN: {checkoutModalApt.patient?.mrn || "Pending"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 font-mono text-muted-foreground text-[11px]">
+                    <span>Phone: {checkoutModalApt.patient?.phone}</span>
+                    <span>•</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      Check-In:{" "}
+                      {checkoutModalApt.checkInTime
+                        ? new Date(
+                            checkoutModalApt.checkInTime,
+                          ).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })
+                        : "Today"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ZERO UNBILLED CHECKOUTS GUARD */}
+                {!checkoutClearance.canCheckout ? (
+                  <div className="p-3.5 rounded-xl border border-rose-500/40 bg-rose-500/10 space-y-2 text-xs">
+                    <div className="flex items-center gap-2 font-bold text-rose-700 dark:text-rose-300">
+                      <ShieldAlert className="size-4 shrink-0 text-rose-600" />
+                      <span>Checkout Blocked — Unbilled Session Detected</span>
+                    </div>
+                    <p className="text-[11px] text-rose-800 dark:text-rose-200">
+                      {checkoutClearance.unbilledReason}
+                    </p>
+                    <p className="text-[10.5px] text-muted-foreground pt-1 border-t border-rose-500/20">
+                      <strong>Policy:</strong> Every patient who has a doctor consultation or therapy session must have their invoice settled (Paid or marked Due) at the Cashier Register before leaving the center.
                     </p>
                   </div>
-                </label>
+                ) : (
+                  <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-2.5 text-xs">
+                    <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="font-semibold text-emerald-800 dark:text-emerald-200">
+                      Billing Clearance Verified: All sessions are invoiced (Paid or Due recorded on file).
+                    </span>
+                  </div>
+                )}
+
+                {/* Checkout Notes */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-foreground">
+                    Checkout Notes (Optional)
+                  </Label>
+                  <Input
+                    value={checkoutNotes}
+                    onChange={(e) => setCheckoutNotes(e.target.value)}
+                    placeholder="e.g. Advised 5-day therapy course, prescribed medication collected"
+                    className="h-9 text-xs rounded-xl"
+                  />
+                </div>
+
+                {/* Authorizing Receptionist Performer Select */}
+                <ReceptionistPerformerSelect
+                  performers={performers}
+                  selectedPerformerId={activePerformerId}
+                  onSelectPerformerId={handlePerformerChange}
+                  pin={activePin}
+                  onPinChange={setActivePin}
+                  label="Authorizing Receptionist / Desk Staff"
+                  pinLabel="Staff 4-Digit PIN:"
+                />
               </div>
 
-              {/* Staff PIN Authorization */}
-              <ReceptionistPerformerSelect
-                performers={performers}
-                selectedPerformerId={activePerformerId}
-                onSelectPerformerId={handlePerformerChange}
-                pin={activePin}
-                onPinChange={setActivePin}
-                label="Authorizing Receptionist / Desk Staff"
-                pinLabel="Staff 4-Digit PIN:"
-              />
-            </div>
-
-            <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsRegisterModalOpen(false)}
-                disabled={isSubmittingRegister}
-                className="rounded-xl h-8.5 text-xs cursor-pointer"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={
-                  isSubmittingRegister ||
-                  !regName.trim() ||
-                  !regPhone.trim() ||
-                  !activePin ||
-                  activePin.length !== 4
-                }
-                className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
-              >
-                {isSubmittingRegister ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>Registering & Checking In...</span>
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="size-3.5" />
-                    <span>Register & Check In Arriving Patient</span>
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
+              <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCheckoutModalApt(null)}
+                  disabled={isSubmittingCheckout}
+                  className="rounded-xl h-8.5 text-xs cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={
+                    isSubmittingCheckout ||
+                    !checkoutClearance.canCheckout ||
+                    !activePin ||
+                    activePin.length !== 4
+                  }
+                  className="rounded-xl h-8.5 text-xs font-bold gap-1.5 bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingCheckout ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Checking Out...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="size-3.5" />
+                      <span>Confirm &amp; Check Out Patient</span>
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
         </Dialog>
       )}
     </div>

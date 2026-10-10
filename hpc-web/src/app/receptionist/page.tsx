@@ -20,6 +20,7 @@ export default async function ReceptionistPage() {
     <ReceptionistDashboardView
       initialData={initialData}
       currentUserRole={user.role}
+      currentUserId={user.id}
     />
   );
 }

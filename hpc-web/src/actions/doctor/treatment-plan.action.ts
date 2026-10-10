@@ -17,6 +17,7 @@ import {
   type TreatmentPlanActionState,
 } from "@/schemas/doctor/treatment-plan.schema";
 import { revalidatePath } from "next/cache";
+import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 
 export interface TreatmentPlanRecord {
   id: string;
@@ -247,8 +248,17 @@ export async function createTreatmentPlanAction(
       details: `Created ${planType} treatment plan for patient ${patientId} with ${modalities.length} modalities: ${modalities.join(", ")}.`,
     });
 
+    emitRealtimeEvent("TREATMENT_PLAN_UPDATED", {
+      planId: plan.id,
+      patientId,
+      appointmentId: appointmentId || null,
+      planType,
+      modalities,
+    });
+
     revalidatePath("/doctor");
     revalidatePath("/handler");
+    revalidatePath("/receptionist");
     return {
       success: true,
       message: `${planType === TreatmentPlanType.TODAY ? "Today's" : "Next"} Treatment Plan created successfully.`,
@@ -337,8 +347,17 @@ export async function updateTreatmentPlanAction(
       details: `Updated ${existing.planType} treatment plan: ${modalities.join(", ")}.`,
     });
 
+    emitRealtimeEvent("TREATMENT_PLAN_UPDATED", {
+      planId: id,
+      patientId: existing.patientId,
+      appointmentId: existing.appointmentId || null,
+      planType: existing.planType,
+      modalities,
+    });
+
     revalidatePath("/doctor");
     revalidatePath("/handler");
+    revalidatePath("/receptionist");
     return {
       success: true,
       message: `${existing.planType === TreatmentPlanType.TODAY ? "Today's" : "Next"} Treatment Plan updated successfully.`,
@@ -396,7 +415,16 @@ export async function deleteTreatmentPlanAction(
       details: `Deactivated ${existing.planType} treatment plan.`,
     });
 
+    emitRealtimeEvent("TREATMENT_PLAN_UPDATED", {
+      planId: id,
+      patientId: existing.patientId,
+      appointmentId: existing.appointmentId || null,
+      planType: existing.planType,
+      deleted: true,
+    });
+
     revalidatePath("/doctor");
+    revalidatePath("/handler");
     return { success: true, message: "Treatment plan removed." };
   } catch (error) {
     const errorMsg =

@@ -20,6 +20,7 @@ export default async function HandlerPage() {
     <HandlerDashboardView
       initialData={initialData}
       currentUserRole={user.role}
+      currentUserId={user.id}
     />
   );
 }

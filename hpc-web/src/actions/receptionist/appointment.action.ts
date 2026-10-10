@@ -280,10 +280,18 @@ export async function bookTherapyTicketAction(
       paymentStatus: appointment.paymentStatus,
     });
 
+    emitRealtimeEvent("SLOT_UPDATED", {
+      slotId: slot.id,
+      slotLabel: slot.label,
+      date: appointmentDate,
+    });
+
     revalidatePath("/receptionist");
     revalidatePath("/doctor");
     revalidatePath("/handler");
     revalidatePath("/cashier");
+    revalidatePath("/admin/tracking");
+    revalidatePath("/admin/slots");
 
     return {
       success: true,
@@ -369,21 +377,33 @@ export async function updateAppointmentStatusAction(
     let assignedQueueType: QueueType | undefined = undefined;
     let queueId: string | null | undefined = undefined;
 
+    const isCancellingCall =
+      isCheckIn &&
+      (appointment.status === AppointmentStatus.CALLING ||
+        appointment.status === AppointmentStatus.IN_CONSULTATION ||
+        appointment.status === AppointmentStatus.IN_THERAPY);
+
     if (isCheckIn) {
-      const now = new Date();
-      const bookedDate = new Date(appointment.appointmentDate);
-      checkInTime = new Date(
-        bookedDate.getFullYear(),
-        bookedDate.getMonth(),
-        bookedDate.getDate(),
-        now.getHours(),
-        now.getMinutes(),
-        now.getSeconds(),
-        now.getMilliseconds(),
-      );
+      if (appointment.checkInTime) {
+        // Preserve original arrival/check-in time (e.g., when cancelling a call and returning to queue)
+        checkInTime = appointment.checkInTime;
+      } else {
+        const now = new Date();
+        const bookedDate = new Date(appointment.appointmentDate);
+        checkInTime = new Date(
+          bookedDate.getFullYear(),
+          bookedDate.getMonth(),
+          bookedDate.getDate(),
+          now.getHours(),
+          now.getMinutes(),
+          now.getSeconds(),
+          now.getMilliseconds(),
+        );
+      }
 
       assignedQueueType =
         queueType ||
+        appointment.queueType ||
         (appointment.type === AppointmentType.CONSULTATION
           ? QueueType.CONSULTATION
           : QueueType.THERAPY);
@@ -498,6 +518,9 @@ export async function updateAppointmentStatusAction(
       } else {
         validatedRoomId = null;
       }
+    } else if (isCancellingCall) {
+      // When cancelling a room call and returning patient to queue, clear room assignment
+      validatedRoomId = null;
     }
 
     // Validate queueId: only assign if exists in Queue table
@@ -545,6 +568,59 @@ export async function updateAppointmentStatusAction(
       },
     });
 
+    // Synchronize today's ConsultationSerial status when consultation appointment status changes
+    let syncedSerialNumber: number | undefined;
+    try {
+      const startOfDay = new Date(updated.appointmentDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(updated.appointmentDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      if (
+        updated.queueType === QueueType.CONSULTATION ||
+        updated.type === AppointmentType.CONSULTATION
+      ) {
+        const activeSerial = await prisma.consultationSerial.findFirst({
+          where: {
+            patientId: updated.patientId,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            status: { notIn: ["CANCELLED"] },
+          },
+          orderBy: { serialNumber: "desc" },
+        });
+
+        if (activeSerial) {
+          syncedSerialNumber = activeSerial.serialNumber;
+          let targetSerialStatus: string | undefined;
+
+          if (newStatus === AppointmentStatus.CALLING) {
+            targetSerialStatus = "CALLING";
+          } else if (newStatus === AppointmentStatus.IN_CONSULTATION) {
+            targetSerialStatus = "IN_CONSULTATION";
+          } else if (
+            newStatus === AppointmentStatus.CHECKED_IN &&
+            (activeSerial.status === "CALLING" ||
+              activeSerial.status === "IN_CONSULTATION")
+          ) {
+            targetSerialStatus = "QUEUED";
+          } else if (newStatus === AppointmentStatus.COMPLETED) {
+            targetSerialStatus = "COMPLETED";
+          }
+
+          if (targetSerialStatus && activeSerial.status !== targetSerialStatus) {
+            await prisma.consultationSerial.update({
+              where: { id: activeSerial.id },
+              data: {
+                status: targetSerialStatus,
+              },
+            });
+          }
+        }
+      }
+    } catch (serialSyncErr) {
+      console.error("[Sync ConsultationSerial Status Error]:", serialSyncErr);
+    }
+
     const isCancelled = newStatus === AppointmentStatus.CANCELLED;
     const assignedRoomNumber =
       updated.room?.number || updated.therapySlot?.room?.number || null;
@@ -587,21 +663,23 @@ export async function updateAppointmentStatusAction(
 
     // If calling into room (consultation or therapy), broadcast DOCTOR_CALLED chime & banner event
     if (newStatus === AppointmentStatus.CALLING) {
-      let serialNumber: number | undefined;
-      try {
-        const startOfDay = new Date(updated.appointmentDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(updated.appointmentDate);
-        endOfDay.setHours(23, 59, 59, 999);
+      let serialNumber: number | undefined = syncedSerialNumber;
+      if (serialNumber === undefined) {
+        try {
+          const startOfDay = new Date(updated.appointmentDate);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(updated.appointmentDate);
+          endOfDay.setHours(23, 59, 59, 999);
 
-        const priorCount = await prisma.appointment.count({
-          where: {
-            appointmentDate: { gte: startOfDay, lte: endOfDay },
-            checkInTime: { not: null, lte: updated.checkInTime || new Date() },
-          },
-        });
-        if (priorCount > 0) serialNumber = priorCount;
-      } catch {}
+          const priorCount = await prisma.appointment.count({
+            where: {
+              appointmentDate: { gte: startOfDay, lte: endOfDay },
+              checkInTime: { not: null, lte: updated.checkInTime || new Date() },
+            },
+          });
+          if (priorCount > 0) serialNumber = priorCount;
+        } catch {}
+      }
 
       emitRealtimeEvent("DOCTOR_CALLED", {
         appointmentId: updated.id,
@@ -639,15 +717,17 @@ export async function updateAppointmentStatusAction(
       });
     }
 
-    // If consultation/therapy completed or cancelled, release room back to AVAILABLE
+    // If consultation/therapy completed or cancelled (or call cancelled), release room back to AVAILABLE
+    const roomToReleaseId = updated.roomId || appointment.roomId;
     if (
       (newStatus === AppointmentStatus.COMPLETED ||
-        newStatus === AppointmentStatus.CANCELLED) &&
-      updated.roomId
+        newStatus === AppointmentStatus.CANCELLED ||
+        isCancellingCall) &&
+      roomToReleaseId
     ) {
       const activeOccupying = await prisma.appointment.count({
         where: {
-          roomId: updated.roomId,
+          roomId: roomToReleaseId,
           status: {
             in: [
               AppointmentStatus.IN_CONSULTATION,
@@ -662,7 +742,7 @@ export async function updateAppointmentStatusAction(
       if (activeOccupying === 0) {
         await prisma.room
           .update({
-            where: { id: updated.roomId },
+            where: { id: roomToReleaseId },
             data: { status: RoomStatus.AVAILABLE },
           })
           .catch((err) =>
@@ -670,9 +750,9 @@ export async function updateAppointmentStatusAction(
           );
 
         emitRealtimeEvent("ROOM_UPDATED", {
-          id: updated.roomId,
+          id: roomToReleaseId,
           status: RoomStatus.AVAILABLE,
-          number: assignedRoomNumber,
+          number: assignedRoomNumber || appointment.room?.number || null,
         });
       }
     }
@@ -680,7 +760,8 @@ export async function updateAppointmentStatusAction(
     // If patient transferred rooms, release previous room if no longer occupied
     if (
       appointment.roomId &&
-      updated.roomId !== appointment.roomId
+      updated.roomId !== appointment.roomId &&
+      !isCancellingCall
     ) {
       const activeOccupyingPrev = await prisma.appointment.count({
         where: {
@@ -713,7 +794,7 @@ export async function updateAppointmentStatusAction(
       }
     }
 
-    // If completed, broadcast STATION_CHANGED
+    // If completed, broadcast STATION_CHANGED and PATIENT_CHECKED_OUT
     if (newStatus === AppointmentStatus.COMPLETED) {
       emitRealtimeEvent("STATION_CHANGED", {
         appointmentId: updated.id,
@@ -721,6 +802,17 @@ export async function updateAppointmentStatusAction(
         patientName: updated.patient.name,
         toStation: "CHECKED_OUT",
         status: updated.status,
+      });
+      emitRealtimeEvent("PATIENT_CHECKED_OUT", {
+        appointmentId: updated.id,
+        patientId: updated.patientId,
+        patientName: updated.patient.name,
+      });
+    }
+
+    if (isCancelled && updated.therapySlotId) {
+      emitRealtimeEvent("SLOT_UPDATED", {
+        slotId: updated.therapySlotId,
       });
     }
 
@@ -801,15 +893,65 @@ export type PatientWithCount = PatientModel & {
   _count?: { appointments: number };
 };
 
+export interface ConsultationSerialWithRelations {
+  id: string;
+  serialNumber: number;
+  appointmentDate: Date;
+  doctorId: string;
+  patientId: string;
+  visitId: string | null;
+  toldTime: string | null;
+  feeAmount: number;
+  paidAmount: number;
+  dueAmount: number;
+  paymentStatus: string;
+  status: string;
+  inConsultationTime: Date | null;
+  outConsultationTime: Date | null;
+  bookedById: string | null;
+  cashierPerformerId: string | null;
+  invoiceId: string | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  doctor: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    consultationFee: number | null;
+    consultationRoomId?: string | null;
+    consultationRoom?: RoomModel | null;
+  };
+  patient: PatientModel;
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    totalAmount: number;
+    paidAmount: number;
+    dueAmount: number;
+    status: string;
+    paymentMethod: string;
+  } | null;
+  visit?: {
+    id: string;
+    visitNumber: number;
+    checkInTime: Date;
+    checkOutTime: Date | null;
+    status: string;
+  } | null;
+}
+
 export interface ReceptionistDashboardData {
   selectedDate: string;
   dayOfWeek: DayKey;
   slots: SlotWithTelemetry[];
   appointments: AppointmentWithRelations[];
+  consultationSerials: ConsultationSerialWithRelations[];
   rooms: RoomModel[];
   stats: {
     totalBooked: number;
     checkedInCount: number;
+    checkedOutCount: number;
     maleBooked: number;
     femaleBooked: number;
     extraBooked: number;
@@ -876,6 +1018,7 @@ export async function getReceptionistDashboardDataAction(
     totalPatientsCount,
     rooms,
     doctors,
+    consultationSerials,
   ] = await Promise.all([
     prisma.therapySlot.findMany({
       where: { isActive: true },
@@ -887,7 +1030,24 @@ export async function getReceptionistDashboardDataAction(
         appointmentDate: { gte: startOfDay, lte: endOfDay },
       },
       include: {
-        patient: true,
+        patient: {
+          include: {
+            consultationSerials: {
+              where: {
+                appointmentDate: { gte: startOfDay, lte: endOfDay },
+                status: { not: "CANCELLED" },
+              },
+              include: {
+                doctor: {
+                  select: { id: true, name: true, consultationFee: true },
+                },
+                invoice: true,
+              },
+              orderBy: { serialNumber: "desc" },
+              take: 1,
+            },
+          },
+        },
         therapySlot: { include: { room: true } },
         room: true,
         doctor: true,
@@ -938,6 +1098,27 @@ export async function getReceptionistDashboardDataAction(
         },
       },
       orderBy: { name: "asc" },
+    }),
+    prisma.consultationSerial.findMany({
+      where: {
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+      },
+      include: {
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            consultationFee: true,
+            consultationRoomId: true,
+            consultationRoom: true,
+          },
+        },
+        patient: true,
+        invoice: true,
+        visit: true,
+      },
+      orderBy: [{ doctorId: "asc" }, { serialNumber: "asc" }],
     }),
   ]);
 
@@ -1018,6 +1199,9 @@ export async function getReceptionistDashboardDataAction(
       a.status === AppointmentStatus.IN_THERAPY ||
       a.status === AppointmentStatus.IN_CONSULTATION,
   ).length;
+  const checkedOutCount = nonCancelled.filter(
+    (a) => a.status === AppointmentStatus.COMPLETED || Boolean(a.checkOutTime),
+  ).length;
   const maleBooked = nonCancelled.filter(
     (a) => a.gender === Gender.MALE,
   ).length;
@@ -1042,10 +1226,12 @@ export async function getReceptionistDashboardDataAction(
     dayOfWeek,
     slots: slotsWithTelemetry,
     appointments,
+    consultationSerials: consultationSerials as ConsultationSerialWithRelations[],
     rooms,
     stats: {
       totalBooked: nonCancelled.length,
       checkedInCount,
+      checkedOutCount,
       maleBooked,
       femaleBooked,
       extraBooked,
@@ -1109,6 +1295,10 @@ export async function getLiveQueueAction() {
             AppointmentStatus.IN_CONSULTATION,
           ],
         },
+        OR: [
+          { queueType: { in: [QueueType.THERAPY, QueueType.CONSULTATION] } },
+          { therapySlotId: { not: null } },
+        ],
       },
       include: {
         patient: {
@@ -1283,6 +1473,60 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
         },
       },
     });
+
+    // Strict Guard 1: Therapy Queue requires an active Therapy Slot booked for TODAY
+    if (input.queueType === QueueType.THERAPY) {
+      const todayTherapySlotApt = await prisma.appointment.findFirst({
+        where: {
+          patientId: patient.id,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          type: AppointmentType.THERAPY,
+          therapySlotId: { not: null },
+          status: {
+            notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
+          },
+        },
+      });
+
+      if (!todayTherapySlotApt) {
+        return {
+          success: false,
+          message:
+            "Cannot add to Therapy Queue: Patient must have an active Therapy Slot booked for today.",
+        };
+      }
+    }
+
+    // Strict Guard 2: Consultation Queue requires a Consultation Serial booked for TODAY and billing clearance
+    if (input.queueType === QueueType.CONSULTATION) {
+      const todaySerial = await prisma.consultationSerial.findFirst({
+        where: {
+          patientId: patient.id,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+        orderBy: { serialNumber: "desc" },
+      });
+
+      if (!todaySerial) {
+        return {
+          success: false,
+          message:
+            "Cannot add to Consultation Queue: Patient must have a Consultation Serial booked for today.",
+        };
+      }
+
+      if (
+        todaySerial.paymentStatus === "PENDING" &&
+        !todaySerial.invoiceId
+      ) {
+        return {
+          success: false,
+          message:
+            "Cannot add to Consultation Queue: Consultation fee must be paid or marked as DUE by the Cashier first.",
+        };
+      }
+    }
 
     const stationToSet =
       input.queueType === QueueType.CONSULTATION
@@ -1475,8 +1719,85 @@ export async function switchQueueAction(
 
     const previous = await prisma.appointment.findUnique({
       where: { id: appointmentId },
-      select: { roomId: true, status: true },
+      include: { patient: true },
     });
+
+    if (!previous) {
+      return { success: false, message: "Appointment record not found." };
+    }
+
+    const now = new Date();
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    // Strict Guard 1: Cannot switch to Therapy Queue without an active same-day Therapy Slot
+    if (targetQueueType === QueueType.THERAPY) {
+      const todaySlotApt = await prisma.appointment.findFirst({
+        where: {
+          patientId: previous.patientId,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          type: AppointmentType.THERAPY,
+          therapySlotId: { not: null },
+          status: {
+            notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
+          },
+        },
+      });
+
+      if (!todaySlotApt && !previous.therapySlotId) {
+        return {
+          success: false,
+          message:
+            "Cannot switch to Therapy Queue: Patient must have an active Therapy Slot booked for today.",
+        };
+      }
+    }
+
+    // Strict Guard 2: Cannot switch to Consultation Queue without a same-day Consultation Serial + billing clearance
+    if (targetQueueType === QueueType.CONSULTATION) {
+      const todaySerial = await prisma.consultationSerial.findFirst({
+        where: {
+          patientId: previous.patientId,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+      });
+
+      if (!todaySerial) {
+        return {
+          success: false,
+          message:
+            "Cannot switch to Consultation Queue: Patient must have a Consultation Serial booked for today.",
+        };
+      }
+
+      if (
+        todaySerial.paymentStatus === "PENDING" &&
+        !todaySerial.invoiceId
+      ) {
+        return {
+          success: false,
+          message:
+            "Cannot switch to Consultation Queue: Consultation fee must be paid or marked as DUE by the Cashier first.",
+        };
+      }
+    }
 
     const updated = await prisma.appointment.update({
       where: { id: appointmentId },

@@ -180,6 +180,9 @@ model User {
   approvedAppointmentExtras Appointment[]   @relation("AppointmentExtraApprover")
   medicalRecords            MedicalRecord[]
   treatmentPlans            TreatmentPlan[]
+  consultationSerials       ConsultationSerial[] @relation("DoctorConsultationSerials")
+  sentChatMessages          ChatMessage[]        @relation("SentChatMessages")
+  receivedChatMessages      ChatMessage[]        @relation("ReceivedChatMessages")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -260,6 +263,7 @@ model Performer {
   // Desk operations
   conductedAppointments Appointment[] @relation("PerformerAppointments")
   bookedAppointments    Appointment[] @relation("AppointmentBooker")
+  chatMessages          ChatMessage[] @relation("PerformerChatMessages")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -354,6 +358,12 @@ model Patient {
   appointments   Appointment[]
   medicalRecords MedicalRecord[]
   treatmentPlans TreatmentPlan[]
+  visits              PatientVisit[]
+  consultationSerials ConsultationSerial[]
+  stepLogs            PatientStepLog[]
+  invoices            PatientInvoice[]
+  payments            PatientPayment[]
+  chatMessages        ChatMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -377,6 +387,12 @@ model Appointment {
   // Patient relation
   patientId String
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  // Visit and Invoice relations
+  visitId   String?
+  visit     PatientVisit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  invoiceId String?
+  invoice   PatientInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
 
   // Date of appointment (the calendar date for booking tickets)
@@ -492,6 +508,8 @@ model Appointment {
   @@index([performerId])
   @@index([bookedById])
   @@index([roomId])
+  @@index([visitId])
+  @@index([invoiceId])
 }
 
 // --------------------------------------------------------
@@ -665,4 +683,189 @@ model TreatmentPlan {
   @@index([planType])
   @@index([createdAt])
 }
+
+// --------------------------------------------------------
+// PATIENT VISIT LIFECYCLE & WORKFLOW ENGINE
+// --------------------------------------------------------
+
+model PatientVisit {
+  id                  String               @id @default(cuid())
+  patientId           String
+  patient             Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitNumber         Int                  @default(1)
+  visitDate           DateTime             @default(now())
+  checkInTime         DateTime             @default(now())
+  checkOutTime        DateTime?
+  status              String               @default("CHECKED_IN") // CHECKED_IN, IN_PROGRESS, CHECKED_OUT
+  checkInPerformerId  String?
+  checkOutPerformerId String?
+  notes               String?
+
+  consultationSerials ConsultationSerial[]
+  stepLogs            PatientStepLog[]
+  invoices            PatientInvoice[]
+  payments            PatientPayment[]
+  appointments        Appointment[]
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([patientId, visitDate])
+  @@index([status])
+}
+
+model ConsultationSerial {
+  id                  String          @id @default(cuid())
+  serialNumber        Int
+  appointmentDate     DateTime        @default(now())
+  doctorId            String
+  doctor              User            @relation("DoctorConsultationSerials", fields: [doctorId], references: [id])
+  patientId           String
+  patient             Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId             String?
+  visit               PatientVisit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  toldTime            String?
+  feeAmount           Float           @default(0)
+  paidAmount          Float           @default(0)
+  dueAmount           Float           @default(0)
+  paymentStatus       String          @default("PENDING") // PENDING, PAID, DUE, PARTIAL
+
+  status              String          @default("FORWARDED_TO_CASHIER") // FORWARDED_TO_CASHIER, QUEUED, CALLING, IN_CONSULTATION, COMPLETED, CANCELLED
+  inConsultationTime  DateTime?
+  outConsultationTime DateTime?
+
+  bookedById          String?
+  cashierPerformerId  String?
+  invoiceId           String?
+  invoice             PatientInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  notes               String?
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([doctorId, appointmentDate, serialNumber])
+  @@index([patientId])
+  @@index([status])
+  @@index([visitId])
+  @@index([invoiceId])
+}
+
+model PatientStepLog {
+  id          String        @id @default(cuid())
+  patientId   String
+  patient     Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId     String?
+  visit       PatientVisit? @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  step        String        // CHECK_IN, FORWARDED_TO_CASHIER, BILL_COLLECTED, BILL_MARKED_DUE, INVOICE_PRINTED, QUEUED_FOR_DOCTOR, CONSULTATION_START, CONSULTATION_END, QUEUED_FOR_THERAPY, THERAPY_START, THERAPY_END, CHECK_OUT
+  station     String        // RECEPTIONIST_DESK, CASHIER_REGISTER, CONSULTATION_ROOM, THERAPY_ROOM, CHECKED_OUT
+  roomNumber  String?
+  doctorId    String?
+  performerId String?
+  details     String?
+  timestamp   DateTime      @default(now())
+
+  createdAt   DateTime      @default(now())
+
+  @@index([patientId, timestamp])
+  @@index([visitId])
+}
+
+model PatientInvoice {
+  id                  String               @id @default(cuid())
+  invoiceNumber       String               @unique
+  patientId           String
+  patient             Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId             String?
+  visit               PatientVisit?        @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  totalAmount         Float                @default(0)
+  paidAmount          Float                @default(0)
+  dueAmount           Float                @default(0)
+  status              String               @default("PAID") // PAID, DUE, PARTIAL
+  paymentMethod       String               @default("CASH") // CASH, CARD, MFS, DUE
+
+  cashierPerformerId  String?
+  notes               String?
+
+  consultationSerials ConsultationSerial[]
+  payments            PatientPayment[]
+  appointments        Appointment[]
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([patientId])
+  @@index([invoiceNumber])
+  @@index([visitId])
+}
+
+model PatientPayment {
+  id                  String          @id @default(cuid())
+  patientId           String
+  patient             Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId             String?
+  visit               PatientVisit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  invoiceId           String?
+  invoice             PatientInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  serviceType         String          // "CONSULTATION", "THERAPY", "COMBINED"
+  amount              Float
+  paymentMethod       String          // "CASH", "CARD", "MFS", "DUE"
+  isDue               Boolean         @default(false)
+  cashierPerformerId  String?
+  notes               String?
+
+  createdAt           DateTime        @default(now())
+
+  @@index([patientId])
+  @@index([invoiceId])
+  @@index([visitId])
+}
+
+// --------------------------------------------------------
+// CLINIC REAL-TIME INTERNAL CHAT & MESSAGING SYSTEM
+// Partitioned daily by calendar date (dateStr / messageDate)
+// --------------------------------------------------------
+
+model ChatMessage {
+  id             String    @id @default(cuid())
+  dateStr        String    // e.g. "2026-10-09" (Daily partitioned calendar date)
+  messageDate    DateTime  @default(now())
+  channel        String    @default("GENERAL") // "GENERAL", "CLINICAL", "RECEPTION", "THERAPY", "CASHIER", or "DM:userId1:userId2"
+  content        String    // Text only
+  isUrgent       Boolean   @default(false)
+
+  // Sender details
+  senderId       String
+  sender         User      @relation("SentChatMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderRole     Role
+  senderName     String
+  performerId    String?
+  performer      Performer? @relation("PerformerChatMessages", fields: [performerId], references: [id], onDelete: SetNull)
+  performerName  String?
+
+  // Optional recipient (for 1-on-1 direct staff messages)
+  recipientId    String?
+  recipient      User?     @relation("ReceivedChatMessages", fields: [recipientId], references: [id], onDelete: SetNull)
+  recipientName  String?
+
+  // Optional clinical / patient reference
+  patientId      String?
+  patient        Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  patientName    String?
+  roomNumber     String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([dateStr, channel])
+  @@index([dateStr, createdAt])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([patientId])
+}
+
+
 

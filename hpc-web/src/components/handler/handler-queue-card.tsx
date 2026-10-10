@@ -222,6 +222,17 @@ export function HandlerQueueCard({
           </div>
         )}
 
+        {/* Session / Booking Note Banner */}
+        {appointment.notes && (
+          <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-900 dark:text-amber-200 flex items-start gap-1.5">
+            <FileText className="size-3 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <span className="font-bold mr-1">Session Note:</span>
+              <span className="italic">{appointment.notes}</span>
+            </div>
+          </div>
+        )}
+
         {/* 2. Today's Treatment Plan Pill Banner */}
         <div className="p-1.5 rounded-lg bg-muted/25 border border-border/50 space-y-1">
           <div className="flex items-center justify-between text-[10px]">
@@ -401,7 +412,7 @@ export function HandlerQueueCard({
             </Button>
           )}
 
-          {/* If Calling, show Mark In Therapy */}
+          {/* If Calling, show Mark In Therapy, Re-call, and Cancel Call */}
           {isCalling && (
             <>
               <Button
@@ -424,6 +435,38 @@ export function HandlerQueueCard({
               >
                 <Volume2 className="size-2.5" />
                 <span>Re-call</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  setIsActionLoading(true);
+                  try {
+                    const res = await updateAppointmentStatusAction(
+                      appointment.id,
+                      AppointmentStatus.CHECKED_IN,
+                      performerId,
+                      QueueType.THERAPY,
+                      "",
+                    );
+                    if (res.success) {
+                      toast.info(
+                        `Call cancelled. ${appointment.patient?.name || "Patient"} returned to therapy queue.`,
+                      );
+                      onRefresh();
+                    } else {
+                      toast.error(res.message);
+                    }
+                  } finally {
+                    setIsActionLoading(false);
+                  }
+                }}
+                disabled={isActionLoading}
+                className="h-7 px-2 text-[10px] font-bold border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 cursor-pointer gap-1"
+                title="Cancel call and keep patient in waiting queue"
+              >
+                <span>Cancel Call</span>
               </Button>
             </>
           )}

@@ -42,6 +42,8 @@ import {
 } from "lucide-react";
 import { EditDoctorFeeDialog } from "@/components/admin/users/edit-doctor-fee-dialog";
 import { EditDoctorRoomDialog } from "@/components/admin/users/edit-doctor-room-dialog";
+import { useRouter } from "next/navigation";
+import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 
 export interface UserAccountData {
   id: string;
@@ -85,11 +87,26 @@ interface UserManagementViewProps {
 }
 
 export function UserManagementView({ users, rooms = [] }: UserManagementViewProps) {
+  const router = useRouter();
   const [userList, setUserList] = React.useState<UserAccountData[]>(users);
 
   React.useEffect(() => {
     setUserList(users);
   }, [users]);
+
+  useRealtimeEvents({
+    onEvent: (event) => {
+      if (
+        event.type !== "CHAT_MESSAGE_SENT" &&
+        event.type !== "CHAT_MESSAGE_DELETED"
+      ) {
+        router.refresh();
+      }
+    },
+    onReconnect: () => {
+      router.refresh();
+    },
+  });
 
   const [activeTab, setActiveTab] = React.useState<"accounts" | "desks">("accounts");
   const [searchQuery, setSearchQuery] = React.useState("");

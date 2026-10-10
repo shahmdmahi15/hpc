@@ -27,32 +27,43 @@ import {
   AuthorizeReceptionistActionDialog,
   type AuthorizeReceptionistActionConfig,
 } from "@/components/receptionist/authorize-receptionist-action-dialog";
-import { QueueManagementTab } from "@/components/receptionist/queue-management-tab";
-import { AddToQueueDialog } from "@/components/receptionist/add-to-queue-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, UserPlus, Ticket, Activity, Plus, Search, Compass, UserCheck } from "lucide-react";
+import { Clock, Users, UserPlus, Ticket, Activity, Search, Compass, UserCheck, Stethoscope, MessageSquare } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
 import { PatientArrivalTab } from "@/components/receptionist/patient-arrival-tab";
+import { ConsultationSerialTab } from "@/components/receptionist/consultation-serial-tab";
+import { ClinicChatView } from "@/components/chat/clinic-chat-view";
+import { useChatNotifications } from "@/hooks/use-chat-notifications";
 
 interface ReceptionistDashboardViewProps {
   initialData: ReceptionistDashboardData;
   currentUserRole?: Role;
+  currentUserId?: string;
 }
 
 export function ReceptionistDashboardView({
   initialData,
   currentUserRole,
+  currentUserId,
 }: ReceptionistDashboardViewProps) {
   const [data, setData] =
     React.useState<ReceptionistDashboardData>(initialData);
   const [selectedDate, setSelectedDate] = React.useState<string>(
     initialData.selectedDate,
   );
+  const [activeTab, setActiveTab] = React.useState<string>("arrival");
+
+  // Real-time Chat Notifications & Chime at the Dashboard Root Level
+  const { unreadCount: unreadChatCount } = useChatNotifications({
+    isChatTabActive: activeTab === "chat",
+    currentUserId,
+    onOpenChatTab: () => setActiveTab("chat"),
+  });
 
   // Remember the last chosen receptionist performer during this desk session
   const [lastPerformerId, setLastPerformerId] = React.useState<string>(() =>
@@ -64,7 +75,6 @@ export function ReceptionistDashboardView({
   // Modals state
   const [isNewPatientOpen, setIsNewPatientOpen] = React.useState(false);
   const [isBookTicketOpen, setIsBookTicketOpen] = React.useState(false);
-  const [isAddToQueueOpen, setIsAddToQueueOpen] = React.useState(false);
   const [preselectedSlotId, setPreselectedSlotId] = React.useState<
     string | undefined
   >();
@@ -88,17 +98,6 @@ export function ReceptionistDashboardView({
 
   // Search filter
   const [searchQuery, setSearchQuery] = React.useState("");
-
-  const filteredAppointments = React.useMemo(() => {
-    if (!searchQuery.trim()) return data.appointments || [];
-    const q = searchQuery.toLowerCase().trim();
-    return (data.appointments || []).filter((a) => {
-      const pName = (a.patient?.name || "").toLowerCase();
-      const pPhone = (a.patient?.phone || "").toLowerCase();
-      const mrn = (a.patient?.mrn || "").toLowerCase();
-      return pName.includes(q) || pPhone.includes(q) || mrn.includes(q);
-    });
-  }, [data.appointments, searchQuery]);
 
   // Transitions & Refresh
   const [isPending, startTransition] = React.useTransition();
@@ -124,16 +123,12 @@ export function ReceptionistDashboardView({
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
       const type = (event?.type || "").toUpperCase();
-      // If appointment, patient, or slot changed, refresh schedule and patients
-      if (
-        type === "APPOINTMENT_CREATED" ||
-        type === "APPOINTMENT_UPDATED" ||
-        type === "APPOINTMENT_CANCELLED" ||
-        type === "PATIENT_CREATED" ||
-        type === "SLOT_UPDATED"
-      ) {
+      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         refreshData(selectedDateRef.current);
       }
+    },
+    onReconnect: () => {
+      refreshData(selectedDateRef.current);
     },
   });
 
@@ -410,87 +405,96 @@ export function ReceptionistDashboardView({
           </div>
         </div>
 
-        {/* Tabs for Receptionist Desk Navigation (Arrival & Check-In placed at 1st position) */}
-        <Tabs defaultValue="arrival" className="w-full space-y-2.5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
-            <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex items-center overflow-x-auto scrollbar-none gap-1 max-w-full shrink-0">
-              {/* TAB 1: ARRIVAL & IMMEDIATE CHECK-IN (DEFAULT / FIRST POSITION) */}
-              <TabsTrigger
-                value="arrival"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <UserCheck className="size-3.5 text-sky-600 dark:text-sky-400" />
-                <span>Arrival & Check-In</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-sky-500/15 text-sky-700 dark:text-sky-300 font-mono font-bold">
-                  Desk
-                </span>
-              </TabsTrigger>
+        {/* Tabs for Receptionist Desk Navigation (Single-line layout across all devices) */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-2.5">
+          <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2 w-full min-w-0">
+            {/* Scrollable Tabs List with shortened names */}
+            <div className="flex items-center overflow-x-auto scrollbar-none min-w-0 flex-1">
+              <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 inline-flex items-center gap-1 shrink-0">
+                {/* TAB 1: ARRIVALS */}
+                <TabsTrigger
+                  value="arrival"
+                  className="h-7.5 px-2.5 sm:px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <UserCheck className="size-3.5 text-sky-600 dark:text-sky-400" />
+                  <span>Arrivals</span>
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-sky-500/15 text-sky-700 dark:text-sky-300 font-mono font-bold">
+                    Desk
+                  </span>
+                </TabsTrigger>
 
-              {/* TAB 2: THERAPY SLOTS */}
-              <TabsTrigger
-                value="slots"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Clock className="size-3.5" />
-                <span>Therapy Slots</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/10 text-primary font-mono font-bold">
-                  {data.slots.length}
-                </span>
-              </TabsTrigger>
+                {/* TAB 2: CONSULTATION */}
+                <TabsTrigger
+                  value="consultations"
+                  className="h-7.5 px-2.5 sm:px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Stethoscope className="size-3.5 text-teal-600 dark:text-teal-400" />
+                  <span>Consultation</span>
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-teal-500/15 text-teal-700 dark:text-teal-300 font-mono font-bold">
+                    {(data.consultationSerials || []).length}
+                  </span>
+                </TabsTrigger>
 
-              <TabsTrigger
-                value="tracking"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Compass className="size-3.5 text-indigo-600 dark:text-indigo-400" />
-                <span>Patient Journey</span>
-              </TabsTrigger>
+                {/* TAB 3: THERAPY */}
+                <TabsTrigger
+                  value="slots"
+                  className="h-7.5 px-2.5 sm:px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Clock className="size-3.5" />
+                  <span>Therapy</span>
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/10 text-primary font-mono font-bold">
+                    {data.slots.length}
+                  </span>
+                </TabsTrigger>
 
-              <TabsTrigger
-                value="queue"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Activity className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Live Queue</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-mono font-bold">
-                  {activeQueueCount}
-                </span>
-              </TabsTrigger>
+                {/* TAB 4: JOURNEY */}
+                <TabsTrigger
+                  value="tracking"
+                  className="h-7.5 px-2.5 sm:px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Compass className="size-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Journey</span>
+                </TabsTrigger>
 
-              <TabsTrigger
-                value="patients"
-                className="h-7.5 px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Users className="size-3.5" />
-                <span>Directory</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground border border-border font-mono font-bold">
-                  {data.totalPatientsCount}
-                </span>
-              </TabsTrigger>
-            </TabsList>
+                {/* TAB 5: PATIENTS */}
+                <TabsTrigger
+                  value="patients"
+                  className="h-7.5 px-2.5 sm:px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Users className="size-3.5" />
+                  <span>Patients</span>
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-muted text-muted-foreground border border-border font-mono font-bold">
+                    {data.totalPatientsCount}
+                  </span>
+                </TabsTrigger>
 
-            {/* Contextual Actions Bar (3-column on mobile, flex on sm+) */}
-            <div className="grid grid-cols-3 gap-1.5 w-full sm:flex sm:items-center sm:gap-2 sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsAddToQueueOpen(true)}
-                className="h-8 sm:h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 sm:gap-1.5 border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 cursor-pointer shadow-xs justify-center"
-              >
-                <Plus className="size-3 shrink-0" />
-                <span className="hidden xs:inline">Add to Queue</span>
-                <span className="xs:hidden">Queue</span>
-              </Button>
+                {/* TAB 6: CHAT */}
+                <TabsTrigger
+                  value="chat"
+                  className="h-7.5 px-2.5 sm:px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <MessageSquare className="size-3.5 text-primary" />
+                  <span>Chat</span>
+                  {unreadChatCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
+                      {unreadChatCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
+            {/* Contextual Actions Bar (Single Line with tabs) */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsNewPatientOpen(true)}
-                className="h-8 sm:h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 sm:gap-1.5 border-primary/40 hover:bg-primary/10 text-primary cursor-pointer shadow-xs justify-center"
+                className="h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 border-primary/40 hover:bg-primary/10 text-primary cursor-pointer shadow-xs justify-center shrink-0"
               >
                 <UserPlus className="size-3 shrink-0" />
-                <span className="hidden xs:inline">Register Patient</span>
-                <span className="xs:hidden">Patient</span>
+                <span className="hidden sm:inline">Register Patient</span>
+                <span className="sm:hidden">Patient</span>
               </Button>
 
               <Button
@@ -500,11 +504,11 @@ export function ReceptionistDashboardView({
                   setPreselectedSlotId(undefined);
                   setIsBookTicketOpen(true);
                 }}
-                className="h-8 sm:h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 sm:gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center"
+                className="h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs justify-center shrink-0"
               >
                 <Ticket className="size-3 shrink-0" />
-                <span className="hidden xs:inline">Book Ticket</span>
-                <span className="xs:hidden">Ticket</span>
+                <span className="hidden sm:inline">Book Ticket</span>
+                <span className="sm:hidden">Ticket</span>
               </Button>
             </div>
           </div>
@@ -524,7 +528,26 @@ export function ReceptionistDashboardView({
             />
           </TabsContent>
 
-          {/* TAB 2: SLOTS & SCHEDULE BOARD */}
+          {/* TAB 2: CONSULTATION SERIALS MANAGEMENT (BETWEEN ARRIVAL AND THERAPY SLOTS) */}
+          <TabsContent
+            value="consultations"
+            className="outline-none focus:outline-none space-y-4 m-0"
+          >
+            <ConsultationSerialTab
+              serials={data.consultationSerials || []}
+              doctors={data.doctors || []}
+              performers={data.receptionistPerformers || []}
+              selectedDate={selectedDate}
+              dayOfWeek={data.dayOfWeek}
+              showDateSelector={false}
+              lastPerformerId={lastPerformerId}
+              onSelectPerformerId={setLastPerformerId}
+              onSelectDate={handleSelectDate}
+              onRefresh={() => refreshData(selectedDate)}
+            />
+          </TabsContent>
+
+          {/* TAB 3: SLOTS & SCHEDULE BOARD */}
           <TabsContent
             value="slots"
             className="outline-none focus:outline-none space-y-6 m-0"
@@ -534,6 +557,7 @@ export function ReceptionistDashboardView({
               stats={data.stats}
               selectedDate={selectedDate}
               dayOfWeek={data.dayOfWeek}
+              showDateSelector={false}
               onSelectDate={handleSelectDate}
               onBookSlot={handleBookSlot}
               onCheckIn={handleCheckIn}
@@ -547,26 +571,13 @@ export function ReceptionistDashboardView({
             value="tracking"
             className="outline-none focus:outline-none space-y-4 m-0"
           >
-            <PatientJourneyTrackerView defaultDate={selectedDate} />
-          </TabsContent>
-
-          {/* TAB 2: LIVE QUEUE MANAGEMENT */}
-          <TabsContent
-            value="queue"
-            className="outline-none focus:outline-none space-y-6 m-0"
-          >
-            <QueueManagementTab
-              appointments={filteredAppointments}
-              performers={data.receptionistPerformers}
-              rooms={data.rooms || []}
-              lastPerformerId={lastPerformerId}
-              onOpenAddToQueue={() => setIsAddToQueueOpen(true)}
-              onRequestAction={(config) => setPendingAction(config)}
-              onRefresh={() => refreshData(selectedDate)}
+            <PatientJourneyTrackerView
+              defaultDate={selectedDate}
+              showDateSelector={false}
             />
           </TabsContent>
 
-          {/* TAB 3: PATIENTS DIRECTORY */}
+          {/* TAB 5: PATIENTS DIRECTORY */}
           <TabsContent
             value="patients"
             className="outline-none focus:outline-none space-y-6 m-0"
@@ -592,21 +603,27 @@ export function ReceptionistDashboardView({
               }}
             />
           </TabsContent>
+
+          {/* TAB 6: CLINIC REAL-TIME INTERNAL CHAT */}
+          <TabsContent
+            value="chat"
+            className="outline-none focus:outline-none space-y-4 m-0"
+          >
+            <ClinicChatView
+              currentUserRole={currentUserRole || Role.RECEPTIONIST}
+              currentUserId={currentUserId}
+              initialDate={selectedDate}
+              showDateSelector={false}
+              activePerformerId={lastPerformerId}
+              performers={data.receptionistPerformers}
+              rooms={data.rooms}
+              onDateChange={handleSelectDate}
+            />
+          </TabsContent>
         </Tabs>
       </main>
 
       {/* 3. Action Dialogs with Performer Attribution */}
-      <AddToQueueDialog
-        isOpen={isAddToQueueOpen}
-        onOpenChange={setIsAddToQueueOpen}
-        patients={data.patients || []}
-        doctors={data.doctors || []}
-        performers={data.receptionistPerformers}
-        defaultPerformerId={lastPerformerId}
-        onSuccess={() => refreshData(selectedDate)}
-        onOpenCreatePatient={() => setIsNewPatientOpen(true)}
-      />
-
       <CreatePatientDialog
         isOpen={isNewPatientOpen}
         onOpenChange={setIsNewPatientOpen}

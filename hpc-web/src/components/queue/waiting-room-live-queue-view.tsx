@@ -577,7 +577,8 @@ export function WaitingRoomLiveQueueView({
   // Real-time SSE subscription (100% offline local network sync)
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
-      if (event.type === "DOCTOR_CALLED") {
+      const type = (event?.type || "").toUpperCase();
+      if (type === "DOCTOR_CALLED") {
         const rawData = event.data as DoctorCallAnnouncement;
         const announcementData: DoctorCallAnnouncement = { ...rawData };
         if (announcementData.serialNumber === undefined) {
@@ -592,12 +593,8 @@ export function WaitingRoomLiveQueueView({
         setCountdownSeconds(16);
         playAnnouncementSound(announcementData);
         refreshQueue();
-      } else if (
-        event.type === "APPOINTMENT_UPDATED" ||
-        event.type === "APPOINTMENT_CREATED" ||
-        event.type === "APPOINTMENT_CANCELLED"
-      ) {
-        if (event.type === "APPOINTMENT_UPDATED" && event.data?.id) {
+      } else if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+        if (type === "APPOINTMENT_UPDATED" && event.data?.id) {
           const d = event.data;
           setQueue((prevQueue) =>
             prevQueue.map((item) => {
@@ -611,12 +608,14 @@ export function WaitingRoomLiveQueueView({
                   ...(d.queueType !== undefined
                     ? { queueType: d.queueType }
                     : {}),
+                  ...(d.roomId !== undefined ? { roomId: d.roomId } : {}),
                   ...(d.roomNumber !== undefined
                     ? {
-                        room:
-                          d.roomNumber && item.room
+                        room: d.roomNumber
+                          ? item.room
                             ? { ...item.room, number: d.roomNumber }
-                            : item.room,
+                            : ({ id: d.roomId || "", number: d.roomNumber } as any)
+                          : null,
                       }
                     : {}),
                 };
@@ -625,17 +624,24 @@ export function WaitingRoomLiveQueueView({
             }),
           );
           if (
-            (d.status === "IN_CONSULTATION" ||
+            (d.status === "CHECKED_IN" ||
+              d.status === "IN_CONSULTATION" ||
               d.status === "IN_THERAPY" ||
               d.status === "COMPLETED" ||
               d.status === "CANCELLED") &&
             activeAnnouncement?.appointmentId === d.id
           ) {
             setActiveAnnouncement(null);
+            if (typeof window !== "undefined" && "speechSynthesis" in window) {
+              window.speechSynthesis.cancel();
+            }
           }
         }
         refreshQueue();
       }
+    },
+    onReconnect: () => {
+      refreshQueue();
     },
   });
 
@@ -864,7 +870,7 @@ export function WaitingRoomLiveQueueView({
   // Split queue into 2 distinct columns: Therapy Queue & Consultation Queue
   const therapyQueue = React.useMemo(() => {
     return (queue || []).filter(
-      (item) => (item?.queueType || "THERAPY") === "THERAPY",
+      (item) => item?.queueType === "THERAPY" || Boolean(item?.therapySlotId),
     );
   }, [queue]);
 
@@ -1365,7 +1371,7 @@ export function WaitingRoomLiveQueueView({
       {/* 2. Main Live Queue: Responsive Adaptive Layout       */}
       {/* ---------------------------------------------------- */}
       <main
-        className={`flex-1 min-h-0 w-full max-w-full px-2 sm:px-4 md:px-5 lg:px-6 py-2 sm:py-2.5 md:py-3 overflow-y-auto lg:overflow-hidden grid gap-2.5 sm:gap-3.5 md:gap-4 ${
+        className={`flex-1 min-h-0 w-full max-w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 overflow-y-auto lg:overflow-hidden grid gap-2 sm:gap-2.5 md:gap-3 ${
           departmentFilter === "ALL"
             ? "grid-cols-1 lg:grid-cols-2"
             : "grid-cols-1"
@@ -1373,22 +1379,22 @@ export function WaitingRoomLiveQueueView({
       >
         {/* Column 1: Therapy Queue */}
         {(departmentFilter === "ALL" || departmentFilter === "THERAPY") && (
-          <section className="flex flex-col min-h-[160px] sm:min-h-[220px] lg:min-h-0 lg:h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
+          <section className="flex flex-col min-h-[150px] sm:min-h-[200px] lg:min-h-0 lg:h-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
             {/* Column Header */}
-            <div className="px-3 sm:px-4 2xl:px-6 py-2 sm:py-2.5 2xl:py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
-              <div className="flex items-center gap-2 2xl:gap-3">
-                <div className="p-1.5 2xl:p-2.5 rounded-lg 2xl:rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                  <Activity className="size-4 2xl:size-6" />
+            <div className="px-2.5 sm:px-3.5 2xl:px-5 py-1.5 sm:py-2 2xl:py-2.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
+              <div className="flex items-center gap-1.5 2xl:gap-2.5">
+                <div className="p-1 2xl:p-2 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                  <Activity className="size-3.5 2xl:size-5" />
                 </div>
-                <h2 className="text-sm sm:text-base 2xl:text-xl 3xl:text-2xl font-bold sm:font-extrabold tracking-normal text-zinc-950 dark:text-white">
+                <h2 className="text-xs sm:text-sm 2xl:text-lg 3xl:text-xl font-bold sm:font-extrabold tracking-normal text-zinc-950 dark:text-white">
                   {lang === "bn" ? "থেরাপি সিরিয়াল" : "Therapy Queue"}
                 </h2>
-                <span className="px-2 2xl:px-3 py-0.5 2xl:py-1 rounded-full text-xs 2xl:text-base font-mono font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
+                <span className="px-1.5 2xl:px-2.5 py-0.2 2xl:py-0.5 rounded-full text-[11px] 2xl:text-sm font-mono font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
                   {formatNumberByLang(therapyQueue.length, lang)}
                 </span>
               </div>
 
-              <span className="text-[10.5px] sm:text-xs 2xl:text-base font-semibold text-zinc-500 dark:text-zinc-400">
+              <span className="text-[10px] sm:text-[11px] 2xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">
                 {lang === "bn" ? "থেরাপি রুমসমূহ" : "Therapy Rooms"}
               </span>
             </div>
@@ -1396,7 +1402,7 @@ export function WaitingRoomLiveQueueView({
             {/* Column Scrollable Content */}
             <div
               ref={therapyListRef}
-              className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 2xl:p-3 flex flex-col"
+              className="flex-1 min-h-0 overflow-y-auto p-1.5 sm:p-2 2xl:p-2.5 flex flex-col"
             >
               {therapyQueue.length === 0 ? (
                 <EmptyQueueCard
@@ -1408,7 +1414,7 @@ export function WaitingRoomLiveQueueView({
                 />
               ) : (
                 <div
-                  className={`grid gap-2 2xl:gap-3 auto-rows-max ${
+                  className={`grid gap-1.5 sm:gap-2 2xl:gap-2.5 auto-rows-max ${
                     departmentFilter === "THERAPY"
                       ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2500px]:grid-cols-6 min-[3200px]:grid-cols-7"
                       : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
@@ -1429,22 +1435,22 @@ export function WaitingRoomLiveQueueView({
 
         {/* Column 2: Consultation Queue */}
         {(departmentFilter === "ALL" || departmentFilter === "CONSULTATION") && (
-          <section className="flex flex-col min-h-[160px] sm:min-h-[220px] lg:min-h-0 lg:h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
+          <section className="flex flex-col min-h-[150px] sm:min-h-[200px] lg:min-h-0 lg:h-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
             {/* Column Header */}
-            <div className="px-3 sm:px-4 2xl:px-6 py-2 sm:py-2.5 2xl:py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
-              <div className="flex items-center gap-2 2xl:gap-3">
-                <div className="p-1.5 2xl:p-2.5 rounded-lg 2xl:rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                  <Stethoscope className="size-4 2xl:size-6" />
+            <div className="px-2.5 sm:px-3.5 2xl:px-5 py-1.5 sm:py-2 2xl:py-2.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
+              <div className="flex items-center gap-1.5 2xl:gap-2.5">
+                <div className="p-1 2xl:p-2 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                  <Stethoscope className="size-3.5 2xl:size-5" />
                 </div>
-                <h2 className="text-sm sm:text-base 2xl:text-xl 3xl:text-2xl font-bold sm:font-extrabold tracking-normal text-zinc-950 dark:text-white">
+                <h2 className="text-xs sm:text-sm 2xl:text-lg 3xl:text-xl font-bold sm:font-extrabold tracking-normal text-zinc-950 dark:text-white">
                   {lang === "bn" ? "কনসাল্টেশন সিরিয়াল" : "Consultation Queue"}
                 </h2>
-                <span className="px-2 2xl:px-3 py-0.5 2xl:py-1 rounded-full text-xs 2xl:text-base font-mono font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
+                <span className="px-1.5 2xl:px-2.5 py-0.2 2xl:py-0.5 rounded-full text-[11px] 2xl:text-sm font-mono font-bold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
                   {formatNumberByLang(consultationQueue.length, lang)}
                 </span>
               </div>
 
-              <span className="text-[10.5px] sm:text-xs 2xl:text-base font-semibold text-zinc-500 dark:text-zinc-400">
+              <span className="text-[10px] sm:text-[11px] 2xl:text-sm font-semibold text-zinc-500 dark:text-zinc-400">
                 {lang === "bn" ? "ডাক্তার চেম্বারসমূহ" : "Doctor Chambers"}
               </span>
             </div>
@@ -1452,7 +1458,7 @@ export function WaitingRoomLiveQueueView({
             {/* Column Scrollable Content */}
             <div
               ref={consultationListRef}
-              className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 2xl:p-3 flex flex-col"
+              className="flex-1 min-h-0 overflow-y-auto p-1.5 sm:p-2 2xl:p-2.5 flex flex-col"
             >
               {consultationQueue.length === 0 ? (
                 <EmptyQueueCard
@@ -1464,7 +1470,7 @@ export function WaitingRoomLiveQueueView({
                 />
               ) : (
                 <div
-                  className={`grid gap-2 2xl:gap-3 auto-rows-max ${
+                  className={`grid gap-1.5 sm:gap-2 2xl:gap-2.5 auto-rows-max ${
                     departmentFilter === "CONSULTATION"
                       ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2500px]:grid-cols-6 min-[3200px]:grid-cols-7"
                       : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
@@ -1487,11 +1493,11 @@ export function WaitingRoomLiveQueueView({
       {/* ---------------------------------------------------- */}
       {/* 2.5 Clinical Health & Patient Guidance Marquee Ticker */}
       {/* ---------------------------------------------------- */}
-      <div className="w-full bg-zinc-100 dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800 py-1 sm:py-1.5 px-3 sm:px-4 text-xs font-semibold text-zinc-900 dark:text-zinc-100 overflow-hidden whitespace-nowrap flex items-center gap-2.5 sm:gap-3 shrink-0">
-        <span className="bg-emerald-600 dark:bg-emerald-500 text-white text-[9.5px] sm:text-[10px] 2xl:text-xs px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 shadow-2xs">
+      <div className="w-full bg-zinc-100 dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800 py-1 px-2.5 sm:px-4 text-xs font-semibold text-zinc-900 dark:text-zinc-100 overflow-hidden whitespace-nowrap flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <span className="bg-emerald-600 dark:bg-emerald-500 text-white text-[9px] sm:text-[9.5px] 2xl:text-xs px-1.5 py-0.5 rounded font-black uppercase tracking-wider shrink-0 shadow-2xs">
           {lang === "bn" ? "জরুরি নোটিশ" : "CLINIC NOTICE"}
         </span>
-        <div className="overflow-hidden relative w-full text-[11px] sm:text-xs 2xl:text-sm text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+        <div className="overflow-hidden relative w-full text-[10.5px] sm:text-[11.5px] 2xl:text-sm text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
           <div className="inline-block animate-marquee whitespace-nowrap font-medium space-x-6 sm:space-x-8">
             {lang === "bn" ? (
               <>
@@ -1517,20 +1523,20 @@ export function WaitingRoomLiveQueueView({
       {/* ---------------------------------------------------- */}
       {/* 3. Screen Footer Ticker (Live Summary Counts)        */}
       {/* ---------------------------------------------------- */}
-      <footer className="w-full px-2.5 sm:px-4 md:px-6 py-1.5 sm:py-2 border-t border-zinc-200 dark:border-zinc-800/90 bg-white dark:bg-black shrink-0 shadow-xs z-20 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs text-zinc-900 dark:text-white">
+      <footer className="w-full px-2.5 sm:px-4 md:px-5 py-1 sm:py-1.5 border-t border-zinc-200 dark:border-zinc-800/90 bg-white dark:bg-black shrink-0 shadow-xs z-20 flex flex-col sm:flex-row items-center justify-between gap-1 text-xs text-zinc-900 dark:text-white">
         {/* Left: Queue Counters & Punctuality Breakdown */}
         <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-center sm:justify-start">
-          <div className="flex items-center gap-1 font-semibold text-zinc-950 dark:text-white text-[11px] sm:text-[11.5px] 2xl:text-sm">
-            <Users className="size-3 sm:size-3.5 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-center gap-1 font-semibold text-zinc-950 dark:text-white text-[10.5px] sm:text-[11px] 2xl:text-sm">
+            <Users className="size-3 text-emerald-600 dark:text-emerald-400" />
             <span>{lang === "bn" ? "মোট অপেক্ষমান:" : "Total Waiting:"}</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 font-bold font-mono text-[11px] sm:text-xs">
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 font-bold font-mono text-[10.5px] sm:text-[11px]">
               {formatNumberByLang(stats.total, lang)}
             </span>
           </div>
 
           <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
 
-          <div className="flex items-center gap-2.5 text-[10.5px] sm:text-[11px] 2xl:text-xs">
+          <div className="flex items-center gap-2 text-[10px] sm:text-[10.5px] 2xl:text-xs">
             <span className="inline-flex items-center gap-1 font-semibold text-zinc-900 dark:text-zinc-100">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               <span>
@@ -1551,7 +1557,7 @@ export function WaitingRoomLiveQueueView({
           <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 hidden md:block" />
 
           {/* Punctuality counters */}
-          <div className="hidden md:flex items-center gap-2 text-[10px] sm:text-[10.5px] 2xl:text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="hidden md:flex items-center gap-2 text-[10px] 2xl:text-xs text-zinc-500 dark:text-zinc-400">
             <span className="inline-flex items-center gap-1">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               <span>
@@ -1577,7 +1583,7 @@ export function WaitingRoomLiveQueueView({
         </div>
 
         {/* Right: Hospital Notice */}
-        <div className="text-[10px] sm:text-[10.5px] 2xl:text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+        <div className="text-[10px] 2xl:text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
           <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
           <span>
             {lang === "bn"
@@ -1591,8 +1597,9 @@ export function WaitingRoomLiveQueueView({
 }
 
 /**
- * Ultra-compact, high-density patient queue card designed for TV display visibility.
- * Displays Token #, Patient Name, Gender tag, Late Time (Punctuality Badge), Told Time, and In Time.
+ * Ultra-compact, 2-row high-density patient queue card designed for TV display visibility.
+ * Row 1: Token #, Full Patient Name (with dedicated width so it never truncates prematurely), Gender tag, and Status Badge.
+ * Row 2: Room / Will-Call status on the left + Told & Check-In timestamps on the right.
  */
 function QueueItemCard({
   item,
@@ -1612,45 +1619,39 @@ function QueueItemCard({
 
   return (
     <div
-      className={`rounded-xl border px-2.5 sm:px-3 2xl:px-4 3xl:px-5 py-1.5 sm:py-2 2xl:py-2.5 3xl:py-3.5 flex flex-col justify-between gap-1 2xl:gap-1.5 shadow-2xs transition-all duration-150 ${
+      className={`rounded-xl border px-2.5 sm:px-3 2xl:px-4 py-1.5 sm:py-2 2xl:py-2.5 flex flex-col justify-between gap-1.5 shadow-2xs transition-all duration-150 ${
         isCalling
-          ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/60 ring-2 ring-emerald-500/35 shadow-sm"
-          : `${p.cardClass} ${p.borderClass} bg-white dark:bg-zinc-950`
+          ? "bg-emerald-50/90 dark:bg-emerald-950/45 border-emerald-500/70 ring-1 ring-emerald-500/40 shadow-sm"
+          : isServing
+            ? "bg-emerald-50/50 dark:bg-emerald-950/25 border-emerald-500/50"
+            : `${p.cardClass} ${p.borderClass} bg-white dark:bg-zinc-950`
       }`}
     >
-      {/* Top Row: Token #, Patient Name, Gender tag, Room #, Punctuality Badge */}
-      <div className="flex items-center justify-between gap-1.5 2xl:gap-2 min-w-0">
-        <div className="flex items-center gap-1.5 2xl:gap-2 min-w-0 flex-1">
-          {/* Prominent Token Badge */}
-          <span className="px-1.5 2xl:px-2.5 py-0.2 2xl:py-0.5 rounded font-mono font-black text-[10px] sm:text-[11px] 2xl:text-sm 3xl:text-base bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 shrink-0">
+      {/* Row 1: Token #, Full Patient Name, Gender tag, and Compact Status Badge */}
+      <div className="flex items-start justify-between gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {/* Token Badge */}
+          <span className="px-1.5 2xl:px-2 py-0.2 rounded font-mono font-black text-[10px] sm:text-[11px] 2xl:text-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 shrink-0">
             #{formatNumberByLang(serialNumber, lang)}
           </span>
 
-          <h3 className="text-xs sm:text-sm 2xl:text-base 3xl:text-lg font-bold sm:font-black text-zinc-950 dark:text-white tracking-normal truncate">
+          {/* Full Patient Name — given full flex width without redundant room/bilingual badges */}
+          <h3
+            title={item.patient?.name || "Patient"}
+            className="text-xs sm:text-[13.5px] 2xl:text-base 3xl:text-lg font-extrabold text-zinc-950 dark:text-white tracking-tight leading-snug break-words line-clamp-1 min-w-0"
+          >
             {item.patient?.name || (lang === "bn" ? "রোগী" : "Patient")}
           </h3>
 
+          {/* Compact Gender Tag */}
           <span
-            className={`px-1 2xl:px-1.5 py-0.2 rounded text-[9px] 2xl:text-xs font-bold shrink-0 border ${
+            className={`px-1 py-0.2 rounded text-[9px] 2xl:text-[11px] font-bold shrink-0 border ${
               isMale
                 ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
                 : isFemale
                   ? "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20"
                   : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
             }`}
-            title={
-              isMale
-                ? lang === "bn"
-                  ? "পুরুষ"
-                  : "Male"
-                : isFemale
-                  ? lang === "bn"
-                    ? "মহিলা"
-                    : "Female"
-                  : lang === "bn"
-                    ? "অন্যান্য"
-                    : "Other"
-            }
           >
             {isMale
               ? lang === "bn"
@@ -1666,133 +1667,132 @@ function QueueItemCard({
           </span>
 
           {item.bookingType === "EXTRA" && (
-            <span className="px-1 2xl:px-1.5 py-0.2 rounded text-[9px] 2xl:text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-semibold shrink-0">
+            <span className="px-1 py-0.2 rounded text-[8.5px] 2xl:text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-bold shrink-0">
               {lang === "bn" ? "অতিরিক্ত" : "Extra"}
-            </span>
-          )}
-
-          {roomNumber && (
-            <span
-              className={`inline-flex items-center gap-0.5 2xl:gap-1 px-1.5 2xl:px-2 py-0.2 2xl:py-0.5 rounded text-[9.5px] 2xl:text-xs 3xl:text-sm font-bold shrink-0 border ${
-                isCalling
-                  ? "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200 border-emerald-500/50 animate-pulse font-bold"
-                  : isServing
-                    ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 animate-pulse"
-                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
-              }`}
-            >
-              <DoorOpen className="size-2.5 2xl:size-3.5 3xl:size-4 text-emerald-600 dark:text-emerald-400" />
-              <span>
-                {lang === "bn"
-                  ? `রুম ${formatNumberByLang(roomNumber, lang)}`
-                  : `Room ${roomNumber}`}
-              </span>
             </span>
           )}
         </div>
 
-        {/* Late time / punctuality status badge */}
+        {/* Right Status / Punctuality Pill */}
         {isCalling ? (
-          <span className="inline-flex items-center gap-1 2xl:gap-1.5 px-1.5 2xl:px-2.5 py-0.5 2xl:py-1 rounded-md text-[9.5px] sm:text-[10px] 2xl:text-xs 3xl:text-sm font-black border shrink-0 bg-emerald-600 text-white border-emerald-700 animate-pulse shadow-xs">
-            <Radio className="size-2.5 2xl:size-3.5 3xl:size-4 shrink-0" />
-            <span>{lang === "bn" ? "ডাকছেন • CALLING" : "CALLING • ডাকছেন"}</span>
+          <span className="inline-flex items-center gap-1 px-1.5 2xl:px-2 py-0.5 rounded-md text-[9px] sm:text-[9.5px] 2xl:text-xs font-black border shrink-0 bg-emerald-600 text-white border-emerald-700 animate-pulse shadow-2xs">
+            <Radio className="size-2.5 2xl:size-3 shrink-0" />
+            <span>{lang === "bn" ? "ডাকছেন" : "CALLING"}</span>
+          </span>
+        ) : isServing ? (
+          <span className="inline-flex items-center gap-1 px-1.5 2xl:px-2 py-0.5 rounded-md text-[9px] sm:text-[9.5px] 2xl:text-xs font-black border shrink-0 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40">
+            <DoorOpen className="size-2.5 2xl:size-3 shrink-0" />
+            <span>{lang === "bn" ? "চলছে" : "IN ROOM"}</span>
           </span>
         ) : (
           <span
-            className={`inline-flex items-center gap-1 2xl:gap-1.5 px-1.5 2xl:px-2.5 py-0.5 2xl:py-1 rounded-md text-[9.5px] sm:text-[10px] 2xl:text-xs 3xl:text-sm font-bold border shrink-0 ${p.badgeClass}`}
+            className={`inline-flex items-center gap-0.5 px-1.5 2xl:px-2 py-0.2 rounded-md text-[9px] sm:text-[9.5px] 2xl:text-xs font-bold border shrink-0 ${p.badgeClass}`}
           >
             {p.status === "green" ? (
-              <CheckCircle2 className="size-2.5 2xl:size-3.5 3xl:size-4 shrink-0" />
+              <CheckCircle2 className="size-2.5 2xl:size-3 shrink-0" />
             ) : p.status === "yellow" ? (
-              <AlertCircle className="size-2.5 2xl:size-3.5 3xl:size-4 shrink-0" />
+              <AlertCircle className="size-2.5 2xl:size-3 shrink-0" />
             ) : (
-              <AlertTriangle className="size-2.5 2xl:size-3.5 3xl:size-4 shrink-0" />
+              <AlertTriangle className="size-2.5 2xl:size-3 shrink-0" />
             )}
             <span>{getLocalizedPunctualityLabel(p, lang)}</span>
           </span>
         )}
       </div>
 
-      {/* Middle Row: Prominent "Will Call Time" or Calling Banner */}
-      {isCalling ? (
-        <div className="flex items-center justify-between px-2.5 2xl:px-3.5 3xl:px-4 py-1 2xl:py-1.5 3xl:py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-950 dark:text-emerald-100 shadow-xs animate-pulse ring-1 ring-emerald-500/30">
-          <div className="flex items-center gap-1.5 2xl:gap-2 text-[11px] 2xl:text-xs 3xl:text-sm font-black text-emerald-800 dark:text-emerald-200">
-            <Radio className="size-3.5 2xl:size-4.5 3xl:size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="tracking-wide text-[10.5px] 2xl:text-xs 3xl:text-sm uppercase font-black">
-              {lang === "bn" ? "চেম্বারে প্রবেশ করুন:" : "Please Enter Chamber:"}
-            </span>
-          </div>
-          <span className="text-xs sm:text-sm 2xl:text-base 3xl:text-lg font-black font-mono tracking-tight text-emerald-900 dark:text-emerald-100 bg-emerald-500/30 px-2 2xl:px-3 py-0.5 2xl:py-1 rounded border border-emerald-500/40">
-            {roomNumber
-              ? lang === "bn"
-                ? `রুম ${formatNumberByLang(roomNumber, lang)}`
-                : `Room ${roomNumber}`
-              : lang === "bn"
-                ? "চেম্বার"
-                : "Chamber"}
-          </span>
+      {/* Row 2: Combined Compact Action/Room/Will-Call Bar + Told/In Timestamps */}
+      <div
+        className={`flex items-center justify-between gap-2 px-2 py-1 rounded-lg border text-[10px] sm:text-[10.5px] 2xl:text-xs leading-none ${
+          isCalling
+            ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-950 dark:text-emerald-100 animate-pulse"
+            : isServing
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100"
+              : "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200/80 dark:border-zinc-800/90 text-zinc-600 dark:text-zinc-400"
+        }`}
+      >
+        {/* Left side: Room Destination or Will-Call Estimate */}
+        <div className="flex items-center gap-1.5 min-w-0 truncate">
+          {isCalling ? (
+            <>
+              <DoorOpen className="size-3 2xl:size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="font-bold uppercase tracking-tight text-[9.5px] sm:text-[10px] 2xl:text-xs text-emerald-800 dark:text-emerald-200">
+                {lang === "bn" ? "প্রবেশ করুন:" : "Enter:"}
+              </span>
+              <span className="font-black font-mono text-emerald-900 dark:text-emerald-100 bg-emerald-500/25 px-1.5 py-0.5 rounded border border-emerald-500/40">
+                {roomNumber
+                  ? lang === "bn"
+                    ? `রুম ${formatNumberByLang(roomNumber, lang)}`
+                    : `Room ${roomNumber}`
+                  : lang === "bn"
+                    ? "চেম্বার"
+                    : "Chamber"}
+              </span>
+            </>
+          ) : isServing ? (
+            <>
+              <DoorOpen className="size-3 2xl:size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                {roomNumber
+                  ? lang === "bn"
+                    ? `রুম ${formatNumberByLang(roomNumber, lang)}-এ চলছে`
+                    : `In Room ${roomNumber}`
+                  : lang === "bn"
+                    ? "চিকিৎসা চলছে"
+                    : "In Session"}
+              </span>
+            </>
+          ) : item.willCallTime ? (
+            <>
+              <Clock className="size-2.5 2xl:size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                {lang === "bn" ? "ডাক:" : "Call:"}
+              </span>
+              <span className="font-black font-mono text-emerald-800 dark:text-emerald-200">
+                {formatNumberByLang(item.willCallTime, lang)}
+              </span>
+              {roomNumber && (
+                <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                  {lang === "bn"
+                    ? `রুম ${formatNumberByLang(roomNumber, lang)}`
+                    : `R${roomNumber}`}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <Clock className="size-2.5 2xl:size-3 opacity-60 shrink-0" />
+              <span className="text-[9.5px] 2xl:text-[11px] text-zinc-500 dark:text-zinc-400">
+                {roomNumber
+                  ? lang === "bn"
+                    ? `রুম ${formatNumberByLang(roomNumber, lang)} • অপেক্ষমান`
+                    : `Room ${roomNumber} • Waiting`
+                  : lang === "bn"
+                    ? "সিরিয়ালে অপেক্ষমান"
+                    : "Waiting in Queue"}
+              </span>
+            </>
+          )}
         </div>
-      ) : isServing ? (
-        <div className="flex items-center justify-between px-2.5 2xl:px-3.5 3xl:px-4 py-1 2xl:py-1.5 3xl:py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/35 text-emerald-950 dark:text-emerald-100 shadow-2xs animate-pulse">
-          <div className="flex items-center gap-1.5 2xl:gap-2 text-[11px] 2xl:text-xs 3xl:text-sm font-bold text-emerald-700 dark:text-emerald-300">
-            <DoorOpen className="size-3.5 2xl:size-4.5 3xl:size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="tracking-wide text-[10.5px] 2xl:text-xs 3xl:text-sm uppercase font-bold">
-              {lang === "bn" ? "চিকিৎসা চলছে:" : "Now In Session:"}
-            </span>
-          </div>
-          <span className="text-xs sm:text-sm 2xl:text-base 3xl:text-lg font-black font-mono tracking-tight text-emerald-800 dark:text-emerald-200 bg-emerald-500/20 px-2 2xl:px-3 py-0.5 2xl:py-1 rounded border border-emerald-500/30">
-            {roomNumber
-              ? lang === "bn"
-                ? `রুম ${formatNumberByLang(roomNumber, lang)}`
-                : `Room ${roomNumber}`
-              : lang === "bn"
-                ? "চিকিৎসা চলছে"
-                : "In Session"}
-          </span>
-        </div>
-      ) : item.willCallTime ? (
-        <div className="flex items-center justify-between px-2.5 2xl:px-3.5 3xl:px-4 py-1 2xl:py-1.5 3xl:py-2 rounded-lg bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-500/30 text-emerald-950 dark:text-emerald-100 shadow-2xs">
-          <div className="flex items-center gap-1.5 2xl:gap-2 text-[11px] 2xl:text-xs 3xl:text-sm font-bold text-emerald-700 dark:text-emerald-300">
-            <Clock className="size-3.5 2xl:size-4.5 3xl:size-5 text-emerald-600 dark:text-emerald-400 shrink-0 animate-pulse" />
-            <span className="tracking-wide text-[10.5px] 2xl:text-xs 3xl:text-sm font-bold">
-              {lang === "bn" ? "সম্ভাব্য ডাক:" : "Will Call:"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1 bg-emerald-500/20 dark:bg-emerald-900/60 px-2 2xl:px-3 py-0.5 2xl:py-1 rounded border border-emerald-500/30">
-            <span className="text-xs sm:text-sm 2xl:text-base 3xl:text-lg font-black font-mono tracking-tight text-emerald-900 dark:text-emerald-100">
-              {formatNumberByLang(item.willCallTime, lang)}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between px-2.5 2xl:px-3.5 py-0.5 2xl:py-1 rounded bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-[10px] 2xl:text-xs text-zinc-500 font-mono">
-          <div className="flex items-center gap-1 text-[9.5px] 2xl:text-xs">
-            <Clock className="size-2.5 2xl:size-3.5 opacity-60 text-zinc-400 dark:text-zinc-600" />
-            <span>{lang === "bn" ? "সম্ভাব্য ডাক:" : "Will Call:"}</span>
-          </div>
-          <span className="text-[10px] 2xl:text-xs text-zinc-400 dark:text-zinc-600 font-sans italic">
-            {lang === "bn" ? "হিসাব হচ্ছে..." : "Estimating..."}
-          </span>
-        </div>
-      )}
 
-      {/* Bottom Row: Told Time & In Time */}
-      <div className="flex items-center justify-between text-[10px] sm:text-[10.5px] 2xl:text-xs 3xl:text-sm font-mono pt-1 2xl:pt-1.5 border-t border-zinc-200 dark:border-zinc-800 leading-none">
-        <div className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
-          <span className="text-[9px] 2xl:text-[10px] 3xl:text-xs uppercase font-semibold text-zinc-400 dark:text-zinc-500">
-            {lang === "bn" ? "বলা:" : "Told:"}
-          </span>
-          <span className="font-bold text-zinc-900 dark:text-zinc-100">
-            {formatNumberByLang(item.toldTime, lang) || "--:--"}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <span className="text-[9px] 2xl:text-[10px] 3xl:text-xs uppercase font-semibold text-zinc-400 dark:text-zinc-500">
-            {lang === "bn" ? "প্রবেশ:" : "In:"}
-          </span>
-          <span className={`font-bold ${p.textClass}`} suppressHydrationWarning>
-            {formatNumberByLang(formatTime12h(item.checkInTime), lang)}
+        {/* Right side: Told & In Times */}
+        <div className="flex items-center gap-2 font-mono text-[9.5px] sm:text-[10px] 2xl:text-xs shrink-0">
+          {item.toldTime && (
+            <span className="text-zinc-500 dark:text-zinc-400">
+              <span className="text-[8.5px] uppercase opacity-75 mr-0.5">
+                {lang === "bn" ? "বলা:" : "Told:"}
+              </span>
+              <strong className="text-zinc-800 dark:text-zinc-200">
+                {formatNumberByLang(item.toldTime, lang)}
+              </strong>
+            </span>
+          )}
+          <span>
+            <span className="text-[8.5px] uppercase text-zinc-400 dark:text-zinc-500 mr-0.5">
+              {lang === "bn" ? "প্রবেশ:" : "In:"}
+            </span>
+            <strong className={p.textClass} suppressHydrationWarning>
+              {formatNumberByLang(formatTime12h(item.checkInTime), lang)}
+            </strong>
           </span>
         </div>
       </div>
@@ -1806,23 +1806,23 @@ function QueueItemCard({
 function EmptyQueueCard({ title }: { title: string }) {
   const { lang } = useI18n();
   return (
-    <div className="flex-1 min-h-[140px] sm:min-h-[180px] lg:min-h-[220px] 2xl:min-h-[340px] 3xl:min-h-[440px] rounded-xl flex flex-col items-center justify-center p-3.5 sm:p-5 lg:p-8 2xl:p-16 3xl:p-20 text-center space-y-2 sm:space-y-3.5 2xl:space-y-6 text-zinc-400 dark:text-zinc-500 my-auto">
-      <div className="relative p-2.5 sm:p-4 2xl:p-8 3xl:p-10 rounded-xl sm:rounded-2xl 2xl:rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-inner flex items-center justify-center">
-        <div className="absolute inset-0 rounded-xl sm:rounded-2xl 2xl:rounded-3xl bg-emerald-500/10 animate-ping opacity-25" />
-        <Users className="size-6 sm:size-8 2xl:size-16 3xl:size-20 text-emerald-600 dark:text-emerald-400 relative z-10" />
+    <div className="flex-1 min-h-[120px] sm:min-h-[150px] lg:min-h-[180px] 2xl:min-h-[280px] rounded-xl flex flex-col items-center justify-center p-3 sm:p-4 lg:p-6 2xl:p-12 text-center space-y-2 sm:space-y-2.5 2xl:space-y-4 text-zinc-400 dark:text-zinc-500 my-auto">
+      <div className="relative p-2.5 sm:p-3.5 2xl:p-6 rounded-xl sm:rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-inner flex items-center justify-center">
+        <div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-emerald-500/10 animate-ping opacity-25" />
+        <Users className="size-5 sm:size-7 2xl:size-12 text-emerald-600 dark:text-emerald-400 relative z-10" />
       </div>
-      <div className="space-y-1 sm:space-y-1.5 2xl:space-y-3 max-w-lg">
-        <h3 className="text-sm sm:text-base md:text-lg 2xl:text-2xl 3xl:text-3xl font-bold sm:font-extrabold text-zinc-800 dark:text-zinc-100 tracking-normal">
+      <div className="space-y-0.5 sm:space-y-1 max-w-md">
+        <h3 className="text-xs sm:text-sm md:text-base 2xl:text-xl font-bold sm:font-extrabold text-zinc-800 dark:text-zinc-100 tracking-normal">
           {title}
         </h3>
-        <p className="text-[11px] sm:text-xs 2xl:text-lg 3xl:text-xl font-mono text-zinc-500 dark:text-zinc-400 tracking-normal">
+        <p className="text-[10.5px] sm:text-xs 2xl:text-base font-mono text-zinc-500 dark:text-zinc-400 tracking-normal">
           {lang === "bn"
             ? "নতুন রোগীর চেক-ইনের জন্য অপেক্ষা করা হচ্ছে • লাইভ মনিটরিং সক্রিয়"
             : "Listening for real-time check-ins • Live system monitoring active"}
         </p>
       </div>
-      <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 2xl:px-4 2xl:py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[9.5px] sm:text-xs 2xl:text-sm font-bold font-mono">
-        <span className="size-1.5 sm:size-2 rounded-full bg-emerald-500 animate-pulse" />
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 2xl:px-3.5 2xl:py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[9.5px] sm:text-[11px] 2xl:text-xs font-bold font-mono">
+        <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
         <span>
           {lang === "bn" ? "অপেক্ষমান তালিকা শূন্য" : "Queue Empty / Standby"}
         </span>

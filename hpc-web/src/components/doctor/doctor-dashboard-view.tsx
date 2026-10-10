@@ -45,6 +45,7 @@ import {
   CalendarCheck2,
   Printer,
   Compass,
+  MessageSquare,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
@@ -52,6 +53,9 @@ import { formatTime12h } from "@/lib/queue-punctuality";
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
 import { SendPatientDialog } from "@/components/doctor/send-patient-dialog";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
+import { ClinicChatView } from "@/components/chat/clinic-chat-view";
+import { useChatNotifications } from "@/hooks/use-chat-notifications";
+import { playChatChime } from "@/lib/chat-chime";
 import {
   DoctorPrescriptionDialog,
   type DoctorPrescriptionData,
@@ -60,16 +64,36 @@ import {
 interface DoctorDashboardViewProps {
   initialData: DoctorDashboardData;
   currentUserRole?: Role;
+  currentUserId?: string;
 }
 
 export function DoctorDashboardView({
   initialData,
   currentUserRole,
+  currentUserId: propUserId,
 }: DoctorDashboardViewProps) {
   const [data, setData] = React.useState<DoctorDashboardData>(initialData);
   const [selectedDate, setSelectedDate] = React.useState<string>(
     initialData.selectedDate,
   );
+  const [activeTab, setActiveTab] = React.useState<string>("consultation");
+
+  // Selected Doctor & Chamber Room
+  const selectedDoctorId = React.useMemo(() => {
+    return (
+      propUserId ||
+      data.currentDoctor?.id ||
+      initialData.currentDoctor?.id ||
+      ""
+    );
+  }, [propUserId, data.currentDoctor, initialData.currentDoctor]);
+
+  // Real-time Chat Notifications & Chime at the Doctor Console Root Level
+  const { unreadCount: unreadChatCount } = useChatNotifications({
+    isChatTabActive: activeTab === "chat",
+    currentUserId: selectedDoctorId,
+    onOpenChatTab: () => setActiveTab("chat"),
+  });
 
   // Modals for ticket booking and registering patients
   const [isNewPatientOpen, setIsNewPatientOpen] = React.useState(false);
@@ -91,12 +115,6 @@ export function DoctorDashboardView({
     "today" | "next"
   >("today");
 
-  // Selected Doctor & Chamber Room
-  const selectedDoctorId = React.useMemo(() => {
-    return (
-      data.currentDoctor?.id || initialData.currentDoctor?.id || ""
-    );
-  }, [data.currentDoctor, initialData.currentDoctor]);
 
   // Priority: 1. Doctor's assigned chamber from admin panel (strictly DOCTOR type), 2. First doctor consultation room
   const selectedRoomId = React.useMemo(() => {
@@ -149,16 +167,20 @@ export function DoctorDashboardView({
   // 100% Offline Real-Time SSE Subscription
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
-      if (
-        event.type === "APPOINTMENT_CREATED" ||
-        event.type === "APPOINTMENT_UPDATED" ||
-        event.type === "APPOINTMENT_CANCELLED" ||
-        event.type === "PATIENT_CREATED" ||
-        event.type === "DOCTOR_CALLED" ||
-        event.type === "SLOT_UPDATED"
-      ) {
+      const type = (event?.type || "").toUpperCase();
+      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         refreshData(selectedDateRef.current);
+        if (type === "CONSULTATION_QUEUED") {
+          playChatChime(false);
+          toast.info(
+            `New Patient in Consultation Queue: ${event.data?.patientName || "Patient"} (Serial #${event.data?.serialNumber || ""})`,
+            { id: `queue-consult-${event.data?.serialId || Date.now()}` },
+          );
+        }
       }
+    },
+    onReconnect: () => {
+      refreshData(selectedDateRef.current);
     },
   });
 
@@ -294,13 +316,13 @@ export function DoctorDashboardView({
         AppointmentStatus.CHECKED_IN,
         undefined,
         QueueType.CONSULTATION,
-        undefined,
+        "",
         undefined,
         selectedDoctorId || undefined,
       );
       if (res.success) {
         toast.info(
-          `Call cancelled. ${callingAppointment.patient?.name} returned to queue.`,
+          `Call cancelled. ${callingAppointment.patient?.name} returned to waiting queue.`,
         );
         refreshData(selectedDate);
       } else {
@@ -357,7 +379,7 @@ export function DoctorDashboardView({
                   <span className="text-muted-foreground text-xs">•</span>
                   <span className="text-xs text-amber-700 dark:text-amber-300 font-semibold">
                     Announced on TV. When patient arrives in your room, click
-                    Mark In Consultation.
+                    Mark In Consultation, or click Cancel Call if patient is late.
                   </span>
                 </div>
               </div>
@@ -379,9 +401,10 @@ export function DoctorDashboardView({
                   variant="outline"
                   onClick={handleCancelCall}
                   disabled={isFinishingSession}
-                  className="h-7.5 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border-border cursor-pointer gap-1"
+                  title="Patient is late — cancel call and keep in queue so you can call another patient"
+                  className="h-7.5 px-2.5 rounded-lg text-xs font-bold border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 cursor-pointer gap-1.5"
                 >
-                  <span>Cancel Call</span>
+                  <span>Cancel Call (Keep in Queue)</span>
                 </Button>
               </div>
             </div>
@@ -594,19 +617,20 @@ export function DoctorDashboardView({
         </div>
 
         {/* Tabs for Doctor Navigation */}
-        <Tabs defaultValue="consultation" className="w-full space-y-2.5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
-            <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex flex-wrap gap-1 max-w-full">
-              <TabsTrigger
-                value="consultation"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Stethoscope className="size-3 text-sky-500" />
-                <span>Consultation Queue</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300 text-[10px] font-mono">
-                  {data.consultationQueue.length}
-                </span>
-              </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-2.5">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2 border-b border-border/50 pb-1.5 w-full min-w-0">
+            <div className="w-full overflow-x-auto scrollbar-none min-w-0">
+              <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 inline-flex items-center gap-1 shrink-0">
+                <TabsTrigger
+                  value="consultation"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Stethoscope className="size-3 text-sky-500" />
+                  <span>Consultation Queue</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300 text-[10px] font-mono">
+                    {data.consultationQueue.length}
+                  </span>
+                </TabsTrigger>
 
               <TabsTrigger
                 value="therapy"
@@ -676,7 +700,21 @@ export function DoctorDashboardView({
                   {data.completedConsultations.length}
                 </span>
               </TabsTrigger>
+
+              <TabsTrigger
+                value="chat"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <MessageSquare className="size-3 text-primary" />
+                <span>Clinic Chat</span>
+                {unreadChatCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
+                    {unreadChatCount}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
+            </div>
           </div>
 
           {/* 1. Consultation Queue Tab */}
@@ -754,6 +792,7 @@ export function DoctorDashboardView({
               stats={data.stats}
               selectedDate={selectedDate}
               dayOfWeek={data.dayOfWeek}
+              showDateSelector={false}
               onSelectDate={handleSelectDate}
               onBookSlot={handleBookSlot}
               onCheckIn={handleCheckIn}
@@ -763,7 +802,10 @@ export function DoctorDashboardView({
 
           {/* 3B. Patient Journey Tracking Tab */}
           <TabsContent value="tracking" className="space-y-2 outline-none">
-            <PatientJourneyTrackerView defaultDate={selectedDate} />
+            <PatientJourneyTrackerView
+              defaultDate={selectedDate}
+              showDateSelector={false}
+            />
           </TabsContent>
 
           {/* 4. Patients Directory & Registration Tab */}
@@ -876,6 +918,18 @@ export function DoctorDashboardView({
                 </table>
               </div>
             )}
+          </TabsContent>
+
+          {/* 7. Clinic Real-time Internal Chat Tab */}
+          <TabsContent value="chat" className="space-y-2 outline-none">
+            <ClinicChatView
+              currentUserRole={Role.DOCTOR}
+              currentUserId={selectedDoctorId}
+              initialDate={selectedDate}
+              showDateSelector={false}
+              rooms={data.rooms}
+              onDateChange={handleSelectDate}
+            />
           </TabsContent>
         </Tabs>
       </main>

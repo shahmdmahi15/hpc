@@ -51,6 +51,7 @@ import {
 } from "@/components/admin/rooms/authorize-room-action-dialog";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import {
   DoorOpen,
   Plus,
@@ -100,6 +101,20 @@ const GENDER_OPTIONS = [
 export function RoomManagementView({ initialData }: RoomManagementViewProps) {
   const router = useRouter();
   const { rooms, adminPerformers, stats } = initialData;
+
+  useRealtimeEvents({
+    onEvent: (event) => {
+      if (
+        event.type !== "CHAT_MESSAGE_SENT" &&
+        event.type !== "CHAT_MESSAGE_DELETED"
+      ) {
+        router.refresh();
+      }
+    },
+    onReconnect: () => {
+      router.refresh();
+    },
+  });
 
   // View Mode: 'table' or 'grid'
   const [viewMode, setViewMode] = React.useState<"table" | "grid">("table");

@@ -15,6 +15,7 @@ import {
   type MedicalRecordActionState,
 } from "@/schemas/doctor/medical-record.schema";
 import { revalidatePath } from "next/cache";
+import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 
 export interface ActiveClinicalConfig {
   painAreas: string[];
@@ -242,8 +243,28 @@ export async function createMedicalRecordAction(
       },
     });
 
+    emitRealtimeEvent("MEDICAL_RECORD_CREATED", {
+      recordId: created.id,
+      patientId: patient.id,
+      patientName: patient.name,
+      appointmentId: val.appointmentId || null,
+      diagnosis: created.diagnosis,
+      vasScore: created.vasScore,
+    });
+
+    if (val.appointmentId) {
+      emitRealtimeEvent("APPOINTMENT_UPDATED", {
+        id: val.appointmentId,
+        patientId: patient.id,
+        patientName: patient.name,
+        medicalRecordId: created.id,
+      });
+    }
+
     revalidatePath("/doctor");
     revalidatePath("/receptionist");
+    revalidatePath("/handler");
+    revalidatePath("/admin/tracking");
 
     return {
       success: true,

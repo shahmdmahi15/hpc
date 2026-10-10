@@ -15,8 +15,10 @@ import {
   CreditCard,
   Tv,
   Compass,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useChatNotifications } from "@/hooks/use-chat-notifications";
 
 const NAV_ITEMS = [
   {
@@ -24,6 +26,12 @@ const NAV_ITEMS = [
     label: "Overview",
     icon: LayoutDashboard,
     exact: true,
+  },
+  {
+    href: "/admin/chat",
+    label: "Clinic Chat",
+    icon: MessageSquare,
+    exact: false,
   },
   {
     href: "/admin/tracking",
@@ -63,8 +71,19 @@ const NAV_ITEMS = [
   },
 ];
 
-export function AdminTopNav() {
+interface AdminTopNavProps {
+  currentUserId?: string;
+}
+
+export function AdminTopNav({ currentUserId }: AdminTopNavProps = {}) {
   const pathname = usePathname();
+
+  const isChatActive =
+    pathname === "/admin/chat" || pathname.startsWith("/admin/chat/");
+  const { unreadCount: unreadChatCount } = useChatNotifications({
+    isChatTabActive: isChatActive,
+    currentUserId,
+  });
 
   return (
     <nav className="w-full bg-card/85 backdrop-blur-md border-b border-border/70">
@@ -97,6 +116,11 @@ export function AdminTopNav() {
                   )}
                 />
                 <span>{item.label}</span>
+                {item.href === "/admin/chat" && unreadChatCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
+                    {unreadChatCount}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -218,6 +218,7 @@ export type PerformerWhereInput = {
   auditLogs?: Prisma.AuditLogListRelationFilter
   conductedAppointments?: Prisma.AppointmentListRelationFilter
   bookedAppointments?: Prisma.AppointmentListRelationFilter
+  chatMessages?: Prisma.ChatMessageListRelationFilter
 }
 
 export type PerformerOrderByWithRelationInput = {
@@ -234,6 +235,7 @@ export type PerformerOrderByWithRelationInput = {
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
   conductedAppointments?: Prisma.AppointmentOrderByRelationAggregateInput
   bookedAppointments?: Prisma.AppointmentOrderByRelationAggregateInput
+  chatMessages?: Prisma.ChatMessageOrderByRelationAggregateInput
 }
 
 export type PerformerWhereUniqueInput = Prisma.AtLeast<{
@@ -253,6 +255,7 @@ export type PerformerWhereUniqueInput = Prisma.AtLeast<{
   auditLogs?: Prisma.AuditLogListRelationFilter
   conductedAppointments?: Prisma.AppointmentListRelationFilter
   bookedAppointments?: Prisma.AppointmentListRelationFilter
+  chatMessages?: Prisma.ChatMessageListRelationFilter
 }, "id">
 
 export type PerformerOrderByWithAggregationInput = {
@@ -298,6 +301,7 @@ export type PerformerCreateInput = {
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutPerformerInput
   conductedAppointments?: Prisma.AppointmentCreateNestedManyWithoutPerformerInput
   bookedAppointments?: Prisma.AppointmentCreateNestedManyWithoutBookedByInput
+  chatMessages?: Prisma.ChatMessageCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerUncheckedCreateInput = {
@@ -313,6 +317,7 @@ export type PerformerUncheckedCreateInput = {
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutPerformerInput
   conductedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPerformerInput
   bookedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutBookedByInput
+  chatMessages?: Prisma.ChatMessageUncheckedCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerUpdateInput = {
@@ -328,6 +333,7 @@ export type PerformerUpdateInput = {
   auditLogs?: Prisma.AuditLogUpdateManyWithoutPerformerNestedInput
   conductedAppointments?: Prisma.AppointmentUpdateManyWithoutPerformerNestedInput
   bookedAppointments?: Prisma.AppointmentUpdateManyWithoutBookedByNestedInput
+  chatMessages?: Prisma.ChatMessageUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerUncheckedUpdateInput = {
@@ -343,6 +349,7 @@ export type PerformerUncheckedUpdateInput = {
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutPerformerNestedInput
   conductedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPerformerNestedInput
   bookedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutBookedByNestedInput
+  chatMessages?: Prisma.ChatMessageUncheckedUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerCreateManyInput = {
@@ -521,6 +528,22 @@ export type PerformerUpdateOneWithoutBookedAppointmentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.PerformerUpdateToOneWithWhereWithoutBookedAppointmentsInput, Prisma.PerformerUpdateWithoutBookedAppointmentsInput>, Prisma.PerformerUncheckedUpdateWithoutBookedAppointmentsInput>
 }
 
+export type PerformerCreateNestedOneWithoutChatMessagesInput = {
+  create?: Prisma.XOR<Prisma.PerformerCreateWithoutChatMessagesInput, Prisma.PerformerUncheckedCreateWithoutChatMessagesInput>
+  connectOrCreate?: Prisma.PerformerCreateOrConnectWithoutChatMessagesInput
+  connect?: Prisma.PerformerWhereUniqueInput
+}
+
+export type PerformerUpdateOneWithoutChatMessagesNestedInput = {
+  create?: Prisma.XOR<Prisma.PerformerCreateWithoutChatMessagesInput, Prisma.PerformerUncheckedCreateWithoutChatMessagesInput>
+  connectOrCreate?: Prisma.PerformerCreateOrConnectWithoutChatMessagesInput
+  upsert?: Prisma.PerformerUpsertWithoutChatMessagesInput
+  disconnect?: Prisma.PerformerWhereInput | boolean
+  delete?: Prisma.PerformerWhereInput | boolean
+  connect?: Prisma.PerformerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PerformerUpdateToOneWithWhereWithoutChatMessagesInput, Prisma.PerformerUpdateWithoutChatMessagesInput>, Prisma.PerformerUncheckedUpdateWithoutChatMessagesInput>
+}
+
 export type PerformerCreateWithoutUserInput = {
   id?: string
   name: string
@@ -533,6 +556,7 @@ export type PerformerCreateWithoutUserInput = {
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutPerformerInput
   conductedAppointments?: Prisma.AppointmentCreateNestedManyWithoutPerformerInput
   bookedAppointments?: Prisma.AppointmentCreateNestedManyWithoutBookedByInput
+  chatMessages?: Prisma.ChatMessageCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerUncheckedCreateWithoutUserInput = {
@@ -547,6 +571,7 @@ export type PerformerUncheckedCreateWithoutUserInput = {
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutPerformerInput
   conductedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPerformerInput
   bookedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutBookedByInput
+  chatMessages?: Prisma.ChatMessageUncheckedCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerCreateOrConnectWithoutUserInput = {
@@ -601,6 +626,7 @@ export type PerformerCreateWithoutAuditLogsInput = {
   user: Prisma.UserCreateNestedOneWithoutPerformersInput
   conductedAppointments?: Prisma.AppointmentCreateNestedManyWithoutPerformerInput
   bookedAppointments?: Prisma.AppointmentCreateNestedManyWithoutBookedByInput
+  chatMessages?: Prisma.ChatMessageCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerUncheckedCreateWithoutAuditLogsInput = {
@@ -615,6 +641,7 @@ export type PerformerUncheckedCreateWithoutAuditLogsInput = {
   updatedAt?: Date | string
   conductedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPerformerInput
   bookedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutBookedByInput
+  chatMessages?: Prisma.ChatMessageUncheckedCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerCreateOrConnectWithoutAuditLogsInput = {
@@ -645,6 +672,7 @@ export type PerformerUpdateWithoutAuditLogsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutPerformersNestedInput
   conductedAppointments?: Prisma.AppointmentUpdateManyWithoutPerformerNestedInput
   bookedAppointments?: Prisma.AppointmentUpdateManyWithoutBookedByNestedInput
+  chatMessages?: Prisma.ChatMessageUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerUncheckedUpdateWithoutAuditLogsInput = {
@@ -659,6 +687,7 @@ export type PerformerUncheckedUpdateWithoutAuditLogsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   conductedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPerformerNestedInput
   bookedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutBookedByNestedInput
+  chatMessages?: Prisma.ChatMessageUncheckedUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerCreateWithoutConductedAppointmentsInput = {
@@ -673,6 +702,7 @@ export type PerformerCreateWithoutConductedAppointmentsInput = {
   user: Prisma.UserCreateNestedOneWithoutPerformersInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutPerformerInput
   bookedAppointments?: Prisma.AppointmentCreateNestedManyWithoutBookedByInput
+  chatMessages?: Prisma.ChatMessageCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerUncheckedCreateWithoutConductedAppointmentsInput = {
@@ -687,6 +717,7 @@ export type PerformerUncheckedCreateWithoutConductedAppointmentsInput = {
   updatedAt?: Date | string
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutPerformerInput
   bookedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutBookedByInput
+  chatMessages?: Prisma.ChatMessageUncheckedCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerCreateOrConnectWithoutConductedAppointmentsInput = {
@@ -706,6 +737,7 @@ export type PerformerCreateWithoutBookedAppointmentsInput = {
   user: Prisma.UserCreateNestedOneWithoutPerformersInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutPerformerInput
   conductedAppointments?: Prisma.AppointmentCreateNestedManyWithoutPerformerInput
+  chatMessages?: Prisma.ChatMessageCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerUncheckedCreateWithoutBookedAppointmentsInput = {
@@ -720,6 +752,7 @@ export type PerformerUncheckedCreateWithoutBookedAppointmentsInput = {
   updatedAt?: Date | string
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutPerformerInput
   conductedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPerformerInput
+  chatMessages?: Prisma.ChatMessageUncheckedCreateNestedManyWithoutPerformerInput
 }
 
 export type PerformerCreateOrConnectWithoutBookedAppointmentsInput = {
@@ -750,6 +783,7 @@ export type PerformerUpdateWithoutConductedAppointmentsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutPerformersNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutPerformerNestedInput
   bookedAppointments?: Prisma.AppointmentUpdateManyWithoutBookedByNestedInput
+  chatMessages?: Prisma.ChatMessageUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerUncheckedUpdateWithoutConductedAppointmentsInput = {
@@ -764,6 +798,7 @@ export type PerformerUncheckedUpdateWithoutConductedAppointmentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutPerformerNestedInput
   bookedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutBookedByNestedInput
+  chatMessages?: Prisma.ChatMessageUncheckedUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerUpsertWithoutBookedAppointmentsInput = {
@@ -789,6 +824,7 @@ export type PerformerUpdateWithoutBookedAppointmentsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutPerformersNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutPerformerNestedInput
   conductedAppointments?: Prisma.AppointmentUpdateManyWithoutPerformerNestedInput
+  chatMessages?: Prisma.ChatMessageUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerUncheckedUpdateWithoutBookedAppointmentsInput = {
@@ -803,6 +839,83 @@ export type PerformerUncheckedUpdateWithoutBookedAppointmentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutPerformerNestedInput
   conductedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPerformerNestedInput
+  chatMessages?: Prisma.ChatMessageUncheckedUpdateManyWithoutPerformerNestedInput
+}
+
+export type PerformerCreateWithoutChatMessagesInput = {
+  id?: string
+  name: string
+  email?: string | null
+  whatsapp: string
+  phone?: string
+  pin: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutPerformersInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutPerformerInput
+  conductedAppointments?: Prisma.AppointmentCreateNestedManyWithoutPerformerInput
+  bookedAppointments?: Prisma.AppointmentCreateNestedManyWithoutBookedByInput
+}
+
+export type PerformerUncheckedCreateWithoutChatMessagesInput = {
+  id?: string
+  name: string
+  email?: string | null
+  whatsapp: string
+  phone?: string
+  pin: string
+  userId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutPerformerInput
+  conductedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPerformerInput
+  bookedAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutBookedByInput
+}
+
+export type PerformerCreateOrConnectWithoutChatMessagesInput = {
+  where: Prisma.PerformerWhereUniqueInput
+  create: Prisma.XOR<Prisma.PerformerCreateWithoutChatMessagesInput, Prisma.PerformerUncheckedCreateWithoutChatMessagesInput>
+}
+
+export type PerformerUpsertWithoutChatMessagesInput = {
+  update: Prisma.XOR<Prisma.PerformerUpdateWithoutChatMessagesInput, Prisma.PerformerUncheckedUpdateWithoutChatMessagesInput>
+  create: Prisma.XOR<Prisma.PerformerCreateWithoutChatMessagesInput, Prisma.PerformerUncheckedCreateWithoutChatMessagesInput>
+  where?: Prisma.PerformerWhereInput
+}
+
+export type PerformerUpdateToOneWithWhereWithoutChatMessagesInput = {
+  where?: Prisma.PerformerWhereInput
+  data: Prisma.XOR<Prisma.PerformerUpdateWithoutChatMessagesInput, Prisma.PerformerUncheckedUpdateWithoutChatMessagesInput>
+}
+
+export type PerformerUpdateWithoutChatMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  pin?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutPerformersNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutPerformerNestedInput
+  conductedAppointments?: Prisma.AppointmentUpdateManyWithoutPerformerNestedInput
+  bookedAppointments?: Prisma.AppointmentUpdateManyWithoutBookedByNestedInput
+}
+
+export type PerformerUncheckedUpdateWithoutChatMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  whatsapp?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  pin?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutPerformerNestedInput
+  conductedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPerformerNestedInput
+  bookedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutBookedByNestedInput
 }
 
 export type PerformerCreateManyUserInput = {
@@ -828,6 +941,7 @@ export type PerformerUpdateWithoutUserInput = {
   auditLogs?: Prisma.AuditLogUpdateManyWithoutPerformerNestedInput
   conductedAppointments?: Prisma.AppointmentUpdateManyWithoutPerformerNestedInput
   bookedAppointments?: Prisma.AppointmentUpdateManyWithoutBookedByNestedInput
+  chatMessages?: Prisma.ChatMessageUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerUncheckedUpdateWithoutUserInput = {
@@ -842,6 +956,7 @@ export type PerformerUncheckedUpdateWithoutUserInput = {
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutPerformerNestedInput
   conductedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPerformerNestedInput
   bookedAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutBookedByNestedInput
+  chatMessages?: Prisma.ChatMessageUncheckedUpdateManyWithoutPerformerNestedInput
 }
 
 export type PerformerUncheckedUpdateManyWithoutUserInput = {
@@ -864,12 +979,14 @@ export type PerformerCountOutputType = {
   auditLogs: number
   conductedAppointments: number
   bookedAppointments: number
+  chatMessages: number
 }
 
 export type PerformerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   auditLogs?: boolean | PerformerCountOutputTypeCountAuditLogsArgs
   conductedAppointments?: boolean | PerformerCountOutputTypeCountConductedAppointmentsArgs
   bookedAppointments?: boolean | PerformerCountOutputTypeCountBookedAppointmentsArgs
+  chatMessages?: boolean | PerformerCountOutputTypeCountChatMessagesArgs
 }
 
 /**
@@ -903,6 +1020,13 @@ export type PerformerCountOutputTypeCountBookedAppointmentsArgs<ExtArgs extends 
   where?: Prisma.AppointmentWhereInput
 }
 
+/**
+ * PerformerCountOutputType without action
+ */
+export type PerformerCountOutputTypeCountChatMessagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ChatMessageWhereInput
+}
+
 
 export type PerformerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -918,6 +1042,7 @@ export type PerformerSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   auditLogs?: boolean | Prisma.Performer$auditLogsArgs<ExtArgs>
   conductedAppointments?: boolean | Prisma.Performer$conductedAppointmentsArgs<ExtArgs>
   bookedAppointments?: boolean | Prisma.Performer$bookedAppointmentsArgs<ExtArgs>
+  chatMessages?: boolean | Prisma.Performer$chatMessagesArgs<ExtArgs>
   _count?: boolean | Prisma.PerformerCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["performer"]>
 
@@ -965,6 +1090,7 @@ export type PerformerInclude<ExtArgs extends runtime.Types.Extensions.InternalAr
   auditLogs?: boolean | Prisma.Performer$auditLogsArgs<ExtArgs>
   conductedAppointments?: boolean | Prisma.Performer$conductedAppointmentsArgs<ExtArgs>
   bookedAppointments?: boolean | Prisma.Performer$bookedAppointmentsArgs<ExtArgs>
+  chatMessages?: boolean | Prisma.Performer$chatMessagesArgs<ExtArgs>
   _count?: boolean | Prisma.PerformerCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type PerformerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -981,6 +1107,7 @@ export type $PerformerPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
     conductedAppointments: Prisma.$AppointmentPayload<ExtArgs>[]
     bookedAppointments: Prisma.$AppointmentPayload<ExtArgs>[]
+    chatMessages: Prisma.$ChatMessagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1390,6 +1517,7 @@ export interface Prisma__PerformerClient<T, Null = never, ExtArgs extends runtim
   auditLogs<T extends Prisma.Performer$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Performer$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   conductedAppointments<T extends Prisma.Performer$conductedAppointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Performer$conductedAppointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bookedAppointments<T extends Prisma.Performer$bookedAppointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Performer$bookedAppointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  chatMessages<T extends Prisma.Performer$chatMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Performer$chatMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1896,6 +2024,30 @@ export type Performer$bookedAppointmentsArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.AppointmentScalarFieldEnum | Prisma.AppointmentScalarFieldEnum[]
+}
+
+/**
+ * Performer.chatMessages
+ */
+export type Performer$chatMessagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ChatMessage
+   */
+  select?: Prisma.ChatMessageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ChatMessage
+   */
+  omit?: Prisma.ChatMessageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ChatMessageInclude<ExtArgs> | null
+  where?: Prisma.ChatMessageWhereInput
+  orderBy?: Prisma.ChatMessageOrderByWithRelationInput | Prisma.ChatMessageOrderByWithRelationInput[]
+  cursor?: Prisma.ChatMessageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ChatMessageScalarFieldEnum | Prisma.ChatMessageScalarFieldEnum[]
 }
 
 /**

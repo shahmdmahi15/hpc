@@ -76,29 +76,37 @@ export function PatientDirectoryView({
   const [editingPatient, setEditingPatient] =
     React.useState<PatientWithStats | null>(null);
 
-  // Sync initialPatients when updated by SSE or parent without triggering effect cascading renders
+  const fetchFilteredPatients = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await getPatientsListAction({
+        query: searchQuery,
+        gender: genderFilter === "ALL" ? undefined : (genderFilter as Gender),
+        limit: 50,
+      });
+      setPatients(res);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery, genderFilter]);
+
+  // Sync initialPatients when updated by SSE or parent (only when no search/filter is active)
   if (initialPatients !== prevInitial) {
     setPrevInitial(initialPatients);
-    setPatients(initialPatients);
+    if (!searchQuery.trim() && genderFilter === "ALL") {
+      setPatients(initialPatients);
+    } else {
+      void fetchFilteredPatients();
+    }
   }
 
   // Debounced search & filtering
   React.useEffect(() => {
-    const timer = setTimeout(async () => {
-      setIsLoading(true);
-      try {
-        const res = await getPatientsListAction({
-          query: searchQuery,
-          gender: genderFilter === "ALL" ? undefined : (genderFilter as Gender),
-          limit: 50,
-        });
-        setPatients(res);
-      } finally {
-        setIsLoading(false);
-      }
+    const timer = setTimeout(() => {
+      void fetchFilteredPatients();
     }, 250);
     return () => clearTimeout(timer);
-  }, [searchQuery, genderFilter]);
+  }, [fetchFilteredPatients]);
 
   const handleCopyPhone = (phone: string) => {
     navigator.clipboard

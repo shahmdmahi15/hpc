@@ -27,6 +27,7 @@ import {
   CalendarCheck2,
   User,
   FileText,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
@@ -140,6 +141,33 @@ export function DoctorQueueCard({
     }
   };
 
+  const handleCancelCall = async () => {
+    setIsActionLoading(true);
+    try {
+      const res = await updateAppointmentStatusAction(
+        appointment.id,
+        AppointmentStatus.CHECKED_IN,
+        undefined,
+        QueueType.CONSULTATION,
+        "",
+        undefined,
+        performerId || appointment.doctorId || undefined,
+      );
+      if (res.success) {
+        toast.info(
+          `Call cancelled. ${appointment.patient?.name || "Patient"} returned to waiting queue.`,
+        );
+        onRefresh();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to cancel call.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const p = evaluatePunctuality(appointment.toldTime, appointment.checkInTime);
   const isMale = appointment.gender === "MALE";
   const isCalling = appointment.status === AppointmentStatus.CALLING;
@@ -243,6 +271,17 @@ export function DoctorQueueCard({
           <div className="min-w-0">
             <span className="font-bold mr-1">Transfer Note:</span>
             <span className="italic">{appointment.routingNote}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Chief Complaint / Consultation Notes */}
+      {(appointment.notes || (appointment.patient as any)?.consultationSerials?.[0]?.notes) && (
+        <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-900 dark:text-amber-200 flex items-start gap-1.5">
+          <FileText className="size-3 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <span className="font-bold mr-1">Chief Complaint / Note:</span>
+            <span className="italic">{appointment.notes || (appointment.patient as any)?.consultationSerials?.[0]?.notes}</span>
           </div>
         </div>
       )}
@@ -382,7 +421,7 @@ export function DoctorQueueCard({
       {/* Doctor Action Buttons */}
       <div className="pt-1 border-t border-border/40 flex items-center gap-1.5">
         {isCalling ? (
-          <div className="flex items-center gap-1.5 w-full animate-in fade-in">
+          <div className="flex items-center gap-1.5 w-full flex-wrap animate-in fade-in">
             <Button
               size="sm"
               onClick={handleStartConsultation}
@@ -403,6 +442,18 @@ export function DoctorQueueCard({
             >
               <Volume2 className="size-3" />
               <span>Recall</span>
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCancelCall}
+              disabled={isActionLoading}
+              title="Patient is late — cancel call and keep in queue so you can call another patient"
+              className="h-7 px-2 rounded-lg font-bold text-[11px] border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 cursor-pointer gap-1"
+            >
+              <RotateCcw className="size-3" />
+              <span>Cancel Call</span>
             </Button>
           </div>
         ) : isServing ? (

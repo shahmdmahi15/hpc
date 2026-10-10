@@ -154,5 +154,34 @@ export interface PatientActionState {
   message: string;
   patient?: any;
   appointment?: any;
+  consultationSerial?: any;
+  visit?: any;
   fieldErrors?: Record<string, string[]>;
 }
+
+export const bookConsultationSerialSchema = z.object({
+  patientId: z.string().trim().min(1, "Patient is required."),
+  visitId: z.string().trim().optional().nullable(),
+  doctorId: z.string().trim().min(1, "Doctor selection is required."),
+  feeAmount: z.coerce.number().min(0, "Consultation fee must be a non-negative number."),
+  toldTime: z.string().trim().optional().nullable(),
+  performerId: z.string().trim().min(1, "Authorizing receptionist is required."),
+  pin: z.string().trim().regex(/^\d{4}$/, "Security PIN must be exactly 4 digits."),
+  notes: z.string().trim().optional().nullable(),
+});
+
+export type BookConsultationSerialInput = z.infer<
+  typeof bookConsultationSerialSchema
+>;
+
+export const checkoutPatientVisitSchema = z.object({
+  patientId: z.string().trim().min(1, "Patient ID is required."),
+  visitId: z.string().trim().optional().nullable(),
+  performerId: z.string().trim().min(1, "Authorizing receptionist is required."),
+  pin: z.string().trim().regex(/^\d{4}$/, "Security PIN must be exactly 4 digits."),
+  notes: z.string().trim().optional().nullable(),
+});
+
+export type CheckoutPatientVisitInput = z.infer<
+  typeof checkoutPatientVisitSchema
+>;

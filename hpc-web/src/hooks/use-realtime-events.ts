@@ -11,152 +11,284 @@ interface UseRealtimeEventsOptions {
   enabled?: boolean;
 }
 
+interface SharedSubscriber {
+  onEvent: (event: RealtimeEventPayload) => void;
+  onStatusChange: (status: ConnectionStatus) => void;
+  onReconnect: () => void;
+}
+
+// Module-level singleton state per browser tab so multiple hooks share 1 EventSource connection
+let sharedEventSource: EventSource | null = null;
+let sharedStatus: ConnectionStatus = "connecting";
+let sharedReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let sharedPollInterval: ReturnType<typeof setInterval> | null = null;
+let sharedReconnectAttempts = 0;
+let sharedLatestSeq = 0;
+let sharedBroadcastChannel: BroadcastChannel | null = null;
+const sharedSubscribers = new Set<SharedSubscriber>();
+const sharedProcessedEvents = new Map<string, number>();
+
+function getEventDedupKey(payload: RealtimeEventPayload): string {
+  if (payload.seq !== undefined) {
+    return `seq:${payload.seq}`;
+  }
+  const entityId =
+    payload.data?.id ??
+    payload.data?.appointmentId ??
+    payload.data?.patientId ??
+    payload.data?.slotId ??
+    payload.data?.roomId ??
+    payload.data?.messageId ??
+    "";
+  return `${payload.type}:${payload.timestamp}:${typeof entityId === "object" ? JSON.stringify(entityId) : entityId}`;
+}
+
+function notifyAllSubscribers(
+  payload: RealtimeEventPayload,
+  fromBroadcast = false,
+) {
+  if (!payload || !payload.type) return;
+
+  if (typeof payload.seq === "number" && payload.seq > sharedLatestSeq) {
+    sharedLatestSeq = payload.seq;
+  }
+
+  const key = getEventDedupKey(payload);
+  const now = Date.now();
+  const lastTime = sharedProcessedEvents.get(key) || 0;
+  if (now - lastTime < 2000) {
+    return;
+  }
+  sharedProcessedEvents.set(key, now);
+
+  if (sharedProcessedEvents.size > 300) {
+    for (const [k, t] of sharedProcessedEvents.entries()) {
+      if (now - t > 30000) {
+        sharedProcessedEvents.delete(k);
+      }
+    }
+  }
+
+  // Forward to other tabs in the same browser via BroadcastChannel
+  if (!fromBroadcast && sharedBroadcastChannel) {
+    try {
+      sharedBroadcastChannel.postMessage(payload);
+    } catch {
+      // Ignore BroadcastChannel errors
+    }
+  }
+
+  sharedSubscribers.forEach((sub) => {
+    try {
+      sub.onEvent(payload);
+    } catch (err) {
+      console.error("[Realtime Subscriber Error]:", err);
+    }
+  });
+}
+
+function updateSharedStatus(newStatus: ConnectionStatus) {
+  sharedStatus = newStatus;
+  sharedSubscribers.forEach((sub) => {
+    try {
+      sub.onStatusChange(newStatus);
+    } catch {}
+  });
+}
+
+async function pollCatchUpEvents() {
+  if (typeof window === "undefined" || sharedSubscribers.size === 0) return;
+  try {
+    const res = await fetch(
+      `/api/realtime/sse?mode=poll&since=${sharedLatestSeq}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.events) && data.events.length > 0) {
+      for (const evt of data.events) {
+        notifyAllSubscribers(evt, false);
+      }
+    }
+    if (typeof data.seq === "number" && data.seq > sharedLatestSeq) {
+      sharedLatestSeq = data.seq;
+    }
+    if (sharedStatus !== "connected") {
+      updateSharedStatus("connected");
+    }
+  } catch {
+    // Offline or server restarting
+  }
+}
+
+function ensureSharedConnection() {
+  if (typeof window === "undefined" || sharedSubscribers.size === 0) return;
+
+  // Initialize BroadcastChannel for instant multi-tab sync
+  if (!sharedBroadcastChannel && typeof BroadcastChannel !== "undefined") {
+    try {
+      sharedBroadcastChannel = new BroadcastChannel("hpc-realtime-bus-v1");
+      sharedBroadcastChannel.onmessage = (e: MessageEvent) => {
+        if (e.data && e.data.type) {
+          notifyAllSubscribers(e.data as RealtimeEventPayload, true);
+        }
+      };
+    } catch {
+      sharedBroadcastChannel = null;
+    }
+  }
+
+  // Ensure background catch-up poll interval is active
+  if (!sharedPollInterval) {
+    sharedPollInterval = setInterval(() => {
+      void pollCatchUpEvents();
+    }, 2500);
+  }
+
+  if (
+    sharedEventSource &&
+    (sharedEventSource.readyState === EventSource.OPEN ||
+      sharedEventSource.readyState === EventSource.CONNECTING)
+  ) {
+    return;
+  }
+
+  if (sharedEventSource) {
+    sharedEventSource.close();
+    sharedEventSource = null;
+  }
+  if (sharedReconnectTimer) {
+    clearTimeout(sharedReconnectTimer);
+    sharedReconnectTimer = null;
+  }
+
+  updateSharedStatus("connecting");
+  const es = new EventSource(
+    `/api/realtime/sse?since=${sharedLatestSeq}`,
+  );
+  sharedEventSource = es;
+
+  es.addEventListener("connected", (e: MessageEvent) => {
+    try {
+      const parsed = JSON.parse(e.data);
+      if (typeof parsed.seq === "number" && parsed.seq > sharedLatestSeq) {
+        sharedLatestSeq = parsed.seq;
+      }
+    } catch {}
+    const wasReconnecting = sharedReconnectAttempts > 0;
+    updateSharedStatus("connected");
+    sharedReconnectAttempts = 0;
+    if (wasReconnecting) {
+      sharedSubscribers.forEach((sub) => {
+        try {
+          sub.onReconnect();
+        } catch {}
+      });
+    }
+  });
+
+  es.addEventListener("heartbeat", (e: MessageEvent) => {
+    try {
+      const parsed = JSON.parse(e.data);
+      if (
+        typeof parsed.seq === "number" &&
+        sharedLatestSeq > 0 &&
+        parsed.seq > sharedLatestSeq
+      ) {
+        void pollCatchUpEvents();
+      } else if (typeof parsed.seq === "number" && sharedLatestSeq === 0) {
+        sharedLatestSeq = parsed.seq;
+      }
+    } catch {}
+  });
+
+  es.onopen = () => {
+    const wasReconnecting = sharedReconnectAttempts > 0;
+    updateSharedStatus("connected");
+    sharedReconnectAttempts = 0;
+    if (wasReconnecting) {
+      sharedSubscribers.forEach((sub) => {
+        try {
+          sub.onReconnect();
+        } catch {}
+      });
+    }
+  };
+
+  es.onmessage = (e: MessageEvent) => {
+    try {
+      const payload = JSON.parse(e.data) as RealtimeEventPayload;
+      notifyAllSubscribers(payload, false);
+    } catch {
+      // Ignore non-JSON comments
+    }
+  };
+
+  es.onerror = () => {
+    updateSharedStatus("disconnected");
+    es.close();
+    sharedEventSource = null;
+
+    sharedReconnectAttempts += 1;
+    const delay = Math.min(
+      1000 * Math.pow(1.4, sharedReconnectAttempts),
+      5000,
+    );
+    sharedReconnectTimer = setTimeout(() => {
+      ensureSharedConnection();
+    }, delay);
+  };
+}
+
+function teardownSharedConnectionIfIdle() {
+  if (sharedSubscribers.size > 0) return;
+  if (sharedReconnectTimer) {
+    clearTimeout(sharedReconnectTimer);
+    sharedReconnectTimer = null;
+  }
+  if (sharedPollInterval) {
+    clearInterval(sharedPollInterval);
+    sharedPollInterval = null;
+  }
+  if (sharedEventSource) {
+    sharedEventSource.close();
+    sharedEventSource = null;
+  }
+  if (sharedBroadcastChannel) {
+    try {
+      sharedBroadcastChannel.close();
+    } catch {}
+    sharedBroadcastChannel = null;
+  }
+  sharedStatus = "disconnected";
+}
+
 export function useRealtimeEvents(options: UseRealtimeEventsOptions = {}) {
   const { onEvent, onReconnect, enabled = true } = options;
   const [connectionStatus, setConnectionStatus] =
     React.useState<ConnectionStatus>(() =>
-      enabled ? "connecting" : "disconnected",
+      enabled ? sharedStatus : "disconnected",
     );
   const [lastEvent, setLastEvent] = React.useState<RealtimeEventPayload | null>(
     null,
   );
 
-  // Preserve callback references without resetting effect
+  // Synchronously keep callback refs fresh on every render
   const onEventRef = React.useRef(onEvent);
-  React.useEffect(() => {
-    onEventRef.current = onEvent;
-  }, [onEvent]);
+  onEventRef.current = onEvent;
 
   const onReconnectRef = React.useRef(onReconnect);
-  React.useEffect(() => {
-    onReconnectRef.current = onReconnect;
-  }, [onReconnect]);
+  onReconnectRef.current = onReconnect;
 
-  // Event deduplication cache: avoids double firing within 500ms
-  const processedEventsRef = React.useRef<Map<string, number>>(new Map());
-
-  const dispatchEvent = React.useCallback(
-    (payload: RealtimeEventPayload) => {
-      if (!payload || !payload.type) return;
-
-      const entityId =
-        payload.data?.id ??
-        payload.data?.appointmentId ??
-        payload.data?.patientId ??
-        payload.data?.slotId ??
-        payload.data?.roomId ??
-        "";
-      const eventKey = `${payload.type}:${payload.timestamp}:${typeof entityId === "object" ? JSON.stringify(entityId) : entityId}`;
-      const now = Date.now();
-      const lastProcessed = processedEventsRef.current.get(eventKey) || 0;
-
-      // Ignore if dispatched within the last 500ms
-      if (now - lastProcessed < 500) {
-        return;
-      }
-
-      processedEventsRef.current.set(eventKey, now);
-
-      // Clean up cache periodically
-      if (processedEventsRef.current.size > 100) {
-        for (const [k, time] of processedEventsRef.current.entries()) {
-          if (now - time > 10000) {
-            processedEventsRef.current.delete(k);
-          }
-        }
-      }
-
-      setLastEvent(payload);
-      onEventRef.current?.(payload);
-    },
-    [],
-  );
-
-  const eventSourceRef = React.useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptRef = React.useRef(0);
-
-  const connect = React.useCallback(() => {
+  const reconnect = React.useCallback(() => {
     if (!enabled) return;
-
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
+    if (sharedEventSource) {
+      sharedEventSource.close();
+      sharedEventSource = null;
     }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    setConnectionStatus("connecting");
-    const es = new EventSource("/api/realtime/sse");
-    eventSourceRef.current = es;
-
-    es.addEventListener("connected", () => {
-      const wasReconnecting = reconnectAttemptRef.current > 0;
-      setConnectionStatus("connected");
-      reconnectAttemptRef.current = 0;
-      if (wasReconnecting) {
-        onReconnectRef.current?.();
-      }
-    });
-
-    es.onopen = () => {
-      const wasReconnecting = reconnectAttemptRef.current > 0;
-      setConnectionStatus("connected");
-      reconnectAttemptRef.current = 0;
-      if (wasReconnecting) {
-        onReconnectRef.current?.();
-      }
-    };
-
-    // Generic broadcast handler
-    es.onmessage = (e) => {
-      try {
-        const payload = JSON.parse(e.data) as RealtimeEventPayload;
-        dispatchEvent(payload);
-      } catch {
-        // Ping or non-JSON
-      }
-    };
-
-    // Specific event listeners for all clinical entities
-    const eventTypes = [
-      "appointment_created",
-      "appointment_updated",
-      "appointment_cancelled",
-      "station_changed",
-      "patient_created",
-      "patient_updated",
-      "slot_updated",
-      "doctor_called",
-      "room_updated",
-    ];
-
-    eventTypes.forEach((evtType) => {
-      es.addEventListener(evtType, (e: MessageEvent) => {
-        try {
-          const payload = JSON.parse(e.data) as RealtimeEventPayload;
-          dispatchEvent(payload);
-        } catch {
-          // Ignore
-        }
-      });
-    });
-
-    es.onerror = () => {
-      setConnectionStatus("disconnected");
-      es.close();
-      eventSourceRef.current = null;
-
-      // Smart reconnect with exponential backoff: 1s, 2s, 4s, capped at 8s
-      reconnectAttemptRef.current += 1;
-      const delay = Math.min(1000 * Math.pow(1.5, reconnectAttemptRef.current), 8000);
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connect();
-      }, delay);
-    };
-  }, [enabled, dispatchEvent]);
+    ensureSharedConnection();
+    void pollCatchUpEvents();
+  }, [enabled]);
 
   React.useEffect(() => {
     if (!enabled) {
@@ -164,18 +296,32 @@ export function useRealtimeEvents(options: UseRealtimeEventsOptions = {}) {
       return;
     }
 
-    connect();
+    const subscriber: SharedSubscriber = {
+      onEvent: (evt) => {
+        setLastEvent(evt);
+        onEventRef.current?.(evt);
+      },
+      onStatusChange: (status) => {
+        setConnectionStatus(status);
+      },
+      onReconnect: () => {
+        onReconnectRef.current?.();
+      },
+    };
 
-    // Auto-reconnect when device comes back online or browser tab resumes
+    sharedSubscribers.add(subscriber);
+    setConnectionStatus(sharedStatus);
+    ensureSharedConnection();
+
     const handleOnline = () => {
-      connect();
+      ensureSharedConnection();
+      void pollCatchUpEvents();
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        if (!eventSourceRef.current || eventSourceRef.current.readyState === EventSource.CLOSED) {
-          connect();
-        }
+        ensureSharedConnection();
+        void pollCatchUpEvents();
       }
     };
 
@@ -185,17 +331,15 @@ export function useRealtimeEvents(options: UseRealtimeEventsOptions = {}) {
     return () => {
       window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
+      sharedSubscribers.delete(subscriber);
+      teardownSharedConnectionIfIdle();
     };
-  }, [enabled, connect]);
+  }, [enabled]);
 
   return {
     connectionStatus,
     lastEvent,
-    reconnect: connect,
+    reconnect,
   };
 }
+

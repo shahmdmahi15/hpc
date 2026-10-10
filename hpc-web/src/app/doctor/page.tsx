@@ -20,6 +20,7 @@ export default async function DoctorPage() {
     <DoctorDashboardView
       initialData={initialData}
       currentUserRole={user.role}
+      currentUserId={user.id}
     />
   );
 }

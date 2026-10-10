@@ -33,6 +33,7 @@ import {
   Send,
   Phone,
   Compass,
+  MessageSquare,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
@@ -40,20 +41,33 @@ import { formatTime12h } from "@/lib/queue-punctuality";
 import { HandlerSendPatientDialog } from "@/components/handler/handler-send-patient-dialog";
 import { ModalityTimersWidget } from "@/components/handler/modality-timers-widget";
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
+import { ClinicChatView } from "@/components/chat/clinic-chat-view";
+import { useChatNotifications } from "@/hooks/use-chat-notifications";
+import { playChatChime } from "@/lib/chat-chime";
 
 interface HandlerDashboardViewProps {
   initialData: HandlerDashboardData;
   currentUserRole?: Role;
+  currentUserId?: string;
 }
 
 export function HandlerDashboardView({
   initialData,
   currentUserRole,
+  currentUserId,
 }: HandlerDashboardViewProps) {
   const [data, setData] = React.useState<HandlerDashboardData>(initialData);
   const [selectedDate, setSelectedDate] = React.useState<string>(
     initialData.selectedDate,
   );
+  const [activeTab, setActiveTab] = React.useState<string>("queue");
+
+  // Real-time Chat Notifications & Chime at the Handler Floor Root Level
+  const { unreadCount: unreadChatCount } = useChatNotifications({
+    isChatTabActive: activeTab === "chat",
+    currentUserId,
+    onOpenChatTab: () => setActiveTab("chat"),
+  });
 
   // Modals for ticket booking and registering patients
   const [isNewPatientOpen, setIsNewPatientOpen] = React.useState(false);
@@ -122,17 +136,20 @@ export function HandlerDashboardView({
   // 100% Offline Real-Time SSE Subscription
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
-      if (
-        event.type === "APPOINTMENT_CREATED" ||
-        event.type === "APPOINTMENT_UPDATED" ||
-        event.type === "APPOINTMENT_CANCELLED" ||
-        event.type === "PATIENT_CREATED" ||
-        event.type === "SLOT_UPDATED" ||
-        event.type === "ROOM_UPDATED" ||
-        event.type === "DOCTOR_CALLED"
-      ) {
+      const type = (event?.type || "").toUpperCase();
+      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         refreshData(selectedDateRef.current);
+        if (type === "PATIENT_QUEUED_FOR_THERAPY") {
+          playChatChime(false);
+          toast.info(
+            `New Patient in Therapy Queue: ${event.data?.patientName || "Patient"} (${event.data?.slotLabel || "Therapy Slot"})`,
+            { id: `queue-therapy-${event.data?.appointmentId || Date.now()}` },
+          );
+        }
       }
+    },
+    onReconnect: () => {
+      refreshData(selectedDateRef.current);
     },
   });
 
@@ -476,19 +493,20 @@ export function HandlerDashboardView({
         )}
 
         {/* Tabs for Handler Desk Navigation */}
-        <Tabs defaultValue="queue" className="w-full space-y-2.5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5">
-            <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 flex flex-wrap gap-1 max-w-full">
-              <TabsTrigger
-                value="queue"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Activity className="size-3 text-emerald-500" />
-                <span>Therapy Queue</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
-                  {data.therapyQueue.length}
-                </span>
-              </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-2.5">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2 border-b border-border/50 pb-1.5 w-full min-w-0">
+            <div className="w-full overflow-x-auto scrollbar-none min-w-0">
+              <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 inline-flex items-center gap-1 shrink-0">
+                <TabsTrigger
+                  value="queue"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Activity className="size-3 text-emerald-500" />
+                  <span>Therapy Queue</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
+                    {data.therapyQueue.length}
+                  </span>
+                </TabsTrigger>
 
               <TabsTrigger
                 value="booking"
@@ -547,7 +565,21 @@ export function HandlerDashboardView({
                   {data.completedTherapy.length}
                 </span>
               </TabsTrigger>
+
+              <TabsTrigger
+                value="chat"
+                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
+              >
+                <MessageSquare className="size-3 text-primary" />
+                <span>Clinic Chat</span>
+                {unreadChatCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
+                    {unreadChatCount}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
+            </div>
           </div>
 
           {/* 1. Therapy Queue Tab */}
@@ -594,6 +626,7 @@ export function HandlerDashboardView({
               stats={data.stats}
               selectedDate={selectedDate}
               dayOfWeek={data.dayOfWeek}
+              showDateSelector={false}
               onSelectDate={handleSelectDate}
               onBookSlot={handleBookSlot}
               onCheckIn={handleCheckIn}
@@ -603,7 +636,10 @@ export function HandlerDashboardView({
 
           {/* 2B. Patient Journey Tracking Tab */}
           <TabsContent value="tracking" className="space-y-2 outline-none">
-            <PatientJourneyTrackerView defaultDate={selectedDate} />
+            <PatientJourneyTrackerView
+              defaultDate={selectedDate}
+              showDateSelector={false}
+            />
           </TabsContent>
 
           {/* 3. Extra Slots Monitor Tab */}
@@ -695,6 +731,20 @@ export function HandlerDashboardView({
                 </table>
               </div>
             )}
+          </TabsContent>
+
+          {/* 7. Clinic Real-time Internal Chat Tab */}
+          <TabsContent value="chat" className="space-y-2 outline-none">
+            <ClinicChatView
+              currentUserRole={currentUserRole || Role.HANDLER}
+              currentUserId={currentUserId}
+              initialDate={selectedDate}
+              showDateSelector={false}
+              activePerformerId={selectedHandlerId}
+              performers={data.handlerPerformers}
+              rooms={data.rooms}
+              onDateChange={handleSelectDate}
+            />
           </TabsContent>
         </Tabs>
       </main>

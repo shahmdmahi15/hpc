@@ -65,6 +65,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { SlotStatus } from "@/generated/prisma/enums";
 import {
   WEEK_DAYS,
@@ -104,7 +106,22 @@ const DAY_OPTIONS = [
 ] as const;
 
 export function SlotManagementView({ initialData }: SlotManagementViewProps) {
+  const router = useRouter();
   const { slots, rooms, adminPerformers, stats } = initialData;
+
+  useRealtimeEvents({
+    onEvent: (event) => {
+      if (
+        event.type !== "CHAT_MESSAGE_SENT" &&
+        event.type !== "CHAT_MESSAGE_DELETED"
+      ) {
+        router.refresh();
+      }
+    },
+    onReconnect: () => {
+      router.refresh();
+    },
+  });
 
   // View state: 'table' or 'grid' (matching rooms page default 'table')
   const [viewMode, setViewMode] = React.useState<"table" | "grid">("table");

@@ -21,26 +21,31 @@ import {
   createPatientSchema,
   updatePatientSchema,
   checkInArrivingPatientSchema,
+  bookConsultationSerialSchema,
+  checkoutPatientVisitSchema,
   type CreatePatientInput,
   type UpdatePatientInput,
   type CheckInArrivingPatientInput,
+  type BookConsultationSerialInput,
+  type CheckoutPatientVisitInput,
   type PatientActionState,
 } from "@/schemas/receptionist/patient.schema";
 import { logAudit } from "@/lib/audit";
 import { verifyPerformerPin } from "@/lib/performer-auth";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
-import { syncBillingForAppointment } from "@/lib/billing-sync";
+import { syncBillingForAppointment, syncBillingForPatient } from "@/lib/billing-sync";
 import { revalidatePath } from "next/cache";
 
 /**
- * Ensures Room 200 (Designated Public Waiting Room) exists in the database
+ * Dynamically resolves the clinic's Designated Public Waiting Room (first room with RoomAccessType.PUBLIC)
  */
-export async function getOrCreateWaitingRoom200() {
-  let room200 = await prisma.room.findFirst({
-    where: { number: "200" },
+export async function getPublicWaitingRoom() {
+  let waitingRoom = await prisma.room.findFirst({
+    where: { accessType: RoomAccessType.PUBLIC },
+    orderBy: { number: "asc" },
   });
-  if (!room200) {
-    room200 = await prisma.room.create({
+  if (!waitingRoom) {
+    waitingRoom = await prisma.room.create({
       data: {
         number: "200",
         purpose: "Waiting Room",
@@ -50,8 +55,13 @@ export async function getOrCreateWaitingRoom200() {
       },
     });
   }
-  return room200;
+  return waitingRoom;
 }
+
+/**
+ * Backwards compatibility alias for getPublicWaitingRoom
+ */
+export const getOrCreateWaitingRoom200 = getPublicWaitingRoom;
 
 /**
  * Registers a new patient with automated Medical Record Number (MRN) generation.
@@ -176,7 +186,8 @@ export async function createPatientAction(
 
     let createdAppointment = null;
 
-    // If checkInNow is requested, mark patient as checked in today in Waiting Room 200
+    let waitingRoom: any = null;
+    // If checkInNow is requested, mark patient as checked in today in Public Waiting Room
     if (checkInNow) {
       const now = new Date();
       const checkInDateObj = checkInTime ? new Date(checkInTime) : now;
@@ -199,8 +210,38 @@ export async function createPatientAction(
         999,
       );
 
-      // Ensure Room 200 (Designated Public Waiting Room) exists
-      const room200 = await getOrCreateWaitingRoom200();
+      // Dynamically resolve Public Waiting Room
+      waitingRoom = await getPublicWaitingRoom();
+
+      // Create or find active PatientVisit for today
+      let visit = await prisma.patientVisit.findFirst({
+        where: {
+          patientId: targetPatient.id,
+          visitDate: { gte: startOfDay, lte: endOfDay },
+          status: { not: "CHECKED_OUT" },
+        },
+        orderBy: { checkInTime: "desc" },
+      });
+
+      if (!visit) {
+        const visitCountToday = await prisma.patientVisit.count({
+          where: {
+            patientId: targetPatient.id,
+            visitDate: { gte: startOfDay, lte: endOfDay },
+          },
+        });
+        visit = await prisma.patientVisit.create({
+          data: {
+            patientId: targetPatient.id,
+            visitNumber: visitCountToday + 1,
+            visitDate: now,
+            checkInTime: checkInDateObj,
+            status: "CHECKED_IN",
+            checkInPerformerId: validation.data.performerId || null,
+            notes: notes || undefined,
+          },
+        });
+      }
 
       // Check if patient already has an active appointment for today
       const existingAppointment = await prisma.appointment.findFirst({
@@ -213,7 +254,7 @@ export async function createPatientAction(
         },
       });
 
-      // Automatic assignment to Waiting Room 200 (no queue or doctor assigned yet)
+      // Automatic assignment to Waiting Room (no queue or doctor assigned yet)
       const stationToSet = "RECEPTIONIST_DESK";
 
       if (existingAppointment) {
@@ -222,7 +263,8 @@ export async function createPatientAction(
           data: {
             status: AppointmentStatus.CHECKED_IN,
             currentStation: stationToSet,
-            roomId: room200.id,
+            roomId: waitingRoom.id,
+            visitId: visit.id,
             checkInTime: checkInDateObj,
             toldTime: toldTime || existingAppointment.toldTime || undefined,
             notes: notes || existingAppointment.notes || undefined,
@@ -245,12 +287,13 @@ export async function createPatientAction(
           data: {
             type: AppointmentType.CONSULTATION,
             patientId: targetPatient.id,
+            visitId: visit.id,
             appointmentDate: middayToday,
             gender: targetPatient.gender,
             bookingType: BookingType.REGULAR,
             status: AppointmentStatus.CHECKED_IN,
             currentStation: stationToSet,
-            roomId: room200.id,
+            roomId: waitingRoom.id,
             checkInTime: checkInDateObj,
             queueId: null,
             queueType: null,
@@ -270,6 +313,19 @@ export async function createPatientAction(
 
       await syncBillingForAppointment(createdAppointment.id);
 
+      // Record in PatientStepLog
+      await prisma.patientStepLog.create({
+        data: {
+          patientId: targetPatient.id,
+          visitId: visit.id,
+          step: "CHECK_IN",
+          station: stationToSet,
+          roomNumber: waitingRoom.number,
+          performerId: validation.data.performerId || null,
+          details: `Registered & checked in to Waiting Room (${waitingRoom.number})`,
+        },
+      });
+
       // Log appointment audit
       await logAudit({
         userId: sessionData.user.id,
@@ -279,11 +335,11 @@ export async function createPatientAction(
         entityId: createdAppointment.id,
         status: AuditStatus.SUCCESS,
         details: {
-          action: "PATIENT_ARRIVAL_CHECKIN_ROOM_200",
+          action: "PATIENT_ARRIVAL_CHECKIN_WAITING_ROOM",
           patientName: targetPatient.name,
           mrn: targetPatient.mrn,
-          roomNumber: "200",
-          station: "RECEPTIONIST_DESK",
+          roomNumber: waitingRoom.number,
+          station: stationToSet,
           checkInTime: checkInDateObj.toISOString(),
           performerId: validation.data.performerId,
         },
@@ -295,17 +351,17 @@ export async function createPatientAction(
         patientName: targetPatient.name,
         gender: targetPatient.gender,
         status: AppointmentStatus.CHECKED_IN,
-        roomNumber: "200",
-        currentStation: "RECEPTIONIST_DESK",
+        roomNumber: waitingRoom.number,
+        currentStation: stationToSet,
         checkInTime: checkInDateObj.toISOString(),
       });
       emitRealtimeEvent("STATION_CHANGED", {
         appointmentId: createdAppointment.id,
         patientId: targetPatient.id,
         patientName: targetPatient.name,
-        toStation: "RECEPTIONIST_DESK",
+        toStation: stationToSet,
         status: AppointmentStatus.CHECKED_IN,
-        roomNumber: "200",
+        roomNumber: waitingRoom.number,
       });
     }
 
@@ -320,7 +376,7 @@ export async function createPatientAction(
     );
 
     const successMsg = checkInNow
-      ? `Patient "${targetPatient.name}" (${targetPatient.mrn}) registered & placed in Waiting Room 200 at ${timeStr}.`
+      ? `Patient "${targetPatient.name}" (${targetPatient.mrn}) registered & placed in Waiting Room (${waitingRoom?.number || "Public"}) at ${timeStr}.`
       : `Patient "${targetPatient.name}" registered successfully with MRN ${targetPatient.mrn}.`;
 
     return {
@@ -345,7 +401,13 @@ export async function createPatientAction(
  */
 export async function checkInArrivingPatientAction(
   data: CheckInArrivingPatientInput,
-): Promise<{ success: boolean; message: string; appointment?: any }> {
+): Promise<{
+  success: boolean;
+  message: string;
+  appointment?: any;
+  consultationSerial?: any;
+  visit?: any;
+}> {
   try {
     const sessionData = await requireAuth([
       Role.RECEPTIONIST,
@@ -422,115 +484,412 @@ export async function checkInArrivingPatientAction(
       999,
     );
 
-    // Ensure Room 200 (Designated Public Waiting Room) exists
-    const room200 = await getOrCreateWaitingRoom200();
+    // Dynamically resolve Public Waiting Room
+    const waitingRoom = await getPublicWaitingRoom();
 
-    const stationToSet = "RECEPTIONIST_DESK";
-
-    // Check for existing appointment today
-    const existingAppointment = await prisma.appointment.findFirst({
+    // Create or find active PatientVisit for today
+    let visit = await prisma.patientVisit.findFirst({
       where: {
         patientId: patient.id,
-        appointmentDate: { gte: startOfDay, lte: endOfDay },
-        status: {
-          notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
-        },
+        visitDate: { gte: startOfDay, lte: endOfDay },
+        status: { not: "CHECKED_OUT" },
       },
+      orderBy: { checkInTime: "desc" },
     });
 
-    let updatedAppointment;
-
-    if (existingAppointment) {
-      updatedAppointment = await prisma.appointment.update({
-        where: { id: existingAppointment.id },
-        data: {
-          status: AppointmentStatus.CHECKED_IN,
-          currentStation: stationToSet,
-          roomId: room200.id,
-          checkInTime: checkInDateObj,
-          performerId,
-          ...(toldTime ? { toldTime } : {}),
-          ...(notes ? { notes } : {}),
-        },
-        include: { patient: true, doctor: true, therapySlot: true, room: true },
-      });
-    } else {
-      const middayToday = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        12,
-        0,
-        0,
-        0,
-      );
-
-      updatedAppointment = await prisma.appointment.create({
-        data: {
-          type: AppointmentType.CONSULTATION,
+    if (!visit) {
+      const count = await prisma.patientVisit.count({
+        where: {
           patientId: patient.id,
-          appointmentDate: middayToday,
-          gender: patient.gender,
-          bookingType: BookingType.REGULAR,
-          status: AppointmentStatus.CHECKED_IN,
-          currentStation: stationToSet,
-          roomId: room200.id,
-          checkInTime: checkInDateObj,
-          queueId: null,
-          queueType: null,
-          doctorId: null,
-          toldTime: toldTime || undefined,
-          notes: notes || undefined,
-          bookedById: performerId,
-          performerId: performerId,
-          feeAmount: 0,
-          paidAmount: 0,
-          dueAmount: 0,
-          paymentStatus: "PENDING",
+          visitDate: { gte: startOfDay, lte: endOfDay },
         },
-        include: { patient: true, doctor: true, therapySlot: true, room: true },
+      });
+      visit = await prisma.patientVisit.create({
+        data: {
+          patientId: patient.id,
+          visitNumber: count + 1,
+          visitDate: now,
+          checkInTime: checkInDateObj,
+          status: "CHECKED_IN",
+          checkInPerformerId: performerId,
+          notes: notes || undefined,
+        },
       });
     }
 
-    await syncBillingForAppointment(updatedAppointment.id);
+    // 1. Check if patient already has a Consultation Serial booked today
+    const existingSerial = await prisma.consultationSerial.findFirst({
+      where: {
+        patientId: patient.id,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
+      },
+      include: { doctor: true, invoice: true },
+      orderBy: { serialNumber: "desc" },
+    });
+
+    // 2. Check if patient has a Therapy Slot booked today
+    const existingTherapyAppointment = await prisma.appointment.findFirst({
+      where: {
+        patientId: patient.id,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        type: AppointmentType.THERAPY,
+        therapySlotId: { not: null },
+        status: { notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED] },
+      },
+      include: { therapySlot: true },
+      orderBy: { createdAt: "desc" },
+    });
+
+    let updatedAppointment = null;
+    let updatedSerial = null;
+    let stationToSet = "RECEPTIONIST_DESK";
+    let stepLogAction = "CHECK_IN";
+    let stepLogDetails = `Checked in to Waiting Room (${waitingRoom.number})`;
+
+    if (existingSerial) {
+      const isAlreadyBilled =
+        existingSerial.paymentStatus === "PAID" ||
+        existingSerial.paymentStatus === "DUE" ||
+        Boolean(existingSerial.invoiceId);
+
+      if (isAlreadyBilled) {
+        // Scenario A1: Consultation Serial booked today AND ALREADY BILLED -> Placed in Doctor Consultation Queue
+        stationToSet = "CONSULTATION_ROOM";
+        stepLogAction = "QUEUED_FOR_DOCTOR";
+        stepLogDetails = `Checked in with Consultation Serial #${existingSerial.serialNumber} (Dr. ${existingSerial.doctor?.name || "Doctor"}) -> Placed in Doctor Consultation Queue (Billed / Invoice #${existingSerial.invoice?.invoiceNumber || "Cleared"})`;
+
+        updatedSerial = await prisma.consultationSerial.update({
+          where: { id: existingSerial.id },
+          data: {
+            status: "QUEUED",
+            visitId: visit.id,
+            bookedById: performerId || existingSerial.bookedById,
+            toldTime: toldTime || existingSerial.toldTime,
+          },
+          include: { doctor: true, invoice: true },
+        });
+
+        const existingApt = await prisma.appointment.findFirst({
+          where: {
+            patientId: patient.id,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            type: AppointmentType.CONSULTATION,
+          },
+        });
+
+        if (existingApt) {
+          updatedAppointment = await prisma.appointment.update({
+            where: { id: existingApt.id },
+            data: {
+              queueType: QueueType.CONSULTATION,
+              status: AppointmentStatus.CHECKED_IN,
+              currentStation: stationToSet,
+              roomId: waitingRoom.id,
+              visitId: visit.id,
+              checkInTime: checkInDateObj,
+              doctorId: existingSerial.doctorId,
+              invoiceId: existingSerial.invoiceId || existingApt.invoiceId,
+              feeAmount: 0, // Consultation fee is tracked on ConsultationSerial
+              paidAmount: 0,
+              dueAmount: 0,
+              paymentStatus: "PAID",
+              notes: notes || existingSerial.notes || existingApt.notes,
+              ...(toldTime ? { toldTime } : {}),
+            },
+            include: { patient: true, doctor: true, therapySlot: true, room: true },
+          });
+        } else {
+          updatedAppointment = await prisma.appointment.create({
+            data: {
+              type: AppointmentType.CONSULTATION,
+              queueType: QueueType.CONSULTATION,
+              status: AppointmentStatus.CHECKED_IN,
+              currentStation: stationToSet,
+              roomId: waitingRoom.id,
+              patientId: patient.id,
+              visitId: visit.id,
+              checkInTime: checkInDateObj,
+              doctorId: existingSerial.doctorId,
+              gender: patient.gender,
+              invoiceId: existingSerial.invoiceId,
+              feeAmount: 0,
+              paidAmount: 0,
+              dueAmount: 0,
+              paymentStatus: "PAID",
+              toldTime: toldTime || existingSerial.toldTime || undefined,
+              notes: notes || existingSerial.notes || undefined,
+              performerId,
+            },
+            include: { patient: true, doctor: true, therapySlot: true, room: true },
+          });
+        }
+      } else {
+        // Scenario 6: Consultation Serial booked today but NOT billed yet -> Placed in Waiting Room & Forward to Cashier (NO queue yet!)
+        stationToSet = "CASHIER_REGISTER";
+        stepLogAction = "FORWARDED_TO_CASHIER";
+        stepLogDetails = `Checked in with Consultation Serial #${existingSerial.serialNumber} (Dr. ${existingSerial.doctor?.name || "Doctor"}) -> Forwarded to Cashier Desk for payment (NOT queued yet)`;
+
+        updatedSerial = await prisma.consultationSerial.update({
+          where: { id: existingSerial.id },
+          data: {
+            status: "FORWARDED_TO_CASHIER",
+            visitId: visit.id,
+            bookedById: performerId || existingSerial.bookedById,
+            toldTime: toldTime || existingSerial.toldTime,
+            ...(notes ? { notes } : {}),
+          },
+          include: { doctor: true, invoice: true },
+        });
+
+        // Ensure patient is in Waiting Room (Room 200) with queueType: null
+        const existingApt = await prisma.appointment.findFirst({
+          where: {
+            patientId: patient.id,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            type: AppointmentType.CONSULTATION,
+          },
+        });
+
+        if (existingApt) {
+          updatedAppointment = await prisma.appointment.update({
+            where: { id: existingApt.id },
+            data: {
+              status: AppointmentStatus.CHECKED_IN,
+              currentStation: stationToSet,
+              roomId: waitingRoom.id,
+              visitId: visit.id,
+              doctorId: existingSerial.doctorId,
+              checkInTime: checkInDateObj,
+              queueType: null,
+              feeAmount: 0,
+              paidAmount: 0,
+              dueAmount: 0,
+              paymentStatus: "PENDING",
+              notes: notes || existingSerial.notes || existingApt.notes,
+              performerId,
+            },
+            include: { patient: true, doctor: true, therapySlot: true, room: true },
+          });
+        } else {
+          updatedAppointment = await prisma.appointment.create({
+            data: {
+              type: AppointmentType.CONSULTATION,
+              queueType: null,
+              status: AppointmentStatus.CHECKED_IN,
+              currentStation: stationToSet,
+              roomId: waitingRoom.id,
+              patientId: patient.id,
+              visitId: visit.id,
+              doctorId: existingSerial.doctorId,
+              checkInTime: checkInDateObj,
+              gender: patient.gender,
+              feeAmount: 0,
+              paidAmount: 0,
+              dueAmount: 0,
+              paymentStatus: "PENDING",
+              notes: notes || existingSerial.notes || undefined,
+              performerId,
+            },
+            include: { patient: true, doctor: true, therapySlot: true, room: true },
+          });
+        }
+
+        emitRealtimeEvent("CONSULTATION_SERIAL_BOOKED", {
+          serialId: updatedSerial.id,
+          serialNumber: updatedSerial.serialNumber,
+          patientId: patient.id,
+          patientName: patient.name,
+          doctorId: updatedSerial.doctorId,
+          doctorName: updatedSerial.doctor?.name,
+          feeAmount: updatedSerial.feeAmount,
+          status: "FORWARDED_TO_CASHIER",
+          roomNumber: waitingRoom.number,
+          notes: updatedSerial.notes,
+        });
+      }
+    } else if (existingTherapyAppointment) {
+      // Scenario 7: Therapy Slot booked today
+      const hasPreviousDue = (patient.totalDue ?? 0) > 0;
+      if (hasPreviousDue) {
+        // Has outstanding previous due -> Placed in Waiting Room and forwarded to Cashier to clear due!
+        stationToSet = "CASHIER_REGISTER";
+        stepLogAction = "FORWARDED_TO_CASHIER";
+        stepLogDetails = `Checked in for Therapy Slot ${existingTherapyAppointment.therapySlot?.label || "Session"} with previous due of ৳${patient.totalDue} -> Forwarded to Cashier Desk for due clearance (NOT in Therapy Queue yet)`;
+
+        updatedAppointment = await prisma.appointment.update({
+          where: { id: existingTherapyAppointment.id },
+          data: {
+            status: AppointmentStatus.CHECKED_IN,
+            currentStation: stationToSet,
+            roomId: waitingRoom.id,
+            visitId: visit.id,
+            checkInTime: checkInDateObj,
+            queueType: null, // Awaiting due clearance before entering queue!
+            performerId,
+            ...(toldTime ? { toldTime } : {}),
+            ...(notes ? { notes } : {}),
+          },
+          include: { patient: true, doctor: true, therapySlot: true, room: true },
+        });
+
+        emitRealtimeEvent("THERAPY_FORWARDED_FOR_DUE", {
+          appointmentId: existingTherapyAppointment.id,
+          patientId: patient.id,
+          patientName: patient.name,
+          slotLabel: existingTherapyAppointment.therapySlot?.label,
+          totalDue: patient.totalDue,
+        });
+      } else {
+        // No previous due -> Directly placed in Therapy Queue!
+        stationToSet = "THERAPY_ROOM";
+        stepLogAction = "QUEUED_FOR_THERAPY";
+        stepLogDetails = `Checked in for Therapy Slot ${existingTherapyAppointment.therapySlot?.label || "Session"} -> Placed in Therapy Queue`;
+
+        updatedAppointment = await prisma.appointment.update({
+          where: { id: existingTherapyAppointment.id },
+          data: {
+            status: AppointmentStatus.CHECKED_IN,
+            currentStation: stationToSet,
+            roomId: waitingRoom.id,
+            queueType: QueueType.THERAPY,
+            visitId: visit.id,
+            checkInTime: checkInDateObj,
+            performerId,
+            ...(toldTime ? { toldTime } : {}),
+            ...(notes ? { notes } : {}),
+          },
+          include: { patient: true, doctor: true, therapySlot: true, room: true },
+        });
+
+        emitRealtimeEvent("PATIENT_QUEUED_FOR_THERAPY", {
+          appointmentId: existingTherapyAppointment.id,
+          patientId: patient.id,
+          patientName: patient.name,
+          slotLabel: existingTherapyAppointment.therapySlot?.label,
+        });
+      }
+      await syncBillingForAppointment(updatedAppointment.id);
+    } else {
+      // Scenario C: Walk-In / No Booking -> Placed in Waiting Room (NO queue assigned!)
+      stationToSet = "RECEPTIONIST_DESK";
+      stepLogAction = "CHECK_IN";
+      stepLogDetails = `Walk-in arrival checked in to Waiting Room (${waitingRoom.number}) without queue assignment`;
+
+      const existingWalkIn = await prisma.appointment.findFirst({
+        where: {
+          patientId: patient.id,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          status: {
+            notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
+          },
+        },
+      });
+
+      if (existingWalkIn) {
+        updatedAppointment = await prisma.appointment.update({
+          where: { id: existingWalkIn.id },
+          data: {
+            status: AppointmentStatus.CHECKED_IN,
+            currentStation: stationToSet,
+            roomId: waitingRoom.id,
+            visitId: visit.id,
+            checkInTime: checkInDateObj,
+            performerId,
+            ...(toldTime ? { toldTime } : {}),
+            ...(notes ? { notes } : {}),
+          },
+          include: { patient: true, doctor: true, therapySlot: true, room: true },
+        });
+      } else {
+        const middayToday = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          12,
+          0,
+          0,
+          0,
+        );
+
+        updatedAppointment = await prisma.appointment.create({
+          data: {
+            type: AppointmentType.CONSULTATION,
+            patientId: patient.id,
+            visitId: visit.id,
+            appointmentDate: middayToday,
+            gender: patient.gender,
+            bookingType: BookingType.REGULAR,
+            status: AppointmentStatus.CHECKED_IN,
+            currentStation: stationToSet,
+            roomId: waitingRoom.id,
+            checkInTime: checkInDateObj,
+            queueId: null,
+            queueType: null,
+            doctorId: null,
+            toldTime: toldTime || undefined,
+            notes: notes || undefined,
+            bookedById: performerId,
+            performerId,
+            feeAmount: 0,
+            paidAmount: 0,
+            dueAmount: 0,
+            paymentStatus: "PENDING",
+          },
+          include: { patient: true, doctor: true, therapySlot: true, room: true },
+        });
+      }
+      await syncBillingForAppointment(updatedAppointment.id);
+    }
+
+    // Record step in PatientStepLog
+    await prisma.patientStepLog.create({
+      data: {
+        patientId: patient.id,
+        visitId: visit.id,
+        step: stepLogAction,
+        station: stationToSet,
+        roomNumber: waitingRoom.number,
+        performerId,
+        details: stepLogDetails,
+      },
+    });
 
     // Audit Log
     await logAudit({
       userId: sessionData.user.id,
       performerId: performerId || null,
       action: AuditAction.APPOINTMENT_UPDATE,
-      entity: "Appointment",
-      entityId: updatedAppointment.id,
+      entity: "PatientVisit",
+      entityId: visit.id,
       status: AuditStatus.SUCCESS,
       details: {
-        action: "ARRIVAL_CHECK_IN_ROOM_200",
+        action: "ARRIVAL_CHECK_IN",
         patientName: patient.name,
         mrn: patient.mrn,
-        roomNumber: "200",
+        roomNumber: waitingRoom.number,
         station: stationToSet,
         checkInTime: checkInDateObj.toISOString(),
       },
     });
 
-    // Realtime SSE broadcast
-    emitRealtimeEvent("APPOINTMENT_UPDATED", {
-      id: updatedAppointment.id,
+    // Realtime SSE broadcasts
+    emitRealtimeEvent("PATIENT_CHECKED_IN", {
+      patientId: patient.id,
       patientName: patient.name,
-      status: AppointmentStatus.CHECKED_IN,
-      roomNumber: "200",
+      roomNumber: waitingRoom.number,
+      station: stationToSet,
       checkInTime: checkInDateObj.toISOString(),
-      currentStation: stationToSet,
     });
     emitRealtimeEvent("STATION_CHANGED", {
-      appointmentId: updatedAppointment.id,
       patientId: patient.id,
       patientName: patient.name,
       toStation: stationToSet,
-      status: AppointmentStatus.CHECKED_IN,
-      roomNumber: "200",
+      roomNumber: waitingRoom.number,
     });
 
     revalidatePath("/receptionist");
+    revalidatePath("/cashier");
     revalidatePath("/doctor");
     revalidatePath("/handler");
     revalidatePath("/admin/tracking");
@@ -541,10 +900,22 @@ export async function checkInArrivingPatientAction(
       hour12: true,
     });
 
+    const msg = existingSerial
+      ? existingSerial.paymentStatus === "PAID" ||
+        existingSerial.paymentStatus === "DUE" ||
+        Boolean(existingSerial.invoiceId)
+        ? `Patient "${patient.name}" (${patient.mrn || "No MRN"}) checked in at ${timeStr}. Consultation Serial #${existingSerial.serialNumber} is billed and placed in Doctor Consultation Queue.`
+        : `Patient "${patient.name}" (${patient.mrn || "No MRN"}) checked in at ${timeStr}. Consultation Serial #${existingSerial.serialNumber} forwarded to Cashier Desk for payment.`
+      : existingTherapyAppointment
+        ? `Patient "${patient.name}" (${patient.mrn || "No MRN"}) checked in at ${timeStr} and placed in Therapy Queue.`
+        : `Patient "${patient.name}" (${patient.mrn || "No MRN"}) checked in to Waiting Room (${waitingRoom.number}) at ${timeStr} without queue assignment.`;
+
     return {
       success: true,
-      message: `Patient "${patient.name}" (${patient.mrn || "No MRN"}) checked in to Waiting Room 200 at ${timeStr}.`,
+      message: msg,
       appointment: updatedAppointment,
+      consultationSerial: updatedSerial,
+      visit,
     };
   } catch (error) {
     console.error("[Check In Arriving Patient Error]:", error);
@@ -552,6 +923,413 @@ export async function checkInArrivingPatientAction(
       success: false,
       message:
         error instanceof Error ? error.message : "Failed to check in patient.",
+    };
+  }
+}
+
+/**
+ * Books a Consultation Serial for a patient with a selected doctor.
+ * The receptionist can freely edit or override the doctor's default fee.
+ * Forwards the patient to the Cashier Desk to issue an invoice before doctor queue placement.
+ */
+export async function bookConsultationSerialAction(
+  data: BookConsultationSerialInput,
+): Promise<{ success: boolean; message: string; serial?: any }> {
+  try {
+    const sessionData = await requireAuth([
+      Role.RECEPTIONIST,
+      Role.ADMIN,
+      Role.DOCTOR,
+      Role.CASHIER,
+    ]);
+
+    const validation = bookConsultationSerialSchema.safeParse(data);
+    if (!validation.success) {
+      const errs = Object.values(validation.error.flatten().fieldErrors).flat();
+      return { success: false, message: String(errs[0] || "Invalid booking data.") };
+    }
+
+    const {
+      patientId,
+      visitId,
+      doctorId,
+      feeAmount,
+      toldTime,
+      performerId,
+      pin,
+      notes,
+    } = validation.data;
+
+    // Verify receptionist performer & PIN
+    const isExemptRole =
+      sessionData.user.role === Role.ADMIN ||
+      sessionData.user.role === Role.DOCTOR;
+
+    if (!isExemptRole) {
+      const pinRes = await verifyPerformerPin(performerId, pin);
+      if (!pinRes.valid) {
+        return { success: false, message: pinRes.error || "Invalid 4-digit staff PIN." };
+      }
+    }
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+    if (!patient) {
+      return { success: false, message: "Patient not found." };
+    }
+
+    const doctor = await prisma.user.findFirst({
+      where: { id: doctorId, role: Role.DOCTOR },
+    });
+    if (!doctor) {
+      return { success: false, message: "Selected doctor was not found." };
+    }
+
+    const now = new Date();
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    // Get current serial count for this doctor today
+    const existingCount = await prisma.consultationSerial.count({
+      where: {
+        doctorId,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+      },
+    });
+    const serialNumber = existingCount + 1;
+
+    // Find or link active PatientVisit
+    let activeVisitId = visitId;
+    if (!activeVisitId) {
+      const activeVisit = await prisma.patientVisit.findFirst({
+        where: {
+          patientId,
+          visitDate: { gte: startOfDay, lte: endOfDay },
+          status: { not: "CHECKED_OUT" },
+        },
+        orderBy: { checkInTime: "desc" },
+      });
+      activeVisitId = activeVisit?.id || null;
+    }
+
+    const waitingRoom = await getPublicWaitingRoom();
+
+    // Create ConsultationSerial (status: FORWARDED_TO_CASHIER)
+    const serial = await prisma.consultationSerial.create({
+      data: {
+        serialNumber,
+        appointmentDate: now,
+        doctorId,
+        patientId,
+        visitId: activeVisitId || undefined,
+        feeAmount: Math.max(0, feeAmount),
+        paidAmount: 0,
+        dueAmount: Math.max(0, feeAmount),
+        paymentStatus: "PENDING",
+        status: "FORWARDED_TO_CASHIER",
+        toldTime: toldTime || undefined,
+        bookedById: performerId,
+        notes: notes || undefined,
+      },
+      include: {
+        doctor: { select: { id: true, name: true, consultationFee: true } },
+        patient: true,
+      },
+    });
+
+    // Sync the patient's active today Appointment (if checked in) so station, doctorId, toldTime, and notes reflect the consultation serial booking
+    const existingApt = await prisma.appointment.findFirst({
+      where: {
+        patientId,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: {
+          notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (existingApt) {
+      await prisma.appointment.update({
+        where: { id: existingApt.id },
+        data: {
+          currentStation: "CASHIER_REGISTER",
+          doctorId: existingApt.doctorId || doctorId,
+          toldTime: toldTime || existingApt.toldTime || undefined,
+          notes: notes
+            ? existingApt.notes && existingApt.notes !== notes
+              ? `${existingApt.notes} | ${notes}`
+              : notes
+            : existingApt.notes,
+        },
+      });
+    }
+
+    // Record step in PatientStepLog
+    if (activeVisitId) {
+      await prisma.patientStepLog.create({
+        data: {
+          patientId,
+          visitId: activeVisitId,
+          step: "FORWARDED_TO_CASHIER",
+          station: "CASHIER_REGISTER",
+          roomNumber: waitingRoom.number,
+          doctorId,
+          performerId,
+          details: `Booked Consultation Serial #${serialNumber} with Dr. ${doctor.name || "Doctor"} (Fee: ৳${feeAmount}) -> Forwarded to Cashier Desk`,
+        },
+      });
+    }
+
+    // Broadcast realtime event
+    emitRealtimeEvent("CONSULTATION_SERIAL_BOOKED", {
+      serialId: serial.id,
+      serialNumber: serial.serialNumber,
+      patientId: patient.id,
+      patientName: patient.name,
+      doctorId: doctor.id,
+      doctorName: doctor.name,
+      feeAmount: serial.feeAmount,
+      status: "FORWARDED_TO_CASHIER",
+      roomNumber: waitingRoom.number,
+    });
+    emitRealtimeEvent("STATION_CHANGED", {
+      patientId: patient.id,
+      patientName: patient.name,
+      toStation: "CASHIER_REGISTER",
+      roomNumber: waitingRoom.number,
+    });
+
+    revalidatePath("/receptionist");
+    revalidatePath("/cashier");
+    revalidatePath("/doctor");
+    revalidatePath("/admin/tracking");
+
+    return {
+      success: true,
+      message: `Consultation Serial #${serialNumber} booked with Dr. ${doctor.name || "Doctor"} (৳${feeAmount}). Forwarded to Cashier Desk.`,
+      serial,
+    };
+  } catch (error) {
+    console.error("[Book Consultation Serial Error]:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to book consultation serial.",
+    };
+  }
+}
+
+/**
+ * Checks out a patient from their active visit episode.
+ * ENFORCES STRICT BILLING CLEARANCE:
+ * Blocks checkout if the patient has any unbilled therapy session or consultation serial.
+ */
+export async function checkoutPatientVisitAction(
+  data: CheckoutPatientVisitInput,
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const sessionData = await requireAuth([
+      Role.RECEPTIONIST,
+      Role.ADMIN,
+      Role.CASHIER,
+    ]);
+
+    const validation = checkoutPatientVisitSchema.safeParse(data);
+    if (!validation.success) {
+      const errs = Object.values(validation.error.flatten().fieldErrors).flat();
+      return { success: false, message: String(errs[0] || "Invalid checkout data.") };
+    }
+
+    const { patientId, visitId, performerId, pin, notes } = validation.data;
+
+    const isExemptRole = sessionData.user.role === Role.ADMIN;
+    if (!isExemptRole) {
+      const pinRes = await verifyPerformerPin(performerId, pin);
+      if (!pinRes.valid) {
+        return { success: false, message: pinRes.error || "Invalid 4-digit staff PIN." };
+      }
+    }
+
+    const now = new Date();
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    // 1. BILLING CLEARANCE GUARD: Check for unbilled therapy sessions today
+    const unbilledTherapy = await prisma.appointment.findFirst({
+      where: {
+        patientId,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        type: AppointmentType.THERAPY,
+        therapySlotId: { not: null },
+        status: { notIn: [AppointmentStatus.CANCELLED] },
+        paymentStatus: { notIn: ["PAID", "DUE"] },
+      },
+      include: { therapySlot: true },
+    });
+
+    if (unbilledTherapy) {
+      return {
+        success: false,
+        message: `Cannot Checkout: Patient has an unbilled therapy session (${unbilledTherapy.therapySlot?.label || "Session"}). Please forward patient to Cashier to collect fee or mark as Due first.`,
+      };
+    }
+
+    // 2. BILLING CLEARANCE GUARD: Check for unbilled consultation serials today
+    const unbilledConsultation = await prisma.consultationSerial.findFirst({
+      where: {
+        patientId,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { notIn: ["CANCELLED"] },
+        paymentStatus: { notIn: ["PAID", "DUE"] },
+      },
+      include: { doctor: true },
+    });
+
+    if (unbilledConsultation) {
+      return {
+        success: false,
+        message: `Cannot Checkout: Patient has an unbilled consultation serial (#${unbilledConsultation.serialNumber} with Dr. ${unbilledConsultation.doctor?.name || "Doctor"}). Please forward to Cashier first.`,
+      };
+    }
+
+    // 3. Find active PatientVisit
+    let visit = null;
+    if (visitId) {
+      visit = await prisma.patientVisit.findUnique({ where: { id: visitId } });
+    }
+    if (!visit) {
+      visit = await prisma.patientVisit.findFirst({
+        where: {
+          patientId,
+          visitDate: { gte: startOfDay, lte: endOfDay },
+          status: { not: "CHECKED_OUT" },
+        },
+        orderBy: { checkInTime: "desc" },
+      });
+    }
+
+    if (visit) {
+      await prisma.patientVisit.update({
+        where: { id: visit.id },
+        data: {
+          status: "CHECKED_OUT",
+          checkOutTime: now,
+          checkOutPerformerId: performerId,
+          notes: notes ? (visit.notes ? `${visit.notes} | ${notes}` : notes) : visit.notes,
+        },
+      });
+
+      // Record step in PatientStepLog
+      await prisma.patientStepLog.create({
+        data: {
+          patientId,
+          visitId: visit.id,
+          step: "CHECK_OUT",
+          station: "CHECKED_OUT",
+          performerId,
+          details: `Completed Visit #${visit.visitNumber} and checked out`,
+        },
+      });
+    }
+
+    // Ensure all remaining active visits for today are cleanly marked CHECKED_OUT
+    await prisma.patientVisit.updateMany({
+      where: {
+        patientId,
+        visitDate: { gte: startOfDay, lte: endOfDay },
+        status: { not: "CHECKED_OUT" },
+      },
+      data: {
+        status: "CHECKED_OUT",
+        checkOutTime: now,
+        checkOutPerformerId: performerId,
+        notes: notes || undefined,
+      },
+    });
+
+    // Update today's active appointments to COMPLETED / CHECKED_OUT
+    await prisma.appointment.updateMany({
+      where: {
+        patientId,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED] },
+      },
+      data: {
+        status: AppointmentStatus.COMPLETED,
+        currentStation: "CHECKED_OUT",
+        checkOutTime: now,
+      },
+    });
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { name: true, mrn: true },
+    });
+
+    emitRealtimeEvent("PATIENT_CHECKED_OUT", {
+      patientId,
+      patientName: patient?.name || "Patient",
+      checkOutTime: now.toISOString(),
+      station: "CHECKED_OUT",
+    });
+    emitRealtimeEvent("STATION_CHANGED", {
+      patientId,
+      patientName: patient?.name || "Patient",
+      toStation: "CHECKED_OUT",
+    });
+
+    revalidatePath("/receptionist");
+    revalidatePath("/cashier");
+    revalidatePath("/doctor");
+    revalidatePath("/handler");
+    revalidatePath("/admin/tracking");
+
+    return {
+      success: true,
+      message: `Patient "${patient?.name || "Patient"}" checked out successfully at ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}.`,
+    };
+  } catch (error) {
+    console.error("[Checkout Patient Visit Error]:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to checkout patient.",
     };
   }
 }
@@ -598,10 +1376,31 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
               { name: { contains: q } },
               { phone: { contains: q } },
               { mrn: { contains: q } },
+              { email: { contains: q } },
+              { emergencyPhone: { contains: q } },
             ],
           }
         : undefined,
       include: {
+        visits: {
+          where: {
+            visitDate: { gte: startOfDay, lte: endOfDay },
+          },
+          orderBy: { checkInTime: "desc" },
+          take: 1,
+        },
+        consultationSerials: {
+          where: {
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            status: { not: "CANCELLED" },
+          },
+          include: {
+            doctor: { select: { id: true, name: true, consultationFee: true } },
+            invoice: true,
+          },
+          orderBy: { serialNumber: "desc" },
+          take: 1,
+        },
         appointments: {
           where: {
             appointmentDate: { gte: startOfDay, lte: endOfDay },
@@ -611,6 +1410,7 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
             doctor: { select: { id: true, name: true, consultationFee: true } },
             therapySlot: { select: { id: true, label: true, startTime: true, endTime: true } },
             room: true,
+            invoice: true,
           },
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -622,6 +1422,28 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
 
     return patients.map((p) => {
       const todayAppointment = p.appointments[0] || null;
+      const todaySerial = p.consultationSerials[0] || null;
+      const activeVisit = p.visits[0] || null;
+
+      // Evaluate Therapy checkout clearance
+      const hasUnbilledTherapy = todayAppointment &&
+        todayAppointment.type === AppointmentType.THERAPY &&
+        todayAppointment.therapySlotId &&
+        todayAppointment.paymentStatus !== "PAID" &&
+        todayAppointment.paymentStatus !== "DUE";
+
+      // Evaluate Consultation checkout clearance
+      const hasUnbilledConsultation = todaySerial &&
+        todaySerial.paymentStatus !== "PAID" &&
+        todaySerial.paymentStatus !== "DUE";
+
+      const canCheckout = !hasUnbilledTherapy && !hasUnbilledConsultation;
+      const unbilledReason = hasUnbilledTherapy
+        ? "Pending Therapy Billing at Cashier"
+        : hasUnbilledConsultation
+          ? "Pending Consultation Billing at Cashier"
+          : null;
+
       return {
         id: p.id,
         mrn: p.mrn,
@@ -635,6 +1457,32 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
         profession: p.profession,
         bloodGroup: p.bloodGroup,
         createdAt: p.createdAt,
+        activeVisit: activeVisit
+          ? {
+              id: activeVisit.id,
+              visitNumber: activeVisit.visitNumber,
+              checkInTime: activeVisit.checkInTime,
+              checkOutTime: activeVisit.checkOutTime,
+              status: activeVisit.status,
+            }
+          : null,
+        canCheckout,
+        unbilledReason,
+        consultationSerial: todaySerial
+          ? {
+              id: todaySerial.id,
+              serialNumber: todaySerial.serialNumber,
+              doctorName: todaySerial.doctor?.name || null,
+              doctorId: todaySerial.doctorId,
+              feeAmount: todaySerial.feeAmount,
+              paidAmount: todaySerial.paidAmount,
+              dueAmount: todaySerial.dueAmount,
+              paymentStatus: todaySerial.paymentStatus,
+              status: todaySerial.status,
+              toldTime: todaySerial.toldTime,
+              invoiceNumber: todaySerial.invoice?.invoiceNumber || null,
+            }
+          : null,
         todayAppointment: todayAppointment
           ? {
               id: todayAppointment.id,
@@ -642,16 +1490,34 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
               queueType: todayAppointment.queueType,
               currentStation: todayAppointment.currentStation,
               checkInTime: todayAppointment.checkInTime,
-              toldTime: todayAppointment.toldTime,
-              feeAmount: todayAppointment.feeAmount,
-              paidAmount: todayAppointment.paidAmount,
-              dueAmount: todayAppointment.dueAmount,
-              paymentStatus: todayAppointment.paymentStatus,
-              doctorName: todayAppointment.doctor?.name || null,
+              checkOutTime: todayAppointment.checkOutTime,
+              toldTime: todayAppointment.toldTime || todaySerial?.toldTime || null,
+              feeAmount:
+                !todayAppointment.therapySlotId && todaySerial
+                  ? todaySerial.feeAmount
+                  : todayAppointment.feeAmount,
+              paidAmount:
+                !todayAppointment.therapySlotId && todaySerial
+                  ? todaySerial.paidAmount
+                  : todayAppointment.paidAmount,
+              dueAmount:
+                !todayAppointment.therapySlotId && todaySerial
+                  ? todaySerial.dueAmount
+                  : todayAppointment.dueAmount,
+              paymentStatus:
+                !todayAppointment.therapySlotId && todaySerial
+                  ? todaySerial.paymentStatus
+                  : todayAppointment.paymentStatus,
+              doctorName:
+                todayAppointment.doctor?.name || todaySerial?.doctor?.name || null,
               slotLabel: todayAppointment.therapySlot?.label || null,
               roomId: todayAppointment.roomId || null,
               roomNumber: todayAppointment.room?.number || null,
               roomPurpose: todayAppointment.room?.purpose || null,
+              invoiceNumber:
+                todayAppointment.invoice?.invoiceNumber ||
+                todaySerial?.invoice?.invoiceNumber ||
+                null,
             }
           : null,
       };
@@ -663,7 +1529,7 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
 }
 
 /**
- * Loads all patients who arrived / checked in today.
+ * Loads all patients who arrived / checked in today and are currently active (not checked out).
  */
 export async function getTodayArrivalsDataAction() {
   try {
@@ -704,13 +1570,38 @@ export async function getTodayArrivalsDataAction() {
             AppointmentStatus.CALLING,
             AppointmentStatus.IN_CONSULTATION,
             AppointmentStatus.IN_THERAPY,
-            AppointmentStatus.COMPLETED,
           ],
+          notIn: [AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED],
         },
+        currentStation: { not: "CHECKED_OUT" },
       },
       include: {
-        patient: true,
+        patient: {
+          include: {
+            visits: {
+              where: {
+                visitDate: { gte: startOfDay, lte: endOfDay },
+                status: { not: "CHECKED_OUT" },
+              },
+              orderBy: { checkInTime: "desc" },
+              take: 1,
+            },
+            consultationSerials: {
+              where: {
+                appointmentDate: { gte: startOfDay, lte: endOfDay },
+                status: { not: "CANCELLED" },
+              },
+              include: {
+                doctor: { select: { id: true, name: true, consultationFee: true } },
+                invoice: true,
+              },
+              orderBy: { serialNumber: "desc" },
+              take: 1,
+            },
+          },
+        },
         room: true,
+        invoice: true,
         doctor: {
           select: {
             id: true,
@@ -1019,3 +1910,126 @@ export async function getPatientsListAction(params?: {
     return [];
   }
 }
+
+/**
+ * Cancels a Doctor Consultation Serial with 4-digit PIN verification and audit logging.
+ */
+export async function cancelConsultationSerialAction(params: {
+  serialId: string;
+  performerId?: string;
+  pin?: string;
+  reason?: string;
+}): Promise<{ success: boolean; message: string }> {
+  try {
+    const sessionData = await requireAuth([
+      Role.RECEPTIONIST,
+      Role.ADMIN,
+      Role.DOCTOR,
+      Role.CASHIER,
+    ]);
+
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && params.performerId) {
+      const pinRes = await verifyPerformerPin(params.performerId, params.pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit receptionist security PIN.",
+        };
+      }
+    }
+
+    const serial = await prisma.consultationSerial.findUnique({
+      where: { id: params.serialId },
+      include: { patient: true, doctor: true },
+    });
+
+    if (!serial) {
+      return { success: false, message: "Consultation serial record not found." };
+    }
+
+    if (serial.status === "COMPLETED") {
+      return {
+        success: false,
+        message: "Cannot cancel a consultation serial that has already been completed.",
+      };
+    }
+
+    await prisma.consultationSerial.update({
+      where: { id: params.serialId },
+      data: {
+        status: "CANCELLED",
+        notes: params.reason
+          ? `${serial.notes || ""} | Cancelled: ${params.reason}`.trim()
+          : serial.notes,
+      },
+    });
+
+    // If an unpaid/due invoice was generated for this serial, void it so patient.totalDue does not retain the fee
+    if (serial.invoiceId) {
+      const inv = await prisma.patientInvoice.findUnique({
+        where: { id: serial.invoiceId },
+      });
+      if (inv && inv.paidAmount === 0) {
+        await prisma.patientInvoice.update({
+          where: { id: inv.id },
+          data: {
+            status: "CANCELLED",
+            totalAmount: 0,
+            dueAmount: 0,
+            notes: params.reason
+              ? `Cancelled: ${params.reason}`
+              : "Cancelled along with Consultation Serial",
+          },
+        });
+      }
+    }
+
+    // Re-sync patient totalDue
+    await syncBillingForPatient(serial.patientId);
+
+    await logAudit({
+      userId: sessionData.user.id,
+      performerId: params.performerId || null,
+      action: AuditAction.APPOINTMENT_CANCEL,
+      entity: "ConsultationSerial",
+      entityId: serial.id,
+      status: AuditStatus.SUCCESS,
+      details: {
+        serialNumber: serial.serialNumber,
+        patientName: serial.patient.name,
+        doctorName: serial.doctor?.name,
+        reason: params.reason || "Cancelled by receptionist",
+      },
+    });
+
+    emitRealtimeEvent("CONSULTATION_SERIAL_CANCELLED", {
+      serialId: serial.id,
+      serialNumber: serial.serialNumber,
+      patientId: serial.patientId,
+    });
+
+    revalidatePath("/receptionist");
+    revalidatePath("/cashier");
+    revalidatePath("/doctor");
+    revalidatePath("/admin/tracking");
+
+    return {
+      success: true,
+      message: `Consultation Serial #${serial.serialNumber} for ${serial.patient.name} has been cancelled.`,
+    };
+  } catch (error) {
+    console.error("[Cancel Consultation Serial Error]:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to cancel consultation serial.",
+    };
+  }
+}
+
