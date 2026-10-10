@@ -104,17 +104,20 @@ function deriveStation(apt: {
   inTherapyTime?: Date | null;
   checkOutTime?: Date | null;
 }): PatientStation {
-  if (apt.status === AppointmentStatus.COMPLETED || apt.checkOutTime) {
+  if (
+    apt.status === AppointmentStatus.COMPLETED ||
+    apt.currentStation === "CHECKED_OUT"
+  ) {
     return "CHECKED_OUT";
-  }
-  if (apt.currentStation) {
-    return apt.currentStation as PatientStation;
   }
   if (apt.status === AppointmentStatus.IN_CONSULTATION) {
     return "CONSULTATION_ROOM";
   }
   if (apt.status === AppointmentStatus.IN_THERAPY) {
     return "THERAPY_ROOM";
+  }
+  if (apt.currentStation) {
+    return apt.currentStation as PatientStation;
   }
   return "RECEPTIONIST_DESK";
 }
@@ -146,7 +149,13 @@ export async function getLivePatientTrackingDataAction(
     prisma.appointment.findMany({
       where: {
         appointmentDate: { gte: startOfDay, lte: endOfDay },
-        status: { not: AppointmentStatus.CANCELLED },
+        status: {
+          notIn: [
+            AppointmentStatus.CANCELLED,
+            AppointmentStatus.CONFIRMED,
+            AppointmentStatus.PENDING,
+          ],
+        },
       },
       include: {
         patient: {
@@ -167,7 +176,6 @@ export async function getLivePatientTrackingDataAction(
                 },
               },
               orderBy: { serialNumber: "desc" },
-              take: 1,
             },
           },
         },
@@ -186,7 +194,7 @@ export async function getLivePatientTrackingDataAction(
         bookedBy: true,
         performer: true,
       },
-      orderBy: [{ checkInTime: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ checkInTime: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
     }),
     prisma.room.findMany({
       orderBy: { number: "asc" },
@@ -212,19 +220,68 @@ export async function getLivePatientTrackingDataAction(
     }),
   ]);
 
-  const formattedPatients: LiveTrackedPatient[] = appointments.map((apt) => {
-    const activeSerial = apt.patient.consultationSerials?.[0] || null;
+  // If a patient has an active (non-completed) appointment today (e.g., Visit #2 or #3),
+  // exclude earlier completed appointments from earlier visits today so they are not shown as Checked Out while inside the clinic.
+  // If a patient has only completed appointments today, keep only their most recent completed visit.
+  const activePatientIds = new Set(
+    appointments
+      .filter(
+        (a) =>
+          a.status !== AppointmentStatus.COMPLETED &&
+          a.currentStation !== "CHECKED_OUT",
+      )
+      .map((a) => a.patientId),
+  );
+  const seenCompletedPatientIds = new Set<string>();
+  const deduplicatedAppointments = appointments.filter((apt) => {
+    const isAptCompleted =
+      apt.status === AppointmentStatus.COMPLETED ||
+      apt.currentStation === "CHECKED_OUT";
+    if (isAptCompleted) {
+      if (activePatientIds.has(apt.patientId)) {
+        return false;
+      }
+      if (seenCompletedPatientIds.has(apt.patientId)) {
+        return false;
+      }
+      seenCompletedPatientIds.add(apt.patientId);
+    }
+    return true;
+  });
+
+  const formattedPatients: LiveTrackedPatient[] = deduplicatedAppointments.map((apt) => {
+    const isAptCompleted =
+      apt.status === AppointmentStatus.COMPLETED ||
+      apt.currentStation === "CHECKED_OUT";
+    const allSerials = apt.patient.consultationSerials || [];
+    const activeSerial = apt.visitId
+      ? allSerials.find((s) => s.visitId === apt.visitId) ||
+        (!isAptCompleted
+          ? allSerials.find((s) => s.status !== "COMPLETED" && !s.visitId) || null
+          : null)
+      : !isAptCompleted
+        ? allSerials.find((s) => s.status !== "COMPLETED") || null
+        : allSerials[0] || null;
+
     const isConsultationWithSerial =
-      Boolean(activeSerial) && !apt.therapySlotId;
+      Boolean(activeSerial) &&
+      !apt.therapySlotId &&
+      !(apt.currentStation === "CASHIER_REGISTER" && (apt.feeAmount ?? 0) > 0);
 
     let station = deriveStation(apt);
-    if (
-      apt.status === AppointmentStatus.COMPLETED ||
-      apt.checkOutTime ||
-      activeSerial?.status === "COMPLETED"
-    ) {
+    if (isAptCompleted) {
       station = "CHECKED_OUT";
-    } else if (activeSerial?.status === "FORWARDED_TO_CASHIER") {
+    } else if (
+      apt.status === AppointmentStatus.IN_CONSULTATION ||
+      activeSerial?.status === "IN_CONSULTATION"
+    ) {
+      station = "CONSULTATION_ROOM";
+    } else if (apt.status === AppointmentStatus.IN_THERAPY) {
+      station = "THERAPY_ROOM";
+    } else if (
+      activeSerial?.status === "FORWARDED_TO_CASHIER" ||
+      apt.currentStation === "CASHIER_REGISTER"
+    ) {
       station = "CASHIER_REGISTER";
     } else if (
       apt.currentStation === "CASHIER_REGISTER" &&
@@ -244,19 +301,19 @@ export async function getLivePatientTrackingDataAction(
     const resolvedFee =
       isConsultationWithSerial && activeSerial
         ? (activeSerial.feeAmount ?? 0)
-        : (apt.feeAmount ?? 0);
+        : (apt.feeAmount ?? activeSerial?.feeAmount ?? 0);
     const resolvedPaid =
       isConsultationWithSerial && activeSerial
         ? (activeSerial.paidAmount ?? 0)
-        : (apt.paidAmount ?? 0);
+        : (apt.paidAmount ?? activeSerial?.paidAmount ?? 0);
     const resolvedDue =
       isConsultationWithSerial && activeSerial
         ? (activeSerial.dueAmount ?? Math.max(0, resolvedFee - resolvedPaid))
-        : (apt.dueAmount ?? 0);
+        : (apt.dueAmount ?? activeSerial?.dueAmount ?? 0);
     const resolvedPaymentStatus =
       isConsultationWithSerial && activeSerial
         ? activeSerial.paymentStatus || "PENDING"
-        : apt.paymentStatus || "PENDING";
+        : apt.paymentStatus || activeSerial?.paymentStatus || "PENDING";
 
     const resolvedSlotLabel = apt.therapySlot?.label
       ? apt.therapySlot.label
@@ -265,11 +322,14 @@ export async function getLivePatientTrackingDataAction(
         : null;
 
     let statusMarker: string | null = null;
-    if (activeSerial?.status === "FORWARDED_TO_CASHIER") {
+    if (isAptCompleted) {
+      statusMarker = null;
+    } else if (activeSerial?.status === "FORWARDED_TO_CASHIER") {
       statusMarker = "Forwarded to Cashier (Awaiting Payment)";
     } else if (
       activeSerial?.status === "QUEUED" &&
-      apt.status === AppointmentStatus.CHECKED_IN
+      apt.status === AppointmentStatus.CHECKED_IN &&
+      apt.queueType === QueueType.CONSULTATION
     ) {
       statusMarker = "Queued for Doctor Consultation";
     } else if (
@@ -279,16 +339,29 @@ export async function getLivePatientTrackingDataAction(
       statusMarker = "In Doctor Consultation";
     } else if (apt.status === AppointmentStatus.IN_THERAPY) {
       statusMarker = "In Physical Therapy";
-    } else if (
-      apt.currentStation === "CASHIER_REGISTER" &&
-      apt.therapySlotId
-    ) {
-      statusMarker = "Forwarded to Cashier (Prior Due Clearance)";
+    } else if (apt.currentStation === "CASHIER_REGISTER") {
+      statusMarker = apt.outConsultationTime
+        ? "Forwarded to Cashier (From Doctor)"
+        : apt.outTherapyTime
+          ? "Forwarded to Cashier (From Therapy)"
+          : apt.therapySlotId
+            ? "Forwarded to Cashier (Prior Due Clearance)"
+            : "Forwarded to Cashier";
     } else if (
       apt.queueType === QueueType.THERAPY &&
       apt.status === AppointmentStatus.CHECKED_IN
     ) {
       statusMarker = "Queued for Therapy Floor";
+    } else if (
+      apt.currentStation === "RECEPTIONIST_DESK" &&
+      apt.outTherapyTime
+    ) {
+      statusMarker = "Forwarded to Receptionist (Therapy Completed)";
+    } else if (
+      apt.currentStation === "RECEPTIONIST_DESK" &&
+      apt.outConsultationTime
+    ) {
+      statusMarker = "Forwarded to Receptionist (Consultation Completed)";
     }
 
     return {
@@ -300,7 +373,10 @@ export async function getLivePatientTrackingDataAction(
       gender: apt.gender,
       appointmentDate: apt.appointmentDate.toISOString(),
       checkInTime: apt.checkInTime ? apt.checkInTime.toISOString() : null,
-      checkOutTime: apt.checkOutTime ? apt.checkOutTime.toISOString() : null,
+      checkOutTime:
+        station === "CHECKED_OUT" && apt.checkOutTime
+          ? apt.checkOutTime.toISOString()
+          : null,
       inConsultationTime: apt.inConsultationTime
         ? apt.inConsultationTime.toISOString()
         : null,
@@ -417,6 +493,21 @@ export async function transferPatientStationAction(
       return { success: false, message: "Appointment record not found." };
     }
 
+    // STRICT GUARD: Cannot move station when patient is not currently in the center
+    if (
+      apt.currentStation === "CHECKED_OUT" ||
+      apt.status === AppointmentStatus.COMPLETED ||
+      apt.status === AppointmentStatus.CANCELLED ||
+      apt.checkOutTime !== null ||
+      !apt.checkInTime
+    ) {
+      return {
+        success: false,
+        message:
+          "Cannot move station: Patient is not currently in the center (already checked out or discharged).",
+      };
+    }
+
     const now = new Date();
     const updateData: any = {
       currentStation: input.targetStation,
@@ -448,6 +539,7 @@ export async function transferPatientStationAction(
     switch (input.targetStation) {
       case "RECEPTIONIST_DESK":
         updateData.status = AppointmentStatus.CHECKED_IN;
+        updateData.checkOutTime = null;
         if (!apt.checkInTime) updateData.checkInTime = now;
         if (!input.roomId) {
           const room200 = await getOrCreateWaitingRoom200();
@@ -496,6 +588,7 @@ export async function transferPatientStationAction(
           };
         }
         updateData.status = AppointmentStatus.IN_CONSULTATION;
+        updateData.checkOutTime = null;
         updateData.inConsultationTime = now;
         if (!apt.checkInTime) updateData.checkInTime = now;
         break;
@@ -503,9 +596,10 @@ export async function transferPatientStationAction(
 
       case "CASHIER_REGISTER":
         // Keep active checked-in status so queue is not lost
+        updateData.checkOutTime = null;
         if (apt.status === AppointmentStatus.PENDING) {
           updateData.status = AppointmentStatus.CHECKED_IN;
-          updateData.checkInTime = now;
+          if (!apt.checkInTime) updateData.checkInTime = now;
         }
         break;
 
@@ -547,6 +641,7 @@ export async function transferPatientStationAction(
           };
         }
         updateData.status = AppointmentStatus.IN_THERAPY;
+        updateData.checkOutTime = null;
         updateData.inTherapyTime = now;
         if (!apt.checkInTime) updateData.checkInTime = now;
         break;
@@ -557,7 +652,7 @@ export async function transferPatientStationAction(
           where: {
             patientId: apt.patientId,
             status: { notIn: ["COMPLETED", "CANCELLED"] },
-            paymentStatus: "PENDING",
+            paymentStatus: { in: ["PENDING", "UNPAID"] },
             invoiceId: null,
           },
         });
@@ -569,7 +664,7 @@ export async function transferPatientStationAction(
         }
         if (
           (apt.type === AppointmentType.THERAPY || apt.therapySlotId) &&
-          apt.paymentStatus === "PENDING" &&
+          (apt.paymentStatus === "PENDING" || apt.paymentStatus === "UNPAID") &&
           !apt.invoiceId
         ) {
           return {
@@ -589,6 +684,75 @@ export async function transferPatientStationAction(
       data: updateData,
       include: { patient: true, doctor: true, room: true },
     });
+
+    if (input.targetStation === "CHECKED_OUT") {
+      const startOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        0,
+        0,
+        0,
+        0,
+      );
+      const endOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        23,
+        59,
+        59,
+        999,
+      );
+
+      await prisma.patientVisit.updateMany({
+        where: {
+          patientId: apt.patientId,
+          visitDate: { gte: startOfDay, lte: endOfDay },
+          status: { not: "CHECKED_OUT" },
+        },
+        data: {
+          status: "CHECKED_OUT",
+          checkOutTime: now,
+          checkOutPerformerId: input.performerId || undefined,
+        },
+      });
+
+      await prisma.consultationSerial.updateMany({
+        where: {
+          patientId: apt.patientId,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+        data: {
+          status: "COMPLETED",
+          outConsultationTime: now,
+        },
+      });
+
+      if (apt.visitId) {
+        await prisma.patientStepLog
+          .create({
+            data: {
+              patientId: apt.patientId,
+              visitId: apt.visitId,
+              step: "CHECK_OUT",
+              station: "CHECKED_OUT",
+              performerId: input.performerId || null,
+              details: "Checked out from Patient Journey Tracker",
+            },
+          })
+          .catch(() => {});
+      }
+
+      emitRealtimeEvent("PATIENT_CHECKED_OUT", {
+        appointmentId: updated.id,
+        patientId: updated.patientId,
+        patientName: updated.patient.name,
+        checkOutTime: now.toISOString(),
+        station: "CHECKED_OUT",
+      });
+    }
 
     await syncBillingForAppointment(updated.id);
 
@@ -748,6 +912,7 @@ export async function quickCheckInWithoutSlotAction(
                 : AppointmentStatus.CHECKED_IN,
           currentStation: station,
           checkInTime: existing.checkInTime || now,
+          checkOutTime: null,
           queueType,
           ...(input.doctorId ? { doctorId: input.doctorId } : {}),
           ...(targetRoomId ? { roomId: targetRoomId } : {}),
@@ -826,7 +991,7 @@ export async function quickCheckInWithoutSlotAction(
           feeAmount: fee,
           paidAmount: 0,
           dueAmount: fee,
-          paymentStatus: fee === 0 ? "PAID" : "PENDING",
+          paymentStatus: "PENDING",
         },
         include: { patient: true, doctor: true, room: true },
       });

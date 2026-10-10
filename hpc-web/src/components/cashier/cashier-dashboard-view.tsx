@@ -112,6 +112,14 @@ export function CashierDashboardView({
   const [paymentNotes, setPaymentNotes] = React.useState<string>("");
   const [cashierPin, setCashierPin] = React.useState<string>("");
   const [isSubmittingPayment, setIsSubmittingPayment] = React.useState(false);
+  const [includePreviousDueInTherapy, setIncludePreviousDueInTherapy] =
+    React.useState<boolean>(false);
+  const [previousDueInTherapyAmount, setPreviousDueInTherapyAmount] =
+    React.useState<number>(0);
+  const [includeConsultInTherapy, setIncludeConsultInTherapy] =
+    React.useState<boolean>(false);
+  const [consultInTherapyAmount, setConsultInTherapyAmount] =
+    React.useState<number>(0);
 
   // Payment Collection Modal State (Consultation Serials)
   const [collectingSerial, setCollectingSerial] = React.useState<any | null>(null);
@@ -124,6 +132,10 @@ export function CashierDashboardView({
   const [includePreviousDueInConsult, setIncludePreviousDueInConsult] =
     React.useState<boolean>(false);
   const [previousDueInConsultAmount, setPreviousDueInConsultAmount] =
+    React.useState<number>(0);
+  const [includeTherapyInConsult, setIncludeTherapyInConsult] =
+    React.useState<boolean>(false);
+  const [therapyInConsultAmount, setTherapyInConsultAmount] =
     React.useState<number>(0);
 
   // Previous Due Clearance Modal State (Therapy Arrivals - Scenario 7)
@@ -300,14 +312,47 @@ export function CashierDashboardView({
     }
   };
 
+  // Memoized checks for cross-department billing
+  const pendingSerialForTherapy = React.useMemo(() => {
+    if (!collectingAppointment) return null;
+    return (
+      data.pendingConsultationSerials.find(
+        (s) => s.patientId === collectingAppointment.patientId,
+      ) || null
+    );
+  }, [collectingAppointment, data.pendingConsultationSerials]);
+
+  const pendingTherapyForConsult = React.useMemo(() => {
+    if (!collectingSerial) return null;
+    return (
+      data.pendingAppointments.find(
+        (a) => a.patientId === collectingSerial.patientId,
+      ) || null
+    );
+  }, [collectingSerial, data.pendingAppointments]);
+
   // Open Therapy Payment Modal
   const handleOpenPaymentModal = (appointment: AppointmentWithRelations) => {
     setCollectingAppointment(appointment);
-    const initialFee = appointment.feeAmount ?? DEFAULT_FEE;
+    const initialFee = appointment.feeAmount ?? 0;
     setPaymentAmount(initialFee);
     setPaymentMethod("CASH");
     setPaymentNotes("");
     setCashierPin("");
+    const patientDue = appointment.patient?.totalDue ?? 0;
+    setIncludePreviousDueInTherapy(patientDue > 0);
+    setPreviousDueInTherapyAmount(patientDue);
+
+    const matchSerial = data.pendingConsultationSerials.find(
+      (s) => s.patientId === appointment.patientId,
+    );
+    if (matchSerial) {
+      setIncludeConsultInTherapy(true);
+      setConsultInTherapyAmount(matchSerial.feeAmount || 1000);
+    } else {
+      setIncludeConsultInTherapy(false);
+      setConsultInTherapyAmount(0);
+    }
   };
 
   // Submit Therapy Payment (or mark as DUE)
@@ -321,8 +366,23 @@ export function CashierDashboardView({
 
     const isDue = markAsDueDirectly || paymentMethod === "DUE";
     const amountToCollect = isDue ? 0 : paymentAmount;
+    const initialFee = collectingAppointment.feeAmount ?? 0;
+    const previousDueToCollect =
+      !isDue && includePreviousDueInTherapy && previousDueInTherapyAmount > 0
+        ? previousDueInTherapyAmount
+        : 0;
+    const extraConsultToCollect =
+      !isDue && includeConsultInTherapy && pendingSerialForTherapy
+        ? consultInTherapyAmount
+        : 0;
 
-    if (!isDue && amountToCollect <= 0) {
+    if (
+      !isDue &&
+      amountToCollect <= 0 &&
+      initialFee > 0 &&
+      previousDueToCollect <= 0 &&
+      extraConsultToCollect <= 0
+    ) {
       toast.error("Please enter a valid payment amount.");
       return;
     }
@@ -337,20 +397,20 @@ export function CashierDashboardView({
         performerId: currentCashierId || undefined,
         pin: cashierPin || undefined,
         notes: paymentNotes.trim() || undefined,
+        previousDueCollected: previousDueToCollect,
+        includeConsultationSerialId:
+          !isDue && includeConsultInTherapy && pendingSerialForTherapy
+            ? pendingSerialForTherapy.id
+            : undefined,
+        consultationAmount: extraConsultToCollect || undefined,
       });
 
       if (res.success) {
         toast.success(res.message);
-        const receiptData = (res.appointment || {
-          ...collectingAppointment,
-          paidAmount: isDue ? 0 : (collectingAppointment.paidAmount ?? 0) + amountToCollect,
-          dueAmount: isDue ? (collectingAppointment.feeAmount ?? paymentAmount) : Math.max(
-            0,
-            (collectingAppointment.feeAmount ?? paymentAmount) -
-              ((collectingAppointment.paidAmount ?? 0) + amountToCollect),
-          ),
-          paymentStatus: isDue ? "DUE" : "PAID",
-        }) as AppointmentWithRelations;
+        const receiptData = {
+          ...(res.appointment || collectingAppointment),
+          invoice: res.invoice || (res.appointment as any)?.invoice,
+        } as AppointmentWithRelations;
         setReceiptAppointment(receiptData);
         setCollectingAppointment(null);
         refreshData();
@@ -374,6 +434,17 @@ export function CashierDashboardView({
     const due = serial.patient?.totalDue || 0;
     setPreviousDueInConsultAmount(due);
     setIncludePreviousDueInConsult(due > 0);
+
+    const matchTherapy = data.pendingAppointments.find(
+      (a) => a.patientId === serial.patientId,
+    );
+    if (matchTherapy) {
+      setIncludeTherapyInConsult(true);
+      setTherapyInConsultAmount(matchTherapy.feeAmount ?? DEFAULT_FEE);
+    } else {
+      setIncludeTherapyInConsult(false);
+      setTherapyInConsultAmount(0);
+    }
   };
 
   // Submit Consultation Billing & Auto-Queue Trigger
@@ -387,8 +458,12 @@ export function CashierDashboardView({
 
     const isDue = markAsDueDirectly || consultPaymentMethod === "DUE";
     const amountToCollect = isDue ? 0 : consultPaymentAmount;
+    const extraTherapyToCollect =
+      !isDue && includeTherapyInConsult && pendingTherapyForConsult
+        ? therapyInConsultAmount
+        : 0;
 
-    if (!isDue && amountToCollect <= 0) {
+    if (!isDue && amountToCollect <= 0 && extraTherapyToCollect <= 0) {
       toast.error("Please enter a valid payment amount.");
       return;
     }
@@ -405,6 +480,11 @@ export function CashierDashboardView({
         notes: consultPaymentNotes.trim() || undefined,
         previousDueCollected:
           !isDue && includePreviousDueInConsult ? previousDueInConsultAmount : 0,
+        includeTherapyAppointmentId:
+          !isDue && includeTherapyInConsult && pendingTherapyForConsult
+            ? pendingTherapyForConsult.id
+            : undefined,
+        therapyAmount: extraTherapyToCollect || undefined,
       });
 
       if (res.success) {
@@ -420,6 +500,7 @@ export function CashierDashboardView({
             patient: collectingSerial.patient,
             type: AppointmentType.CONSULTATION,
             doctor: collectingSerial.doctor,
+            invoice: res.invoice,
             room: { number: "Waiting", purpose: "Public Waiting Room" },
           } as any);
         }
@@ -486,6 +567,7 @@ export function CashierDashboardView({
             paymentStatus: "PAID",
             patient: clearingDueApt.patient,
             type: AppointmentType.THERAPY,
+            invoice: res.invoice,
             room: { number: "Therapy", purpose: "Physical Therapy Floor" },
           } as any);
         }
@@ -548,14 +630,39 @@ export function CashierDashboardView({
       const phone = (item.patient?.phone || "").toLowerCase();
       const token = item.id.slice(-4).toLowerCase();
       const mrn = (item.patient?.mrn || "").toLowerCase();
+      const inv = (item.invoice?.invoiceNumber || (item as any).invoice?.invoiceNumber || "").toLowerCase();
       return (
         name.includes(q) ||
         phone.includes(q) ||
         token.includes(q) ||
-        mrn.includes(q)
+        mrn.includes(q) ||
+        inv.includes(q)
       );
     });
   }, [data.paidAppointments, searchQuery]);
+
+  // Filtered settled consultation serials for Paid Invoices tab
+  const filteredPaidConsultations = React.useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const list = data.paidConsultationSerials || [];
+    return list.filter((item: any) => {
+      if (!q) return true;
+      const name = (item.patient?.name || "").toLowerCase();
+      const phone = (item.patient?.phone || "").toLowerCase();
+      const mrn = (item.patient?.mrn || "").toLowerCase();
+      const doc = (item.doctor?.name || "").toLowerCase();
+      const serial = String(item.serialNumber || "");
+      const inv = (item.invoice?.invoiceNumber || "").toLowerCase();
+      return (
+        name.includes(q) ||
+        phone.includes(q) ||
+        mrn.includes(q) ||
+        doc.includes(q) ||
+        serial.includes(q) ||
+        inv.includes(q)
+      );
+    });
+  }, [data.paidConsultationSerials, searchQuery]);
 
   // Filtered therapy arrivals awaiting due clearance (Scenario 7)
   const filteredTherapyDueClearance = React.useMemo(() => {
@@ -580,6 +687,9 @@ export function CashierDashboardView({
     filteredPending.length +
     filteredPendingConsultations.length +
     filteredTherapyDueClearance.length;
+
+  const totalPaidInvoicesCount =
+    filteredPaid.length + filteredPaidConsultations.length;
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-background text-foreground selection:bg-amber-500/20">
@@ -688,7 +798,7 @@ export function CashierDashboardView({
                   <Receipt className="size-3 text-emerald-500" />
                   <span>Paid Invoices</span>
                   <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                    {filteredPaid.length}
+                    {totalPaidInvoicesCount}
                   </span>
                 </TabsTrigger>
 
@@ -1010,6 +1120,7 @@ export function CashierDashboardView({
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
                         {filteredPending.map((item) => {
                           const estimatedFee = item.feeAmount ?? DEFAULT_FEE;
+                          const patientDue = item.patient?.totalDue ?? 0;
 
                           return (
                             <div
@@ -1058,6 +1169,18 @@ export function CashierDashboardView({
                                   </div>
                                 )}
 
+                                {patientDue > 0 && (
+                                  <div className="flex items-center justify-between text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/25 font-bold">
+                                    <span className="flex items-center gap-1">
+                                      <AlertCircle className="size-2.5 text-rose-500" />
+                                      <span>Previous Due:</span>
+                                    </span>
+                                    <span className="font-mono text-rose-600 dark:text-rose-400">
+                                      ৳{patientDue}
+                                    </span>
+                                  </div>
+                                )}
+
                                 <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
                                   <span className="text-muted-foreground text-[11px]">
                                     {item.therapySlot
@@ -1077,7 +1200,11 @@ export function CashierDashboardView({
                                   className="w-full h-7.5 text-xs font-semibold gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer"
                                 >
                                   <CreditCard className="size-3.5" />
-                                  <span>Collect ৳{estimatedFee} Bill</span>
+                                  <span>
+                                    {estimatedFee === 0 && patientDue > 0
+                                      ? `Clear ৳${patientDue} Due & Issue ৳0 Bill`
+                                      : `Collect ৳${estimatedFee} Bill${patientDue > 0 ? " + Due" : ""}`}
+                                  </span>
                                 </Button>
                               </div>
                             </div>
@@ -1100,14 +1227,14 @@ export function CashierDashboardView({
                   <strong className="text-foreground font-semibold">
                     {isToday ? "Today" : selectedDate} ({data.dayOfWeek})
                   </strong>
-                  : {filteredPaid.length} payment{filteredPaid.length === 1 ? "" : "s"}
+                  : {totalPaidInvoicesCount} payment{totalPaidInvoicesCount === 1 ? "" : "s"}
                 </span>
               </span>
               <span className="font-mono text-emerald-700 dark:text-emerald-300 font-bold text-xs bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                 Total Settled: ৳{data.billingStats.totalCollected.toLocaleString()}
               </span>
             </div>
-            {filteredPaid.length === 0 ? (
+            {totalPaidInvoicesCount === 0 ? (
               <div className="p-8 text-center rounded-xl border border-dashed border-border bg-card/40">
                 <Receipt className="size-8 text-muted-foreground/40 mx-auto mb-2" />
                 <h3 className="text-sm font-semibold text-foreground">
@@ -1123,9 +1250,9 @@ export function CashierDashboardView({
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-border/70 bg-muted/40 text-muted-foreground font-semibold">
-                        <th className="py-2.5 px-3">Token / Rec</th>
+                        <th className="py-2.5 px-3">Invoice / Token</th>
                         <th className="py-2.5 px-3">Patient</th>
-                        <th className="py-2.5 px-3">Type</th>
+                        <th className="py-2.5 px-3">Service &amp; Provider</th>
                         <th className="py-2.5 px-3">Fee</th>
                         <th className="py-2.5 px-3">Paid</th>
                         <th className="py-2.5 px-3">Due</th>
@@ -1134,6 +1261,106 @@ export function CashierDashboardView({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
+                      {/* Settled Doctor Consultation Serials */}
+                      {filteredPaidConsultations.map((serial: any) => {
+                        const fee = serial.feeAmount ?? 0;
+                        const paid = serial.paidAmount ?? 0;
+                        const due = serial.dueAmount ?? Math.max(0, fee - paid);
+                        const invoiceNo =
+                          serial.invoice?.invoiceNumber ||
+                          `S-${String(serial.serialNumber).padStart(2, "0")}`;
+                        const payMethod = serial.invoice?.paymentMethod || "CASH";
+
+                        return (
+                          <tr
+                            key={`serial-${serial.id}`}
+                            className="hover:bg-muted/30 transition-colors"
+                          >
+                            <td className="py-2.5 px-3">
+                              <div className="font-mono font-bold text-foreground">
+                                {invoiceNo}
+                              </div>
+                              <div className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
+                                Serial #{serial.serialNumber}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <div className="font-semibold text-foreground">
+                                {serial.patient?.name || "Patient"}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {serial.patient?.phone}
+                                {serial.patient?.mrn ? ` • ${serial.patient.mrn}` : ""}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] uppercase font-bold tracking-wider bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/25"
+                              >
+                                CONSULTATION
+                              </Badge>
+                              <div className="text-[11px] text-muted-foreground mt-0.5 font-medium">
+                                {serial.doctor?.name || "Attending Doctor"}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 font-mono">৳{fee.toLocaleString()}</td>
+                            <td className="py-2.5 px-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              ৳{paid.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-3 font-mono text-amber-600 dark:text-amber-400">
+                              ৳{due.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    due === 0
+                                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                      : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                  }`}
+                                >
+                                  {serial.paymentStatus || "PAID"}
+                                </span>
+                                <span className="text-[10px] font-mono text-muted-foreground border border-border/70 px-1.5 py-0.2 rounded">
+                                  {payMethod}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  setReceiptAppointment({
+                                    id: serial.invoice?.invoiceNumber || serial.id,
+                                    appointmentDate: serial.appointmentDate || new Date(),
+                                    feeAmount: fee,
+                                    paidAmount: paid,
+                                    dueAmount: due,
+                                    paymentStatus: serial.paymentStatus || "PAID",
+                                    paymentMethod: payMethod,
+                                    patient: serial.patient,
+                                    type: AppointmentType.CONSULTATION,
+                                    doctor: serial.doctor,
+                                    invoice: serial.invoice,
+                                    room: {
+                                      number: "Waiting",
+                                      purpose: "Public Waiting Room",
+                                    },
+                                  } as any)
+                                }
+                                className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                              >
+                                <Printer className="size-3.5" />
+                                <span>Receipt</span>
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {/* Settled Physical Therapy Appointments */}
                       {filteredPaid.map((item) => {
                         const fee = item.feeAmount ?? DEFAULT_FEE;
                         const paid = item.paidAmount ?? fee;
@@ -1145,7 +1372,8 @@ export function CashierDashboardView({
                             className="hover:bg-muted/30 transition-colors"
                           >
                             <td className="py-2.5 px-3 font-mono font-bold">
-                              #{item.id.slice(-4).toUpperCase()}
+                              {(item as any).invoice?.invoiceNumber ||
+                                `#${item.id.slice(-4).toUpperCase()}`}
                             </td>
                             <td className="py-2.5 px-3">
                               <div className="font-semibold text-foreground">
@@ -1153,6 +1381,7 @@ export function CashierDashboardView({
                               </div>
                               <div className="text-[11px] text-muted-foreground">
                                 {item.patient?.phone}
+                                {item.patient?.mrn ? ` • ${item.patient.mrn}` : ""}
                               </div>
                             </td>
                             <td className="py-2.5 px-3">
@@ -1162,24 +1391,36 @@ export function CashierDashboardView({
                               >
                                 {item.type}
                               </Badge>
+                              {item.therapySlot?.label && (
+                                <div className="text-[11px] text-muted-foreground mt-0.5 font-medium">
+                                  {item.therapySlot.label}
+                                </div>
+                              )}
                             </td>
-                            <td className="py-2.5 px-3 font-mono">৳{fee}</td>
+                            <td className="py-2.5 px-3 font-mono">৳{fee.toLocaleString()}</td>
                             <td className="py-2.5 px-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                              ৳{paid}
+                              ৳{paid.toLocaleString()}
                             </td>
                             <td className="py-2.5 px-3 font-mono text-amber-600 dark:text-amber-400">
-                              ৳{due}
+                              ৳{due.toLocaleString()}
                             </td>
                             <td className="py-2.5 px-3">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  due === 0
-                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                }`}
-                              >
-                                {item.paymentStatus || "PAID"}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    due === 0
+                                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                      : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                  }`}
+                                >
+                                  {item.paymentStatus || "PAID"}
+                                </span>
+                                {item.paymentMethod && (
+                                  <span className="text-[10px] font-mono text-muted-foreground border border-border/70 px-1.5 py-0.2 rounded">
+                                    {item.paymentMethod}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               <Button
@@ -1349,6 +1590,116 @@ export function CashierDashboardView({
                   ))}
                 </div>
               </div>
+
+              {/* Previous Due Callout & Option to Collect */}
+              {(collectingAppointment.patient?.totalDue ?? 0) > 0 && (
+                <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-rose-700 dark:text-rose-300 font-bold">
+                      <AlertCircle className="size-4 shrink-0" />
+                      <span>
+                        Previous Unpaid Due: ৳
+                        {collectingAppointment.patient?.totalDue.toLocaleString()}
+                      </span>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includePreviousDueInTherapy}
+                        onChange={(e) =>
+                          setIncludePreviousDueInTherapy(e.target.checked)
+                        }
+                        className="size-3.5 rounded border-rose-500 text-rose-600 focus:ring-rose-500"
+                      />
+                      <span>Clear Due Now</span>
+                    </label>
+                  </div>
+
+                  {includePreviousDueInTherapy && (
+                    <div className="pt-2 border-t border-rose-500/20 space-y-1">
+                      <label className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                        <span>Previous Due Amount to Clear</span>
+                        <span className="font-mono text-rose-600 font-bold">
+                          Max: ৳{collectingAppointment.patient?.totalDue}
+                        </span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono font-bold text-muted-foreground text-xs">
+                          ৳
+                        </span>
+                        <Input
+                          type="number"
+                          value={previousDueInTherapyAmount}
+                          onChange={(e) =>
+                            setPreviousDueInTherapyAmount(
+                              Math.min(
+                                collectingAppointment.patient?.totalDue ?? 0,
+                                Math.max(0, Number(e.target.value)),
+                              ),
+                            )
+                          }
+                          className="pl-6 h-7.5 text-xs font-mono font-bold rounded-lg border-rose-500/40"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Option to Bundle Pending Doctor Consultation */}
+              {pendingSerialForTherapy && (
+                <div className="p-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-indigo-700 dark:text-indigo-300 font-bold">
+                      <Stethoscope className="size-4 shrink-0" />
+                      <span>
+                        Pending Doctor Consultation: Serial #{pendingSerialForTherapy.serialNumber} (৳{pendingSerialForTherapy.feeAmount})
+                      </span>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeConsultInTherapy}
+                        onChange={(e) =>
+                          setIncludeConsultInTherapy(e.target.checked)
+                        }
+                        className="size-3.5 rounded border-indigo-500 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>Bundle Bill</span>
+                    </label>
+                  </div>
+                  {includeConsultInTherapy && (
+                    <div className="pt-2 border-t border-indigo-500/20 flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground text-xs">Consultation Fee to Collect:</span>
+                      <div className="relative w-36">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono font-bold text-muted-foreground text-xs">
+                          ৳
+                        </span>
+                        <Input
+                          type="number"
+                          value={consultInTherapyAmount}
+                          onChange={(e) =>
+                            setConsultInTherapyAmount(
+                              Math.max(0, Number(e.target.value)),
+                            )
+                          }
+                          className="pl-6 h-7 text-xs font-mono font-bold rounded-lg border-indigo-500/40"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Total Collection Summary */}
+              {(includePreviousDueInTherapy || includeConsultInTherapy) && (
+                <div className="p-2.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between text-xs font-bold">
+                  <span className="text-muted-foreground">Total Cashier Collection:</span>
+                  <span className="text-sm font-mono text-amber-600 dark:text-amber-400">
+                    ৳{((paymentMethod === "DUE" ? 0 : paymentAmount) + (includePreviousDueInTherapy ? previousDueInTherapyAmount : 0) + (includeConsultInTherapy ? consultInTherapyAmount : 0)).toLocaleString()}
+                  </span>
+                </div>
+              )}
 
               {/* Payment Method Selector */}
               <div className="space-y-1.5">
@@ -1585,12 +1936,57 @@ export function CashierDashboardView({
                 </div>
               )}
 
+              {/* Option to Bundle Pending Physical Therapy Session */}
+              {pendingTherapyForConsult && (
+                <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-bold">
+                      <Activity className="size-4 shrink-0" />
+                      <span>
+                        Pending Physical Therapy: {pendingTherapyForConsult.therapySlot?.label || "Session"} (৳{pendingTherapyForConsult.feeAmount ?? DEFAULT_FEE})
+                      </span>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeTherapyInConsult}
+                        onChange={(e) =>
+                          setIncludeTherapyInConsult(e.target.checked)
+                        }
+                        className="size-3.5 rounded border-amber-500 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span>Bundle Bill</span>
+                    </label>
+                  </div>
+                  {includeTherapyInConsult && (
+                    <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground text-xs">Therapy Fee to Collect:</span>
+                      <div className="relative w-36">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono font-bold text-muted-foreground text-xs">
+                          ৳
+                        </span>
+                        <Input
+                          type="number"
+                          value={therapyInConsultAmount}
+                          onChange={(e) =>
+                            setTherapyInConsultAmount(
+                              Math.max(0, Number(e.target.value)),
+                            )
+                          }
+                          className="pl-6 h-7 text-xs font-mono font-bold rounded-lg border-amber-500/40"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Total Collection Summary */}
-              {includePreviousDueInConsult && (collectingSerial.patient?.totalDue ?? 0) > 0 && (
+              {(includePreviousDueInConsult || includeTherapyInConsult) && (
                 <div className="p-2.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between text-xs font-bold">
                   <span className="text-muted-foreground">Total Cashier Collection:</span>
                   <span className="text-sm font-mono text-indigo-600 dark:text-indigo-400">
-                    ৳{(consultPaymentAmount + previousDueInConsultAmount).toLocaleString()}
+                    ৳{((consultPaymentMethod === "DUE" ? 0 : consultPaymentAmount) + (includePreviousDueInConsult ? previousDueInConsultAmount : 0) + (includeTherapyInConsult ? therapyInConsultAmount : 0)).toLocaleString()}
                   </span>
                 </div>
               )}

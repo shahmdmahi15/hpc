@@ -181,6 +181,7 @@ model User {
   medicalRecords            MedicalRecord[]
   treatmentPlans            TreatmentPlan[]
   consultationSerials       ConsultationSerial[] @relation("DoctorConsultationSerials")
+  prescriptions             Prescription[]       @relation("DoctorPrescriptions")
   sentChatMessages          ChatMessage[]        @relation("SentChatMessages")
   receivedChatMessages      ChatMessage[]        @relation("ReceivedChatMessages")
 
@@ -363,6 +364,7 @@ model Patient {
   stepLogs            PatientStepLog[]
   invoices            PatientInvoice[]
   payments            PatientPayment[]
+  prescriptions       Prescription[]
   chatMessages        ChatMessage[]
 
   createdAt DateTime @default(now())
@@ -485,6 +487,7 @@ model Appointment {
 
   medicalRecords MedicalRecord[]
   treatmentPlans TreatmentPlan[]
+  prescriptions  Prescription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -867,5 +870,52 @@ model ChatMessage {
   @@index([patientId])
 }
 
+// --------------------------------------------------------
+// CLINICAL PRESCRIPTIONS (DOCTOR TO PATIENT)
+// --------------------------------------------------------
 
+model Prescription {
+  id             String       @id @default(cuid())
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String?
+  doctor         User?        @relation("DoctorPrescriptions", fields: [doctorId], references: [id], onDelete: SetNull)
+  appointmentId  String?
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
+  diagnosis      String?
+  medicines      String       @default("[]") // JSON string: [{ name, mealTiming: "BEFORE"|"AFTER", times: ["MORNING", "AFTERNOON", "NIGHT"], duration: "5 days", instructions: "" }]
+  advice         String?
+  followUpDate   DateTime?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([appointmentId])
+  @@index([createdAt])
+}
+
+// --------------------------------------------------------
+// PER-BED THERAPY SESSION TIMERS
+// --------------------------------------------------------
+
+model TherapySessionTimer {
+  id               String    @id @default(cuid())
+  appointmentId    String?   @unique
+  patientId        String
+  roomNumber       String?   // e.g. "208"
+  modalities       String    // JSON string: [{ id, name, durationMinutes, totalSeconds, remainingSeconds, isRunning, isCompleted, isSkipped, order }]
+  currentStepIndex Int       @default(0)
+  isRunning        Boolean   @default(false)
+  lastStartedAt    DateTime?
+  performerId      String?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([appointmentId])
+  @@index([patientId])
+  @@index([roomNumber])
+}

@@ -22,6 +22,7 @@ import { logAudit } from "@/lib/audit";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 import { revalidatePath } from "next/cache";
 import { DEFAULT_FEE } from "@/lib/billing";
+import { generateNextInvoiceNumber } from "@/lib/invoice-utils";
 
 export interface CashierDashboardData {
   selectedDate: string;
@@ -69,38 +70,59 @@ export async function getCashierDashboardDataAction(
   const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
   const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
 
-  const [receptionistData, cashierPerformers, doctorUsers, consultationSerials] =
-    await Promise.all([
-      getReceptionistDashboardDataAction(targetDateStr),
-      prisma.performer.findMany({
-        where: { user: { role: Role.CASHIER } },
-        orderBy: { name: "asc" },
-      }),
-      prisma.user.findMany({
-        where: { role: Role.DOCTOR },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          whatsapp: true,
-          createdAt: true,
-          updatedAt: true,
+  const [
+    receptionistData,
+    cashierPerformers,
+    doctorUsers,
+    consultationSerials,
+    previousDuePayments,
+  ] = await Promise.all([
+    getReceptionistDashboardDataAction(targetDateStr),
+    prisma.performer.findMany({
+      where: { user: { role: Role.CASHIER } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.user.findMany({
+      where: { role: Role.DOCTOR },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        whatsapp: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.consultationSerial.findMany({
+      where: {
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { not: "CANCELLED" },
+      },
+      include: {
+        doctor: { select: { id: true, name: true, consultationFee: true } },
+        patient: true,
+        invoice: {
+          include: { payments: true },
         },
-        orderBy: { name: "asc" },
-      }),
-      prisma.consultationSerial.findMany({
-        where: {
-          appointmentDate: { gte: startOfDay, lte: endOfDay },
-          status: { not: "CANCELLED" },
+      },
+      orderBy: { serialNumber: "asc" },
+    }),
+    prisma.patientPayment.findMany({
+      where: {
+        createdAt: { gte: startOfDay, lte: endOfDay },
+        serviceType: "PREVIOUS_DUE",
+        isDue: false,
+      },
+      include: {
+        patient: true,
+        invoice: {
+          include: { payments: true },
         },
-        include: {
-          doctor: { select: { id: true, name: true, consultationFee: true } },
-          patient: true,
-          invoice: true,
-        },
-        orderBy: { serialNumber: "asc" },
-      }),
-    ]);
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   const doctorPerformers: PerformerModel[] = doctorUsers.map((doc) => ({
     id: doc.id,
@@ -122,30 +144,17 @@ export async function getCashierDashboardDataAction(
     cashierPerformers[0] ||
     null;
 
-  // Filter strictly physical therapy appointments (consultation appointments are tracked via consultationSerials)
-  const therapyAppointments = appointments.filter(
-    (a) =>
-      (a.type === AppointmentType.THERAPY || Boolean(a.therapySlotId)) &&
-      (Boolean(a.therapySlotId) ||
-        Boolean(a.invoiceId) ||
-        (a.feeAmount ?? 0) > 0 ||
-        (a.paidAmount ?? 0) > 0),
-  );
-
-  // Split therapy appointments by billing status
-  const paidAppointments = therapyAppointments.filter(
-    (a) => a.paymentStatus === "PAID",
-  );
-  const pendingAppointments = therapyAppointments.filter(
-    (a) => a.paymentStatus !== "PAID" && a.status !== "CANCELLED",
-  );
-
   // Scenario 7: Therapy arrivals awaiting previous due clearance before entering therapy queue
   const therapyAwaitingDueClearance = appointments.filter(
     (a) =>
+      a.status !== AppointmentStatus.CANCELLED &&
       (a.type === AppointmentType.THERAPY || Boolean(a.therapySlotId)) &&
       a.status === AppointmentStatus.CHECKED_IN &&
       a.queueType === null &&
+      !a.outTherapyTime &&
+      !a.inTherapyTime &&
+      a.routingOrigin !== "THERAPY" &&
+      a.currentStation !== "CASHIER_REGISTER" &&
       (a.patient?.totalDue ?? 0) > 0,
   );
 
@@ -156,6 +165,60 @@ export async function getCashierDashboardDataAction(
   // Settled / queued consultation serials
   const paidConsultationSerials = consultationSerials.filter(
     (s) => s.status !== "FORWARDED_TO_CASHIER" && s.status !== "CANCELLED",
+  );
+
+  const pendingSerialPatientIds = new Set(
+    pendingConsultationSerials.map((s) => s.patientId),
+  );
+  const awaitingDueAptIds = new Set(
+    therapyAwaitingDueClearance.map((a) => a.id),
+  );
+
+  // Filter physical therapy appointments + any appointment explicitly forwarded to Cashier (e.g. from Doctor/Handler)
+  const therapyAppointments = appointments.filter(
+    (a) =>
+      a.status !== AppointmentStatus.CANCELLED &&
+      (((a.type === AppointmentType.THERAPY || Boolean(a.therapySlotId)) &&
+        (Boolean(a.therapySlotId) ||
+          Boolean(a.invoiceId) ||
+          (a.feeAmount ?? 0) > 0 ||
+          (a.paidAmount ?? 0) > 0 ||
+          a.paymentStatus === "PENDING")) ||
+      (a.currentStation === "CASHIER_REGISTER" &&
+        !pendingSerialPatientIds.has(a.patientId) &&
+        !awaitingDueAptIds.has(a.id))),
+  );
+
+  // Split therapy/routed appointments by billing status
+  const paidAppointments = therapyAppointments.filter(
+    (a) =>
+      a.status !== AppointmentStatus.CANCELLED &&
+      (a.paymentStatus === "PAID" ||
+        (Boolean(a.invoiceId) && (a.paidAmount ?? 0) > 0)) &&
+      a.currentStation !== "CASHIER_REGISTER" &&
+      Boolean(a.invoiceId || (a.paidAmount ?? 0) > 0),
+  );
+  const pendingAppointments = therapyAppointments.filter(
+    (a) => {
+      if (a.status === AppointmentStatus.CANCELLED) return false;
+      if (a.paymentStatus === "PAID" && a.currentStation !== "CASHIER_REGISTER") return false;
+
+      const fee = a.feeAmount ?? 0;
+      const due = a.dueAmount ?? 0;
+      const patientDue = a.patient?.totalDue ?? 0;
+      const isAtCashier = a.currentStation === "CASHIER_REGISTER";
+
+      // If fee is 0, due is 0, patient has no previous due, and not at Cashier, do not show 0 taka bill!
+      if (fee === 0 && due === 0 && patientDue === 0 && !isAtCashier) {
+        return false;
+      }
+
+      return (
+        a.paymentStatus !== "PAID" ||
+        isAtCashier ||
+        (!a.invoiceId && (a.paidAmount ?? 0) === 0)
+      );
+    },
   );
 
   let totalCollected = 0;
@@ -188,9 +251,20 @@ export async function getCashierDashboardDataAction(
   for (const s of consultationSerials) {
     const paid = s.paidAmount || 0;
     totalCollected += paid;
-    cashCollected += paid;
+    const method = s.invoice?.paymentMethod || "CASH";
+    if (method === "CARD") cardCollected += paid;
+    else if (method === "MFS") mfsCollected += paid;
+    else cashCollected += paid;
     const due = s.dueAmount || (s.paymentStatus === "DUE" ? s.feeAmount : Math.max(0, s.feeAmount - paid));
     pendingCollection += due;
+  }
+
+  for (const p of previousDuePayments) {
+    const paid = p.amount || 0;
+    totalCollected += paid;
+    if (p.paymentMethod === "CARD") cardCollected += paid;
+    else if (p.paymentMethod === "MFS") mfsCollected += paid;
+    else cashCollected += paid;
   }
 
   return {
@@ -236,6 +310,9 @@ export async function collectPaymentAction(params: {
   performerId?: string;
   pin?: string;
   notes?: string;
+  previousDueCollected?: number;
+  includeConsultationSerialId?: string;
+  consultationAmount?: number;
 }) {
   try {
     const sessionData = await requireAuth([
@@ -268,43 +345,130 @@ export async function collectPaymentAction(params: {
     const feeAmount = appointment.feeAmount ?? DEFAULT_FEE;
     const isDue = params.isDue || params.paymentMethod === "DUE";
     const currentPaid = appointment.paidAmount ?? 0;
-    const newPaid = isDue ? currentPaid : currentPaid + params.amount;
+    const sessionPaid = isDue ? 0 : params.amount;
+    const newPaid = isDue ? currentPaid : currentPaid + sessionPaid;
     const dueAmount = isDue ? Math.max(0, feeAmount - currentPaid) : Math.max(0, feeAmount - newPaid);
     const paymentStatus = isDue ? "DUE" : (dueAmount === 0 ? "PAID" : "PARTIAL");
+    const previousDueCollected = !isDue && params.previousDueCollected ? params.previousDueCollected : 0;
 
-    // Generate Invoice Number
-    const currentYear = new Date().getFullYear();
-    const invoiceCount = await prisma.patientInvoice.count();
-    const invoiceNumber = `INV-${currentYear}-${String(invoiceCount + 1).padStart(4, "0")}`;
+    // Check if consultation serial is also bundled into this payment
+    let extraConsultationAmount = 0;
+    let includedSerial: any = null;
+    if (params.includeConsultationSerialId) {
+      includedSerial = await prisma.consultationSerial.findUnique({
+        where: { id: params.includeConsultationSerialId },
+        include: { doctor: true, patient: true },
+      });
+      if (includedSerial && includedSerial.paymentStatus !== "PAID") {
+        extraConsultationAmount = !isDue
+          ? (params.consultationAmount ?? includedSerial.feeAmount)
+          : 0;
+      }
+    }
+
+    // Session invoice line amounts (never mutate existing invoices; create clean fresh invoice)
+    const therapyInvoiceAmount = isDue ? dueAmount : (currentPaid > 0 ? sessionPaid : feeAmount);
+    const totalInvoiceAmount =
+      therapyInvoiceAmount +
+      (includedSerial ? includedSerial.feeAmount : 0) +
+      previousDueCollected;
+    const totalInvoicePaid = sessionPaid + extraConsultationAmount + previousDueCollected;
+    const invoiceDueAmount = isDue
+      ? (therapyInvoiceAmount + (includedSerial ? includedSerial.feeAmount : 0))
+      : Math.max(0, totalInvoiceAmount - totalInvoicePaid);
+
+    // Guaranteed sequential invoice number (e.g. INV-2026-0003)
+    const invoiceNumber = await generateNextInvoiceNumber();
 
     const invoice = await prisma.patientInvoice.create({
       data: {
         invoiceNumber,
         patientId: appointment.patientId,
         visitId: appointment.visitId || undefined,
-        totalAmount: feeAmount,
-        paidAmount: isDue ? 0 : params.amount,
-        dueAmount,
-        status: isDue ? "DUE" : (dueAmount === 0 ? "PAID" : "PARTIAL"),
+        totalAmount: totalInvoiceAmount,
+        paidAmount: totalInvoicePaid,
+        dueAmount: invoiceDueAmount,
+        status: isDue ? "DUE" : (invoiceDueAmount === 0 ? "PAID" : "PARTIAL"),
         paymentMethod: params.paymentMethod,
         cashierPerformerId: params.performerId || undefined,
         notes: params.notes || undefined,
       },
     });
 
+    // 1. Separate Physical Therapy line item payment record
     await prisma.patientPayment.create({
       data: {
         patientId: appointment.patientId,
         visitId: appointment.visitId || undefined,
         invoiceId: invoice.id,
         serviceType: "THERAPY",
-        amount: isDue ? 0 : params.amount,
+        amount: sessionPaid,
         paymentMethod: params.paymentMethod,
         isDue,
         cashierPerformerId: params.performerId || undefined,
         notes: params.notes || undefined,
       },
     });
+
+    // 2. Separate Doctor Consultation line item payment record (if bundled)
+    if (includedSerial) {
+      await prisma.patientPayment.create({
+        data: {
+          patientId: appointment.patientId,
+          visitId: appointment.visitId || undefined,
+          invoiceId: invoice.id,
+          serviceType: "CONSULTATION",
+          amount: extraConsultationAmount,
+          paymentMethod: params.paymentMethod,
+          isDue,
+          cashierPerformerId: params.performerId || undefined,
+          notes: `Doctor Consultation Serial #${includedSerial.serialNumber}`,
+        },
+      });
+
+      await prisma.consultationSerial.update({
+        where: { id: includedSerial.id },
+        data: {
+          paidAmount: extraConsultationAmount,
+          dueAmount: Math.max(0, includedSerial.feeAmount - extraConsultationAmount),
+          paymentStatus: isDue ? "DUE" : (extraConsultationAmount >= includedSerial.feeAmount ? "PAID" : "PARTIAL"),
+          status: "QUEUED",
+          invoiceId: invoice.id,
+          cashierPerformerId: params.performerId || undefined,
+        },
+      });
+
+      emitRealtimeEvent("CONSULTATION_QUEUED", {
+        serialId: includedSerial.id,
+        serialNumber: includedSerial.serialNumber,
+        patientId: includedSerial.patientId,
+        patientName: appointment.patient.name,
+        invoiceNumber,
+      });
+    }
+
+    // 3. Separate Previous Due line item payment record
+    if (previousDueCollected > 0 && !isDue) {
+      await prisma.patientPayment.create({
+        data: {
+          patientId: appointment.patientId,
+          visitId: appointment.visitId || undefined,
+          invoiceId: invoice.id,
+          serviceType: "PREVIOUS_DUE",
+          amount: previousDueCollected,
+          paymentMethod: params.paymentMethod,
+          isDue: false,
+          cashierPerformerId: params.performerId || undefined,
+          notes: `Previous outstanding balance clearance (${params.notes || ""})`.trim(),
+        },
+      });
+    }
+
+    const shouldMoveToReception =
+      (appointment.currentStation === "CASHIER_REGISTER" ||
+        Boolean(appointment.outTherapyTime) ||
+        appointment.routingOrigin === "THERAPY") &&
+      appointment.status === AppointmentStatus.CHECKED_IN;
 
     const updated = await prisma.appointment.update({
       where: { id: params.appointmentId },
@@ -317,17 +481,30 @@ export async function collectPaymentAction(params: {
         paymentMethod: params.paymentMethod,
         invoiceId: invoice.id,
         notes: params.notes || appointment.notes,
+        ...(shouldMoveToReception
+          ? { currentStation: "RECEPTIONIST_DESK", queueType: null }
+          : {}),
       },
       include: {
         patient: true,
         therapySlot: { include: { room: true } },
         room: true,
+        invoice: {
+          include: { payments: true },
+        },
       },
     });
 
     // Synchronize billing
-    const { syncBillingForAppointment } = await import("@/lib/billing-sync");
+    const { syncBillingForAppointment, syncBillingForPatient } = await import("@/lib/billing-sync");
     await syncBillingForAppointment(updated.id);
+    await syncBillingForPatient(appointment.patientId);
+
+    // Fetch complete invoice with relation
+    const fullInvoice = await prisma.patientInvoice.findUnique({
+      where: { id: invoice.id },
+      include: { payments: true },
+    });
 
     // Step Log
     if (appointment.visitId) {
@@ -336,9 +513,9 @@ export async function collectPaymentAction(params: {
           patientId: appointment.patientId,
           visitId: appointment.visitId,
           step: isDue ? "BILL_MARKED_DUE" : "BILL_COLLECTED",
-          station: "CASHIER_REGISTER",
+          station: updated.currentStation || "CASHIER_REGISTER",
           performerId: params.performerId || null,
-          details: `Therapy session invoice ${invoiceNumber} issued (${isDue ? "MARKED AS DUE" : `PAID ৳${params.amount}`})`,
+          details: `Invoice ${invoiceNumber} issued (${isDue ? "MARKED AS DUE" : `PAID ৳${totalInvoicePaid}`})${shouldMoveToReception ? " • Returned to Receptionist Desk" : ""}`,
         },
       });
     }
@@ -353,7 +530,7 @@ export async function collectPaymentAction(params: {
       details: {
         action: isDue ? "THERAPY_MARKED_DUE" : "PAYMENT_COLLECTED",
         patientName: updated.patient.name,
-        amount: isDue ? 0 : params.amount,
+        amount: isDue ? 0 : totalInvoicePaid,
         method: params.paymentMethod,
         invoiceNumber,
       },
@@ -362,23 +539,51 @@ export async function collectPaymentAction(params: {
     emitRealtimeEvent("APPOINTMENT_UPDATED", {
       id: updated.id,
       status: updated.status,
+      currentStation: updated.currentStation,
       paymentStatus: updated.paymentStatus,
       feeAmount: updated.feeAmount,
       date: updated.appointmentDate.toISOString().split("T")[0],
     });
 
+    emitRealtimeEvent("PAYMENT_COLLECTED", {
+      appointmentId: updated.id,
+      patientId: updated.patientId,
+      patientName: updated.patient.name,
+      invoiceNumber,
+      amount: totalInvoicePaid,
+      paymentStatus: updated.paymentStatus,
+    });
+
+    emitRealtimeEvent("INVOICE_UPDATED", {
+      invoiceId: invoice.id,
+      invoiceNumber,
+      patientId: updated.patientId,
+    });
+
+    if (shouldMoveToReception) {
+      emitRealtimeEvent("STATION_CHANGED", {
+        appointmentId: updated.id,
+        patientId: updated.patientId,
+        patientName: updated.patient.name,
+        fromStation: "CASHIER_REGISTER",
+        toStation: "RECEPTIONIST_DESK",
+        status: updated.status,
+      });
+    }
+
     revalidatePath("/cashier");
     revalidatePath("/receptionist");
     revalidatePath("/doctor");
     revalidatePath("/handler");
+    revalidatePath("/admin/tracking");
 
     return {
       success: true,
       message: isDue
         ? `Therapy fee marked as DUE for ${updated.patient.name}. Invoice ${invoiceNumber} issued.`
-        : `Payment of ৳${params.amount} collected via ${params.paymentMethod} for ${updated.patient.name}. Invoice ${invoiceNumber} issued.`,
+        : `Payment of ৳${totalInvoicePaid} collected via ${params.paymentMethod} for ${updated.patient.name}${previousDueCollected > 0 ? ` (including ৳${previousDueCollected} previous due)` : ""}. Invoice ${invoiceNumber} issued.`,
       appointment: updated,
-      invoice,
+      invoice: fullInvoice,
     };
   } catch (err) {
     console.error("[Collect Payment Error]:", err);
@@ -403,6 +608,8 @@ export async function processConsultationBillingAction(params: {
   pin?: string;
   notes?: string;
   previousDueCollected?: number;
+  includeTherapyAppointmentId?: string;
+  therapyAmount?: number;
 }) {
   try {
     const sessionData = await requireAuth([
@@ -434,30 +641,58 @@ export async function processConsultationBillingAction(params: {
 
     const feeAmount = serial.feeAmount;
     const isDue = params.isDue || params.paymentMethod === "DUE";
+    const currentPaid = serial.paidAmount ?? 0;
     const paidAmount = isDue ? 0 : Math.min(feeAmount, params.amount);
-    const dueAmount = isDue ? feeAmount : Math.max(0, feeAmount - paidAmount);
+    const newPaid = isDue ? currentPaid : currentPaid + paidAmount;
+    const dueAmount = isDue ? feeAmount : Math.max(0, feeAmount - newPaid);
     const paymentStatus = isDue ? "DUE" : (dueAmount === 0 ? "PAID" : "PARTIAL");
+    const previousDueCollected = !isDue && params.previousDueCollected ? params.previousDueCollected : 0;
 
-    // Generate Invoice Number (e.g. INV-2026-0042)
-    const currentYear = new Date().getFullYear();
-    const invoiceCount = await prisma.patientInvoice.count();
-    const invoiceNumber = `INV-${currentYear}-${String(invoiceCount + 1).padStart(4, "0")}`;
+    // Check if therapy appointment is bundled into this payment
+    let extraTherapyAmount = 0;
+    let includedTherapyApt: any = null;
+    if (params.includeTherapyAppointmentId) {
+      includedTherapyApt = await prisma.appointment.findUnique({
+        where: { id: params.includeTherapyAppointmentId },
+        include: { therapySlot: true },
+      });
+      if (includedTherapyApt && includedTherapyApt.paymentStatus !== "PAID") {
+        extraTherapyAmount = !isDue
+          ? (params.therapyAmount ?? includedTherapyApt.feeAmount ?? DEFAULT_FEE)
+          : 0;
+      }
+    }
+
+    // Clean session amounts: never mutate existing invoices; create clean fresh invoice
+    const consultInvoiceAmount = isDue ? dueAmount : (currentPaid > 0 ? paidAmount : feeAmount);
+    const totalInvoiceAmount =
+      consultInvoiceAmount +
+      (includedTherapyApt ? (includedTherapyApt.feeAmount ?? DEFAULT_FEE) : 0) +
+      previousDueCollected;
+    const totalInvoicePaid = paidAmount + extraTherapyAmount + previousDueCollected;
+    const invoiceDueAmount = isDue
+      ? (consultInvoiceAmount + (includedTherapyApt ? (includedTherapyApt.feeAmount ?? DEFAULT_FEE) : 0))
+      : Math.max(0, totalInvoiceAmount - totalInvoicePaid);
+
+    // Guaranteed sequential invoice number (e.g. INV-2026-0003)
+    const invoiceNumber = await generateNextInvoiceNumber();
 
     const invoice = await prisma.patientInvoice.create({
       data: {
         invoiceNumber,
         patientId: serial.patientId,
         visitId: serial.visitId || undefined,
-        totalAmount: feeAmount,
-        paidAmount,
-        dueAmount,
-        status: isDue ? "DUE" : (dueAmount === 0 ? "PAID" : "PARTIAL"),
+        totalAmount: totalInvoiceAmount,
+        paidAmount: totalInvoicePaid,
+        dueAmount: invoiceDueAmount,
+        status: isDue ? "DUE" : (invoiceDueAmount === 0 ? "PAID" : "PARTIAL"),
         paymentMethod: params.paymentMethod,
         cashierPerformerId: params.performerId || undefined,
         notes: params.notes || undefined,
       },
     });
 
+    // 1. Separate Doctor Consultation line item payment record
     await prisma.patientPayment.create({
       data: {
         patientId: serial.patientId,
@@ -472,15 +707,50 @@ export async function processConsultationBillingAction(params: {
       },
     });
 
-    // If previous due was also collected concurrently
-    if (params.previousDueCollected && params.previousDueCollected > 0 && !isDue) {
+    // 2. Separate Physical Therapy line item payment record (if bundled)
+    if (includedTherapyApt) {
+      await prisma.patientPayment.create({
+        data: {
+          patientId: serial.patientId,
+          visitId: serial.visitId || undefined,
+          invoiceId: invoice.id,
+          serviceType: "THERAPY",
+          amount: extraTherapyAmount,
+          paymentMethod: params.paymentMethod,
+          isDue,
+          cashierPerformerId: params.performerId || undefined,
+          notes: `Physical Therapy Session (${includedTherapyApt.therapySlot?.label || "Floor"})`,
+        },
+      });
+
+      await prisma.appointment.update({
+        where: { id: includedTherapyApt.id },
+        data: {
+          paidAmount: extraTherapyAmount,
+          dueAmount: Math.max(0, (includedTherapyApt.feeAmount ?? DEFAULT_FEE) - extraTherapyAmount),
+          paymentStatus: isDue ? "DUE" : (extraTherapyAmount >= (includedTherapyApt.feeAmount ?? DEFAULT_FEE) ? "PAID" : "PARTIAL"),
+          status: AppointmentStatus.CHECKED_IN,
+          currentStation: "THERAPY_ROOM",
+          invoiceId: invoice.id,
+        },
+      });
+
+      emitRealtimeEvent("APPOINTMENT_UPDATED", {
+        id: includedTherapyApt.id,
+        status: AppointmentStatus.CHECKED_IN,
+        paymentStatus: isDue ? "DUE" : "PAID",
+      });
+    }
+
+    // 3. Separate Previous Due line item payment record
+    if (previousDueCollected > 0 && !isDue) {
       await prisma.patientPayment.create({
         data: {
           patientId: serial.patientId,
           visitId: serial.visitId || undefined,
           invoiceId: invoice.id,
           serviceType: "PREVIOUS_DUE",
-          amount: params.previousDueCollected,
+          amount: previousDueCollected,
           paymentMethod: params.paymentMethod,
           isDue: false,
           cashierPerformerId: params.performerId || undefined,
@@ -527,7 +797,13 @@ export async function processConsultationBillingAction(params: {
         invoiceId: invoice.id,
         cashierPerformerId: params.performerId || undefined,
       },
-      include: { doctor: true, patient: true, invoice: true },
+      include: {
+        doctor: true,
+        patient: true,
+        invoice: {
+          include: { payments: true },
+        },
+      },
     });
 
     let returnMessage = "";
@@ -547,7 +823,11 @@ export async function processConsultationBillingAction(params: {
             lte: endOfToday,
           },
           type: AppointmentType.CONSULTATION,
+          status: {
+            notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
+          },
         },
+        orderBy: { createdAt: "desc" },
       });
 
       if (existingApt) {
@@ -558,6 +838,9 @@ export async function processConsultationBillingAction(params: {
             status: AppointmentStatus.CHECKED_IN,
             currentStation: "CONSULTATION_ROOM",
             roomId: waitingRoom.id,
+            visitId: serial.visitId || existingApt.visitId || undefined,
+            checkInTime: existingApt.checkInTime || now,
+            checkOutTime: null,
             doctorId: serial.doctorId,
             invoiceId: invoice.id,
             feeAmount: 0, // Consultation fee is exclusively on ConsultationSerial
@@ -577,6 +860,8 @@ export async function processConsultationBillingAction(params: {
             roomId: waitingRoom.id,
             patientId: serial.patientId,
             visitId: serial.visitId || undefined,
+            checkInTime: now,
+            checkOutTime: null,
             doctorId: serial.doctorId,
             gender: serial.patient.gender,
             invoiceId: invoice.id,
@@ -679,10 +964,15 @@ export async function processConsultationBillingAction(params: {
     revalidatePath("/doctor");
     revalidatePath("/admin/tracking");
 
+    const fullInvoice = await prisma.patientInvoice.findUnique({
+      where: { id: invoice.id },
+      include: { payments: true },
+    });
+
     return {
       success: true,
       message: returnMessage,
-      invoice,
+      invoice: fullInvoice,
       serial: updatedSerial,
     };
   } catch (err) {
@@ -741,9 +1031,7 @@ export async function clearPreviousDueAction(params: {
     let invoice = null;
 
     if (!isDue && amountToPay > 0) {
-      const currentYear = new Date().getFullYear();
-      const invoiceCount = await prisma.patientInvoice.count();
-      const invoiceNumber = `INV-${currentYear}-${String(invoiceCount + 1).padStart(4, "0")}`;
+      const invoiceNumber = await generateNextInvoiceNumber();
 
       invoice = await prisma.patientInvoice.create({
         data: {
@@ -785,44 +1073,91 @@ export async function clearPreviousDueAction(params: {
       });
 
       if (apt) {
-        await prisma.appointment.update({
-          where: { id: apt.id },
-          data: {
-            queueType: QueueType.THERAPY,
-            currentStation: "THERAPY_ROOM",
-            status: AppointmentStatus.CHECKED_IN,
-          },
-        });
+        const alreadyDoneTherapy =
+          Boolean(apt.outTherapyTime) ||
+          apt.routingOrigin === "THERAPY" ||
+          apt.currentStation === "CASHIER_REGISTER";
 
-        // Step log
-        if (apt.visitId) {
-          await prisma.patientStepLog.create({
+        if (alreadyDoneTherapy) {
+          await prisma.appointment.update({
+            where: { id: apt.id },
             data: {
-              patientId: patient.id,
-              visitId: apt.visitId,
-              step: isDue ? "DUE_ACKNOWLEDGED_QUEUED" : "DUE_COLLECTED_QUEUED",
-              station: "THERAPY_ROOM",
-              performerId: params.performerId || null,
-              details: isDue
-                ? `Previous due acknowledged as DUE -> Placed into Therapy Queue (${apt.therapySlot?.label || "Session"})`
-                : `Previous due of ৳${amountToPay} collected -> Placed into Therapy Queue (${apt.therapySlot?.label || "Session"})`,
+              queueType: null,
+              currentStation: "RECEPTIONIST_DESK",
+              status: AppointmentStatus.CHECKED_IN,
             },
           });
-        }
 
-        // Realtime events
-        emitRealtimeEvent("PATIENT_QUEUED_FOR_THERAPY", {
-          appointmentId: apt.id,
-          patientId: patient.id,
-          patientName: patient.name,
-          slotLabel: apt.therapySlot?.label,
-        });
-        emitRealtimeEvent("APPOINTMENT_UPDATED", {
-          id: apt.id,
-          status: AppointmentStatus.CHECKED_IN,
-          currentStation: "THERAPY_ROOM",
-          queueType: QueueType.THERAPY,
-        });
+          if (apt.visitId) {
+            await prisma.patientStepLog.create({
+              data: {
+                patientId: patient.id,
+                visitId: apt.visitId,
+                step: isDue ? "DUE_ACKNOWLEDGED" : "DUE_COLLECTED",
+                station: "RECEPTIONIST_DESK",
+                performerId: params.performerId || null,
+                details: isDue
+                  ? `Previous due acknowledged as DUE -> Forwarded to Receptionist Desk`
+                  : `Previous due of ৳${amountToPay} settled -> Forwarded to Receptionist Desk`,
+              },
+            });
+          }
+
+          emitRealtimeEvent("STATION_CHANGED", {
+            appointmentId: apt.id,
+            patientId: patient.id,
+            patientName: patient.name,
+            fromStation: "CASHIER_REGISTER",
+            toStation: "RECEPTIONIST_DESK",
+            status: AppointmentStatus.CHECKED_IN,
+          });
+          emitRealtimeEvent("APPOINTMENT_UPDATED", {
+            id: apt.id,
+            status: AppointmentStatus.CHECKED_IN,
+            currentStation: "RECEPTIONIST_DESK",
+            queueType: null,
+          });
+        } else {
+          await prisma.appointment.update({
+            where: { id: apt.id },
+            data: {
+              queueType: QueueType.THERAPY,
+              currentStation: "THERAPY_ROOM",
+              status: AppointmentStatus.CHECKED_IN,
+              checkOutTime: null,
+            },
+          });
+
+          // Step log
+          if (apt.visitId) {
+            await prisma.patientStepLog.create({
+              data: {
+                patientId: patient.id,
+                visitId: apt.visitId,
+                step: isDue ? "DUE_ACKNOWLEDGED_QUEUED" : "DUE_COLLECTED_QUEUED",
+                station: "THERAPY_ROOM",
+                performerId: params.performerId || null,
+                details: isDue
+                  ? `Previous due acknowledged as DUE -> Placed into Therapy Queue (${apt.therapySlot?.label || "Session"})`
+                  : `Previous due of ৳${amountToPay} collected -> Placed into Therapy Queue (${apt.therapySlot?.label || "Session"})`,
+              },
+            });
+          }
+
+          // Realtime events
+          emitRealtimeEvent("PATIENT_QUEUED_FOR_THERAPY", {
+            appointmentId: apt.id,
+            patientId: patient.id,
+            patientName: patient.name,
+            slotLabel: apt.therapySlot?.label,
+          });
+          emitRealtimeEvent("APPOINTMENT_UPDATED", {
+            id: apt.id,
+            status: AppointmentStatus.CHECKED_IN,
+            currentStation: "THERAPY_ROOM",
+            queueType: QueueType.THERAPY,
+          });
+        }
       }
     }
 
@@ -841,6 +1176,13 @@ export async function clearPreviousDueAction(params: {
       name: patient.name,
     });
 
+    const fullInvoice = invoice
+      ? await prisma.patientInvoice.findUnique({
+          where: { id: invoice.id },
+          include: { payments: true },
+        })
+      : null;
+
     revalidatePath("/cashier");
     revalidatePath("/receptionist");
     revalidatePath("/handler");
@@ -851,7 +1193,7 @@ export async function clearPreviousDueAction(params: {
       message: isDue
         ? `Previous balance of ${patient.name} acknowledged as DUE. Patient placed into Therapy Queue.`
         : `Payment of ৳${amountToPay} collected for ${patient.name}. Patient placed into Therapy Queue.`,
-      invoice,
+      invoice: fullInvoice,
     };
   } catch (err) {
     console.error("[Clear Previous Due Error]:", err);

@@ -5,6 +5,14 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { ROLES, type RoleConfig } from "@/components/login/role-config";
 import { PasswordResetDialog } from "@/components/admin/users/password-reset-dialog";
 import { RevokeSessionsDialog } from "@/components/admin/users/revoke-sessions-dialog";
@@ -234,15 +242,28 @@ export function UserManagementView({ users, rooms = [] }: UserManagementViewProp
     });
   };
 
-  const handleDeleteAccount = async (account: UserAccountData) => {
-    if (!confirm(`Are you sure you want to delete the ${account.role} account for ${account.name || account.email}?`)) {
-      return;
-    }
-    const res = await deleteUserAccountAction(account.id);
-    if (res.success) {
-      toast.success(res.message);
-    } else {
-      toast.error(res.message);
+  const [deleteConfirmAccount, setDeleteConfirmAccount] =
+    React.useState<UserAccountData | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = React.useState(false);
+
+  const handleDeleteAccount = (account: UserAccountData) => {
+    setDeleteConfirmAccount(account);
+  };
+
+  const executeDeleteAccount = async (account: UserAccountData) => {
+    setIsDeletingAccount(true);
+    try {
+      const res = await deleteUserAccountAction(account.id);
+      if (res.success) {
+        toast.success(res.message);
+        setDeleteConfirmAccount(null);
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to delete user account.");
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -923,6 +944,69 @@ export function UserManagementView({ users, rooms = [] }: UserManagementViewProp
           desks={deskStationAccounts.map((d) => ({ id: d.id, role: d.role }))}
         />
       )}
+
+      {/* Shadcn UI Delete Account Confirmation Dialog */}
+      <Dialog
+        open={Boolean(deleteConfirmAccount)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmAccount(null);
+        }}
+      >
+        <DialogContent className="w-[96vw] max-w-md p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+          <DialogHeader className="p-4 sm:p-5 pb-3 pr-12 border-b border-border/60 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
+                <Trash2 className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Delete Staff Account
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Permanent removal of user login credentials
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-4 sm:p-5 space-y-3 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Are you sure you want to delete the <strong className="text-foreground">{deleteConfirmAccount?.role}</strong> account for{" "}
+              <strong className="text-foreground">
+                {deleteConfirmAccount?.name || deleteConfirmAccount?.email}
+              </strong>
+              ? This action cannot be undone.
+            </p>
+          </div>
+
+          <DialogFooter className="p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteConfirmAccount(null)}
+              disabled={isDeletingAccount}
+              className="text-xs cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (deleteConfirmAccount) {
+                  executeDeleteAccount(deleteConfirmAccount);
+                }
+              }}
+              disabled={isDeletingAccount}
+              className="text-xs font-bold cursor-pointer shadow-xs"
+            >
+              {isDeletingAccount ? "Deleting..." : "Delete Account"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

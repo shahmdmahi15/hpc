@@ -102,10 +102,23 @@ interface PatientSearchResult {
     checkOutTime: Date | string | null;
     status: string;
   } | null;
+  consultationSerial?: {
+    id: string;
+    serialNumber: number;
+    doctorName: string | null;
+    doctorId: string;
+    feeAmount: number;
+    paidAmount: number;
+    dueAmount: number;
+    paymentStatus: string;
+    status: string;
+    toldTime: string | null;
+    invoiceNumber: string | null;
+  } | null;
   todayAppointment?: {
     id: string;
     status: AppointmentStatus;
-    queueType: QueueType;
+    queueType: QueueType | null;
     currentStation: string | null;
     checkInTime: Date | string | null;
     checkOutTime?: Date | string | null;
@@ -577,7 +590,13 @@ export function PatientArrivalTab({
     // Check consultation serials
     const serials = checkoutModalApt.patient?.consultationSerials || [];
     for (const s of serials) {
-      if (s.status !== "CANCELLED" && (!s.invoiceId || s.paymentStatus === "PENDING")) {
+      if (
+        s.status !== "CANCELLED" &&
+        !s.invoiceId &&
+        s.paymentStatus !== "PAID" &&
+        s.paymentStatus !== "DUE" &&
+        s.paymentStatus !== "PARTIAL"
+      ) {
         return {
           canCheckout: false,
           unbilledReason: `Doctor Consultation Serial #${s.serialNumber} (Dr. ${s.doctor?.name || "Doctor"}) has not been invoiced at Cashier Desk.`,
@@ -592,8 +611,10 @@ export function PatientArrivalTab({
       checkoutModalApt.therapySlotId
     ) {
       if (
-        checkoutModalApt.paymentStatus === "PENDING" &&
-        !checkoutModalApt.invoiceId
+        !checkoutModalApt.invoiceId &&
+        checkoutModalApt.paymentStatus !== "PAID" &&
+        checkoutModalApt.paymentStatus !== "DUE" &&
+        checkoutModalApt.paymentStatus !== "PARTIAL"
       ) {
         return {
           canCheckout: false,
@@ -688,30 +709,37 @@ export function PatientArrivalTab({
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {searchResults.map((patient) => {
-                  const isCurrentlyInCenter = Boolean(
-                    (patient.todayAppointment &&
+                  const hasActiveCheckedInApt = Boolean(
+                    patient.todayAppointment &&
                       patient.todayAppointment.currentStation !== "CHECKED_OUT" &&
+                      patient.todayAppointment.checkInTime &&
                       (patient.todayAppointment.status === AppointmentStatus.CHECKED_IN ||
                         patient.todayAppointment.status === AppointmentStatus.CALLING ||
                         patient.todayAppointment.status === AppointmentStatus.IN_CONSULTATION ||
-                        patient.todayAppointment.status === AppointmentStatus.IN_THERAPY)) ||
-                    (patient.activeVisit &&
-                      patient.activeVisit.status !== "CHECKED_OUT" &&
-                      patient.todayAppointment?.currentStation !== "CHECKED_OUT" &&
-                      patient.todayAppointment?.status !== AppointmentStatus.COMPLETED)
+                        patient.todayAppointment.status === AppointmentStatus.IN_THERAPY)
                   );
 
-                  const isCheckedOutToday = Boolean(
-                    !isCurrentlyInCenter &&
-                    (patient.activeVisit?.status === "CHECKED_OUT" ||
-                      patient.todayAppointment?.currentStation === "CHECKED_OUT" ||
-                      patient.todayAppointment?.status === AppointmentStatus.COMPLETED)
+                  const isCurrentlyInCenter = Boolean(
+                    patient.activeVisit &&
+                      patient.activeVisit.status !== "CHECKED_OUT" &&
+                      hasActiveCheckedInApt
                   );
 
                   const isScheduledToday = Boolean(
                     !isCurrentlyInCenter &&
-                    !isCheckedOutToday &&
-                    patient.todayAppointment?.status === AppointmentStatus.CONFIRMED
+                      (patient.todayAppointment?.status === AppointmentStatus.CONFIRMED ||
+                        patient.todayAppointment?.status === AppointmentStatus.PENDING ||
+                        (!patient.todayAppointment?.checkInTime && Boolean(patient.todayAppointment?.slotLabel)) ||
+                        patient.consultationSerial?.status === "BOOKED" ||
+                        patient.consultationSerial?.status === "FORWARDED_TO_CASHIER")
+                  );
+
+                  const isCheckedOutToday = Boolean(
+                    !isCurrentlyInCenter &&
+                      !isScheduledToday &&
+                      (patient.activeVisit?.status === "CHECKED_OUT" ||
+                        patient.todayAppointment?.currentStation === "CHECKED_OUT" ||
+                        patient.todayAppointment?.status === AppointmentStatus.COMPLETED)
                   );
 
                   return (
@@ -797,6 +825,19 @@ export function PatientArrivalTab({
                                   : "Arrived"}
                               </span>
                             </div>
+                          ) : isScheduledToday ? (
+                            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-[11px]">
+                              <span className="flex items-center gap-1 text-amber-700 dark:text-amber-300 font-semibold">
+                                <Clock className="size-3.5 text-amber-500" />
+                                <span>Scheduled Today</span>
+                              </span>
+                              <span className="font-mono text-[10px] text-muted-foreground font-semibold">
+                                {patient.todayAppointment?.slotLabel ||
+                                  (patient.consultationSerial?.serialNumber
+                                    ? `Serial #${patient.consultationSerial.serialNumber}`
+                                    : "Today")}
+                              </span>
+                            </div>
                           ) : isCheckedOutToday ? (
                             <div className="p-2 rounded-lg bg-zinc-500/10 border border-zinc-500/25 flex items-center justify-between text-[11px]">
                               <span className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300 font-semibold">
@@ -819,16 +860,6 @@ export function PatientArrivalTab({
                                   : "Checked Out"}
                               </span>
                             </div>
-                          ) : isScheduledToday ? (
-                            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-[11px]">
-                              <span className="flex items-center gap-1 text-amber-700 dark:text-amber-300 font-semibold">
-                                <Clock className="size-3.5 text-amber-500" />
-                                <span>Scheduled Today</span>
-                              </span>
-                              <span className="font-mono text-[10px] text-muted-foreground font-semibold">
-                                {patient.todayAppointment?.slotLabel || "Today"}
-                              </span>
-                            </div>
                           ) : (
                             <div className="p-1.5 rounded-lg bg-muted/40 text-[11px] text-muted-foreground flex items-center gap-1">
                               <LogIn className="size-3 text-muted-foreground" />
@@ -841,9 +872,31 @@ export function PatientArrivalTab({
                       {/* Action Button */}
                       <div>
                         {isCurrentlyInCenter ? (
-                          <div className="text-[11px] text-center font-bold py-1 text-emerald-600 dark:text-emerald-400">
-                            Public Waiting Lounge (Checked In)
+                          <div className="flex flex-col gap-1.5">
+                            <div className="text-[11px] text-center font-bold py-0.5 text-emerald-600 dark:text-emerald-400">
+                              Public Waiting Lounge (Checked In)
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenCheckIn(patient)}
+                              className="w-full h-7 text-[11px] font-bold gap-1 rounded-lg border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                            >
+                              <UserCheck className="size-3" />
+                              <span>Re-Check In (New Arrival)</span>
+                            </Button>
                           </div>
+                        ) : isScheduledToday ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleOpenCheckIn(patient)}
+                            className="w-full h-8 text-xs font-bold gap-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+                          >
+                            <UserCheck className="size-3.5" />
+                            <span>Check In Scheduled Patient</span>
+                          </Button>
                         ) : isCheckedOutToday ? (
                           <Button
                             type="button"
@@ -862,11 +915,7 @@ export function PatientArrivalTab({
                             className="w-full h-8 text-xs font-bold gap-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
                           >
                             <UserCheck className="size-3.5" />
-                            <span>
-                              {isScheduledToday
-                                ? "Check In Scheduled Patient"
-                                : "Check In Patient (Walk-In)"}
-                            </span>
+                            <span>Check In Patient (Walk-In)</span>
                           </Button>
                         )}
                       </div>
@@ -973,11 +1022,13 @@ export function PatientArrivalTab({
                   apt.patient?.consultationSerials?.[0];
 
                 const isConsultWithSerial =
-                  Boolean(existingSerial) && !apt.therapySlotId;
+                  Boolean(existingSerial) &&
+                  !apt.therapySlotId &&
+                  !(apt.currentStation === "CASHIER_REGISTER" && (apt.feeAmount ?? 0) > 0);
 
                 const effectivePaymentStatus = isConsultWithSerial
                   ? existingSerial.paymentStatus || "PENDING"
-                  : apt.paymentStatus || "PENDING";
+                  : apt.paymentStatus || existingSerial?.paymentStatus || "PENDING";
 
                 const effectiveFeeAmount = isConsultWithSerial
                   ? (existingSerial.feeAmount ?? 0)
@@ -985,11 +1036,11 @@ export function PatientArrivalTab({
 
                 const effectivePaidAmount = isConsultWithSerial
                   ? (existingSerial.paidAmount ?? 0)
-                  : (apt.paidAmount ?? 0);
+                  : (apt.paidAmount ?? existingSerial?.paidAmount ?? 0);
 
                 const effectiveDueAmount = isConsultWithSerial
                   ? (existingSerial.dueAmount ?? 0)
-                  : (apt.dueAmount ?? 0);
+                  : (apt.dueAmount ?? existingSerial?.dueAmount ?? 0);
 
                 const effectiveDoctor = apt.doctor || existingSerial?.doctor;
                 const effectiveInvoice = existingSerial?.invoice || apt.invoice;
@@ -1001,9 +1052,13 @@ export function PatientArrivalTab({
 
                 const stationBadgeText =
                   apt.currentStation === "RECEPTIONIST_DESK" || !apt.currentStation
-                    ? roomBadgeText
+                    ? apt.outTherapyTime
+                      ? `${roomBadgeText} • Forwarded to Receptionist (Therapy Completed)`
+                      : apt.outConsultationTime
+                        ? `${roomBadgeText} • Forwarded to Receptionist (Consultation Completed)`
+                        : roomBadgeText
                     : apt.currentStation === "CASHIER_REGISTER"
-                      ? `${roomBadgeText} • Cashier Desk`
+                      ? `${roomBadgeText} • Forwarded to Cashier`
                       : apt.currentStation === "CONSULTATION_ROOM"
                         ? `Doctor Chamber (${effectiveDoctor ? `Dr. ${effectiveDoctor.name}` : apt.room?.number || "Chamber"})`
                         : apt.currentStation === "THERAPY_ROOM"
@@ -1094,6 +1149,16 @@ export function PatientArrivalTab({
                             </>
                           )}
                         </div>
+
+                        {/* Doctor / Handler Routing Note */}
+                        {apt.routingNote && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-indigo-900 dark:text-indigo-200 bg-indigo-500/10 border border-indigo-500/25 px-2 py-0.5 rounded-md mt-1 w-fit">
+                            <Stethoscope className="size-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                            <span className="font-semibold">
+                              Routing Note: {apt.routingNote}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Arrival / Booking Notes display */}
                         {(apt.notes || existingSerial?.notes || (apt.patient as any)?.visits?.[0]?.notes) && (

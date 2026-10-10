@@ -57,15 +57,17 @@ export function CallToTherapyRoomDialog({
   defaultRoomId,
   onSuccess,
 }: CallToTherapyRoomDialogProps) {
-  // 1. Strictly filter rooms: RoomAccessType.THERAPY and RoomStatus.AVAILABLE
+  // 1. Strictly filter rooms: RoomAccessType.THERAPY and RoomStatus.AVAILABLE (or currently assigned room on re-call)
   const therapyAvailableRooms = React.useMemo(() => {
     return rooms.filter((r) => {
+      const isAssignedToThis =
+        appointment.roomId && r.id === appointment.roomId;
       return (
         r.accessType === RoomAccessType.THERAPY &&
-        r.status === RoomStatus.AVAILABLE
+        (r.status === RoomStatus.AVAILABLE || isAssignedToThis)
       );
     });
-  }, [rooms]);
+  }, [rooms, appointment.roomId]);
 
   // First available therapy room
   const firstTherapyRoom = React.useMemo(() => {
@@ -77,8 +79,14 @@ export function CallToTherapyRoomDialog({
     return handlers[0] || null;
   }, [handlers]);
 
-  // Initial room selection
+  // Initial room selection: default to patient's currently assigned room when re-calling
   const initialRoomId = React.useMemo(() => {
+    if (
+      appointment.roomId &&
+      therapyAvailableRooms.some((r) => r.id === appointment.roomId)
+    ) {
+      return appointment.roomId;
+    }
     if (
       defaultRoomId &&
       therapyAvailableRooms.some((r) => r.id === defaultRoomId)
@@ -86,7 +94,7 @@ export function CallToTherapyRoomDialog({
       return defaultRoomId;
     }
     return firstTherapyRoom?.id || "";
-  }, [defaultRoomId, therapyAvailableRooms, firstTherapyRoom]);
+  }, [appointment.roomId, defaultRoomId, therapyAvailableRooms, firstTherapyRoom]);
 
   // Performer auto-selection rule: If single performer, automatically select it!
   const initialHandlerId = React.useMemo(() => {

@@ -25,6 +25,7 @@
     "@base-ui/react": "^1.7.0",
     "@prisma/adapter-better-sqlite3": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@radix-ui/react-radio-group": "^1.4.8",
     "argon2": "^0.45.1",
     "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",

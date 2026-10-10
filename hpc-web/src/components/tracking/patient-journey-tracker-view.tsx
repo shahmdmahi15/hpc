@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/select";
 import {
   Activity,
+  AlertCircle,
+  AlertTriangle,
   ArrowRight,
   Banknote,
   CheckCircle2,
@@ -230,23 +232,28 @@ export function PatientJourneyTrackerView({
     return list;
   }, [data?.patients, selectedStationFilter, searchQuery]);
 
-  // 1-Click checkout loading indicator
+  // 1-Click checkout loading indicator & due balance confirmation modal state
   const [checkingOutPatientId, setCheckingOutPatientId] =
     React.useState<string | null>(null);
+  const [checkoutConfirmPatient, setCheckoutConfirmPatient] =
+    React.useState<LiveTrackedPatient | null>(null);
 
   // Handle direct 1-click Check Out
-  const handleQuickCheckOut = async (patient: LiveTrackedPatient) => {
+  const handleQuickCheckOut = (patient: LiveTrackedPatient) => {
     if (patient.dueAmount > 0) {
-      const confirmed = window.confirm(
-        `Patient ${patient.name} has an unpaid balance of ৳${patient.dueAmount.toLocaleString()}. Are you sure you want to check out before billing is cleared?`,
-      );
-      if (!confirmed) return;
+      setCheckoutConfirmPatient(patient);
+      return;
     }
+    executeCheckout(patient);
+  };
+
+  const executeCheckout = async (patient: LiveTrackedPatient) => {
     try {
       setCheckingOutPatientId(patient.id);
       const res = await quickCheckOutPatientAction(patient.id);
       if (res.success) {
         toast.success(`Patient ${patient.name} checked out.`);
+        setCheckoutConfirmPatient(null);
         loadTrackingData(selectedDate);
       } else {
         toast.error(res.message);
@@ -573,7 +580,10 @@ export function PatientJourneyTrackerView({
               STATION_CONFIG[patient.currentStation] ||
               STATION_CONFIG.RECEPTIONIST_DESK;
             const StationIcon = stationCfg.icon;
-            const isCheckedOut = patient.currentStation === "CHECKED_OUT";
+            const isCheckedOut =
+              patient.currentStation === "CHECKED_OUT" ||
+              Boolean(patient.checkOutTime) ||
+              patient.status === "COMPLETED";
 
             return (
               <div
@@ -741,38 +751,23 @@ export function PatientJourneyTrackerView({
                 {/* Card Bottom: Station Transfer & Actions */}
                 <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                   <div className="flex items-center gap-1.5 flex-1 min-w-[130px]">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setTransferTargetPatient(patient)}
-                      className="h-8 px-2.5 text-xs font-semibold gap-1.5 border-primary/30 hover:bg-primary/10 text-primary cursor-pointer flex-1 justify-center"
-                    >
-                      <ArrowRight className="size-3.5" />
-                      <span>Move Station...</span>
-                    </Button>
+                    {isCheckedOut ? (
+                      <div className="flex items-center justify-center gap-1.5 h-8 px-2.5 text-xs font-semibold rounded-lg bg-muted/60 text-muted-foreground w-full border border-border/50 select-none">
+                        <CheckCircle2 className="size-3.5 text-muted-foreground shrink-0" />
+                        <span className="truncate">Discharged (Not in Center)</span>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setTransferTargetPatient(patient)}
+                        className="h-8 px-2.5 text-xs font-semibold gap-1.5 border-primary/30 hover:bg-primary/10 text-primary cursor-pointer w-full justify-center"
+                      >
+                        <ArrowRight className="size-3.5" />
+                        <span>Move Station...</span>
+                      </Button>
+                    )}
                   </div>
-
-                  {!isCheckedOut && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleQuickCheckOut(patient)}
-                      disabled={checkingOutPatientId === patient.id}
-                      title="Complete visit & check out patient"
-                      className="h-8 px-2.5 text-xs font-bold gap-1 text-slate-600 dark:text-slate-400 hover:text-destructive hover:bg-destructive/10 cursor-pointer disabled:opacity-50 shrink-0"
-                    >
-                      {checkingOutPatientId === patient.id ? (
-                        <RefreshCw className="size-3.5 animate-spin" />
-                      ) : (
-                        <LogOut className="size-3.5" />
-                      )}
-                      <span>
-                        {checkingOutPatientId === patient.id
-                          ? "Checking out..."
-                          : "Check Out"}
-                      </span>
-                    </Button>
-                  )}
                 </div>
               </div>
             );
@@ -811,6 +806,90 @@ export function PatientJourneyTrackerView({
           }}
         />
       )}
+
+      {/* 7. Shadcn UI Due Balance Checkout Confirmation Dialog */}
+      <Dialog
+        open={Boolean(checkoutConfirmPatient)}
+        onOpenChange={(open) => {
+          if (!open) setCheckoutConfirmPatient(null);
+        }}
+      >
+        <DialogContent className="w-[96vw] max-w-md p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+          <DialogHeader className="p-4 sm:p-5 pb-3 pr-12 border-b border-border/60 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Unpaid Balance Warning
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Patient due clearance check before checkout
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-4 sm:p-5 space-y-3 text-xs">
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1.5">
+              <p className="font-bold text-sm text-foreground">
+                {checkoutConfirmPatient?.name}
+              </p>
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-500/20">
+                <span className="text-muted-foreground">Outstanding Balance:</span>
+                <span className="font-mono font-black text-rose-600 dark:text-rose-400 text-sm">
+                  ৳{checkoutConfirmPatient?.dueAmount?.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Patient <strong className="text-foreground">{checkoutConfirmPatient?.name}</strong> has an outstanding unpaid balance of{" "}
+              <strong className="text-rose-600 dark:text-rose-400 font-mono">
+                ৳{checkoutConfirmPatient?.dueAmount?.toLocaleString()}
+              </strong>
+              . Are you sure you want to check out before billing is cleared?
+            </p>
+          </div>
+
+          <DialogFooter className="p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setCheckoutConfirmPatient(null)}
+              disabled={Boolean(checkingOutPatientId)}
+              className="text-xs cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                if (checkoutConfirmPatient) {
+                  executeCheckout(checkoutConfirmPatient);
+                }
+              }}
+              disabled={Boolean(checkingOutPatientId)}
+              className="text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-xs gap-1.5"
+            >
+              {checkingOutPatientId ? (
+                <>
+                  <RefreshCw className="size-3.5 animate-spin" />
+                  <span>Checking Out...</span>
+                </>
+              ) : (
+                <>
+                  <LogOut className="size-3.5" />
+                  <span>Confirm Check Out</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -849,9 +928,17 @@ function TransferStationDialog({
   );
   const [notes, setNotes] = React.useState<string>("");
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
+  const isPatientOut =
+    patient.currentStation === "CHECKED_OUT" ||
+    Boolean(patient.checkOutTime) ||
+    patient.status === "COMPLETED";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPatientOut) {
+      toast.error("Cannot move station: Patient is not currently in the center.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const res = await transferPatientStationAction({
@@ -916,6 +1003,18 @@ function TransferStationDialog({
           data-form-type="other"
         >
           <div className="p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 min-h-0">
+            {isPatientOut && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <AlertCircle className="size-3.5 shrink-0" />
+                  <span>Patient Not in Center</span>
+                </p>
+                <p className="text-[11px] text-destructive/90">
+                  This patient is already checked out / discharged from the center. Stations cannot be changed when a patient is not in the center.
+                </p>
+              </div>
+            )}
+
             {/* Target Station Radio Grid */}
           <div className="space-y-2">
             <Label className="text-xs font-bold text-foreground">
@@ -1053,7 +1152,7 @@ function TransferStationDialog({
           <Button
             type="submit"
             size="sm"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isPatientOut}
             className="text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
           >
             {isSubmitting ? "Updating Station..." : "Confirm Move"}

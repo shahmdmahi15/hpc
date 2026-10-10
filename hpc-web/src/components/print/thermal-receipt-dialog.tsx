@@ -46,7 +46,14 @@ export function ThermalReceiptDialog({
 
   if (!appointment) return null;
 
-  const receiptNo = `HPC-REC-${appointment.id.slice(-6).toUpperCase()}`;
+  const invoice = (appointment as any).invoice;
+  const invoiceNumFromRelation =
+    invoice?.invoiceNumber || (appointment as any).invoiceNumber;
+  const receiptNo =
+    invoiceNumFromRelation ||
+    (appointment.id.startsWith("INV-")
+      ? appointment.id
+      : `HPC-REC-${appointment.id.slice(-6).toUpperCase()}`);
   const now = new Date();
   const dateFormatted = now.toLocaleDateString("en-GB", {
     day: "2-digit",
@@ -58,12 +65,150 @@ export function ThermalReceiptDialog({
     minute: "2-digit",
   });
 
-  const fee = appointment.feeAmount ?? CLINIC_CONFIG.defaultConsultationFee;
-  const paid = appointment.paidAmount ?? (appointment.paymentStatus === "PAID" ? fee : 0);
-  const due = Math.max(0, fee - paid);
-  const isFullyPaid = due === 0;
   const patient = appointment.patient;
   const tokenNumber = appointment.id.slice(-4).toUpperCase();
+
+  // Itemized line items
+  type LineItem = {
+    type?: string;
+    title: string;
+    subtitle?: string;
+    qty: number;
+    rate: number;
+    total: number;
+  };
+
+  const payments = invoice?.payments || (appointment as any).payments || [];
+  const lineItems: LineItem[] = [];
+
+  if (Array.isArray(payments) && payments.length > 0) {
+    payments.forEach((p: any) => {
+      const type = (p.serviceType || "").toUpperCase();
+      let title = "Clinical Service";
+      let subtitle = p.notes || "";
+
+      if (type === "CONSULTATION") {
+        title = "Doctor Consultation & Clinical Evaluation";
+        if (!subtitle) {
+          subtitle = appointment.doctor?.name
+            ? `Attending: ${appointment.doctor.name}`
+            : "Doctor Chamber Evaluation";
+        }
+      } else if (type === "THERAPY") {
+        title = "Physical Therapy & Rehabilitation Session";
+        if (!subtitle) {
+          subtitle = appointment.therapySlot?.label
+            ? `Assigned: ${appointment.therapySlot.label}`
+            : "Therapy Dept. Rehabilitation";
+        }
+      } else if (type === "PREVIOUS_DUE") {
+        title = "Previous Outstanding Balance / বকেয়া সমন্বয়";
+        if (!subtitle) {
+          subtitle = "Settlement of prior clinical due";
+        }
+      }
+
+      lineItems.push({
+        type,
+        title,
+        subtitle,
+        qty: 1,
+        rate: p.amount ?? 0,
+        total: p.amount ?? 0,
+      });
+    });
+  } else {
+    const mainFee = appointment.feeAmount ?? CLINIC_CONFIG.defaultConsultationFee;
+    lineItems.push({
+      type: appointment.type,
+      title:
+        appointment.type === "CONSULTATION"
+          ? "Doctor Consultation & Clinical Evaluation"
+          : "Physical Therapy & Rehabilitation Session",
+      subtitle: appointment.therapySlot?.label
+        ? `Assigned: ${appointment.therapySlot.label}`
+        : appointment.doctor?.name
+          ? `Attending: ${appointment.doctor.name}`
+          : "Standard Clinical Protocol",
+      qty: 1,
+      rate: mainFee,
+      total: mainFee,
+    });
+
+    const prevDue = (appointment as any).previousDueCollected;
+    if (typeof prevDue === "number" && prevDue > 0) {
+      lineItems.push({
+        type: "PREVIOUS_DUE",
+        title: "Previous Outstanding Balance / বকেয়া সমন্বয়",
+        subtitle: "Settlement of prior clinical due",
+        qty: 1,
+        rate: prevDue,
+        total: prevDue,
+      });
+    }
+  }
+
+  // Financial calculations
+  const totalAmount =
+    typeof invoice?.totalAmount === "number"
+      ? invoice.totalAmount
+      : lineItems.reduce((acc, item) => acc + item.total, 0);
+
+  const isMarkedDue =
+    invoice?.status === "DUE" ||
+    appointment.paymentStatus === "DUE" ||
+    invoice?.paymentMethod === "DUE" ||
+    appointment.paymentMethod === "DUE";
+
+  const rawPaid =
+    typeof invoice?.paidAmount === "number"
+      ? invoice.paidAmount
+      : (typeof appointment.paidAmount === "number"
+          ? appointment.paidAmount
+          : (appointment.paymentStatus === "PAID" ? totalAmount : 0));
+
+  const paidAmount = isMarkedDue ? 0 : rawPaid;
+
+  const dueAmount =
+    typeof invoice?.dueAmount === "number"
+      ? invoice.dueAmount
+      : (isMarkedDue
+          ? totalAmount
+          : (typeof appointment.dueAmount === "number"
+              ? appointment.dueAmount
+              : Math.max(0, totalAmount - paidAmount)));
+
+  const isFullyPaid = !isMarkedDue && dueAmount === 0 && (paidAmount > 0 || totalAmount === 0);
+
+  const displayPaymentMethod =
+    invoice?.paymentMethod || appointment.paymentMethod || "CASH";
+
+  // Service unit identification
+  const hasConsult = lineItems.some(
+    (i) => i.type === "CONSULTATION" || i.title.includes("Consultation"),
+  );
+  const hasTherapy = lineItems.some(
+    (i) => i.type === "THERAPY" || i.title.includes("Therapy"),
+  );
+  const hasDueOnly = lineItems.every(
+    (i) => i.type === "PREVIOUS_DUE" || i.title.includes("Previous Outstanding"),
+  );
+
+  let serviceUnitLabel = appointment.type === "CONSULTATION" ? "Doctor Chamber" : "Therapy Dept.";
+  if (hasConsult && hasTherapy) {
+    serviceUnitLabel = "Doctor & Therapy Dept.";
+  } else if (hasDueOnly) {
+    serviceUnitLabel = "Cashier Desk (Due Settlement)";
+  } else if (hasConsult) {
+    serviceUnitLabel = "Doctor Chamber";
+  } else if (hasTherapy) {
+    serviceUnitLabel = "Therapy Dept.";
+  }
+
+  const displayCashierName =
+    (appointment as any).cashierName ||
+    (invoice as any)?.cashierPerformer?.name ||
+    cashierName;
 
   const handlePrint = () => {
     printElementIsolated("official-voucher-print", `Payment Receipt - ${receiptNo}`);
@@ -222,7 +367,7 @@ export function ThermalReceiptDialog({
                   <div className="flex items-baseline justify-between">
                     <span className="text-neutral-600 text-[10px] font-medium">Service Unit:</span>
                     <span className="font-bold text-black text-[10px]">
-                      {appointment.type === "CONSULTATION" ? "Doctor Chamber" : "Therapy Dept."}
+                      {serviceUnitLabel}
                     </span>
                   </div>
                 </div>
@@ -241,28 +386,32 @@ export function ThermalReceiptDialog({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-300">
-                    <tr className="bg-white">
-                      <td className="py-2.5 px-3 text-center font-mono font-bold text-black border-r border-neutral-200">01</td>
-                      <td className="py-2.5 px-3 border-r border-neutral-200">
-                        <div className="font-black text-black text-[11px]">
-                          {appointment.type === "CONSULTATION"
-                            ? "Doctor Consultation & Clinical Evaluation"
-                            : "Physical Therapy & Rehabilitation Session"}
-                        </div>
-                        <div className="text-[9.5px] text-neutral-600 mt-0.5 font-medium">
-                          {appointment.therapySlot?.label
-                            ? `Assigned: ${appointment.therapySlot.label}`
-                            : appointment.doctor?.name
-                              ? `Attending: ${appointment.doctor.name}`
-                              : "Standard Clinical Protocol"}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-2 text-center font-bold text-black border-r border-neutral-200">1</td>
-                      <td className="py-2.5 px-3 text-right font-sans font-bold text-black border-r border-neutral-200">৳ {fee.toLocaleString()}</td>
-                      <td className="py-2.5 px-3 text-right font-sans font-black text-black">
-                        ৳ {fee.toLocaleString()}
-                      </td>
-                    </tr>
+                    {lineItems.map((item, idx) => (
+                      <tr key={idx} className="bg-white">
+                        <td className="py-2 px-3 text-center font-mono font-bold text-black border-r border-neutral-200">
+                          {String(idx + 1).padStart(2, "0")}
+                        </td>
+                        <td className="py-2 px-3 border-r border-neutral-200">
+                          <div className="font-black text-black text-[11px]">
+                            {item.title}
+                          </div>
+                          {item.subtitle && (
+                            <div className="text-[9px] text-neutral-600 mt-0.5 font-medium">
+                              {item.subtitle}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-2 px-2 text-center font-bold text-black border-r border-neutral-200">
+                          {item.qty || 1}
+                        </td>
+                        <td className="py-2 px-3 text-right font-sans font-bold text-black border-r border-neutral-200">
+                          ৳ {item.rate.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3 text-right font-sans font-black text-black">
+                          ৳ {item.total.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -274,7 +423,7 @@ export function ThermalReceiptDialog({
                   <div className="flex items-center gap-1.5 text-[10px]">
                     <span className="text-neutral-600 font-medium">Payment Mode:</span>
                     <span className="font-sans font-bold uppercase text-[10.5px] border border-black px-2 py-0.5 rounded-xs text-black">
-                      {appointment.paymentMethod || "CASH"}
+                      {displayPaymentMethod}
                     </span>
                   </div>
 
@@ -290,7 +439,7 @@ export function ThermalReceiptDialog({
                   ) : (
                     <div className="w-full border-2 border-black bg-neutral-100 p-2 text-center rounded-xs">
                       <div className="font-black text-xs tracking-wider uppercase text-black">
-                        ⚠ DUE BALANCE / বকেয়া: ৳ {due.toLocaleString()}
+                        ⚠ DUE BALANCE / বকেয়া: ৳ {dueAmount.toLocaleString()}
                       </div>
                       <div className="text-[8px] uppercase tracking-wider text-neutral-700 font-medium mt-0.5">
                         Please Settle at Cash Desk
@@ -308,7 +457,7 @@ export function ThermalReceiptDialog({
                   <div className="space-y-1">
                     <div className="flex justify-between text-neutral-700">
                       <span>Total Amount:</span>
-                      <span className="font-sans font-bold text-black">৳ {fee.toLocaleString()}</span>
+                      <span className="font-sans font-bold text-black">৳ {totalAmount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-neutral-700">
                       <span>Discount / ছাড়:</span>
@@ -316,17 +465,17 @@ export function ThermalReceiptDialog({
                     </div>
                     <div className="flex justify-between font-bold border-t border-neutral-300 pt-1 text-black">
                       <span>Net Payable:</span>
-                      <span className="font-sans font-bold text-black">৳ {fee.toLocaleString()}</span>
+                      <span className="font-sans font-bold text-black">৳ {totalAmount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-bold text-black">
                       <span>Amount Paid:</span>
-                      <span className="font-sans font-bold text-black">৳ {paid.toLocaleString()}</span>
+                      <span className="font-sans font-bold text-black">৳ {paidAmount.toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="flex justify-between font-black border-t-2 border-black pt-1 text-[11px] text-black">
                     <span>Due Balance:</span>
                     <span className="font-sans font-black text-black">
-                      ৳ {due.toLocaleString()}
+                      ৳ {dueAmount.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -343,7 +492,7 @@ export function ThermalReceiptDialog({
                 <div className="text-left">
                   <div className="h-8 flex items-end">
                     <span className="font-mono font-bold text-black text-[10px]">
-                      {cashierName}
+                      {displayCashierName}
                     </span>
                   </div>
                   <div className="border-t border-black pt-1">

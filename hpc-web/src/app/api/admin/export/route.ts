@@ -67,7 +67,19 @@ function getAppointmentFinancials(a: {
   paidAmount?: number | null;
   dueAmount?: number | null;
   paymentStatus?: string | null;
+  invoice?: {
+    totalAmount?: number | null;
+    paidAmount?: number | null;
+    dueAmount?: number | null;
+    status?: string | null;
+  } | null;
 }) {
+  if ((a.feeAmount ?? 0) === 0 && a.invoice) {
+    const fee = a.invoice.totalAmount ?? 0;
+    const paid = a.invoice.paidAmount ?? 0;
+    const due = a.invoice.dueAmount ?? Math.max(0, fee - paid);
+    return { fee, paid, due };
+  }
   const fee = typeof a.feeAmount === "number" ? a.feeAmount : 0;
   const isPaid = a.paymentStatus === "PAID";
   const paid = isPaid ? fee : (typeof a.paidAmount === "number" ? a.paidAmount : 0);
@@ -141,6 +153,7 @@ export async function GET(request: NextRequest) {
           doctor: true,
           performer: true,
           bookedBy: true,
+          invoice: true,
           medicalFile: { include: { doctor: true } },
           medicalRecords: { include: { doctor: true } },
           treatmentPlans: { include: { doctor: true } },
@@ -187,14 +200,16 @@ export async function GET(request: NextRequest) {
         const totalBilled = appointments.reduce((sum, a) => sum + getAppointmentFinancials(a).fee, 0);
         const totalCollected = appointments.reduce((sum, a) => sum + getAppointmentFinancials(a).paid, 0);
         const totalDue = appointments.reduce((sum, a) => sum + getAppointmentFinancials(a).due, 0);
+        const getPayMethod = (a: (typeof appointments)[number]) =>
+          a.paymentMethod || a.invoice?.paymentMethod || "CASH";
         const cashTotal = appointments
-          .filter((a) => (a.paymentMethod || "CASH") === "CASH")
+          .filter((a) => getPayMethod(a) === "CASH")
           .reduce((sum, a) => sum + getAppointmentFinancials(a).paid, 0);
         const cardTotal = appointments
-          .filter((a) => a.paymentMethod === "CARD")
+          .filter((a) => getPayMethod(a) === "CARD")
           .reduce((sum, a) => sum + getAppointmentFinancials(a).paid, 0);
         const mfsTotal = appointments
-          .filter((a) => a.paymentMethod === "BKASH" || a.paymentMethod === "NAGAD")
+          .filter((a) => getPayMethod(a) === "MFS" || getPayMethod(a) === "BKASH" || getPayMethod(a) === "NAGAD")
           .reduce((sum, a) => sum + getAppointmentFinancials(a).paid, 0);
 
         // Section Title

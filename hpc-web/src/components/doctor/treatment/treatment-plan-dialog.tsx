@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,8 @@ import {
   X,
   Stethoscope,
   Info,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { TreatmentPlanType } from "@/generated/prisma/enums";
@@ -39,6 +42,7 @@ import {
   type TreatmentPlanRecord,
   type PatientPlansResult,
 } from "@/actions/doctor/treatment-plan.action";
+import type { ModalityConfigItem } from "@/schemas/doctor/treatment-plan.schema";
 import {
   getActiveClinicalConfigAction,
   type ActiveClinicalConfig,
@@ -54,6 +58,7 @@ interface TreatmentPlanDialogProps {
   defaultTab?: "today" | "next";
   doctorId?: string;
   currentDoctor?: { id: string; name: string } | null;
+  readOnly?: boolean;
   onSuccess?: () => void;
 }
 
@@ -81,6 +86,7 @@ function TreatmentPlanDialogInner({
   defaultTab = "today",
   doctorId = "",
   currentDoctor,
+  readOnly = false,
   onSuccess,
 }: TreatmentPlanDialogProps) {
   const patientId = appointment?.patientId || propPatientId || "";
@@ -260,6 +266,7 @@ function TreatmentPlanDialogInner({
                 doctorId={doctorId}
                 currentDoctor={currentDoctor}
                 clinicalConfig={clinicalConfig}
+                readOnly={readOnly}
                 onStartEdit={() => setEditingPlanType("today")}
                 onCancelEdit={() => setEditingPlanType(null)}
                 onReload={handleReload}
@@ -275,6 +282,7 @@ function TreatmentPlanDialogInner({
                 doctorId={doctorId}
                 currentDoctor={currentDoctor}
                 clinicalConfig={clinicalConfig}
+                readOnly={readOnly}
                 onStartEdit={() => setEditingPlanType("next")}
                 onCancelEdit={() => setEditingPlanType(null)}
                 onReload={handleReload}
@@ -300,6 +308,7 @@ interface PlanTabPanelProps {
   doctorId: string;
   currentDoctor?: { id: string; name: string } | null;
   clinicalConfig: ActiveClinicalConfig | null;
+  readOnly?: boolean;
   onStartEdit: () => void;
   onCancelEdit: () => void;
   onReload: () => Promise<void>;
@@ -314,14 +323,42 @@ function PlanTabPanel({
   doctorId,
   currentDoctor,
   clinicalConfig,
+  readOnly = false,
   onStartEdit,
   onCancelEdit,
   onReload,
 }: PlanTabPanelProps) {
   const isToday = planType === TreatmentPlanType.TODAY;
 
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = React.useState(false);
+  const [isClearing, setIsClearing] = React.useState(false);
+
+  // If readOnly and no plan prescribed
+  if (!plan && readOnly) {
+    return (
+      <div className="p-8 text-center rounded-xl border border-dashed border-border/80 bg-muted/20 space-y-2">
+        <Activity className="size-8 text-muted-foreground mx-auto" />
+        <h4 className="text-xs font-bold text-foreground">No Treatment Plan Prescribed</h4>
+        <p className="text-[11px] text-muted-foreground">
+          The doctor has not prescribed a {isToday ? "today's" : "next visit"} treatment plan yet.
+        </p>
+      </div>
+    );
+  }
+
   // If a plan exists and we are not explicitly editing, show summary card
   if (plan && !isEditing) {
+    const orderedItems: ModalityConfigItem[] =
+      plan.modalityItems && plan.modalityItems.length > 0
+        ? plan.modalityItems
+        : plan.modalities.map((name, i) => ({
+            name,
+            durationMinutes: 15,
+            order: i + 1,
+          }));
+
+    const totalMinutes = orderedItems.reduce((acc, m) => acc + m.durationMinutes, 0);
+
     return (
       <div className="space-y-4 animate-in fade-in duration-200">
         <div className="p-4 rounded-xl border border-border/80 bg-card shadow-xs space-y-3.5">
@@ -356,60 +393,61 @@ function PlanTabPanel({
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onStartEdit}
-                className="h-7.5 text-xs font-semibold gap-1.5 cursor-pointer border-border/80 hover:bg-muted"
-              >
-                <Edit3 className="size-3" />
-                <span>Edit Plan</span>
-              </Button>
+            {!readOnly && (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onStartEdit}
+                  className="h-7.5 text-xs font-semibold gap-1.5 cursor-pointer border-border/80 hover:bg-muted"
+                >
+                  <Edit3 className="size-3" />
+                  <span>Edit Plan</span>
+                </Button>
 
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={async () => {
-                  if (
-                    confirm(
-                      "Are you sure you want to clear this treatment plan?",
-                    )
-                  ) {
-                    const res = await deleteTreatmentPlanAction(
-                      plan.id,
-                      doctorId,
-                    );
-                    if (res.success) {
-                      toast.success(res.message);
-                      await onReload();
-                    } else {
-                      toast.error(res.message);
-                    }
-                  }
-                }}
-                className="h-7.5 text-xs text-destructive hover:bg-destructive/10 cursor-pointer gap-1 px-2"
-                title="Deactivate / clear plan"
-              >
-                <Trash2 className="size-3" />
-              </Button>
-            </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsClearConfirmOpen(true)}
+                  className="h-7.5 text-xs text-destructive hover:bg-destructive/10 cursor-pointer gap-1 px-2"
+                  title="Deactivate / clear plan"
+                >
+                  <Trash2 className="size-3" />
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Prescribed Modalities */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-foreground uppercase tracking-wider text-[10.5px]">
-              Prescribed Modalities ({plan.modalities.length})
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {plan.modalities.map((mod) => (
-                <span
-                  key={mod}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary/10 border border-primary/25 text-primary flex items-center gap-1.5 shadow-2xs"
+          {/* Prescribed Modalities & Sequence */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold text-foreground uppercase tracking-wider text-[10.5px]">
+                Prescribed Modality Sequence & Timers ({orderedItems.length})
+              </Label>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                Total Duration: {totalMinutes} mins
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {orderedItems.map((mod, idx) => (
+                <div
+                  key={`${mod.name}-${idx}`}
+                  className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between gap-2 shadow-2xs"
                 >
-                  <Sparkles className="size-3 text-primary/80" />
-                  <span>{mod}</span>
-                </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="size-5 rounded-full bg-primary/20 text-primary font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate" title={mod.name}>
+                      {mod.name}
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-background border border-border text-[11px] font-mono font-bold text-primary shrink-0 flex items-center gap-1">
+                    <Clock className="size-3 text-primary" />
+                    <span>{mod.durationMinutes}m</span>
+                  </span>
+                </div>
               ))}
             </div>
           </div>
@@ -444,6 +482,72 @@ function PlanTabPanel({
             </div>
           </div>
         </div>
+
+        {/* Shadcn UI Clear Treatment Plan Confirmation Dialog */}
+        <Dialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}>
+          <DialogContent className="w-[96vw] max-w-md p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+            <DialogHeader className="p-4 sm:p-5 pb-3 pr-12 border-b border-border/60 bg-muted/20">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
+                  <Trash2 className="size-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-foreground">
+                    Clear Treatment Plan
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    Deactivate active physiotherapy prescription
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="p-4 sm:p-5 space-y-3 text-xs">
+              <p className="text-muted-foreground leading-relaxed">
+                Are you sure you want to clear this treatment plan? This will remove the active prescribed modalities for this patient.
+              </p>
+            </div>
+
+            <DialogFooter className="p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsClearConfirmOpen(false)}
+                disabled={isClearing}
+                className="text-xs cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={async () => {
+                  setIsClearing(true);
+                  try {
+                    const res = await deleteTreatmentPlanAction(plan.id, doctorId);
+                    if (res.success) {
+                      toast.success(res.message);
+                      setIsClearConfirmOpen(false);
+                      await onReload();
+                    } else {
+                      toast.error(res.message);
+                    }
+                  } catch {
+                    toast.error("Failed to delete treatment plan.");
+                  } finally {
+                    setIsClearing(false);
+                  }
+                }}
+                disabled={isClearing}
+                className="text-xs font-bold cursor-pointer shadow-xs"
+              >
+                {isClearing ? "Clearing..." : "Yes, Clear Plan"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -495,8 +599,20 @@ function PlanForm({
 
   const resolvedDoctor = currentDoctor || null;
 
-  const [selectedModalities, setSelectedModalities] = React.useState<string[]>(
-    () => (existingPlan ? existingPlan.modalities : []),
+  const [modalityItems, setModalityItems] = React.useState<ModalityConfigItem[]>(
+    () => {
+      if (existingPlan?.modalityItems && existingPlan.modalityItems.length > 0) {
+        return existingPlan.modalityItems;
+      }
+      if (existingPlan?.modalities && existingPlan.modalities.length > 0) {
+        return existingPlan.modalities.map((name, idx) => ({
+          name,
+          durationMinutes: 15,
+          order: idx + 1,
+        }));
+      }
+      return [];
+    },
   );
   const [customModalityInput, setCustomModalityInput] = React.useState("");
   const [instructions, setInstructions] = React.useState(
@@ -544,23 +660,69 @@ function PlanForm({
   }, [clinicalConfig]);
 
   const toggleModality = (name: string) => {
-    setSelectedModalities((prev) =>
-      prev.includes(name) ? prev.filter((m) => m !== name) : [...prev, name],
-    );
+    setModalityItems((prev) => {
+      const exists = prev.some((m) => m.name === name);
+      if (exists) {
+        return prev
+          .filter((m) => m.name !== name)
+          .map((m, idx) => ({ ...m, order: idx + 1 }));
+      } else {
+        return [...prev, { name, durationMinutes: 15, order: prev.length + 1 }];
+      }
+    });
   };
 
   const handleAddCustomModality = () => {
     const trimmed = customModalityInput.trim();
     if (!trimmed) return;
-    if (!selectedModalities.includes(trimmed)) {
-      setSelectedModalities((prev) => [...prev, trimmed]);
+    if (!modalityItems.some((m) => m.name.toLowerCase() === trimmed.toLowerCase())) {
+      setModalityItems((prev) => [
+        ...prev,
+        { name: trimmed, durationMinutes: 15, order: prev.length + 1 },
+      ]);
     }
     setCustomModalityInput("");
   };
 
+  const changeDuration = (index: number, minutes: number) => {
+    setModalityItems((prev) =>
+      prev.map((item, idx) =>
+        idx === index ? { ...item, durationMinutes: Math.max(1, Math.min(180, minutes)) } : item,
+      ),
+    );
+  };
+
+  const moveUp = (index: number) => {
+    if (index <= 0) return;
+    setModalityItems((prev) => {
+      const next = [...prev];
+      const temp = next[index - 1];
+      next[index - 1] = next[index];
+      next[index] = temp;
+      return next.map((item, idx) => ({ ...item, order: idx + 1 }));
+    });
+  };
+
+  const moveDown = (index: number) => {
+    setModalityItems((prev) => {
+      if (index >= prev.length - 1) return prev;
+      const next = [...prev];
+      const temp = next[index + 1];
+      next[index + 1] = next[index];
+      next[index] = temp;
+      return next.map((item, idx) => ({ ...item, order: idx + 1 }));
+    });
+  };
+
+  const removeItem = (index: number) => {
+    setModalityItems((prev) =>
+      prev.filter((_, idx) => idx !== index).map((item, idx) => ({ ...item, order: idx + 1 })),
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedModalities.length === 0) {
+    if (modalityItems.length === 0) {
       toast.error("Please select or add at least one treatment modality.");
       return;
     }
@@ -573,7 +735,7 @@ function PlanForm({
         // Update existing plan
         const res = await updateTreatmentPlanAction({
           id: existingPlan.id,
-          modalities: selectedModalities,
+          modalities: modalityItems,
           instructions: instructions.trim() || undefined,
           targetDate: targetDate
             ? new Date(targetDate).toISOString()
@@ -594,7 +756,7 @@ function PlanForm({
           patientId,
           appointmentId,
           planType,
-          modalities: selectedModalities,
+          modalities: modalityItems,
           instructions: instructions.trim() || undefined,
           targetDate: targetDate
             ? new Date(targetDate).toISOString()
@@ -638,11 +800,10 @@ function PlanForm({
         <div className="text-xs text-foreground leading-relaxed">
           <span className="font-bold">
             {isToday
-              ? "Prescribe Today's Session Plan:"
-              : "Prescribe Next Visit Recommendations:"}
+              ? "Prescribe Today's Session Plan & Timers:"
+              : "Prescribe Next Visit Recommendations & Timers:"}
           </span>{" "}
-          Select modalities configured dynamically in the Admin panel, or add
-          custom ones. Handlers and therapists will follow this prescription.
+          Select modalities, configure the duration minutes in the box beside each treatment, and arrange their sequence (1st, 2nd, 3rd).
         </div>
       </div>
 
@@ -650,16 +811,16 @@ function PlanForm({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-xs font-bold text-foreground">
-            Treatment Modalities <span className="text-destructive">*</span>
+            Available Modalities <span className="text-destructive">*</span>
           </Label>
           <span className="text-[11px] text-muted-foreground font-medium">
-            {selectedModalities.length} selected
+            {modalityItems.length} selected
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-muted/30 border border-border/70 max-h-48 overflow-y-auto">
+        <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-muted/30 border border-border/70 max-h-40 overflow-y-auto">
           {availableModalities.map((name) => {
-            const isSelected = selectedModalities.includes(name);
+            const isSelected = modalityItems.some((m) => m.name === name);
             return (
               <button
                 type="button"
@@ -704,24 +865,90 @@ function PlanForm({
           </Button>
         </div>
 
-        {/* Selected Modalities Chips List */}
-        {selectedModalities.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {selectedModalities.map((mod) => (
-              <span
-                key={mod}
-                className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 border border-primary/20 text-primary flex items-center gap-1"
-              >
-                <span>{mod}</span>
-                <button
-                  type="button"
-                  onClick={() => toggleModality(mod)}
-                  className="hover:text-destructive cursor-pointer"
-                >
-                  <X className="size-2.5" />
-                </button>
+        {/* Prescribed Sequence & Timers List */}
+        {modalityItems.length > 0 && (
+          <div className="space-y-2 p-3 rounded-xl bg-card border border-border/80 mt-2">
+            <div className="flex items-center justify-between border-b border-border/50 pb-2">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Clock className="size-3.5 text-primary" />
+                <span>Prescribed Treatment Sequence & Per-Bed Timers</span>
+              </Label>
+              <span className="text-[10px] text-muted-foreground font-mono font-bold">
+                Total: {modalityItems.reduce((acc, m) => acc + m.durationMinutes, 0)} mins
               </span>
-            ))}
+            </div>
+
+            <div className="space-y-1.5">
+              {modalityItems.map((item, idx) => (
+                <div
+                  key={`${item.name}-${idx}`}
+                  className="flex items-center justify-between gap-2 p-2 rounded-xl bg-muted/40 border border-border/70 text-xs"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="size-5 rounded-full bg-primary/20 text-primary font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <span className="font-bold text-foreground truncate" title={item.name}>
+                      {item.name}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Duration input box beside treatment name */}
+                    <div className="flex items-center gap-1 bg-background border border-border/80 px-1.5 py-0.5 rounded-lg shadow-2xs">
+                      <Clock className="size-3 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        min={1}
+                        max={180}
+                        value={item.durationMinutes}
+                        onChange={(e) => changeDuration(idx, Number(e.target.value) || 15)}
+                        className="w-12 h-6 text-xs font-mono font-bold text-center bg-transparent border-0 p-0 focus-visible:ring-0"
+                      />
+                      <span className="text-[10.5px] font-mono text-muted-foreground">m</span>
+                    </div>
+
+                    {/* Sequence order Up/Down buttons */}
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="ghost"
+                        disabled={idx === 0}
+                        onClick={() => moveUp(idx)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-30"
+                        title="Move Up in sequence"
+                      >
+                        <ArrowUp className="size-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="ghost"
+                        disabled={idx === modalityItems.length - 1}
+                        onClick={() => moveDown(idx)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-30"
+                        title="Move Down in sequence"
+                      >
+                        <ArrowDown className="size-3" />
+                      </Button>
+                    </div>
+
+                    {/* Remove button */}
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => removeItem(idx)}
+                      className="h-6 w-6 p-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                      title="Remove modality"
+                    >
+                      <X className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

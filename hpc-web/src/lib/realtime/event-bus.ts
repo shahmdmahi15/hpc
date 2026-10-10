@@ -22,8 +22,12 @@ export type RealtimeEventType =
   | "INVOICE_UPDATED"
   | "PAYMENT_COLLECTED"
   | "ADMIN_CONFIG_UPDATED"
+  | "PATIENT_FORWARDED"
   | "CHAT_MESSAGE_SENT"
-  | "CHAT_MESSAGE_DELETED";
+  | "CHAT_MESSAGE_DELETED"
+  | "THERAPY_TIMER_UPDATED"
+  | "PRESCRIPTION_CREATED"
+  | "PRESCRIPTION_DELETED";
 
 export interface RealtimeEventPayload<T = any> {
   seq?: number;

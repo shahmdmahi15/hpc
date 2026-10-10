@@ -37,6 +37,7 @@ import type { PerformerModel } from "@/generated/prisma/models";
 import {
   routePatientAction,
   updateAppointmentFeeAction,
+  getPatientTodayConsultationDueAction,
 } from "@/actions/doctor/doctor.action";
 import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
 import { toast } from "sonner";
@@ -116,7 +117,6 @@ function HandlerSendPatientDialogContent({
       ? appointment.feeAmount
       : DEFAULT_FEE,
   );
-  const [isSavingFee, setIsSavingFee] = React.useState(false);
   const [isRouting, setIsRouting] = React.useState(false);
   const [routingDestination, setRoutingDestination] = React.useState<
     "CASHIER" | "DOCTOR" | "RECEPTIONIST" | null
@@ -124,6 +124,36 @@ function HandlerSendPatientDialogContent({
   const [routingNote, setRoutingNote] = React.useState<string>(
     appointment.routingNote || "",
   );
+
+  // Today's Doctor Consultation Due status (only show if consultation happened today AND is unpaid)
+  const [doctorDueInfo, setDoctorDueInfo] = React.useState<{
+    hasConsultationToday: boolean;
+    isPaid: boolean;
+    doctorFee: number;
+    doctorPaid: number;
+    doctorDue: number;
+    doctorName?: string | null;
+  }>({
+    hasConsultationToday: false,
+    isPaid: false,
+    doctorFee: 0,
+    doctorPaid: 0,
+    doctorDue: 0,
+  });
+
+  React.useEffect(() => {
+    let isMounted = true;
+    if (appointment.patientId) {
+      getPatientTodayConsultationDueAction(appointment.patientId).then((res) => {
+        if (isMounted) {
+          setDoctorDueInfo(res);
+        }
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [appointment.patientId]);
 
   // Performer auto-selection rule: If single performer, automatically select it!
   const initialHandlerId = React.useMemo(() => {
@@ -183,37 +213,6 @@ function HandlerSendPatientDialogContent({
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
     setNextPlanDate(d.toISOString().split("T")[0]);
-  };
-
-  // Handle Quick Save Due Amount only
-  const handleSaveDueOnly = async () => {
-    if (dueAmount < 0) {
-      toast.error("Due amount cannot be negative.");
-      return;
-    }
-    if (selectedHandlerId && handlers.length > 0 && !handlerPin) {
-      toast.error("Please enter your 4-digit Therapist PIN.");
-      return;
-    }
-    setIsSavingFee(true);
-    try {
-      const res = await updateAppointmentFeeAction({
-        appointmentId: appointment.id,
-        feeAmount: Number(dueAmount),
-        performerId: selectedHandlerId || undefined,
-        pin: handlerPin || undefined,
-      });
-      if (res.success) {
-        toast.success(res.message);
-        onSuccess?.();
-      } else {
-        toast.error(res.message);
-      }
-    } catch {
-      toast.error("Failed to update due amount.");
-    } finally {
-      setIsSavingFee(false);
-    }
   };
 
   // Perform Routing
@@ -377,16 +376,37 @@ function HandlerSendPatientDialogContent({
           pinInputName="handler_send_patient_auth_pin"
         />
 
-        {/* 2. Billing Due Amount Editor Card */}
-        <div className="p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-3">
+        {/* Doctor Consultation Due (Only shown if consultation occurred today AND is unpaid) */}
+        {doctorDueInfo.hasConsultationToday && !doctorDueInfo.isPaid && doctorDueInfo.doctorDue > 0 && (
+          <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/5 space-y-1.5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-xs text-sky-800 dark:text-sky-300 flex items-center gap-1.5">
+                <Stethoscope className="size-3.5" />
+                <span>Doctor Consultation Due: ৳{doctorDueInfo.doctorDue}</span>
+              </span>
+              <Badge className="bg-sky-500/15 text-sky-800 dark:text-sky-200 border-sky-500/30 text-[10px] font-semibold">
+                Set by Dr. {doctorDueInfo.doctorName || "Doctor"} (Pending Cashier)
+              </Badge>
+            </div>
+            <p className="text-[10.5px] text-muted-foreground">
+              Doctor consultation fee is already queued for cashier collection. Handler only edits Physical Therapy fee below.
+            </p>
+          </div>
+        )}
+
+        {/* 2. Physical Therapy Session Fee (Therapist Editable) */}
+        <div className="p-4 rounded-xl border-2 border-emerald-500/30 bg-emerald-500/5 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                 <Banknote className="size-3.5" />
-                <span>Billing Due Amount</span>
+                <span>Physical Therapy Session Fee (থেরাপি ফি)</span>
+                <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-500/15 border border-emerald-500/30">
+                  Handler Editable Only
+                </span>
               </h4>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Current payable fee for this appointment. Editable by therapist.
+                Physical therapy fee set by the therapist. Automatically applies and syncs to cashier on send.
               </p>
             </div>
 
@@ -412,7 +432,7 @@ function HandlerSendPatientDialogContent({
                 value={dueAmount}
                 onChange={(e) => setDueAmount(Number(e.target.value) || 0)}
                 className="pl-7 h-9 font-mono text-sm font-bold bg-background border-border/80 focus-visible:ring-emerald-500"
-                placeholder="Enter due amount..."
+                placeholder="Enter therapy fee..."
               />
             </div>
 
@@ -424,7 +444,7 @@ function HandlerSendPatientDialogContent({
                   onClick={() => setDueAmount(preset)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                     dueAmount === preset
-                      ? "bg-primary text-primary-foreground shadow-xs"
+                      ? "bg-emerald-600 text-white shadow-xs"
                       : "bg-background hover:bg-muted text-foreground border border-border/80"
                   }`}
                 >
@@ -432,25 +452,17 @@ function HandlerSendPatientDialogContent({
                 </button>
               ))}
             </div>
-
-            {isFeeModified && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={handleSaveDueOnly}
-                disabled={isSavingFee}
-                className="h-9 px-3 text-xs font-bold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 shrink-0 gap-1.5 cursor-pointer"
-              >
-                {isSavingFee ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Save className="size-3.5" />
-                )}
-                <span>Save Due</span>
-              </Button>
-            )}
           </div>
+
+          {/* Itemized Total Payable Breakdown if doctor consultation due also exists */}
+          {doctorDueInfo.hasConsultationToday && !doctorDueInfo.isPaid && doctorDueInfo.doctorDue > 0 && (
+            <div className="flex items-center justify-between pt-1 border-t border-emerald-500/20 text-xs">
+              <span className="text-muted-foreground font-medium">Estimated Combined Payable at Cashier:</span>
+              <span className="font-mono font-bold text-emerald-800 dark:text-emerald-200">
+                ৳{doctorDueInfo.doctorDue} (Doctor) + ৳{dueAmount} (Therapy) = ৳{doctorDueInfo.doctorDue + dueAmount}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 3. Today's Treatment Plan Card */}

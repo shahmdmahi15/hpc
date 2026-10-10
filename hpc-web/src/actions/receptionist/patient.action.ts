@@ -517,12 +517,17 @@ export async function checkInArrivingPatientAction(
       });
     }
 
-    // 1. Check if patient already has a Consultation Serial booked today
+    // 1. Check if patient already has an active Consultation Serial booked today (not from a previous checked-out visit)
     const existingSerial = await prisma.consultationSerial.findFirst({
       where: {
         patientId: patient.id,
         appointmentDate: { gte: startOfDay, lte: endOfDay },
         status: { notIn: ["COMPLETED", "CANCELLED"] },
+        OR: [
+          { visitId: null },
+          { visitId: visit.id },
+          { visit: { status: { not: "CHECKED_OUT" } } },
+        ],
       },
       include: { doctor: true, invoice: true },
       orderBy: { serialNumber: "desc" },
@@ -575,7 +580,11 @@ export async function checkInArrivingPatientAction(
             patientId: patient.id,
             appointmentDate: { gte: startOfDay, lte: endOfDay },
             type: AppointmentType.CONSULTATION,
+            status: {
+              notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
+            },
           },
+          orderBy: { createdAt: "desc" },
         });
 
         if (existingApt) {
@@ -588,6 +597,12 @@ export async function checkInArrivingPatientAction(
               roomId: waitingRoom.id,
               visitId: visit.id,
               checkInTime: checkInDateObj,
+              checkOutTime: null,
+              inConsultationTime: null,
+              outConsultationTime: null,
+              inTherapyTime: null,
+              outTherapyTime: null,
+              willCallTime: null,
               doctorId: existingSerial.doctorId,
               invoiceId: existingSerial.invoiceId || existingApt.invoiceId,
               feeAmount: 0, // Consultation fee is tracked on ConsultationSerial
@@ -610,6 +625,7 @@ export async function checkInArrivingPatientAction(
               patientId: patient.id,
               visitId: visit.id,
               checkInTime: checkInDateObj,
+              checkOutTime: null,
               doctorId: existingSerial.doctorId,
               gender: patient.gender,
               invoiceId: existingSerial.invoiceId,
@@ -648,7 +664,11 @@ export async function checkInArrivingPatientAction(
             patientId: patient.id,
             appointmentDate: { gte: startOfDay, lte: endOfDay },
             type: AppointmentType.CONSULTATION,
+            status: {
+              notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
+            },
           },
+          orderBy: { createdAt: "desc" },
         });
 
         if (existingApt) {
@@ -661,6 +681,12 @@ export async function checkInArrivingPatientAction(
               visitId: visit.id,
               doctorId: existingSerial.doctorId,
               checkInTime: checkInDateObj,
+              checkOutTime: null,
+              inConsultationTime: null,
+              outConsultationTime: null,
+              inTherapyTime: null,
+              outTherapyTime: null,
+              willCallTime: null,
               queueType: null,
               feeAmount: 0,
               paidAmount: 0,
@@ -683,6 +709,7 @@ export async function checkInArrivingPatientAction(
               visitId: visit.id,
               doctorId: existingSerial.doctorId,
               checkInTime: checkInDateObj,
+              checkOutTime: null,
               gender: patient.gender,
               feeAmount: 0,
               paidAmount: 0,
@@ -725,6 +752,9 @@ export async function checkInArrivingPatientAction(
             roomId: waitingRoom.id,
             visitId: visit.id,
             checkInTime: checkInDateObj,
+            checkOutTime: null,
+            outTherapyTime: null,
+            willCallTime: null,
             queueType: null, // Awaiting due clearance before entering queue!
             performerId,
             ...(toldTime ? { toldTime } : {}),
@@ -755,6 +785,9 @@ export async function checkInArrivingPatientAction(
             queueType: QueueType.THERAPY,
             visitId: visit.id,
             checkInTime: checkInDateObj,
+            checkOutTime: null,
+            outTherapyTime: null,
+            willCallTime: null,
             performerId,
             ...(toldTime ? { toldTime } : {}),
             ...(notes ? { notes } : {}),
@@ -784,6 +817,7 @@ export async function checkInArrivingPatientAction(
             notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED],
           },
         },
+        orderBy: { createdAt: "desc" },
       });
 
       if (existingWalkIn) {
@@ -795,6 +829,12 @@ export async function checkInArrivingPatientAction(
             roomId: waitingRoom.id,
             visitId: visit.id,
             checkInTime: checkInDateObj,
+            checkOutTime: null,
+            inConsultationTime: null,
+            outConsultationTime: null,
+            inTherapyTime: null,
+            outTherapyTime: null,
+            willCallTime: null,
             performerId,
             ...(toldTime ? { toldTime } : {}),
             ...(notes ? { notes } : {}),
@@ -824,6 +864,7 @@ export async function checkInArrivingPatientAction(
             currentStation: stationToSet,
             roomId: waitingRoom.id,
             checkInTime: checkInDateObj,
+            checkOutTime: null,
             queueId: null,
             queueType: null,
             doctorId: null,
@@ -1071,6 +1112,8 @@ export async function bookConsultationSerialAction(
         where: { id: existingApt.id },
         data: {
           currentStation: "CASHIER_REGISTER",
+          visitId: activeVisitId || existingApt.visitId,
+          checkOutTime: null,
           doctorId: existingApt.doctorId || doctorId,
           toldTime: toldTime || existingApt.toldTime || undefined,
           notes: notes
@@ -1198,7 +1241,8 @@ export async function checkoutPatientVisitAction(
         type: AppointmentType.THERAPY,
         therapySlotId: { not: null },
         status: { notIn: [AppointmentStatus.CANCELLED] },
-        paymentStatus: { notIn: ["PAID", "DUE"] },
+        invoiceId: null,
+        paymentStatus: { notIn: ["PAID", "DUE", "PARTIAL"] },
       },
       include: { therapySlot: true },
     });
@@ -1216,7 +1260,8 @@ export async function checkoutPatientVisitAction(
         patientId,
         appointmentDate: { gte: startOfDay, lte: endOfDay },
         status: { notIn: ["CANCELLED"] },
-        paymentStatus: { notIn: ["PAID", "DUE"] },
+        invoiceId: null,
+        paymentStatus: { notIn: ["PAID", "DUE", "PARTIAL"] },
       },
       include: { doctor: true },
     });
@@ -1280,6 +1325,19 @@ export async function checkoutPatientVisitAction(
         checkOutTime: now,
         checkOutPerformerId: performerId,
         notes: notes || undefined,
+      },
+    });
+
+    // Update today's active ConsultationSerials to COMPLETED so subsequent same-day visits start fresh
+    await prisma.consultationSerial.updateMany({
+      where: {
+        patientId,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
+      },
+      data: {
+        status: "COMPLETED",
+        outConsultationTime: now,
       },
     });
 
@@ -1399,7 +1457,6 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
             invoice: true,
           },
           orderBy: { serialNumber: "desc" },
-          take: 1,
         },
         appointments: {
           where: {
@@ -1412,8 +1469,7 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
             room: true,
             invoice: true,
           },
-          orderBy: { createdAt: "desc" },
-          take: 1,
+          orderBy: [{ checkInTime: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
         },
       },
       take: q ? 15 : 8,
@@ -1421,21 +1477,45 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
     });
 
     return patients.map((p) => {
-      const todayAppointment = p.appointments[0] || null;
-      const todaySerial = p.consultationSerials[0] || null;
       const activeVisit = p.visits[0] || null;
+      // Prefer an active (non-completed) appointment if the patient is currently in the clinic
+      const todayAppointment =
+        p.appointments.find((a) => a.status !== AppointmentStatus.COMPLETED) ||
+        p.appointments[0] ||
+        null;
+
+      const isAptCompleted =
+        !todayAppointment ||
+        todayAppointment.status === AppointmentStatus.COMPLETED ||
+        todayAppointment.currentStation === "CHECKED_OUT";
+
+      const targetVisitId = todayAppointment?.visitId || activeVisit?.id || null;
+      const todaySerial = isAptCompleted
+        ? p.consultationSerials.find((s) => s.status !== "COMPLETED" && !s.visitId) ||
+          (targetVisitId
+            ? p.consultationSerials.find((s) => s.visitId === targetVisitId) || null
+            : p.consultationSerials[0] || null)
+        : targetVisitId
+          ? p.consultationSerials.find((s) => s.visitId === targetVisitId) ||
+            p.consultationSerials.find((s) => s.status !== "COMPLETED" && !s.visitId) ||
+            null
+          : p.consultationSerials.find((s) => s.status !== "COMPLETED") || null;
 
       // Evaluate Therapy checkout clearance
       const hasUnbilledTherapy = todayAppointment &&
         todayAppointment.type === AppointmentType.THERAPY &&
         todayAppointment.therapySlotId &&
+        !todayAppointment.invoiceId &&
         todayAppointment.paymentStatus !== "PAID" &&
-        todayAppointment.paymentStatus !== "DUE";
+        todayAppointment.paymentStatus !== "DUE" &&
+        todayAppointment.paymentStatus !== "PARTIAL";
 
       // Evaluate Consultation checkout clearance
       const hasUnbilledConsultation = todaySerial &&
+        !todaySerial.invoiceId &&
         todaySerial.paymentStatus !== "PAID" &&
-        todaySerial.paymentStatus !== "DUE";
+        todaySerial.paymentStatus !== "DUE" &&
+        todaySerial.paymentStatus !== "PARTIAL";
 
       const canCheckout = !hasUnbilledTherapy && !hasUnbilledConsultation;
       const unbilledReason = hasUnbilledTherapy
@@ -1462,7 +1542,10 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
               id: activeVisit.id,
               visitNumber: activeVisit.visitNumber,
               checkInTime: activeVisit.checkInTime,
-              checkOutTime: activeVisit.checkOutTime,
+              checkOutTime:
+                activeVisit.status === "CHECKED_OUT"
+                  ? activeVisit.checkOutTime
+                  : null,
               status: activeVisit.status,
             }
           : null,
@@ -1490,7 +1573,7 @@ export async function searchPatientsWithArrivalStatusAction(query: string) {
               queueType: todayAppointment.queueType,
               currentStation: todayAppointment.currentStation,
               checkInTime: todayAppointment.checkInTime,
-              checkOutTime: todayAppointment.checkOutTime,
+              checkOutTime: isAptCompleted ? todayAppointment.checkOutTime : null,
               toldTime: todayAppointment.toldTime || todaySerial?.toldTime || null,
               feeAmount:
                 !todayAppointment.therapySlotId && todaySerial
@@ -1596,7 +1679,6 @@ export async function getTodayArrivalsDataAction() {
                 invoice: true,
               },
               orderBy: { serialNumber: "desc" },
-              take: 1,
             },
           },
         },
@@ -1633,7 +1715,27 @@ export async function getTodayArrivalsDataAction() {
       },
     });
 
-    return appointments;
+    // Ensure each active arrival only attaches the ConsultationSerial belonging to its active visit
+    return appointments.map((apt) => {
+      const activeVisitId = apt.visitId || apt.patient?.visits?.[0]?.id || null;
+      const allSerials = apt.patient?.consultationSerials || [];
+      const matchedSerial = activeVisitId
+        ? allSerials.find((s) => s.visitId === activeVisitId) ||
+          allSerials.find((s) => s.status !== "COMPLETED" && !s.visitId) ||
+          null
+        : allSerials.find((s) => s.status !== "COMPLETED") || null;
+
+      return {
+        ...apt,
+        checkOutTime: null,
+        patient: apt.patient
+          ? {
+              ...apt.patient,
+              consultationSerials: matchedSerial ? [matchedSerial] : [],
+            }
+          : apt.patient,
+      };
+    });
   } catch (error) {
     console.error("[Get Today Arrivals Error]:", error);
     return [];

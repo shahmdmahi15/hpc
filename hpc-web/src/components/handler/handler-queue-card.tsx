@@ -18,14 +18,19 @@ import {
   Activity,
   Volume2,
   Send,
-  Stethoscope,
   FileText,
+  FolderOpen,
+  Stethoscope,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
 import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
 import { CallToTherapyRoomDialog } from "@/components/handler/call-to-therapy-room-dialog";
 import { HandlerSendPatientDialog } from "@/components/handler/handler-send-patient-dialog";
+import { CancelCallDialog } from "@/components/handler/cancel-call-dialog";
+import { MarkInTherapyDialog } from "@/components/handler/mark-in-therapy-dialog";
+import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
+import { PatientMedicalHistoryDialog } from "@/components/doctor/medical/patient-medical-history-dialog";
 
 interface HandlerQueueCardProps {
   appointment: AppointmentWithRelations;
@@ -50,6 +55,10 @@ export function HandlerQueueCard({
   // Dialog states
   const [isCallDialogOpen, setIsCallDialogOpen] = React.useState(false);
   const [isSendDialogOpen, setIsSendDialogOpen] = React.useState(false);
+  const [isCancelCallDialogOpen, setIsCancelCallDialogOpen] = React.useState(false);
+  const [isMarkInTherapyOpen, setIsMarkInTherapyOpen] = React.useState(false);
+  const [isPlanOpen, setIsPlanOpen] = React.useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
 
   // Call time inline editing
   const [isEditingCallTime, setIsEditingCallTime] = React.useState(false);
@@ -98,30 +107,6 @@ export function HandlerQueueCard({
     if (h === 0) h = 12;
     const formatted = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`;
     setCallTimeInput(formatted);
-  };
-
-  // Start Therapy Session (Mark In Therapy)
-  const handleMarkInTherapy = async () => {
-    setIsActionLoading(true);
-    try {
-      const res = await updateAppointmentStatusAction(
-        appointment.id,
-        AppointmentStatus.IN_THERAPY,
-        performerId,
-        QueueType.THERAPY,
-        appointment.roomId || selectedRoomId,
-      );
-      if (res.success) {
-        toast.success(
-          `Therapy started for ${appointment.patient?.name || "Patient"}.`,
-        );
-        onRefresh();
-      } else {
-        toast.error(res.message);
-      }
-    } finally {
-      setIsActionLoading(false);
-    }
   };
 
   const isMale = appointment.gender === "MALE";
@@ -417,7 +402,7 @@ export function HandlerQueueCard({
             <>
               <Button
                 size="sm"
-                onClick={handleMarkInTherapy}
+                onClick={() => setIsMarkInTherapyOpen(true)}
                 disabled={isActionLoading}
                 className="flex-1 h-7 rounded-lg font-bold text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs cursor-pointer gap-1 animate-pulse"
               >
@@ -440,28 +425,7 @@ export function HandlerQueueCard({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={async () => {
-                  setIsActionLoading(true);
-                  try {
-                    const res = await updateAppointmentStatusAction(
-                      appointment.id,
-                      AppointmentStatus.CHECKED_IN,
-                      performerId,
-                      QueueType.THERAPY,
-                      "",
-                    );
-                    if (res.success) {
-                      toast.info(
-                        `Call cancelled. ${appointment.patient?.name || "Patient"} returned to therapy queue.`,
-                      );
-                      onRefresh();
-                    } else {
-                      toast.error(res.message);
-                    }
-                  } finally {
-                    setIsActionLoading(false);
-                  }
-                }}
+                onClick={() => setIsCancelCallDialogOpen(true)}
                 disabled={isActionLoading}
                 className="h-7 px-2 text-[10px] font-bold border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 cursor-pointer gap-1"
                 title="Cancel call and keep patient in waiting queue"
@@ -482,6 +446,33 @@ export function HandlerQueueCard({
               <Send className="size-3" />
               <span>Send Patient</span>
             </Button>
+          )}
+
+          {/* View Treatment Plan & Patient Files (view-only for handlers after calling / during therapy) */}
+          {(isCalling || isInTherapy) && (
+            <div className="flex items-center gap-1 w-full pt-1">
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => setIsPlanOpen(true)}
+                className="flex-1 h-6 rounded-md font-bold text-[10px] border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer gap-1"
+                title="View Prescribed Treatment Plan (View Only)"
+              >
+                <Activity className="size-2.5" />
+                <span>View Plan</span>
+              </Button>
+
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => setIsHistoryOpen(true)}
+                className="flex-1 h-6 rounded-md font-bold text-[10px] border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 cursor-pointer gap-1"
+                title="View Patient Medical History & Files (View Only)"
+              >
+                <FolderOpen className="size-2.5" />
+                <span>View Files</span>
+              </Button>
+            </div>
           )}
 
           {/* Fast Send Patient option always accessible for checked-in patients if needed */}
@@ -513,6 +504,28 @@ export function HandlerQueueCard({
         onSuccess={onRefresh}
       />
 
+      {/* Mark In Therapy Dialog with PIN verification */}
+      <MarkInTherapyDialog
+        isOpen={isMarkInTherapyOpen}
+        onOpenChange={setIsMarkInTherapyOpen}
+        appointment={appointment}
+        todayPlan={todayPlan}
+        handlers={handlers}
+        defaultHandlerId={performerId}
+        selectedRoomId={selectedRoomId}
+        onSuccess={onRefresh}
+      />
+
+      {/* Cancel Call Dialog with PIN verification */}
+      <CancelCallDialog
+        isOpen={isCancelCallDialogOpen}
+        onOpenChange={setIsCancelCallDialogOpen}
+        appointment={appointment}
+        handlers={handlers}
+        defaultHandlerId={performerId}
+        onSuccess={onRefresh}
+      />
+
       {/* Handler Send Patient Dialog */}
       <HandlerSendPatientDialog
         isOpen={isSendDialogOpen}
@@ -522,6 +535,22 @@ export function HandlerQueueCard({
         handlers={handlers}
         defaultHandlerId={performerId}
         onSuccess={onRefresh}
+      />
+
+      {/* View-Only Treatment Plan Dialog for Handler */}
+      <TreatmentPlanDialog
+        isOpen={isPlanOpen}
+        onOpenChange={setIsPlanOpen}
+        appointment={appointment}
+        readOnly={true}
+        onSuccess={onRefresh}
+      />
+
+      {/* View-Only Patient Medical History & Files Dialog for Handler */}
+      <PatientMedicalHistoryDialog
+        isOpen={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        patient={appointment.patient || null}
       />
     </>
   );

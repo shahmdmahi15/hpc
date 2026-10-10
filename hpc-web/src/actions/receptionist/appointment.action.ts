@@ -35,6 +35,7 @@ import type {
   RoomModel,
   PerformerModel,
   UserModel,
+  PatientInvoiceModel,
 } from "@/generated/prisma/models";
 
 const DAY_MAP: Record<number, DayKey> = {
@@ -205,41 +206,117 @@ export async function bookTherapyTicketAction(
         : DEFAULT_FEE;
     const isFree = feeToCharge === 0;
 
-    // 6. Create Appointment in atomic transaction
-    const appointment = await prisma.appointment.create({
-      data: {
-        type: AppointmentType.THERAPY,
-        therapySlotId: slot.id,
+    // 6. Check if the patient already has an active checked-in/in-consultation appointment on this date without a therapy slot
+    const existingActiveUnassignedApt = await prisma.appointment.findFirst({
+      where: {
         patientId: patient.id,
-        appointmentDate: dateObj,
-        gender: patient.gender,
-        bookingType: finalBookingType,
-        extraStatus: extraApproval,
-        extraReason:
-          finalBookingType === BookingType.EXTRA
-            ? extraReason?.trim() || null
-            : null,
-        status:
-          finalBookingType === BookingType.EXTRA
-            ? AppointmentStatus.PENDING
-            : AppointmentStatus.CONFIRMED,
-        bookedById: bookedById || undefined,
-        toldTime: toldTime || undefined,
-        notes: notes || undefined,
-        feeAmount: feeToCharge,
-        paidAmount: isFree ? 0 : 0,
-        dueAmount: isFree ? 0 : feeToCharge,
-        paymentStatus: isFree ? "PAID" : "PENDING",
-      },
-      include: {
-        patient: true,
-        therapySlot: {
-          include: { room: true },
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        therapySlotId: null,
+        status: {
+          in: [
+            AppointmentStatus.CHECKED_IN,
+            AppointmentStatus.CALLING,
+            AppointmentStatus.IN_CONSULTATION,
+          ],
         },
-        bookedBy: true,
-        extraApprovedBy: true,
       },
+      orderBy: { createdAt: "desc" },
     });
+
+    let appointment;
+    if (existingActiveUnassignedApt) {
+      // If patient is currently at Receptionist Desk / Waiting Room (not in Consultation Queue) and booking is REGULAR, place into Therapy Queue
+      const shouldAutoQueueTherapy =
+        existingActiveUnassignedApt.status === AppointmentStatus.CHECKED_IN &&
+        !existingActiveUnassignedApt.queueType &&
+        finalBookingType === BookingType.REGULAR;
+
+      let therapyQueueId: string | undefined = undefined;
+      if (shouldAutoQueueTherapy) {
+        const queueRecord = await prisma.queue.upsert({
+          where: { type: QueueType.THERAPY },
+          update: {},
+          create: {
+            type: QueueType.THERAPY,
+            name: "Therapy Queue",
+            description: "Queue for physical therapy patients",
+          },
+        });
+        therapyQueueId = queueRecord.id;
+      }
+
+      appointment = await prisma.appointment.update({
+        where: { id: existingActiveUnassignedApt.id },
+        data: {
+          type: AppointmentType.THERAPY,
+          therapySlotId: slot.id,
+          bookingType: finalBookingType,
+          extraStatus: extraApproval,
+          extraReason:
+            finalBookingType === BookingType.EXTRA
+              ? extraReason?.trim() || null
+              : null,
+          ...(shouldAutoQueueTherapy
+            ? {
+                queueType: QueueType.THERAPY,
+                queueId: therapyQueueId,
+                currentStation: "THERAPY_ROOM",
+              }
+            : {}),
+          bookedById: bookedById || existingActiveUnassignedApt.bookedById || undefined,
+          toldTime: toldTime || existingActiveUnassignedApt.toldTime || undefined,
+          notes: notes || existingActiveUnassignedApt.notes || undefined,
+          feeAmount: feeToCharge,
+          paidAmount: 0,
+          dueAmount: feeToCharge,
+          paymentStatus: "PENDING",
+        },
+        include: {
+          patient: true,
+          therapySlot: {
+            include: { room: true },
+          },
+          bookedBy: true,
+          extraApprovedBy: true,
+        },
+      });
+    } else {
+      appointment = await prisma.appointment.create({
+        data: {
+          type: AppointmentType.THERAPY,
+          therapySlotId: slot.id,
+          patientId: patient.id,
+          appointmentDate: dateObj,
+          gender: patient.gender,
+          bookingType: finalBookingType,
+          extraStatus: extraApproval,
+          extraReason:
+            finalBookingType === BookingType.EXTRA
+              ? extraReason?.trim() || null
+              : null,
+          status:
+            finalBookingType === BookingType.EXTRA
+              ? AppointmentStatus.PENDING
+              : AppointmentStatus.CONFIRMED,
+          queueType: null,
+          bookedById: bookedById || undefined,
+          toldTime: toldTime || undefined,
+          notes: notes || undefined,
+          feeAmount: feeToCharge,
+          paidAmount: 0,
+          dueAmount: feeToCharge,
+          paymentStatus: "PENDING",
+        },
+        include: {
+          patient: true,
+          therapySlot: {
+            include: { room: true },
+          },
+          bookedBy: true,
+          extraApprovedBy: true,
+        },
+      });
+    }
 
     // Synchronize billing across Patient, Appointment, and File models
     await syncBillingForAppointment(appointment.id);
@@ -537,13 +614,35 @@ export async function updateAppointmentStatusAction(
       }
     }
 
+    const isActiveInClinicStatus =
+      newStatus === AppointmentStatus.CHECKED_IN ||
+      newStatus === AppointmentStatus.CALLING ||
+      newStatus === AppointmentStatus.IN_CONSULTATION ||
+      newStatus === AppointmentStatus.IN_THERAPY;
+
     const updated = await prisma.appointment.update({
       where: { id: appointmentId },
       data: {
         status: newStatus,
-        ...(newStatus === AppointmentStatus.COMPLETED
-          ? { currentStation: "CHECKED_OUT" }
+        ...(newStatus === AppointmentStatus.CANCELLED &&
+        !appointment.invoiceId &&
+        (appointment.paidAmount ?? 0) === 0
+          ? { paymentStatus: "CANCELLED", dueAmount: 0 }
           : {}),
+        ...(newStatus === AppointmentStatus.COMPLETED
+          ? { currentStation: "CHECKED_OUT", checkOutTime: now }
+          : isActiveInClinicStatus
+            ? {
+                checkOutTime: null,
+                ...(newStatus === AppointmentStatus.IN_CONSULTATION
+                  ? { currentStation: "CONSULTATION_ROOM" }
+                  : newStatus === AppointmentStatus.IN_THERAPY
+                    ? { currentStation: "THERAPY_ROOM" }
+                    : isCancellingCall
+                      ? { currentStation: "WAITING_LOUNGE" }
+                      : {}),
+              }
+            : {}),
         ...(checkInTime !== undefined ? { checkInTime } : {}),
         ...(inConsultationTimeUpdate ? { inConsultationTime: inConsultationTimeUpdate } : {}),
         ...(inTherapyTimeUpdate ? { inTherapyTime: inTherapyTimeUpdate } : {}),
@@ -565,6 +664,9 @@ export async function updateAppointmentStatusAction(
         room: true,
         queue: true,
         doctor: true,
+        invoice: {
+          include: { payments: true },
+        },
       },
     });
 
@@ -646,6 +748,14 @@ export async function updateAppointmentStatusAction(
       },
     });
 
+    if (isCancelled) {
+      const { syncBillingForAppointment, syncBillingForPatient } = await import(
+        "@/lib/billing-sync"
+      );
+      await syncBillingForAppointment(updated.id);
+      await syncBillingForPatient(updated.patientId);
+    }
+
     emitRealtimeEvent(
       isCancelled ? "APPOINTMENT_CANCELLED" : "APPOINTMENT_UPDATED",
       {
@@ -696,11 +806,10 @@ export async function updateAppointmentStatusAction(
       });
     }
 
-    // If patient is calling, in consultation, or in therapy, mark room as OCCUPIED
+    // Rooms are only marked OCCUPIED when the patient is actively in consultation or in therapy (NOT while calling)
     if (
       (newStatus === AppointmentStatus.IN_CONSULTATION ||
-        newStatus === AppointmentStatus.IN_THERAPY ||
-        newStatus === AppointmentStatus.CALLING) &&
+        newStatus === AppointmentStatus.IN_THERAPY) &&
       updated.roomId
     ) {
       await prisma.room
@@ -732,7 +841,6 @@ export async function updateAppointmentStatusAction(
             in: [
               AppointmentStatus.IN_CONSULTATION,
               AppointmentStatus.IN_THERAPY,
-              AppointmentStatus.CALLING,
             ],
           },
           id: { not: updated.id },
@@ -770,7 +878,6 @@ export async function updateAppointmentStatusAction(
             in: [
               AppointmentStatus.IN_CONSULTATION,
               AppointmentStatus.IN_THERAPY,
-              AppointmentStatus.CALLING,
             ],
           },
           id: { not: updated.id },
@@ -875,6 +982,7 @@ export type AppointmentWithRelations = AppointmentModel & {
   performer?: PerformerModel | null;
   bookedBy?: PerformerModel | null;
   extraApprovedBy?: UserModel | null;
+  invoice?: PatientInvoiceModel | null;
   queue?: {
     id: string;
     name: string;
@@ -1041,7 +1149,9 @@ export async function getReceptionistDashboardDataAction(
                 doctor: {
                   select: { id: true, name: true, consultationFee: true },
                 },
-                invoice: true,
+                invoice: {
+                  include: { payments: true },
+                },
               },
               orderBy: { serialNumber: "desc" },
               take: 1,
@@ -1053,6 +1163,9 @@ export async function getReceptionistDashboardDataAction(
         doctor: true,
         bookedBy: true,
         extraApprovedBy: true,
+        invoice: {
+          include: { payments: true },
+        },
       },
       orderBy: [{ therapySlot: { order: "asc" } }, { createdAt: "asc" }],
     }),
@@ -1115,7 +1228,9 @@ export async function getReceptionistDashboardDataAction(
           },
         },
         patient: true,
-        invoice: true,
+        invoice: {
+          include: { payments: true },
+        },
         visit: true,
       },
       orderBy: [{ doctorId: "asc" }, { serialNumber: "asc" }],
@@ -1200,7 +1315,9 @@ export async function getReceptionistDashboardDataAction(
       a.status === AppointmentStatus.IN_CONSULTATION,
   ).length;
   const checkedOutCount = nonCancelled.filter(
-    (a) => a.status === AppointmentStatus.COMPLETED || Boolean(a.checkOutTime),
+    (a) =>
+      a.status === AppointmentStatus.COMPLETED ||
+      a.currentStation === "CHECKED_OUT",
   ).length;
   const maleBooked = nonCancelled.filter(
     (a) => a.gender === Gender.MALE,
@@ -1295,9 +1412,18 @@ export async function getLiveQueueAction() {
             AppointmentStatus.IN_CONSULTATION,
           ],
         },
+        currentStation: {
+          notIn: ["CASHIER_REGISTER", "RECEPTIONIST_DESK", "CHECKED_OUT"],
+        },
         OR: [
-          { queueType: { in: [QueueType.THERAPY, QueueType.CONSULTATION] } },
-          { therapySlotId: { not: null } },
+          {
+            queueType: QueueType.THERAPY,
+            outTherapyTime: null,
+          },
+          {
+            queueType: QueueType.CONSULTATION,
+            outConsultationTime: null,
+          },
         ],
       },
       include: {
@@ -1612,7 +1738,7 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           feeAmount: feeToCharge,
           paidAmount: 0,
           dueAmount: feeToCharge,
-          paymentStatus: feeToCharge === 0 ? "PAID" : "PENDING",
+          paymentStatus: "PENDING",
         },
         include: { patient: true, therapySlot: true, queue: true, doctor: true },
       });

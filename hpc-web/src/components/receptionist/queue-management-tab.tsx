@@ -14,6 +14,14 @@ import { AppointmentStatus, QueueType } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Activity,
   Stethoscope,
   Plus,
@@ -172,7 +180,10 @@ export function QueueManagementTab({
     }
   };
 
-  const handleCancel = async (apt: AppointmentWithRelations) => {
+  const [cancelConfirmApt, setCancelConfirmApt] =
+    React.useState<AppointmentWithRelations | null>(null);
+
+  const handleCancel = (apt: AppointmentWithRelations) => {
     if (onRequestAction) {
       onRequestAction({
         actionType: "CANCEL",
@@ -182,15 +193,11 @@ export function QueueManagementTab({
       });
       return;
     }
+    setCancelConfirmApt(apt);
+  };
 
+  const executeCancel = async (apt: AppointmentWithRelations) => {
     const patientName = apt.patient?.name || "Patient";
-    if (
-      !window.confirm(
-        `Are you sure you want to cancel the queue ticket for ${patientName}?`,
-      )
-    ) {
-      return;
-    }
     setActionLoadingId(apt.id);
     try {
       const res = await updateAppointmentStatusAction(
@@ -200,6 +207,7 @@ export function QueueManagementTab({
       );
       if (res.success) {
         toast.success(`Queue ticket cancelled for ${patientName}.`);
+        setCancelConfirmApt(null);
         onRefresh();
       } else {
         toast.error(res.message);
@@ -374,6 +382,69 @@ export function QueueManagementTab({
           </div>
         </div>
       </div>
+
+      {/* Shadcn UI Cancel Queue Ticket Confirmation Dialog */}
+      <Dialog
+        open={Boolean(cancelConfirmApt)}
+        onOpenChange={(open) => {
+          if (!open) setCancelConfirmApt(null);
+        }}
+      >
+        <DialogContent className="w-[96vw] max-w-md p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+          <DialogHeader className="p-4 sm:p-5 pb-3 pr-12 border-b border-border/60 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
+                <AlertTriangle className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Cancel Queue Ticket
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Remove patient from today&apos;s active queue
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-4 sm:p-5 space-y-3 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Are you sure you want to cancel the queue ticket for{" "}
+              <strong className="text-foreground">
+                {cancelConfirmApt?.patient?.name || "Patient"}
+              </strong>
+              {cancelConfirmApt?.therapySlot?.label ? ` (${cancelConfirmApt.therapySlot.label})` : ""}?
+            </p>
+          </div>
+
+          <DialogFooter className="p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setCancelConfirmApt(null)}
+              disabled={Boolean(actionLoadingId)}
+              className="text-xs cursor-pointer"
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (cancelConfirmApt) {
+                  executeCancel(cancelConfirmApt);
+                }
+              }}
+              disabled={Boolean(actionLoadingId)}
+              className="text-xs font-bold cursor-pointer shadow-xs"
+            >
+              {actionLoadingId ? "Cancelling..." : "Confirm Cancel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ThermalTicketDialog
         isOpen={!!printTicketApt}

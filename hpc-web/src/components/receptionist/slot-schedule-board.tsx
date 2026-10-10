@@ -515,21 +515,22 @@ export function SlotScheduleBoard({
                                           Told: {apt.toldTime}
                                         </span>
                                       )}
-                                      {apt.paymentStatus === "PAID" ? (
-                                        <span
-                                          className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold shrink-0"
-                                          title="Bill Cleared"
-                                        >
-                                          ৳{apt.feeAmount ?? 500} Paid
-                                        </span>
-                                      ) : (
-                                        <span
-                                          className="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold shrink-0"
-                                          title="Bill Due"
-                                        >
-                                          ৳{apt.feeAmount ?? 500} Due
-                                        </span>
-                                      )}
+                                      {(apt.feeAmount ?? 0) > 0 &&
+                                        (apt.paymentStatus === "PAID" ? (
+                                          <span
+                                            className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold shrink-0"
+                                            title="Bill Cleared"
+                                          >
+                                            ৳{apt.feeAmount} Paid
+                                          </span>
+                                        ) : (
+                                          <span
+                                            className="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-mono font-bold shrink-0"
+                                            title="Bill Due"
+                                          >
+                                            ৳{apt.feeAmount} Due
+                                          </span>
+                                        ))}
                                     </div>
                                     <span className="text-[9.5px] text-muted-foreground font-mono block">
                                       {apt.patient?.phone}
@@ -546,7 +547,7 @@ export function SlotScheduleBoard({
                                   </div>
                                 </div>
 
-                                {/* Actions: Status badge or Check-in, Cancel */}
+                                {/* Actions: Status badge & Cancel */}
                                 <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto pt-0.5 sm:pt-0">
                                   {isCalling ? (
                                     <span
@@ -598,18 +599,6 @@ export function SlotScheduleBoard({
                                         <CheckCircle2 className="size-2.5 text-muted-foreground" />
                                         <span>Done</span>
                                       </span>
-                                      {onCheckOut && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-5.5 text-[9.5px] px-1.5 gap-1 cursor-pointer border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-semibold"
-                                          onClick={() => onCheckOut(apt.id)}
-                                          title="Mark Patient Checked Out for the Day"
-                                        >
-                                          <LogOut className="size-2.5 text-indigo-500" />
-                                          <span>Check Out</span>
-                                        </Button>
-                                      )}
                                     </div>
                                   ) : isCancelled ? (
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[9.5px] font-medium">
@@ -627,18 +616,6 @@ export function SlotScheduleBoard({
                                           </span>
                                         )}
                                       </span>
-                                      {onCheckOut && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-7 sm:h-5.5 min-h-[28px] sm:min-h-0 text-[10.5px] sm:text-[9.5px] px-2 sm:px-1.5 gap-1 cursor-pointer border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-semibold touch-manipulation"
-                                          onClick={() => onCheckOut(apt.id)}
-                                          title="Mark Patient Checked Out for the Day"
-                                        >
-                                          <LogOut className="size-2.5 text-indigo-500" />
-                                          <span>Check Out</span>
-                                        </Button>
-                                      )}
                                     </div>
                                   ) : isExtraPending ? (
                                     <span
@@ -657,16 +634,13 @@ export function SlotScheduleBoard({
                                       <span>Rejected</span>
                                     </span>
                                   ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 sm:h-5.5 min-h-[28px] sm:min-h-0 text-[10.5px] sm:text-[9.5px] px-2.5 sm:px-1.5 gap-1 cursor-pointer touch-manipulation font-semibold"
-                                      onClick={() => onCheckIn(apt.id)}
-                                      title="Mark Checked In"
+                                    <span
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground border border-border/70 text-[9.5px] font-semibold"
+                                      title="Booked — use the Arrivals tab to check in patient upon arrival"
                                     >
-                                      <CheckCircle2 className="size-2.5 text-emerald-500" />
-                                      <span>Check In</span>
-                                    </Button>
+                                      <Clock className="size-2.5 text-muted-foreground" />
+                                      <span>Booked</span>
+                                    </span>
                                   )}
 
                                   {!isCompleted &&

@@ -870,12 +870,24 @@ export function WaitingRoomLiveQueueView({
   // Split queue into 2 distinct columns: Therapy Queue & Consultation Queue
   const therapyQueue = React.useMemo(() => {
     return (queue || []).filter(
-      (item) => item?.queueType === "THERAPY" || Boolean(item?.therapySlotId),
+      (item) =>
+        (item?.queueType === "THERAPY" || Boolean(item?.therapySlotId)) &&
+        !item?.outTherapyTime &&
+        item?.currentStation !== "CASHIER_REGISTER" &&
+        item?.currentStation !== "RECEPTIONIST_DESK" &&
+        item?.currentStation !== "CHECKED_OUT",
     );
   }, [queue]);
 
   const consultationQueue = React.useMemo(() => {
-    return (queue || []).filter((item) => item?.queueType === "CONSULTATION");
+    return (queue || []).filter(
+      (item) =>
+        item?.queueType === "CONSULTATION" &&
+        !item?.outConsultationTime &&
+        item?.currentStation !== "CASHIER_REGISTER" &&
+        item?.currentStation !== "RECEPTIONIST_DESK" &&
+        item?.currentStation !== "CHECKED_OUT",
+    );
   }, [queue]);
 
   // Queue Punctuality Statistics
@@ -1266,9 +1278,9 @@ export function WaitingRoomLiveQueueView({
           role="status"
           aria-live="assertive"
           aria-label="Doctor Calling Announcement"
-          className="fixed inset-0 z-50 pointer-events-auto flex items-center justify-center p-2.5 sm:p-4 md:p-6 lg:p-8 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 select-none overflow-y-auto"
+          className="fixed inset-0 z-50 pointer-events-auto flex items-center justify-center p-2.5 sm:p-4 md:p-6 lg:p-8 bg-black/90 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 select-none overflow-hidden"
         >
-          <div className="w-full max-w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl max-h-[92dvh] overflow-y-auto p-4 sm:p-6 md:p-8 2xl:p-12 3xl:p-16 rounded-2xl sm:rounded-3xl md:rounded-4xl 3xl:rounded-[2.5rem] border-2 sm:border-4 3xl:border-8 border-emerald-500 dark:border-emerald-500 bg-white dark:bg-zinc-950 shadow-[0_0_80px_rgba(16,185,129,0.25)] dark:shadow-[0_0_120px_rgba(16,185,129,0.4)] space-y-3 sm:space-y-4 md:space-y-6 text-center relative overflow-hidden ring-4 sm:ring-8 3xl:ring-12 ring-emerald-500/20 flex flex-col justify-between my-auto text-zinc-950 dark:text-white">
+          <div className="w-full max-w-[96vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl p-4 sm:p-6 md:p-8 2xl:p-12 3xl:p-16 rounded-2xl sm:rounded-3xl md:rounded-4xl 3xl:rounded-[2.5rem] border-2 sm:border-4 3xl:border-8 border-emerald-500 dark:border-emerald-500 bg-white dark:bg-zinc-950 shadow-[0_0_80px_rgba(16,185,129,0.25)] dark:shadow-[0_0_120px_rgba(16,185,129,0.4)] space-y-3 sm:space-y-4 md:space-y-6 text-center relative overflow-hidden ring-4 sm:ring-8 3xl:ring-12 ring-emerald-500/20 flex flex-col justify-between my-auto text-zinc-950 dark:text-white">
             {/* Animated Ambient Radial Glows */}
             <div className="absolute -top-32 -left-32 w-72 md:w-96 h-72 md:h-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
             <div className="absolute -bottom-32 -right-32 w-72 md:w-96 h-72 md:h-96 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />

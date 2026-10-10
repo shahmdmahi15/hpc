@@ -46,6 +46,7 @@ import {
   Printer,
   Compass,
   MessageSquare,
+  Pill,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
@@ -60,6 +61,8 @@ import {
   DoctorPrescriptionDialog,
   type DoctorPrescriptionData,
 } from "@/components/print/doctor-prescription-dialog";
+import { NewPrescriptionDialog } from "@/components/doctor/prescription/new-prescription-dialog";
+import { OldPrescriptionsDialog } from "@/components/doctor/prescription/old-prescriptions-dialog";
 
 interface DoctorDashboardViewProps {
   initialData: DoctorDashboardData;
@@ -114,6 +117,8 @@ export function DoctorDashboardView({
   const [treatmentPlanTab, setTreatmentPlanTab] = React.useState<
     "today" | "next"
   >("today");
+  const [isNewPrescriptionOpen, setIsNewPrescriptionOpen] = React.useState(false);
+  const [isOldPrescriptionsOpen, setIsOldPrescriptionsOpen] = React.useState(false);
 
 
   // Priority: 1. Doctor's assigned chamber from admin panel (strictly DOCTOR type), 2. First doctor consultation room
@@ -275,9 +280,15 @@ export function DoctorDashboardView({
     });
   }, [data.therapyQueue, searchQuery]);
 
-  // Active consultation patient (if currently in session)
-  const activeConsultation = data.activeConsultation;
-  const callingAppointment = data.callingAppointment;
+  // Active consultation patient (if currently in session, strictly for consultation queue)
+  const activeConsultation =
+    data.activeConsultation?.queueType === QueueType.CONSULTATION
+      ? data.activeConsultation
+      : null;
+  const callingAppointment =
+    data.callingAppointment?.queueType === QueueType.CONSULTATION
+      ? data.callingAppointment
+      : null;
 
   // Mark Calling Patient in Consultation when patient enters the chamber
   const handleStartCallingConsultation = async () => {
@@ -493,6 +504,29 @@ export function DoctorDashboardView({
                 >
                   <FilePlus2 className="size-3.5" />
                   <span>Create New File</span>
+                </Button>
+
+                {/* Old Prescriptions */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsOldPrescriptionsOpen(true)}
+                  title="View previous prescriptions for this patient"
+                  className="h-7.5 px-2.5 rounded-lg font-bold text-xs border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer gap-1.5"
+                >
+                  <Pill className="size-3.5" />
+                  <span>Old Prescriptions</span>
+                </Button>
+
+                {/* New Prescription */}
+                <Button
+                  size="sm"
+                  onClick={() => setIsNewPrescriptionOpen(true)}
+                  title="Prescribe new medications with meal timing & schedule"
+                  className="h-7.5 px-2.5 rounded-lg font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer gap-1.5"
+                >
+                  <Pill className="size-3.5" />
+                  <span>New Prescription</span>
                 </Button>
 
                 {/* Today's Treatment Plan */}
@@ -1019,6 +1053,25 @@ export function DoctorDashboardView({
           if (!open) setPrescriptionPrintData(null);
         }}
         data={prescriptionPrintData}
+      />
+
+      {/* 8. New Medication Prescription Modal */}
+      <NewPrescriptionDialog
+        isOpen={isNewPrescriptionOpen}
+        onOpenChange={setIsNewPrescriptionOpen}
+        patient={activeConsultation?.patient || null}
+        doctorId={selectedDoctorId}
+        doctorName={data.currentDoctor?.name || "Doctor"}
+        appointmentId={activeConsultation?.id}
+        onSuccess={() => refreshData(selectedDate)}
+      />
+
+      {/* 9. Old Prescriptions History Modal */}
+      <OldPrescriptionsDialog
+        isOpen={isOldPrescriptionsOpen}
+        onOpenChange={setIsOldPrescriptionsOpen}
+        patient={activeConsultation?.patient || null}
+        onNewPrescriptionRequested={() => setIsNewPrescriptionOpen(true)}
       />
     </div>
   );

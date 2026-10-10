@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/guard";
 import {
   Role,
   AppointmentStatus,
+  AppointmentType,
   QueueType,
   BookingType,
   ExtraApprovalStatus,
@@ -23,7 +24,9 @@ import {
   type PatientWithCount,
   getReceptionistDashboardDataAction,
 } from "@/actions/receptionist/appointment.action";
-import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
+import { getOrCreateWaitingRoom200 } from "@/actions/receptionist/patient.action";
+import { type TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
+import { parsePlan } from "@/schemas/doctor/treatment-plan.schema";
 import { syncBillingForAppointment } from "@/lib/billing-sync";
 import { verifyPerformerPin } from "@/lib/performer-auth";
 import { revalidatePath } from "next/cache";
@@ -138,38 +141,52 @@ export async function getDoctorDashboardDataAction(
     currentDoctor = doctorPerformers[0] || null;
   }
 
-  // Active in-consultation session
-  const activeConsultation =
-    appointments.find((a) => a.status === AppointmentStatus.IN_CONSULTATION) ||
-    null;
-
-  // Currently being called into chamber
-  const callingAppointment =
-    appointments.find((a) => a.status === AppointmentStatus.CALLING) || null;
-
-  // Consultation Queue (Checked in, Calling, or In-Consultation)
+  // Consultation Queue (Checked In, Calling, or In-Consultation)
   const consultationQueue = appointments.filter(
     (a) =>
       a.queueType === QueueType.CONSULTATION &&
+      !a.outConsultationTime &&
+      a.currentStation !== "CASHIER_REGISTER" &&
+      a.currentStation !== "RECEPTIONIST_DESK" &&
+      a.currentStation !== "CHECKED_OUT" &&
       (a.status === AppointmentStatus.CHECKED_IN ||
         a.status === AppointmentStatus.CALLING ||
         a.status === AppointmentStatus.IN_CONSULTATION),
   );
 
+  // Active in-consultation session (strictly for consultation queue)
+  const activeConsultation =
+    consultationQueue.find(
+      (a) => a.status === AppointmentStatus.IN_CONSULTATION,
+    ) || null;
+
+  // Currently being called into chamber (strictly for consultation queue)
+  const callingAppointment =
+    consultationQueue.find((a) => a.status === AppointmentStatus.CALLING) ||
+    null;
+
   // Therapy Queue (Checked in, Calling, or In-Therapy)
   const therapyQueue = appointments.filter(
     (a) =>
       a.queueType === QueueType.THERAPY &&
+      !a.outTherapyTime &&
+      a.currentStation !== "CASHIER_REGISTER" &&
+      a.currentStation !== "RECEPTIONIST_DESK" &&
+      a.currentStation !== "CHECKED_OUT" &&
       (a.status === AppointmentStatus.CHECKED_IN ||
         a.status === AppointmentStatus.CALLING ||
         a.status === AppointmentStatus.IN_THERAPY),
   );
 
-  // Completed consultations today
+  // Completed consultations today (includes patients forwarded to Receptionist, Cashier, or Therapy after consultation)
   const completedConsultations = appointments.filter(
     (a) =>
-      a.queueType === QueueType.CONSULTATION &&
-      a.status === AppointmentStatus.COMPLETED,
+      a.status !== AppointmentStatus.IN_CONSULTATION &&
+      a.status !== AppointmentStatus.CALLING &&
+      a.status !== AppointmentStatus.CANCELLED &&
+      (Boolean(a.outConsultationTime) ||
+        (a.queueType === QueueType.CONSULTATION &&
+          a.status === AppointmentStatus.COMPLETED)),
   );
 
   // Pending Extra Slots awaiting doctor decision
@@ -216,29 +233,7 @@ export async function getDoctorDashboardDataAction(
   const todayPlansByPatientId: Record<string, TreatmentPlanRecord> = {};
   for (const plan of activeTodayPlans) {
     if (!todayPlansByPatientId[plan.patientId]) {
-      let modalities: string[] = [];
-      try {
-        modalities =
-          typeof plan.modalities === "string"
-            ? JSON.parse(plan.modalities)
-            : [];
-      } catch {
-        modalities = [];
-      }
-      todayPlansByPatientId[plan.patientId] = {
-        id: plan.id,
-        planType: plan.planType,
-        patientId: plan.patientId,
-        appointmentId: plan.appointmentId || null,
-        doctorId: plan.doctorId || null,
-        doctorName: plan.doctor?.name || null,
-        modalities,
-        instructions: plan.instructions || null,
-        targetDate: plan.targetDate ? plan.targetDate.toISOString() : null,
-        isActive: plan.isActive,
-        createdAt: plan.createdAt.toISOString(),
-        updatedAt: plan.updatedAt.toISOString(),
-      };
+      todayPlansByPatientId[plan.patientId] = parsePlan(plan as any);
     }
   }
 
@@ -469,22 +464,91 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       return { success: false, message: "Appointment record not found." };
     }
 
-    const feeToSet =
+    const defaultFee =
+      appointment.type === AppointmentType.CONSULTATION && !appointment.therapySlotId
+        ? (appointment.feeAmount ?? 0)
+        : (appointment.feeAmount ?? 500);
+
+    let feeToSet =
       typeof params.feeAmount === "number" &&
       !isNaN(params.feeAmount) &&
       params.feeAmount >= 0
         ? params.feeAmount
-        : (appointment.feeAmount ?? 500);
+        : defaultFee;
 
-    let newStatus = appointment.status;
-    let targetQueueType = appointment.queueType;
-    let targetQueueId = appointment.queueId;
+    let newStatus: AppointmentStatus = AppointmentStatus.CHECKED_IN;
+    let targetQueueType: QueueType | null = appointment.queueType;
+    let targetQueueId: string | null = appointment.queueId;
     let destinationLabel = "";
+
+    // Merge fields if a separate therapy slot booking exists for today when routing to HANDLER
+    let mergedTherapyFields: {
+      type?: AppointmentType;
+      therapySlotId?: string | null;
+      bookingType?: BookingType;
+      extraStatus?: ExtraApprovalStatus;
+      extraReason?: string | null;
+      toldTime?: string | null;
+    } = {};
 
     if (params.destination === "CASHIER") {
       destinationLabel = "Cashier Counter";
-      newStatus = AppointmentStatus.COMPLETED;
+      newStatus = AppointmentStatus.CHECKED_IN;
+      targetQueueType = null;
+      targetQueueId = null;
     } else if (params.destination === "HANDLER") {
+      // Requirement: To send a patient to Handler (Therapy Queue), there MUST be a therapy slot booked for today
+      const startOfDay = new Date(appointment.appointmentDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(appointment.appointmentDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      if (!appointment.therapySlotId) {
+        const separateTherapyApt = await prisma.appointment.findFirst({
+          where: {
+            patientId: appointment.patientId,
+            id: { not: appointment.id },
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            therapySlotId: { not: null },
+            status: {
+              notIn: [
+                AppointmentStatus.CANCELLED,
+                AppointmentStatus.COMPLETED,
+                AppointmentStatus.NO_SHOW,
+              ],
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (!separateTherapyApt) {
+          return {
+            success: false,
+            message:
+              "Cannot send to Handler Queue: No Therapy Slot is booked for today for this patient. Please book a Therapy Slot for today or send the patient to Receptionist first.",
+          };
+        }
+
+        // Merge the separate therapy slot booking into this active visit appointment so there is a single unified record
+        mergedTherapyFields = {
+          type: AppointmentType.THERAPY,
+          therapySlotId: separateTherapyApt.therapySlotId,
+          bookingType: separateTherapyApt.bookingType,
+          extraStatus: separateTherapyApt.extraStatus,
+          extraReason: separateTherapyApt.extraReason,
+          toldTime: separateTherapyApt.toldTime || appointment.toldTime,
+        };
+        if (feeToSet === 0 && (separateTherapyApt.feeAmount ?? 0) > 0) {
+          feeToSet = separateTherapyApt.feeAmount ?? 500;
+        }
+
+        await prisma.appointment
+          .delete({ where: { id: separateTherapyApt.id } })
+          .catch((err) =>
+            console.error("[Merge Separate Therapy Apt Delete Error]:", err),
+          );
+      }
+
       destinationLabel = "Therapy Queue";
       newStatus = AppointmentStatus.CHECKED_IN;
       targetQueueType = QueueType.THERAPY;
@@ -524,7 +588,9 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       targetQueueId = queueRecord.id;
     } else if (params.destination === "RECEPTIONIST") {
       destinationLabel = "Reception Desk";
-      newStatus = AppointmentStatus.COMPLETED;
+      newStatus = AppointmentStatus.CHECKED_IN;
+      targetQueueType = null;
+      targetQueueId = null;
     }
 
     // Release chamber / therapy room if currently occupying or calling
@@ -572,15 +638,25 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
     ) {
       // Fee was increased beyond what was already paid
       paymentStatus = "PENDING";
+    } else if (feeToSet > 0 && (appointment.paidAmount ?? 0) < feeToSet && paymentStatus === "PAID") {
+      paymentStatus = "PENDING";
     }
 
-    // Determine routing origin
-    const routingOrigin =
-      params.destination === "HANDLER"
-        ? "DOCTOR"
-        : params.destination === "DOCTOR"
-          ? "THERAPY"
-          : appointment.routingOrigin;
+    // Determine routing origin based on where the patient is being routed from
+    const wasInConsultation =
+      appointment.status === AppointmentStatus.IN_CONSULTATION ||
+      appointment.queueType === QueueType.CONSULTATION ||
+      sessionData.user.role === Role.DOCTOR;
+    const wasInTherapy =
+      appointment.status === AppointmentStatus.IN_THERAPY ||
+      appointment.queueType === QueueType.THERAPY ||
+      sessionData.user.role === Role.HANDLER;
+
+    const routingOrigin = wasInConsultation
+      ? "DOCTOR"
+      : wasInTherapy
+        ? "THERAPY"
+        : appointment.routingOrigin;
 
     const routeTime = new Date();
     // If leaving consultation, stamp outConsultationTime
@@ -624,11 +700,25 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       if (docUser) validatedDoctorId = docUser.id;
     }
 
+    const targetStation =
+      params.destination === "HANDLER"
+        ? "THERAPY_ROOM"
+        : params.destination === "DOCTOR"
+          ? "CONSULTATION_ROOM"
+          : params.destination === "CASHIER"
+            ? "CASHIER_REGISTER"
+            : "RECEPTIONIST_DESK";
+
+    const waitingRoom = await getOrCreateWaitingRoom200();
+
     // Reset willCallTime to null whenever routing to a new queue or desk
     const updated = await prisma.appointment.update({
       where: { id: params.appointmentId },
       data: {
+        ...mergedTherapyFields,
         status: newStatus,
+        currentStation: targetStation,
+        checkOutTime: null,
         queueType: targetQueueType,
         queueId: targetQueueId,
         routingOrigin,
@@ -648,10 +738,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
             : Math.max(0, feeToSet - (appointment.paidAmount ?? 0)),
         paymentStatus,
         willCallTime: null,
-        roomId:
-          params.destination === "HANDLER" || params.destination === "DOCTOR"
-            ? null
-            : appointment.roomId,
+        roomId: waitingRoom.id,
         notes: params.notes !== undefined ? params.notes : appointment.notes,
         ...(validatedPerformerId !== undefined ? { performerId: validatedPerformerId } : {}),
         ...(validatedDoctorId !== undefined ? { doctorId: validatedDoctorId } : {}),
@@ -686,6 +773,13 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
           },
           data: {
             status: "COMPLETED",
+            outConsultationTime: routeTime,
+            ...(routingOrigin === "DOCTOR"
+              ? {
+                  feeAmount: feeToSet,
+                  dueAmount: Math.max(0, feeToSet - (appointment.paidAmount ?? 0)),
+                }
+              : {}),
           },
         });
       } catch (serialErr) {
@@ -717,7 +811,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
             doctorId:
               sessionData.user.role === Role.DOCTOR
                 ? sessionData.user.id
-                : (params.performerId || null),
+                : (validatedDoctorId || null),
             modalities: JSON.stringify(params.nextPlan.modalities),
             instructions: params.nextPlan.instructions || null,
             targetDate: params.nextPlan.targetDate
@@ -731,10 +825,34 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       }
     }
 
+    // Record step transition in PatientStepLog
+    await prisma.patientStepLog
+      .create({
+        data: {
+          patientId: updated.patientId,
+          visitId: updated.visitId || undefined,
+          step:
+            params.destination === "CASHIER"
+              ? "FORWARDED_TO_CASHIER"
+              : params.destination === "HANDLER"
+                ? "QUEUED_FOR_THERAPY"
+                : params.destination === "DOCTOR"
+                  ? "QUEUED_FOR_DOCTOR"
+                  : "CONSULTATION_END",
+          station: targetStation,
+          doctorId: validatedDoctorId || undefined,
+          performerId: validatedPerformerId || undefined,
+          details:
+            updated.routingNote ||
+            `Patient forwarded to ${destinationLabel}${feeToSet > 0 ? ` (Fee: ৳${feeToSet})` : ""}`,
+        },
+      })
+      .catch((stepErr) => console.error("[Route StepLog Error]:", stepErr));
+
     // Audit Logging
     await logAudit({
       userId: sessionData.user.id,
-      performerId: params.performerId || null,
+      performerId: validatedPerformerId || null,
       action: AuditAction.APPOINTMENT_UPDATE,
       entity: "Appointment",
       entityId: updated.id,
@@ -746,6 +864,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         feeAmount: feeToSet,
         previousStatus: appointment.status,
         newStatus,
+        currentStation: targetStation,
         queueType: targetQueueType,
         routingNote: updated.routingNote,
         routedAt: updated.routedAt ? updated.routedAt.toISOString() : null,
@@ -756,6 +875,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
     emitRealtimeEvent("APPOINTMENT_UPDATED", {
       id: updated.id,
       status: updated.status,
+      currentStation: updated.currentStation,
       queueType: updated.queueType,
       feeAmount: updated.feeAmount,
       paymentStatus: updated.paymentStatus,
@@ -772,6 +892,24 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       date: updated.appointmentDate.toISOString().split("T")[0],
     });
 
+    emitRealtimeEvent("STATION_CHANGED", {
+      appointmentId: updated.id,
+      patientId: updated.patientId,
+      patientName: updated.patient.name,
+      fromStation: appointment.currentStation,
+      toStation: targetStation,
+      status: updated.status,
+    });
+
+    emitRealtimeEvent("PATIENT_FORWARDED", {
+      appointmentId: updated.id,
+      patientId: updated.patientId,
+      patientName: updated.patient.name,
+      destination: params.destination,
+      toStation: targetStation,
+      routingNote: updated.routingNote,
+    });
+
     if (params.destination === "HANDLER") {
       emitRealtimeEvent("SLOT_UPDATED", {
         slotId: updated.therapySlotId || "",
@@ -783,11 +921,15 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
     revalidatePath("/cashier");
     revalidatePath("/handler");
     revalidatePath("/receptionist");
+    revalidatePath("/admin/tracking");
     revalidatePath("/");
 
     return {
       success: true,
-      message: `${updated.patient.name} has been routed to ${destinationLabel} with due amount ৳${feeToSet.toLocaleString()}.`,
+      message:
+        feeToSet > 0
+          ? `${updated.patient.name} has been forwarded to ${destinationLabel} (Bill: ৳${feeToSet.toLocaleString()}).`
+          : `${updated.patient.name} has been forwarded to ${destinationLabel}.`,
       appointment: updated,
     };
   } catch (error: unknown) {
@@ -816,6 +958,7 @@ export async function updateAppointmentFeeAction(params: {
   try {
     const sessionData = await requireAuth([
       Role.DOCTOR,
+      Role.HANDLER,
       Role.ADMIN,
       Role.CASHIER,
       Role.RECEPTIONIST,
@@ -901,6 +1044,7 @@ export async function updateAppointmentFeeAction(params: {
     revalidatePath("/doctor");
     revalidatePath("/cashier");
     revalidatePath("/receptionist");
+    revalidatePath("/handler");
 
     return {
       success: true,
@@ -908,11 +1052,79 @@ export async function updateAppointmentFeeAction(params: {
       appointment: updated,
     };
   } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      (error.message === "NEXT_REDIRECT" ||
+        (error as any).digest?.startsWith("NEXT_REDIRECT"))
+    ) {
+      throw error;
+    }
     console.error("[Update Appointment Fee Error]:", error);
     return {
       success: false,
       message:
         error instanceof Error ? error.message : "Failed to update fee amount.",
+    };
+  }
+}
+
+/**
+ * Checks whether a patient had a doctor consultation today and whether it is paid or unpaid.
+ * Used by handler send dialog to ensure doctor fee is only shown if consultation happened today AND is unpaid.
+ */
+export async function getPatientTodayConsultationDueAction(patientId: string): Promise<{
+  hasConsultationToday: boolean;
+  isPaid: boolean;
+  doctorFee: number;
+  doctorPaid: number;
+  doctorDue: number;
+  doctorName?: string | null;
+}> {
+  try {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    const serial = await prisma.consultationSerial.findFirst({
+      where: {
+        patientId,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { not: "CANCELLED" },
+      },
+      include: { doctor: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!serial) {
+      return {
+        hasConsultationToday: false,
+        isPaid: false,
+        doctorFee: 0,
+        doctorPaid: 0,
+        doctorDue: 0,
+      };
+    }
+
+    const isPaid =
+      serial.paymentStatus === "PAID" ||
+      (serial.dueAmount === 0 && serial.paidAmount > 0);
+
+    return {
+      hasConsultationToday: true,
+      isPaid,
+      doctorFee: serial.feeAmount,
+      doctorPaid: serial.paidAmount,
+      doctorDue: isPaid ? 0 : serial.dueAmount,
+      doctorName: serial.doctor?.name || null,
+    };
+  } catch (err) {
+    console.error("[getPatientTodayConsultationDueAction Error]:", err);
+    return {
+      hasConsultationToday: false,
+      isPaid: false,
+      doctorFee: 0,
+      doctorPaid: 0,
+      doctorDue: 0,
     };
   }
 }

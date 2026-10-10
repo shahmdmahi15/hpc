@@ -28,6 +28,7 @@ import {
   User,
   FileText,
   RotateCcw,
+  Pill,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
@@ -36,6 +37,8 @@ import { CreateMedicalRecordDialog } from "@/components/doctor/medical/create-me
 import { PatientMedicalHistoryDialog } from "@/components/doctor/medical/patient-medical-history-dialog";
 import { SendPatientDialog } from "@/components/doctor/send-patient-dialog";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
+import { NewPrescriptionDialog } from "@/components/doctor/prescription/new-prescription-dialog";
+import { OldPrescriptionsDialog } from "@/components/doctor/prescription/old-prescriptions-dialog";
 
 interface DoctorQueueCardProps {
   appointment: AppointmentWithRelations;
@@ -65,6 +68,8 @@ export function DoctorQueueCard({
   const [treatmentPlanTab, setTreatmentPlanTab] = React.useState<
     "today" | "next"
   >("today");
+  const [isNewPrescriptionOpen, setIsNewPrescriptionOpen] = React.useState(false);
+  const [isOldPrescriptionsOpen, setIsOldPrescriptionsOpen] = React.useState(false);
 
   // Call time inline editing
   const [isEditingCallTime, setIsEditingCallTime] = React.useState(false);
@@ -481,6 +486,30 @@ export function DoctorQueueCard({
               </Button>
             </div>
 
+            {/* Prescriptions: Old & New */}
+            <div className="flex items-center gap-1 w-full">
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => setIsOldPrescriptionsOpen(true)}
+                title="View Patient Prescription History"
+                className="flex-1 h-6 rounded-md font-bold text-[10px] border-indigo-500/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer gap-1"
+              >
+                <Pill className="size-2.5" />
+                <span>Old Prescriptions</span>
+              </Button>
+
+              <Button
+                size="xs"
+                onClick={() => setIsNewPrescriptionOpen(true)}
+                title="Create New Prescription"
+                className="flex-1 h-6 rounded-md font-bold text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer gap-1"
+              >
+                <Pill className="size-2.5" />
+                <span>New Prescription</span>
+              </Button>
+            </div>
+
             {/* Treatment Plans: Today & Next */}
             <div className="flex items-center gap-1 w-full">
               <Button
@@ -591,6 +620,25 @@ export function DoctorQueueCard({
         doctorId={performerId}
         currentDoctor={currentDoctor}
         onSuccess={onRefresh}
+      />
+
+      {/* New Prescription Dialog */}
+      <NewPrescriptionDialog
+        isOpen={isNewPrescriptionOpen}
+        onOpenChange={setIsNewPrescriptionOpen}
+        patient={appointment.patient || null}
+        doctorId={performerId}
+        doctorName={currentDoctor?.name || "Doctor"}
+        appointmentId={appointment.id}
+        onSuccess={onRefresh}
+      />
+
+      {/* Old Prescriptions Dialog */}
+      <OldPrescriptionsDialog
+        isOpen={isOldPrescriptionsOpen}
+        onOpenChange={setIsOldPrescriptionsOpen}
+        patient={appointment.patient || null}
+        onNewPrescriptionRequested={() => setIsNewPrescriptionOpen(true)}
       />
     </div>
   );

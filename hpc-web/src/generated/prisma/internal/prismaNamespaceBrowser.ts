@@ -68,7 +68,9 @@ export const ModelName = {
   PatientStepLog: 'PatientStepLog',
   PatientInvoice: 'PatientInvoice',
   PatientPayment: 'PatientPayment',
-  ChatMessage: 'ChatMessage'
+  ChatMessage: 'ChatMessage',
+  Prescription: 'Prescription',
+  TherapySessionTimer: 'TherapySessionTimer'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -471,6 +473,39 @@ export const ChatMessageScalarFieldEnum = {
 } as const
 
 export type ChatMessageScalarFieldEnum = (typeof ChatMessageScalarFieldEnum)[keyof typeof ChatMessageScalarFieldEnum]
+
+
+export const PrescriptionScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  doctorId: 'doctorId',
+  appointmentId: 'appointmentId',
+  diagnosis: 'diagnosis',
+  medicines: 'medicines',
+  advice: 'advice',
+  followUpDate: 'followUpDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PrescriptionScalarFieldEnum = (typeof PrescriptionScalarFieldEnum)[keyof typeof PrescriptionScalarFieldEnum]
+
+
+export const TherapySessionTimerScalarFieldEnum = {
+  id: 'id',
+  appointmentId: 'appointmentId',
+  patientId: 'patientId',
+  roomNumber: 'roomNumber',
+  modalities: 'modalities',
+  currentStepIndex: 'currentStepIndex',
+  isRunning: 'isRunning',
+  lastStartedAt: 'lastStartedAt',
+  performerId: 'performerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TherapySessionTimerScalarFieldEnum = (typeof TherapySessionTimerScalarFieldEnum)[keyof typeof TherapySessionTimerScalarFieldEnum]
 
 
 export const SortOrder = {

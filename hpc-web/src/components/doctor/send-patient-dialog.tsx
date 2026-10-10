@@ -42,10 +42,12 @@ import {
 import {
   getPatientTreatmentPlansAction,
   type TreatmentPlanRecord,
+  type TodayTherapySlotInfo,
 } from "@/actions/doctor/treatment-plan.action";
 import { toast } from "sonner";
 import { DEFAULT_FEE } from "@/lib/billing";
 import { formatTime12h } from "@/lib/queue-punctuality";
+import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 
 interface SendPatientDialogProps {
   isOpen: boolean;
@@ -74,6 +76,7 @@ export function SendPatientDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <SendPatientDialogContent
         key={appointment.id}
+        isOpen={isOpen}
         appointment={appointment}
         doctorId={doctorId}
         onOpenChange={onOpenChange}
@@ -85,24 +88,28 @@ export function SendPatientDialog({
 }
 
 function SendPatientDialogContent({
+  isOpen,
   appointment,
   doctorId,
   onOpenChange,
   onSuccess,
   onOpenTreatmentPlan,
 }: {
+  isOpen: boolean;
   appointment: AppointmentWithRelations;
   doctorId?: string;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   onOpenTreatmentPlan?: (tab: "today" | "next") => void;
 }) {
-  const [dueAmount, setDueAmount] = React.useState<number>(
+  const initialFee =
     typeof appointment.feeAmount === "number"
       ? appointment.feeAmount
-      : DEFAULT_FEE,
-  );
-  const [isSavingFee, setIsSavingFee] = React.useState(false);
+      : appointment.type === "CONSULTATION" && !appointment.therapySlotId
+        ? 0
+        : DEFAULT_FEE;
+
+  const [dueAmount, setDueAmount] = React.useState<number>(initialFee);
   const [isRouting, setIsRouting] = React.useState(false);
   const [routingDestination, setRoutingDestination] = React.useState<
     "CASHIER" | "HANDLER" | "RECEPTIONIST" | null
@@ -111,72 +118,74 @@ function SendPatientDialogContent({
     appointment.routingNote || "",
   );
 
-  // Today's Treatment Plan state
+  // Today's Treatment Plan & Today's Therapy Slot state
   const [todayPlan, setTodayPlan] = React.useState<TreatmentPlanRecord | null>(
     null,
   );
+  const [todayTherapySlot, setTodayTherapySlot] =
+    React.useState<TodayTherapySlotInfo | null>(null);
   const [isLoadingPlan, setIsLoadingPlan] = React.useState<boolean>(
     Boolean(appointment.patientId),
   );
   const [isMissingPlanPromptOpen, setIsMissingPlanPromptOpen] =
     React.useState(false);
+  const [isMissingSlotPromptOpen, setIsMissingSlotPromptOpen] =
+    React.useState(false);
 
-  // Fetch treatment plan when appointment changes
-  React.useEffect(() => {
-    let isCancelled = false;
-    if (appointment.patientId) {
-      getPatientTreatmentPlansAction(
+  const refreshPlanAndSlotStatus = React.useCallback(async () => {
+    if (!appointment.patientId) return;
+    setIsLoadingPlan(true);
+    try {
+      const res = await getPatientTreatmentPlansAction(
         appointment.patientId,
         appointment.id,
-      )
-        .then((res) => {
-          if (!isCancelled) {
-            setTodayPlan(res.todayPlan || null);
-            setIsLoadingPlan(false);
-          }
-        })
-        .catch((err) => {
-          console.error("[Fetch Treatment Plan Error]:", err);
-          if (!isCancelled) {
-            setIsLoadingPlan(false);
-          }
-        });
+      );
+      setTodayPlan(res.todayPlan || null);
+      setTodayTherapySlot(res.todayTherapySlot || null);
+    } catch (err) {
+      console.error("[Fetch Treatment Plan & Slot Error]:", err);
+    } finally {
+      setIsLoadingPlan(false);
     }
-    return () => {
-      isCancelled = true;
-    };
   }, [appointment.patientId, appointment.id]);
 
-  const currentFee = appointment.feeAmount ?? DEFAULT_FEE;
+  // Re-fetch whenever dialog opens or appointment changes
+  React.useEffect(() => {
+    if (isOpen && appointment.patientId) {
+      void refreshPlanAndSlotStatus();
+    }
+  }, [isOpen, appointment.patientId, appointment.id, refreshPlanAndSlotStatus]);
+
+  // Real-time refresh when a treatment plan is saved or a therapy slot is booked
+  useRealtimeEvents({
+    enabled: isOpen,
+    onEvent: (event) => {
+      const type = (event?.type || "").toUpperCase();
+      if (
+        type === "TREATMENT_PLAN_UPDATED" ||
+        type === "TREATMENT_PLAN_SAVED" ||
+        type === "APPOINTMENT_CREATED" ||
+        type === "APPOINTMENT_UPDATED" ||
+        type === "SLOT_UPDATED"
+      ) {
+        void refreshPlanAndSlotStatus();
+      }
+    },
+  });
+
+  const hasTherapySlotToday = Boolean(
+    appointment.therapySlotId || todayTherapySlot?.slotId,
+  );
+  const effectiveSlotLabel =
+    appointment.therapySlot?.label || todayTherapySlot?.label || null;
+  const effectiveSlotRoom =
+    appointment.therapySlot?.room?.number ||
+    todayTherapySlot?.roomNumber ||
+    null;
+
+  const currentFee = appointment.feeAmount ?? initialFee;
   const isFeeModified = dueAmount !== currentFee;
   const isPaid = appointment.paymentStatus === "PAID";
-
-  // Handle Quick Save Due Amount only
-  const handleSaveDueOnly = async () => {
-    if (dueAmount < 0) {
-      toast.error("Due amount cannot be negative.");
-      return;
-    }
-    setIsSavingFee(true);
-    try {
-      const res = await updateAppointmentFeeAction({
-        appointmentId: appointment.id,
-        feeAmount: Number(dueAmount),
-        performerId: doctorId,
-        pin: undefined,
-      });
-      if (res.success) {
-        toast.success(res.message);
-        onSuccess?.();
-      } else {
-        toast.error(res.message);
-      }
-    } catch {
-      toast.error("Failed to update due amount.");
-    } finally {
-      setIsSavingFee(false);
-    }
-  };
 
   // Perform Routing
   const executeRouting = async (
@@ -198,6 +207,7 @@ function SendPatientDialogContent({
         toast.success(res.message);
         onOpenChange(false);
         setIsMissingPlanPromptOpen(false);
+        setIsMissingSlotPromptOpen(false);
         onSuccess?.();
       } else {
         toast.error(res.message);
@@ -219,10 +229,28 @@ function SendPatientDialogContent({
       return;
     }
 
-    // If sending to Handler and NO today's plan is set, open prompt
-    if (destination === "HANDLER" && !todayPlan) {
-      setIsMissingPlanPromptOpen(true);
-      return;
+    if (destination === "HANDLER") {
+      // 1. Check if there is a therapy slot booked for today
+      if (!hasTherapySlotToday) {
+        if (!todayPlan) {
+          toast.warning(
+            "No therapy slot booked for today, and there is no treatment plan for today!",
+          );
+        } else {
+          toast.error(
+            "There must be a therapy slot booked for today before sending to Handler.",
+          );
+        }
+        setIsMissingSlotPromptOpen(true);
+        return;
+      }
+
+      // 2. Check if there is a treatment plan for today
+      if (!todayPlan) {
+        toast.warning("Warning: There is no treatment plan for today!");
+        setIsMissingPlanPromptOpen(true);
+        return;
+      }
     }
 
     executeRouting(destination);
@@ -321,6 +349,7 @@ function SendPatientDialogContent({
             </div>
 
             {/* 2. Due Amount & Billing Management Section */}
+            {/* 2. Doctor Consultation Fee (Exclusive to Doctor) */}
             <div className="p-4 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/5 via-background to-amber-500/5 space-y-3 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -329,14 +358,13 @@ function SendPatientDialogContent({
                   </div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
-                      <span>Appointment Due Amount</span>
-                      <span className="text-[11px] font-normal text-muted-foreground">
-                        (Doctor Editable)
+                      <span>Doctor Consultation Fee (ডাক্তার ফি)</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/30">
+                        Doctor Editable Only
                       </span>
                     </h4>
                     <p className="text-[11px] text-muted-foreground">
-                      Set the consultation or therapy fee due on this ticket. The
-                      cashier will collect this exact amount.
+                      Exclusive doctor fee. Whatever amount is set here automatically generates or updates the cashier invoice on send.
                     </p>
                   </div>
                 </div>
@@ -350,7 +378,7 @@ function SendPatientDialogContent({
                   ) : (
                     <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-bold text-[10.5px]">
                       <Clock className="size-3 mr-1" />
-                      Payment Pending
+                      Pending at Cashier
                     </Badge>
                   )}
                 </div>
@@ -370,7 +398,7 @@ function SendPatientDialogContent({
                     value={dueAmount}
                     onChange={(e) => setDueAmount(Number(e.target.value))}
                     className="pl-8 h-9 font-mono font-bold text-sm bg-background border-border/80 focus-visible:ring-amber-500 rounded-lg shadow-2xs"
-                    placeholder="Enter fee amount..."
+                    placeholder="Enter consultation fee..."
                   />
                 </div>
 
@@ -393,95 +421,128 @@ function SendPatientDialogContent({
                       {preset === 0 ? "Free (৳0)" : `৳${preset}`}
                     </button>
                   ))}
-
-                  {/* Save Due Amount Button if modified */}
-                  {isFeeModified && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={handleSaveDueOnly}
-                      disabled={isSavingFee}
-                      className="h-7 px-2 text-[11px] font-bold gap-1 text-amber-700 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/10 cursor-pointer ml-auto"
-                    >
-                      {isSavingFee ? (
-                        <Loader2 className="size-3 animate-spin" />
-                      ) : (
-                        <Save className="size-3" />
-                      )}
-                      <span>Update Due</span>
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* 3. Today's Treatment Plan Status Banner */}
-            <div
-              className={`p-3.5 rounded-xl border transition-all ${
-                todayPlan
-                  ? "bg-emerald-500/5 border-emerald-500/30"
-                  : "bg-amber-500/5 border-amber-500/30"
-              }`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div className="flex items-start sm:items-center gap-2.5">
-                  <div
-                    className={`p-1.5 rounded-lg shrink-0 ${
-                      todayPlan
-                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                        : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                    }`}
-                  >
-                    <CalendarCheck2 className="size-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h5 className="text-xs sm:text-sm font-bold text-foreground">
-                        Today&apos;s Treatment Plan
-                      </h5>
-                      {isLoadingPlan ? (
-                        <Loader2 className="size-3 animate-spin text-muted-foreground" />
-                      ) : todayPlan ? (
-                        <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10.5px] font-bold">
-                          Prescribed ({todayPlan.modalities.length} items)
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10.5px] font-bold"
-                        >
-                          Not Set Yet
-                        </Badge>
-                      )}
+            {/* 3. Today's Therapy Slot & Treatment Plan Status Banners */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* 3A. Today's Therapy Slot Status Banner */}
+              <div
+                className={`p-3.5 rounded-xl border transition-all ${
+                  hasTherapySlotToday
+                    ? "bg-emerald-500/5 border-emerald-500/30"
+                    : "bg-rose-500/5 border-rose-500/30"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className={`p-1.5 rounded-lg shrink-0 ${
+                        hasTherapySlotToday
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : "bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                      }`}
+                    >
+                      <Ticket className="size-4" />
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {todayPlan
-                        ? todayPlan.modalities.join(" • ") ||
-                          "Modalities configured"
-                        : "Required for physical therapy handlers before executing treatment sessions."}
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h5 className="text-xs sm:text-sm font-bold text-foreground">
+                          Today&apos;s Therapy Slot
+                        </h5>
+                        {isLoadingPlan ? (
+                          <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                        ) : hasTherapySlotToday ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10.5px] font-bold">
+                            Slot Booked
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 text-[10.5px] font-bold"
+                          >
+                            No Slot Booked Today
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {hasTherapySlotToday
+                          ? `${effectiveSlotLabel || "Therapy Slot"}${effectiveSlotRoom ? ` • Room ${effectiveSlotRoom}` : ""}`
+                          : "A therapy slot must be booked for today to send this patient to Handler Queue."}
+                      </p>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                {onOpenTreatmentPlan && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      onOpenTreatmentPlan("today");
-                    }}
-                    className={`h-7.5 px-3 text-xs font-bold gap-1.5 shrink-0 cursor-pointer ${
-                      todayPlan
-                        ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
-                        : "border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
-                    }`}
-                  >
-                    <Edit3 className="size-3.5" />
-                    <span>{todayPlan ? "Edit Plan" : "Set Plan Now"}</span>
-                  </Button>
-                )}
+              {/* 3B. Today's Treatment Plan Status Banner */}
+              <div
+                className={`p-3.5 rounded-xl border transition-all ${
+                  todayPlan
+                    ? "bg-emerald-500/5 border-emerald-500/30"
+                    : "bg-amber-500/5 border-amber-500/30"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-start sm:items-center gap-2.5">
+                    <div
+                      className={`p-1.5 rounded-lg shrink-0 ${
+                        todayPlan
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                          : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                      }`}
+                    >
+                      <CalendarCheck2 className="size-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h5 className="text-xs sm:text-sm font-bold text-foreground">
+                          Today&apos;s Treatment Plan
+                        </h5>
+                        {isLoadingPlan ? (
+                          <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                        ) : todayPlan ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10.5px] font-bold">
+                            Prescribed ({todayPlan.modalities.length} items)
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10.5px] font-bold"
+                          >
+                            No Plan for Today
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {todayPlan
+                          ? todayPlan.modalities.join(" • ") ||
+                            "Modalities configured"
+                          : "Warning: There is no treatment plan for today."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {onOpenTreatmentPlan && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        onOpenTreatmentPlan("today");
+                      }}
+                      className={`h-7.5 px-3 text-xs font-bold gap-1.5 shrink-0 cursor-pointer ${
+                        todayPlan
+                          ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+                          : "border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                      }`}
+                    >
+                      <Edit3 className="size-3.5" />
+                      <span>{todayPlan ? "Edit Plan" : "Set Plan Now"}</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -600,8 +661,8 @@ function SendPatientDialogContent({
                         Send to Cashier
                       </h4>
                       <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                        Completes consultation, releases chamber room, and moves
-                        patient to Cashier for bill collection.
+                        Completes consultation, releases chamber room, and forwards
+                        patient to Cashier Desk for bill settlement.
                       </p>
                     </div>
                   </div>
@@ -626,21 +687,34 @@ function SendPatientDialogContent({
                 {/* 2. SEND TO HANDLER QUEUE */}
                 <div className="relative flex flex-col justify-between p-4 rounded-xl border border-emerald-500/30 bg-card hover:bg-emerald-500/[0.03] transition-all shadow-2xs group hover:border-emerald-500/60">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="size-10 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shadow-xs">
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                      <div className="size-10 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shadow-xs shrink-0">
                         <Activity className="size-5" />
                       </div>
-                      {todayPlan ? (
-                        <span className="font-mono text-[10.5px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30 flex items-center gap-1">
-                          <CheckCircle2 className="size-3" />
-                          Plan Ready
-                        </span>
-                      ) : (
-                        <span className="font-mono text-[10.5px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/30 flex items-center gap-1 animate-pulse">
-                          <AlertTriangle className="size-3" />
-                          Plan Needed
-                        </span>
-                      )}
+                      <div className="flex flex-col items-end gap-1">
+                        {hasTherapySlotToday ? (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30 flex items-center gap-1">
+                            <CheckCircle2 className="size-3" />
+                            Slot Booked
+                          </span>
+                        ) : (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-800 dark:text-rose-200 border border-rose-500/30 flex items-center gap-1">
+                            <AlertTriangle className="size-3" />
+                            No Slot Today
+                          </span>
+                        )}
+                        {todayPlan ? (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30 flex items-center gap-1">
+                            <CheckCircle2 className="size-3" />
+                            Plan Ready
+                          </span>
+                        ) : (
+                          <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/30 flex items-center gap-1 animate-pulse">
+                            <AlertTriangle className="size-3" />
+                            No Plan Today
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div>
@@ -648,8 +722,8 @@ function SendPatientDialogContent({
                         Send to Handler Queue
                       </h4>
                       <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                        Transfers patient directly to the live Physical Therapy
-                        queue for therapy session execution.
+                        Transfers patient to the live Physical Therapy queue.
+                        Requires a booked therapy slot &amp; treatment plan for today.
                       </p>
                     </div>
                   </div>
@@ -658,7 +732,7 @@ function SendPatientDialogContent({
                     <Button
                       type="button"
                       onClick={() => handleDestinationClick("HANDLER")}
-                      disabled={isRouting}
+                      disabled={isRouting || isLoadingPlan}
                       className="w-full h-8.5 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
                     >
                       {isRouting && routingDestination === "HANDLER" ? (
@@ -688,8 +762,8 @@ function SendPatientDialogContent({
                         Send to Receptionist
                       </h4>
                       <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                        Completes consultation, releases room, and returns patient
-                        to front desk for scheduling next session or discharge.
+                        Completes consultation, releases room, and forwards patient
+                        to Receptionist Desk (Waiting Room) for slot booking or check-out.
                       </p>
                     </div>
                   </div>
@@ -735,6 +809,82 @@ function SendPatientDialogContent({
           </DialogFooter>
         </DialogContent>
 
+      {/* Missing Therapy Slot for Today Warning Prompt (Blocks Handler Routing) */}
+      <Dialog
+        open={isMissingSlotPromptOpen}
+        onOpenChange={setIsMissingSlotPromptOpen}
+      >
+        <DialogContent className="w-[90vw] sm:max-w-md max-h-[92dvh] overflow-y-auto p-5 border-rose-500/40 shadow-2xl rounded-2xl">
+          <div className="flex items-start gap-3.5">
+            <div className="size-10 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <AlertTriangle className="size-5" />
+            </div>
+            <div className="space-y-2">
+              <DialogTitle className="text-base font-bold text-foreground">
+                No Therapy Slot Booked for Today
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                To send <strong className="text-foreground">{appointment.patient?.name || "this patient"}</strong> to the{" "}
+                <strong className="text-foreground">Physical Therapy Handler</strong>{" "}
+                queue, there must be a Therapy Slot booked for today.
+              </DialogDescription>
+
+              {!todayPlan && (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs font-semibold flex items-start gap-2">
+                  <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    Warning: There is no treatment plan for today. Please also configure today&apos;s treatment plan before therapy.
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 pt-3">
+            {!todayPlan && onOpenTreatmentPlan && (
+              <Button
+                type="button"
+                onClick={() => {
+                  setIsMissingSlotPromptOpen(false);
+                  onOpenTreatmentPlan("today");
+                }}
+                className="w-full h-9 text-xs font-bold gap-1.5 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs"
+              >
+                <CalendarCheck2 className="size-4" />
+                <span>Configure Today&apos;s Treatment Plan First</span>
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              onClick={() => {
+                setIsMissingSlotPromptOpen(false);
+                executeRouting("RECEPTIONIST");
+              }}
+              disabled={isRouting}
+              className="w-full h-9 text-xs font-bold gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer shadow-xs"
+            >
+              {isRouting && routingDestination === "RECEPTIONIST" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Users className="size-3.5" />
+              )}
+              <span>Forward to Receptionist (To Book Therapy Slot)</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMissingSlotPromptOpen(false)}
+              className="w-full h-8 text-xs text-muted-foreground cursor-pointer"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Missing Today's Plan Warning Prompt */}
       <Dialog
         open={isMissingPlanPromptOpen}
@@ -747,13 +897,13 @@ function SendPatientDialogContent({
             </div>
             <div className="space-y-1.5">
               <DialogTitle className="text-base font-bold text-foreground">
-                Today&apos;s Treatment Plan Missing
+                Warning: There is no treatment plan for today
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
                 You are routing this patient to the{" "}
                 <strong className="text-foreground">Physical Therapy Handler</strong>{" "}
-                queue, but no treatment plan has been prescribed for today.
-                Handlers require today&apos;s modalities to execute therapy sessions.
+                queue, but there is no treatment plan for today.
+                Handlers require today&apos;s prescribed modalities to execute therapy sessions.
               </DialogDescription>
             </div>
           </div>

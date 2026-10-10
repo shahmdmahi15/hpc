@@ -117,14 +117,19 @@ function EditClinicalOptionForm({
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete "${option.name}"?`)) return;
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
 
+  const handleDelete = () => {
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const executeDelete = async () => {
     setIsDeleting(true);
     try {
       const res = await deleteClinicalOptionAction(option.id);
       if (res.success) {
         toast.success(res.message);
+        setIsDeleteConfirmOpen(false);
         onClose();
         onSuccess();
       } else {
@@ -308,6 +313,56 @@ function EditClinicalOptionForm({
           </div>
         </DialogFooter>
       </form>
+
+      {/* Shadcn UI Delete Clinical Option Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="w-[96vw] max-w-md p-0 overflow-hidden rounded-2xl border-border/80 shadow-2xl">
+          <DialogHeader className="p-4 sm:p-5 pb-3 pr-12 border-b border-border/60 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
+                <Trash2 className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Delete Clinical Option
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Permanently remove option from presets
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="p-4 sm:p-5 space-y-3 text-xs">
+            <p className="text-muted-foreground leading-relaxed">
+              Are you sure you want to delete <strong className="text-foreground">&ldquo;{option.name}&rdquo;</strong>? This option will no longer be available in clinical forms.
+            </p>
+          </div>
+
+          <DialogFooter className="p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              disabled={isDeleting}
+              className="text-xs cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={executeDelete}
+              disabled={isDeleting}
+              className="text-xs font-bold cursor-pointer shadow-xs"
+            >
+              {isDeleting ? "Deleting..." : "Delete Option"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

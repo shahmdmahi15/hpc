@@ -131,3 +131,13 @@ export type PatientPayment = Prisma.PatientPaymentModel
  * 
  */
 export type ChatMessage = Prisma.ChatMessageModel
+/**
+ * Model Prescription
+ * 
+ */
+export type Prescription = Prisma.PrescriptionModel
+/**
+ * Model TherapySessionTimer
+ * 
+ */
+export type TherapySessionTimer = Prisma.TherapySessionTimerModel

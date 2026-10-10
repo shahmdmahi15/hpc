@@ -414,7 +414,9 @@ export const ModelName = {
   PatientStepLog: 'PatientStepLog',
   PatientInvoice: 'PatientInvoice',
   PatientPayment: 'PatientPayment',
-  ChatMessage: 'ChatMessage'
+  ChatMessage: 'ChatMessage',
+  Prescription: 'Prescription',
+  TherapySessionTimer: 'TherapySessionTimer'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -430,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "auditLog" | "performer" | "room" | "therapySlot" | "patient" | "appointment" | "queue" | "clinicalOption" | "medicalRecord" | "treatmentPlan" | "patientVisit" | "consultationSerial" | "patientStepLog" | "patientInvoice" | "patientPayment" | "chatMessage"
+    modelProps: "user" | "session" | "auditLog" | "performer" | "room" | "therapySlot" | "patient" | "appointment" | "queue" | "clinicalOption" | "medicalRecord" | "treatmentPlan" | "patientVisit" | "consultationSerial" | "patientStepLog" | "patientInvoice" | "patientPayment" | "chatMessage" | "prescription" | "therapySessionTimer"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1766,6 +1768,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Prescription: {
+      payload: Prisma.$PrescriptionPayload<ExtArgs>
+      fields: Prisma.PrescriptionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PrescriptionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PrescriptionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        findFirst: {
+          args: Prisma.PrescriptionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PrescriptionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        findMany: {
+          args: Prisma.PrescriptionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>[]
+        }
+        create: {
+          args: Prisma.PrescriptionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        createMany: {
+          args: Prisma.PrescriptionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PrescriptionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>[]
+        }
+        delete: {
+          args: Prisma.PrescriptionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        update: {
+          args: Prisma.PrescriptionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        deleteMany: {
+          args: Prisma.PrescriptionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PrescriptionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PrescriptionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>[]
+        }
+        upsert: {
+          args: Prisma.PrescriptionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        aggregate: {
+          args: Prisma.PrescriptionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePrescription>
+        }
+        groupBy: {
+          args: Prisma.PrescriptionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PrescriptionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PrescriptionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PrescriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    TherapySessionTimer: {
+      payload: Prisma.$TherapySessionTimerPayload<ExtArgs>
+      fields: Prisma.TherapySessionTimerFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TherapySessionTimerFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TherapySessionTimerFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>
+        }
+        findFirst: {
+          args: Prisma.TherapySessionTimerFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TherapySessionTimerFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>
+        }
+        findMany: {
+          args: Prisma.TherapySessionTimerFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>[]
+        }
+        create: {
+          args: Prisma.TherapySessionTimerCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>
+        }
+        createMany: {
+          args: Prisma.TherapySessionTimerCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TherapySessionTimerCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>[]
+        }
+        delete: {
+          args: Prisma.TherapySessionTimerDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>
+        }
+        update: {
+          args: Prisma.TherapySessionTimerUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>
+        }
+        deleteMany: {
+          args: Prisma.TherapySessionTimerDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TherapySessionTimerUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TherapySessionTimerUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>[]
+        }
+        upsert: {
+          args: Prisma.TherapySessionTimerUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TherapySessionTimerPayload>
+        }
+        aggregate: {
+          args: Prisma.TherapySessionTimerAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTherapySessionTimer>
+        }
+        groupBy: {
+          args: Prisma.TherapySessionTimerGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TherapySessionTimerGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TherapySessionTimerCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TherapySessionTimerCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2191,6 +2341,39 @@ export const ChatMessageScalarFieldEnum = {
 export type ChatMessageScalarFieldEnum = (typeof ChatMessageScalarFieldEnum)[keyof typeof ChatMessageScalarFieldEnum]
 
 
+export const PrescriptionScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  doctorId: 'doctorId',
+  appointmentId: 'appointmentId',
+  diagnosis: 'diagnosis',
+  medicines: 'medicines',
+  advice: 'advice',
+  followUpDate: 'followUpDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PrescriptionScalarFieldEnum = (typeof PrescriptionScalarFieldEnum)[keyof typeof PrescriptionScalarFieldEnum]
+
+
+export const TherapySessionTimerScalarFieldEnum = {
+  id: 'id',
+  appointmentId: 'appointmentId',
+  patientId: 'patientId',
+  roomNumber: 'roomNumber',
+  modalities: 'modalities',
+  currentStepIndex: 'currentStepIndex',
+  isRunning: 'isRunning',
+  lastStartedAt: 'lastStartedAt',
+  performerId: 'performerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TherapySessionTimerScalarFieldEnum = (typeof TherapySessionTimerScalarFieldEnum)[keyof typeof TherapySessionTimerScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2521,6 +2704,8 @@ export type GlobalOmitConfig = {
   patientInvoice?: Prisma.PatientInvoiceOmit
   patientPayment?: Prisma.PatientPaymentOmit
   chatMessage?: Prisma.ChatMessageOmit
+  prescription?: Prisma.PrescriptionOmit
+  therapySessionTimer?: Prisma.TherapySessionTimerOmit
 }
 
 /* Types for Logging */

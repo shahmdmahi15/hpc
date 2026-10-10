@@ -34,16 +34,20 @@ import {
   Phone,
   Compass,
   MessageSquare,
+  FolderOpen,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
 import { HandlerSendPatientDialog } from "@/components/handler/handler-send-patient-dialog";
+import { MarkInTherapyDialog } from "@/components/handler/mark-in-therapy-dialog";
 import { ModalityTimersWidget } from "@/components/handler/modality-timers-widget";
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
 import { ClinicChatView } from "@/components/chat/clinic-chat-view";
 import { useChatNotifications } from "@/hooks/use-chat-notifications";
 import { playChatChime } from "@/lib/chat-chime";
+import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
+import { PatientMedicalHistoryDialog } from "@/components/doctor/medical/patient-medical-history-dialog";
 
 interface HandlerDashboardViewProps {
   initialData: HandlerDashboardData;
@@ -78,9 +82,15 @@ export function HandlerDashboardView({
   const [preselectedPatient, setPreselectedPatient] =
     React.useState<PatientWithCount | null>(null);
 
-  // Send Patient dialog from Spotlight banner
+  // Send Patient & Mark In Therapy dialogs from Spotlight banner
   const [spotlightSendAppointment, setSpotlightSendAppointment] =
     React.useState<AppointmentWithRelations | null>(null);
+  const [markInTherapyAppointment, setMarkInTherapyAppointment] =
+    React.useState<AppointmentWithRelations | null>(null);
+  const [viewPlanAppointment, setViewPlanAppointment] =
+    React.useState<AppointmentWithRelations | null>(null);
+  const [viewHistoryPatient, setViewHistoryPatient] =
+    React.useState<any | null>(null);
   const [isSpotlightActionLoading, setIsSpotlightActionLoading] =
     React.useState(false);
 
@@ -200,33 +210,6 @@ export function HandlerDashboardView({
       }
     } catch {
       toast.error("Failed to check in patient.");
-    }
-  };
-
-  // Start Calling Consultation from Spotlight Banner
-  const handleStartCallingTherapy = async () => {
-    if (!data.callingTherapyAppointment) return;
-    setIsSpotlightActionLoading(true);
-    try {
-      const res = await updateAppointmentStatusAction(
-        data.callingTherapyAppointment.id,
-        AppointmentStatus.IN_THERAPY,
-        undefined,
-        QueueType.THERAPY,
-        data.callingTherapyAppointment.roomId || selectedRoomId,
-      );
-      if (res.success) {
-        toast.success(
-          `Therapy session started for ${data.callingTherapyAppointment.patient?.name || "Patient"}.`,
-        );
-        refreshData(selectedDate);
-      } else {
-        toast.error(res.message);
-      }
-    } catch {
-      toast.error("Failed to start therapy session.");
-    } finally {
-      setIsSpotlightActionLoading(false);
     }
   };
 
@@ -389,7 +372,25 @@ export function HandlerDashboardView({
               <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap">
                 <Button
                   size="sm"
-                  onClick={handleStartCallingTherapy}
+                  variant="outline"
+                  onClick={() => setViewPlanAppointment(callingApt)}
+                  className="h-7.5 px-2.5 text-xs font-semibold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer gap-1"
+                >
+                  <Activity className="size-3" />
+                  <span>View Plan</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setViewHistoryPatient(callingApt.patient)}
+                  className="h-7.5 px-2.5 text-xs font-semibold border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 cursor-pointer gap-1"
+                >
+                  <FolderOpen className="size-3" />
+                  <span>View Files</span>
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setMarkInTherapyAppointment(callingApt)}
                   disabled={isSpotlightActionLoading}
                   className="h-7.5 px-3 rounded-lg font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer gap-1.5"
                 >
@@ -472,6 +473,24 @@ export function HandlerDashboardView({
               <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap">
                 <Button
                   size="sm"
+                  variant="outline"
+                  onClick={() => setViewPlanAppointment(activeApt)}
+                  className="h-7.5 px-2.5 text-xs font-semibold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer gap-1"
+                >
+                  <Activity className="size-3" />
+                  <span>View Plan</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setViewHistoryPatient(activeApt.patient)}
+                  className="h-7.5 px-2.5 text-xs font-semibold border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 cursor-pointer gap-1"
+                >
+                  <FolderOpen className="size-3" />
+                  <span>View Files</span>
+                </Button>
+                <Button
+                  size="sm"
                   onClick={() => setSpotlightSendAppointment(activeApt)}
                   className="h-7.5 px-3 rounded-lg font-bold text-xs bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer gap-1.5"
                 >
@@ -483,10 +502,26 @@ export function HandlerDashboardView({
 
             {/* Live Modality Countdown Timers */}
             <ModalityTimersWidget
-              modalities={
+              appointmentId={activeApt.id}
+              bedNumber={activeApt.room?.number ? `Room ${activeApt.room.number}` : "Bed 1"}
+              roomNumber={activeApt.room?.number || activeApt.therapySlot?.room?.number}
+              handlers={data.handlerPerformers}
+              initialModalityItems={
                 activePlan?.modalities && activePlan.modalities.length > 0
-                  ? activePlan.modalities
-                  : ["Hot Pack (Spinal)", "IFT / TENS", "Ultrasound Therapy"]
+                  ? activePlan.modalities.map((m: any, i: number) =>
+                      typeof m === "string"
+                        ? { name: m, durationMinutes: 15, order: i + 1 }
+                        : {
+                            name: m.name || `Treatment ${i + 1}`,
+                            durationMinutes: m.durationMinutes || 15,
+                            order: m.order || i + 1,
+                          }
+                    )
+                  : [
+                      { name: "Hot Pack (Spinal)", durationMinutes: 15, order: 1 },
+                      { name: "IFT / TENS", durationMinutes: 15, order: 2 },
+                      { name: "Ultrasound Therapy", durationMinutes: 10, order: 3 },
+                    ]
               }
             />
           </div>
@@ -782,7 +817,30 @@ export function HandlerDashboardView({
         }}
       />
 
-      {/* 4. Global Send Patient Dialog (from Spotlight Banners) */}
+      {/* 4. Global Mark In Therapy Dialog (from Spotlight Banner) */}
+      <MarkInTherapyDialog
+        isOpen={Boolean(markInTherapyAppointment)}
+        onOpenChange={(open) => {
+          if (!open) setMarkInTherapyAppointment(null);
+        }}
+        appointment={markInTherapyAppointment}
+        todayPlan={
+          markInTherapyAppointment
+            ? data.todayPlansByPatientId?.[
+                markInTherapyAppointment.patientId
+              ]
+            : null
+        }
+        handlers={data.handlerPerformers}
+        defaultHandlerId={selectedHandlerId}
+        selectedRoomId={selectedRoomId}
+        onSuccess={() => {
+          setMarkInTherapyAppointment(null);
+          refreshData(selectedDate);
+        }}
+      />
+
+      {/* 5. Global Send Patient Dialog (from Spotlight Banners) */}
       <HandlerSendPatientDialog
         isOpen={Boolean(spotlightSendAppointment)}
         onOpenChange={(open) => {
@@ -802,6 +860,26 @@ export function HandlerDashboardView({
           setSpotlightSendAppointment(null);
           refreshData(selectedDate);
         }}
+      />
+
+      {/* 6. View-Only Treatment Plan Dialog for Handler */}
+      <TreatmentPlanDialog
+        isOpen={Boolean(viewPlanAppointment)}
+        onOpenChange={(open) => {
+          if (!open) setViewPlanAppointment(null);
+        }}
+        appointment={viewPlanAppointment}
+        readOnly={true}
+        onSuccess={() => refreshData(selectedDate)}
+      />
+
+      {/* 7. View-Only Patient Medical History & Files Dialog for Handler */}
+      <PatientMedicalHistoryDialog
+        isOpen={Boolean(viewHistoryPatient)}
+        onOpenChange={(open) => {
+          if (!open) setViewHistoryPatient(null);
+        }}
+        patient={viewHistoryPatient}
       />
     </div>
   );

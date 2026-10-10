@@ -18,6 +18,7 @@ import type {
 import { getReceptionistDashboardDataAction } from "@/actions/receptionist/appointment.action";
 import type { RoomModel, PerformerModel } from "@/generated/prisma/models";
 import type { TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
+import { parsePlan } from "@/schemas/doctor/treatment-plan.schema";
 
 export interface HandlerDashboardData {
   selectedDate: string;
@@ -106,6 +107,10 @@ export async function getHandlerDashboardDataAction(
   const therapyQueue = appointments.filter(
     (a) =>
       a.queueType === QueueType.THERAPY &&
+      !a.outTherapyTime &&
+      a.currentStation !== "CASHIER_REGISTER" &&
+      a.currentStation !== "RECEPTIONIST_DESK" &&
+      a.currentStation !== "CHECKED_OUT" &&
       (a.status === AppointmentStatus.CHECKED_IN ||
         a.status === AppointmentStatus.CALLING ||
         a.status === AppointmentStatus.IN_THERAPY),
@@ -141,37 +146,19 @@ export async function getHandlerDashboardDataAction(
   const todayPlansByPatientId: Record<string, TreatmentPlanRecord> = {};
   for (const plan of activePlans) {
     if (!todayPlansByPatientId[plan.patientId]) {
-      let modalities: string[] = [];
-      try {
-        modalities =
-          typeof plan.modalities === "string"
-            ? JSON.parse(plan.modalities)
-            : [];
-      } catch {
-        modalities = [];
-      }
-      todayPlansByPatientId[plan.patientId] = {
-        id: plan.id,
-        planType: plan.planType,
-        patientId: plan.patientId,
-        appointmentId: plan.appointmentId || null,
-        doctorId: plan.doctorId || null,
-        doctorName: plan.doctor?.name || null,
-        modalities,
-        instructions: plan.instructions || null,
-        targetDate: plan.targetDate ? plan.targetDate.toISOString() : null,
-        isActive: plan.isActive,
-        createdAt: plan.createdAt.toISOString(),
-        updatedAt: plan.updatedAt.toISOString(),
-      };
+      todayPlansByPatientId[plan.patientId] = parsePlan(plan as any);
     }
   }
 
-  // Completed Therapy Sessions today
+  // Completed Therapy Sessions today (includes patients forwarded to Receptionist, Cashier, or Doctor after therapy)
   const completedTherapy = appointments.filter(
     (a) =>
-      a.queueType === QueueType.THERAPY &&
-      a.status === AppointmentStatus.COMPLETED,
+      a.status !== AppointmentStatus.IN_THERAPY &&
+      a.status !== AppointmentStatus.CALLING &&
+      a.status !== AppointmentStatus.CANCELLED &&
+      (Boolean(a.outTherapyTime) ||
+        (a.queueType === QueueType.THERAPY &&
+          a.status === AppointmentStatus.COMPLETED)),
   );
 
   // Standby Extra Slots for monitoring

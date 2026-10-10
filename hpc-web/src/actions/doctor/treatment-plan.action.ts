@@ -15,73 +15,27 @@ import {
   type CreateTreatmentPlanInput,
   type UpdateTreatmentPlanInput,
   type TreatmentPlanActionState,
+  type ModalityConfigItem,
+  type TreatmentPlanRecord,
+  type TodayTherapySlotInfo,
+  type PatientPlansResult,
+  type RawTreatmentPlan,
+  parsePlan,
 } from "@/schemas/doctor/treatment-plan.schema";
 import { revalidatePath } from "next/cache";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 
-export interface TreatmentPlanRecord {
-  id: string;
-  planType: TreatmentPlanType;
-  patientId: string;
-  appointmentId: string | null;
-  doctorId: string | null;
-  doctorName?: string | null;
-  modalities: string[];
-  instructions: string | null;
-  targetDate: string | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PatientPlansResult {
-  todayPlan: TreatmentPlanRecord | null;
-  nextPlan: TreatmentPlanRecord | null;
-  historyPlans: TreatmentPlanRecord[];
-}
-
-interface RawTreatmentPlan {
-  id: string;
-  planType: TreatmentPlanType;
-  patientId: string;
-  appointmentId?: string | null;
-  doctorId?: string | null;
-  doctor?: { id: string; name: string | null } | null;
-  modalities: string;
-  instructions?: string | null;
-  targetDate?: Date | null;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-function parsePlan(plan: RawTreatmentPlan): TreatmentPlanRecord {
-  let modalities: string[] = [];
-  try {
-    modalities =
-      typeof plan.modalities === "string" ? JSON.parse(plan.modalities) : [];
-  } catch {
-    modalities = [];
-  }
-
-  return {
-    id: plan.id,
-    planType: plan.planType,
-    patientId: plan.patientId,
-    appointmentId: plan.appointmentId || null,
-    doctorId: plan.doctorId || null,
-    doctorName: plan.doctor?.name || null,
-    modalities,
-    instructions: plan.instructions || null,
-    targetDate: plan.targetDate ? plan.targetDate.toISOString() : null,
-    isActive: plan.isActive,
-    createdAt: plan.createdAt.toISOString(),
-    updatedAt: plan.updatedAt.toISOString(),
-  };
-}
+export type {
+  TreatmentPlanRecord,
+  TodayTherapySlotInfo,
+  PatientPlansResult,
+  RawTreatmentPlan,
+  ModalityConfigItem,
+};
 
 /**
- * Fetch existing active and historical treatment plans for a patient
+ * Fetch existing active and historical treatment plans for a patient,
+ * plus whether the patient has an active Therapy Slot booked for today.
  */
 export async function getPatientTreatmentPlansAction(
   patientId: string,
@@ -96,34 +50,92 @@ export async function getPatientTreatmentPlansAction(
     ]);
 
     if (!patientId) {
-      return { todayPlan: null, nextPlan: null, historyPlans: [] };
+      return {
+        todayPlan: null,
+        nextPlan: null,
+        historyPlans: [],
+        todayTherapySlot: null,
+      };
     }
 
-    const plans = await prisma.treatmentPlan.findMany({
-      where: {
-        patientId,
-        isActive: true,
-      },
-      include: {
-        doctor: {
-          select: { id: true, name: true },
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    const [plans, therapyApt] = await Promise.all([
+      prisma.treatmentPlan.findMany({
+        where: {
+          patientId,
+          isActive: true,
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        include: {
+          doctor: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.appointment.findFirst({
+        where: {
+          patientId,
+          therapySlotId: { not: null },
+          status: { notIn: ["CANCELLED", "COMPLETED"] },
+          OR: [
+            ...(appointmentId ? [{ id: appointmentId }] : []),
+            { appointmentDate: { gte: startOfToday, lte: endOfToday } },
+          ],
+        },
+        include: {
+          therapySlot: {
+            include: { room: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
     const parsed = plans.map(parsePlan);
 
-    // Prioritize plan matching current appointment or most recent
+    // Prioritize TODAY plan matching current appointment OR created/updated today
     const todayPlan =
       (appointmentId
         ? parsed.find(
             (p) =>
               p.planType === TreatmentPlanType.TODAY &&
-              p.appointmentId === appointmentId,
+              p.appointmentId === appointmentId &&
+              p.modalities.length > 0,
           )
         : null) ||
-      parsed.find((p) => p.planType === TreatmentPlanType.TODAY) ||
+      parsed.find((p) => {
+        if (
+          p.planType !== TreatmentPlanType.TODAY ||
+          p.modalities.length === 0
+        ) {
+          return false;
+        }
+        const created = new Date(p.createdAt);
+        const updated = new Date(p.updatedAt);
+        return (
+          (created >= startOfToday && created <= endOfToday) ||
+          (updated >= startOfToday && updated <= endOfToday)
+        );
+      }) ||
       null;
 
     const nextPlan =
@@ -141,14 +153,32 @@ export async function getPatientTreatmentPlansAction(
       (p) => p.id !== todayPlan?.id && p.id !== nextPlan?.id,
     );
 
+    const todayTherapySlot: TodayTherapySlotInfo | null =
+      therapyApt && therapyApt.therapySlotId && therapyApt.therapySlot
+        ? {
+            appointmentId: therapyApt.id,
+            slotId: therapyApt.therapySlotId,
+            label: therapyApt.therapySlot.label,
+            startTime: therapyApt.therapySlot.startTime,
+            endTime: therapyApt.therapySlot.endTime,
+            roomNumber: therapyApt.therapySlot.room?.number || null,
+          }
+        : null;
+
     return {
       todayPlan,
       nextPlan,
       historyPlans,
+      todayTherapySlot,
     };
   } catch (error) {
     console.error("[getPatientTreatmentPlansAction Error]:", error);
-    return { todayPlan: null, nextPlan: null, historyPlans: [] };
+    return {
+      todayPlan: null,
+      nextPlan: null,
+      historyPlans: [],
+      todayTherapySlot: null,
+    };
   }
 }
 
@@ -238,6 +268,8 @@ export async function createTreatmentPlanAction(
       }
     }
 
+    const modNames = modalities.map((m: any) => (typeof m === "string" ? m : m.name));
+
     await logAudit({
       userId: session.user.id,
       performerId: resolvedDoctorId,
@@ -245,7 +277,7 @@ export async function createTreatmentPlanAction(
       status: AuditStatus.SUCCESS,
       entity: "TreatmentPlan",
       entityId: plan.id,
-      details: `Created ${planType} treatment plan for patient ${patientId} with ${modalities.length} modalities: ${modalities.join(", ")}.`,
+      details: `Created ${planType} treatment plan for patient ${patientId} with ${modalities.length} modalities: ${modNames.join(", ")}.`,
     });
 
     emitRealtimeEvent("TREATMENT_PLAN_UPDATED", {
@@ -253,7 +285,7 @@ export async function createTreatmentPlanAction(
       patientId,
       appointmentId: appointmentId || null,
       planType,
-      modalities,
+      modalities: modNames,
     });
 
     revalidatePath("/doctor");
@@ -337,6 +369,8 @@ export async function updateTreatmentPlanAction(
       },
     });
 
+    const modNames = modalities.map((m: any) => (typeof m === "string" ? m : m.name));
+
     await logAudit({
       userId: session.user.id,
       performerId: resolvedDoctorId || undefined,
@@ -344,7 +378,7 @@ export async function updateTreatmentPlanAction(
       status: AuditStatus.SUCCESS,
       entity: "TreatmentPlan",
       entityId: id,
-      details: `Updated ${existing.planType} treatment plan: ${modalities.join(", ")}.`,
+      details: `Updated ${existing.planType} treatment plan: ${modNames.join(", ")}.`,
     });
 
     emitRealtimeEvent("TREATMENT_PLAN_UPDATED", {
@@ -352,7 +386,7 @@ export async function updateTreatmentPlanAction(
       patientId: existing.patientId,
       appointmentId: existing.appointmentId || null,
       planType: existing.planType,
-      modalities,
+      modalities: modNames,
     });
 
     revalidatePath("/doctor");

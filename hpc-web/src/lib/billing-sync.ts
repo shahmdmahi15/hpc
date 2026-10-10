@@ -17,14 +17,31 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
         paymentStatus: true,
         paidAmount: true,
         dueAmount: true,
+        status: true,
+        invoiceId: true,
         medicalRecordId: true,
       },
     });
 
     if (!apt) return;
 
+    // Cancelled appointments should never carry PAID status or due amounts
+    if (apt.status === "CANCELLED") {
+      if (apt.paymentStatus !== "CANCELLED" || apt.dueAmount !== 0) {
+        await prisma.appointment.update({
+          where: { id: apt.id },
+          data: {
+            paymentStatus: "CANCELLED",
+            dueAmount: 0,
+          },
+        });
+      }
+      return;
+    }
+
     const fee = apt.feeAmount ?? 0;
-    const isPaid = apt.paymentStatus === "PAID";
+    const hasInvoiceOrCash = Boolean(apt.invoiceId || (apt.paidAmount ?? 0) > 0);
+    const isPaid = apt.paymentStatus === "PAID" && (fee > 0 || hasInvoiceOrCash);
     const rawPaid =
       apt.paidAmount !== null && apt.paidAmount !== undefined && (apt.paidAmount > 0 || !isPaid)
         ? apt.paidAmount
@@ -34,7 +51,7 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
     const resolvedStatus =
       fee > 0
         ? (calculatedDue === 0 ? "PAID" : (calculatedPaid > 0 ? "PARTIAL" : (apt.paymentStatus || "PENDING")))
-        : (isPaid ? "PAID" : (apt.paymentStatus || "PENDING"));
+        : (hasInvoiceOrCash ? "PAID" : (apt.paymentStatus || "PENDING"));
 
     // Update appointment amounts and status if divergent
     if (
@@ -122,6 +139,7 @@ export async function syncBillingForPatient(patientId: string): Promise<void> {
           OR: [
             { type: "THERAPY" },
             { therapySlotId: { not: null } },
+            { feeAmount: { gt: 0 } },
           ],
         },
         select: {

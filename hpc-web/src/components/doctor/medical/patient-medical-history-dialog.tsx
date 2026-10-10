@@ -25,8 +25,23 @@ import {
   PlusCircle,
   FileText,
   UserCheck,
+  Eye,
+  LayoutList,
+  Download,
+  Phone,
+  CheckCircle2,
 } from "lucide-react";
 import { VasRecoveryTimeline } from "@/components/doctor/medical/vas-recovery-timeline";
+import { downloadElementAsPdf, printElementIsolated } from "@/lib/pdf-generator";
+import { CLINIC_CONFIG } from "@/lib/clinic-config";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface HistoryPatientInfo {
   id: string;
@@ -87,20 +102,24 @@ export function PatientMedicalHistoryDialog({
 }: PatientMedicalHistoryDialogProps) {
   const [records, setRecords] = React.useState<ParsedRecord[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [expandedRecordId, setExpandedRecordId] = React.useState<string | null>(
-    null,
-  );
+  const [expandedRecordId, setExpandedRecordId] = React.useState<string | null>(null);
+  const [selectedVoucherRecordId, setSelectedVoucherRecordId] = React.useState<string | null>(null);
+  const [viewMode, setViewMode] = React.useState<"timeline" | "voucher">("timeline");
+  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
 
   React.useEffect(() => {
     let ignore = false;
     if (isOpen && patient?.id) {
+      setIsLoading(true);
       getPatientMedicalHistoryAction(patient.id)
         .then((res) => {
           if (ignore) return;
           if (res.success && res.records) {
-            setRecords(res.records as unknown as ParsedRecord[]);
-            if (res.records.length > 0) {
-              setExpandedRecordId(res.records[0].id);
+            const parsed = res.records as unknown as ParsedRecord[];
+            setRecords(parsed);
+            if (parsed.length > 0) {
+              setExpandedRecordId(parsed[0].id);
+              setSelectedVoucherRecordId(parsed[0].id);
             }
           } else {
             setRecords([]);
@@ -117,8 +136,58 @@ export function PatientMedicalHistoryDialog({
     };
   }, [isOpen, patient?.id]);
 
-  const handlePrint = () => {
-    window.print();
+  const activeRecord =
+    records.find((r) => r.id === (selectedVoucherRecordId || expandedRecordId)) ||
+    records[0] ||
+    null;
+
+  const handlePrint = (recordToPrint?: ParsedRecord) => {
+    const target = recordToPrint || activeRecord;
+    if (!target) {
+      toast.error("No assessment record available to print.");
+      return;
+    }
+    if (target.id !== selectedVoucherRecordId) {
+      setSelectedVoucherRecordId(target.id);
+    }
+    setTimeout(() => {
+      printElementIsolated(
+        "patient-medical-checkup-print",
+        `Medical File - ${patient?.name || "Patient"}`
+      );
+    }, 50);
+  };
+
+  const handleDownloadPdf = async (recordToPrint?: ParsedRecord) => {
+    const target = recordToPrint || activeRecord;
+    if (!target) {
+      toast.error("No assessment record available to download.");
+      return;
+    }
+    if (target.id !== selectedVoucherRecordId) {
+      setSelectedVoucherRecordId(target.id);
+    }
+    setIsGeneratingPdf(true);
+    try {
+      const patientSlug = (patient?.name || "Patient").replace(/[^a-zA-Z0-9]/g, "_");
+      const dateStr = new Date(target.assessmentDate).toISOString().slice(0, 10);
+      const filename = `HPC_Medical_File_${patientSlug}_${dateStr}.pdf`;
+      const success = await downloadElementAsPdf("patient-medical-checkup-print", {
+        filename,
+        format: "custom-5.5x8.125",
+        orientation: "portrait",
+      });
+      if (success) {
+        toast.success("Medical File PDF downloaded successfully!");
+      } else {
+        toast.error("Failed to generate PDF. Please try again.");
+      }
+    } catch (error) {
+      console.error("[Medical File PDF] Error:", error);
+      toast.error("PDF generation encountered an error.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   return (
@@ -126,7 +195,7 @@ export function PatientMedicalHistoryDialog({
       <DialogContent className="w-[96vw] max-w-6xl lg:max-w-7xl max-h-[92dvh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border border-border/80">
         {/* Header */}
         <DialogHeader className="p-3.5 sm:p-4 pr-12 sm:pr-14 bg-muted/40 border-b border-border space-y-2 shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5">
               <div className="size-9 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
                 <FolderOpen className="size-5" />
@@ -136,22 +205,60 @@ export function PatientMedicalHistoryDialog({
                   Patient Medical Checkup History &amp; Files
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Complete timeline of clinical evaluations, pain progression,
-                  and prescribed treatment modalities.
+                  Complete clinical evaluations, pain trajectory, and prescribed therapy records.
                 </DialogDescription>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handlePrint}
-                className="text-xs h-8 cursor-pointer gap-1.5"
-              >
-                <Printer className="size-3.5" />
-                <span>Print File</span>
-              </Button>
+            {/* View Mode Switch & Actions */}
+            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+              {records.length > 0 && (
+                <div className="flex items-center bg-muted/80 p-0.5 rounded-lg border border-border/70 text-xs">
+                  <Button
+                    size="sm"
+                    variant={viewMode === "timeline" ? "default" : "ghost"}
+                    onClick={() => setViewMode("timeline")}
+                    className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer"
+                  >
+                    <LayoutList className="size-3.5" />
+                    <span>Timeline</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={viewMode === "voucher" ? "default" : "ghost"}
+                    onClick={() => setViewMode("voucher")}
+                    className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer"
+                  >
+                    <Eye className="size-3.5" />
+                    <span>5.5″ × 8.27″ Voucher</span>
+                  </Button>
+                </div>
+              )}
+
+              {records.length > 0 && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePrint()}
+                    className="text-xs h-8 cursor-pointer gap-1.5 font-bold"
+                  >
+                    <Printer className="size-3.5" />
+                    <span>Print File</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadPdf()}
+                    disabled={isGeneratingPdf}
+                    className="text-xs h-8 cursor-pointer gap-1.5"
+                  >
+                    <Download className="size-3.5" />
+                    <span>{isGeneratingPdf ? "Generating..." : "PDF"}</span>
+                  </Button>
+                </>
+              )}
 
               {onNewRecordRequested && (
                 <Button
@@ -163,7 +270,7 @@ export function PatientMedicalHistoryDialog({
                   className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer gap-1.5 shadow-2xs"
                 >
                   <PlusCircle className="size-3.5" />
-                  <span>Create New File</span>
+                  <span>New File</span>
                 </Button>
               )}
             </div>
@@ -238,7 +345,72 @@ export function PatientMedicalHistoryDialog({
                 </Button>
               )}
             </div>
+          ) : viewMode === "voucher" ? (
+            /* ========================================================== */
+            /* 5.5" x 8.27" HPC VOUCHER LIVE PREVIEW VIEW                 */
+            /* ========================================================== */
+            <div className="space-y-3">
+              {/* Record Selector Bar if multiple assessments exist */}
+              {records.length > 1 && (
+                <div className="flex items-center justify-between gap-3 bg-muted/40 p-2.5 rounded-xl border border-border/70">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-foreground">Viewing Record:</span>
+                    <Select
+                      value={activeRecord?.id || records[0].id}
+                      onValueChange={(val) => {
+                        setSelectedVoucherRecordId(val);
+                        setExpandedRecordId(val);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs font-mono font-bold bg-background min-w-[240px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {records.map((r, i) => {
+                          const d = new Date(r.assessmentDate).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          });
+                          return (
+                            <SelectItem key={r.id} value={r.id}>
+                              #{records.length - i} • {d} (VAS: {r.vasScore ?? "N/A"}{i === 0 ? " - Latest" : ""})
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handlePrint()}
+                      className="h-8 text-xs font-bold gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Printer className="size-3.5" />
+                      <span>Print Voucher</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Centered Scrollable Document Preview Container */}
+              <div className="p-3 sm:p-5 rounded-xl bg-neutral-200/80 dark:bg-neutral-950 flex justify-center items-start overflow-x-auto">
+                {activeRecord && (
+                  <MedicalRecordVoucher
+                    patient={patient}
+                    record={activeRecord}
+                    allRecords={records}
+                    containerId="patient-medical-checkup-print"
+                  />
+                )}
+              </div>
+            </div>
           ) : (
+            /* ========================================================== */
+            /* TIMELINE & COLLAPSIBLE HISTORY VIEW                        */
+            /* ========================================================== */
             <div className="space-y-3.5">
               {/* Clinical VAS Pain Score Recovery Trajectory */}
               <VasRecoveryTimeline records={records} />
@@ -316,7 +488,7 @@ export function PatientMedicalHistoryDialog({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
                         {/* VAS Score Pill */}
                         {rec.vasScore !== null && (
                           <span
@@ -336,6 +508,21 @@ export function PatientMedicalHistoryDialog({
                             )}
                           </span>
                         )}
+
+                        {/* Quick Print Button for this specific record */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrint(rec);
+                          }}
+                          title="Print this assessment file"
+                          className="h-7 px-2 text-[11px] gap-1 cursor-pointer hover:bg-muted"
+                        >
+                          <Printer className="size-3" />
+                          <span>Print</span>
+                        </Button>
 
                         <div className="p-1 text-muted-foreground hover:text-foreground">
                           {isExpanded ? (
@@ -612,18 +799,369 @@ export function PatientMedicalHistoryDialog({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            className="h-8 text-xs cursor-pointer"
-          >
-            Close
-          </Button>
+        {/* Hidden Printable Voucher Container Mounted for Isolated Print Support */}
+        {activeRecord && (
+          <div className="fixed -left-[9999px] top-0 pointer-events-none opacity-0" aria-hidden="true">
+            <MedicalRecordVoucher
+              patient={patient}
+              record={activeRecord}
+              allRecords={records}
+              containerId="patient-medical-checkup-print"
+            />
+          </div>
+        )}
+
+        <DialogFooter className="shrink-0 p-3 sm:p-4 border-t border-border/60 bg-muted/20 flex items-center justify-between gap-2">
+          <div className="text-xs text-muted-foreground">
+            {records.length > 0 && activeRecord && (
+              <span>
+                Selected: <strong>{new Date(activeRecord.assessmentDate).toLocaleDateString("en-GB")}</strong> (5.5″ × 8.27″ HPC Format)
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {records.length > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handlePrint()}
+                className="h-8 text-xs font-bold gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Printer className="size-3.5" />
+                <span>Print Document</span>
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="h-8 text-xs cursor-pointer"
+            >
+              Close
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * High-resolution Clinical Medical Checkup File formatted for 5.5″ × 8.27″ HPC standard cut paper
+ */
+function MedicalRecordVoucher({
+  patient,
+  record,
+  allRecords,
+  containerId = "patient-medical-checkup-print",
+}: {
+  patient: HistoryPatientInfo | null;
+  record: ParsedRecord;
+  allRecords: ParsedRecord[];
+  containerId?: string;
+}) {
+  const recDateFormatted = new Date(record.assessmentDate).toLocaleDateString(
+    "en-GB",
+    { day: "2-digit", month: "short", year: "numeric" },
+  );
+
+  const diagnosis =
+    record.diagnosis || "Physiotherapy & Rehabilitation Evaluation";
+
+  return (
+    <div
+      id={containerId}
+      className="w-full max-w-[500px] min-h-[750px] bg-white text-black p-4 sm:p-5 rounded-xs border border-black shadow-xl font-sans text-xs leading-normal flex flex-col justify-between"
+    >
+      {/* Top Section */}
+      <div className="space-y-2">
+        {/* Formal Letterhead with Official Logo */}
+        <div className="flex items-start justify-between border-b-2 border-black pb-2 mb-1.5">
+          <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.jpg"
+              alt="Health & Pain Care Center Logo"
+              className="size-13 sm:size-14 object-contain shrink-0"
+            />
+            <div>
+              <h1 className="font-black text-sm sm:text-base tracking-tight uppercase text-black leading-tight">
+                {CLINIC_CONFIG.name}
+              </h1>
+              <p className="text-[10px] font-bold text-neutral-800 tracking-wide">
+                {CLINIC_CONFIG.nameBangla}
+              </p>
+              <p className="text-[8.5px] font-medium text-neutral-600 pt-0.5">
+                {CLINIC_CONFIG.tagline}
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right text-[9px] text-neutral-800 space-y-0.5">
+            <p className="font-bold text-black flex items-center justify-end gap-1">
+              <Phone className="size-2.5 text-black" />
+              <span>Hotline: {CLINIC_CONFIG.phone}</span>
+            </p>
+            <p className="text-neutral-700 max-w-[170px] text-right text-[8.5px] leading-tight">
+              {CLINIC_CONFIG.addressBangla}
+            </p>
+            <p className="text-neutral-600 font-mono text-[8px]">
+              {CLINIC_CONFIG.city}, Bangladesh
+            </p>
+          </div>
+        </div>
+
+        {/* Document Title & Voucher Bar */}
+        <div className="flex items-center justify-between border-y border-black py-1 mb-1.5 bg-neutral-50 print:bg-white">
+          <div className="flex items-center gap-2">
+            <span className="bg-black text-white font-black text-[9px] tracking-wider uppercase px-2 py-0.5 rounded-xs">
+              MEDICAL CHECKUP FILE
+            </span>
+            <span className="text-[10px] font-bold text-black">
+              চিকিৎসা মূল্যায়ন ও ফাইল
+            </span>
+          </div>
+          <div className="text-[9.5px] text-right font-mono">
+            <span className="text-neutral-600 mr-1 font-medium">Date:</span>
+            <span className="font-black text-black">{recDateFormatted}</span>
+          </div>
+        </div>
+
+        {/* Patient Demographics Strip */}
+        <div className="grid grid-cols-4 gap-1.5 p-2 bg-white border border-neutral-800 rounded-xs mb-1.5 text-[10px]">
+          <div>
+            <span className="text-neutral-600 block text-[8px] font-medium">Patient Name:</span>
+            <span className="font-bold text-black uppercase truncate block">
+              {patient?.name || "Patient"}
+            </span>
+          </div>
+          <div>
+            <span className="text-neutral-600 block text-[8px] font-medium">MRN (ID):</span>
+            <span className="font-mono font-bold text-black block">
+              {patient?.mrn || patient?.id.slice(-6).toUpperCase() || "N/A"}
+            </span>
+          </div>
+          <div>
+            <span className="text-neutral-600 block text-[8px] font-medium">Age / Gender:</span>
+            <span className="font-semibold text-black block">
+              {record.age ? `${record.age} Yrs` : patient?.age ? `${patient.age} Yrs` : "N/A"} • {patient?.gender || "N/A"}
+            </span>
+          </div>
+          <div>
+            <span className="text-neutral-600 block text-[8px] font-medium">Contact Phone:</span>
+            <span className="font-mono font-bold text-black block">
+              {patient?.phone || "N/A"}
+            </span>
+          </div>
+        </div>
+
+        {/* Provisional Clinical Diagnosis Banner */}
+        <div className="border border-black rounded-xs p-1.5 mb-1.5 bg-neutral-50 print:bg-white">
+          <span className="text-[8.5px] font-black text-black uppercase tracking-wider block">
+            PROVISIONAL CLINICAL DIAGNOSIS / রোগ নির্ণয়:
+          </span>
+          <p className="text-xs font-black text-black mt-0.5 leading-snug">
+            {diagnosis}
+          </p>
+        </div>
+
+        {/* Clinical Findings & Pain Assessment (2-column layout) */}
+        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+          {/* Left Column: Complaints & Pain Profile */}
+          <div className="border border-neutral-800 rounded-xs p-1.5 space-y-1 bg-white text-[9px]">
+            <h3 className="font-black text-[9.5px] uppercase tracking-wide text-black border-b border-black pb-0.5 flex items-center justify-between">
+              <span>Clinical Pain Profile</span>
+              <Activity className="size-2.5 text-black" />
+            </h3>
+
+            <div>
+              <span className="text-neutral-600 text-[8px] block font-medium">Chief Areas:</span>
+              <span className="font-bold text-black">
+                {record.painAreasList.join(", ") || "None recorded"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1 text-[8.5px]">
+              <div>
+                <span className="text-neutral-600 block text-[7.5px]">Side:</span>
+                <span className="font-bold text-black">{record.painSide || "---"}</span>
+              </div>
+              <div>
+                <span className="text-neutral-600 block text-[7.5px]">Duration:</span>
+                <span className="font-bold text-black">{record.duration || "---"}</span>
+              </div>
+            </div>
+
+            {/* VAS Score Box */}
+            <div className="p-1 bg-neutral-50 rounded-xs flex items-center justify-between border border-neutral-600">
+              <span className="font-bold text-[8.5px] text-black">VAS Score (0-10):</span>
+              <span className="font-black font-mono text-[10px] text-black">
+                {record.vasScore !== null ? `${record.vasScore}/10` : "N/A"}
+                {record.followUpVasScore !== null && (
+                  <span className="text-[8.5px] font-normal text-neutral-700 ml-1">
+                    → Post: {record.followUpVasScore}/10
+                  </span>
+                )}
+              </span>
+            </div>
+
+            <div className="text-[8px] space-y-0.5 pt-0.5">
+              <div>
+                <span className="text-neutral-600 font-semibold">Increases with: </span>
+                <span className="text-black">{record.aggravatingFactorsList.join(", ") || "---"}</span>
+              </div>
+              <div>
+                <span className="text-neutral-600 font-semibold">Reduces with: </span>
+                <span className="text-black">{record.relievingFactorsList.join(", ") || "---"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Physical Examination */}
+          <div className="border border-neutral-800 rounded-xs p-1.5 space-y-1 bg-white text-[9px]">
+            <h3 className="font-black text-[9.5px] uppercase tracking-wide text-black border-b border-black pb-0.5 flex items-center justify-between">
+              <span>Physical Examination</span>
+              <HeartPulse className="size-2.5 text-black" />
+            </h3>
+
+            <div className="grid grid-cols-2 gap-1 text-[8.5px]">
+              <div>
+                <span className="text-neutral-600 block text-[7.5px]">ROM:</span>
+                <span className="font-bold text-black">{record.rom || "Normal"}</span>
+              </div>
+              <div>
+                <span className="text-neutral-600 block text-[7.5px]">Spasm:</span>
+                <span className="font-bold text-black">{record.muscleSpasm ? "Present (+)" : "Absent (-)"}</span>
+              </div>
+              <div>
+                <span className="text-neutral-600 block text-[7.5px]">Tenderness:</span>
+                <span className="font-bold text-black">{record.tenderness ? "Present (+)" : "Absent (-)"}</span>
+              </div>
+              <div>
+                <span className="text-neutral-600 block text-[7.5px]">Swelling:</span>
+                <span className="font-bold text-black">{record.swelling ? "Present (+)" : "Absent (-)"}</span>
+              </div>
+            </div>
+
+            {record.physicalExamNotes && (
+              <div className="pt-0.5 border-t border-neutral-200">
+                <span className="text-neutral-600 text-[7.5px] block">Notes:</span>
+                <p className="italic text-neutral-800 text-[8px] leading-tight">
+                  {record.physicalExamNotes}
+                </p>
+              </div>
+            )}
+
+            <div className="pt-0.5 border-t border-neutral-200 text-[8px]">
+              <span className="text-neutral-600 block text-[7.5px]">Past History:</span>
+              <span>
+                Injury: <strong>{record.injuryAccident ? (record.injuryDetails || "Yes") : "No"}</strong> •
+                Surgery: <strong>{record.surgeryHistory ? (record.surgeryDetails || "Yes") : "No"}</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Prescribed Physical Therapy Modalities */}
+        <div className="border border-black rounded-xs p-1.5 mb-1.5 bg-white">
+          <div className="flex items-center justify-between border-b border-black pb-0.5 mb-1">
+            <h3 className="font-black text-[10px] uppercase tracking-wide text-black">
+              ℞ Prescribed Physical Therapy Modalities (থেরাপি প্রেসক্রিপশন)
+            </h3>
+            <span className="text-[8px] font-mono font-bold text-neutral-600">
+              {record.treatmentPlansList.length} Modalities
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-1">
+            {record.treatmentPlansList.length > 0 ? (
+              record.treatmentPlansList.map((modality, idx) => (
+                <span
+                  key={modality}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 text-black border border-neutral-800 rounded-xs text-[9px] font-bold"
+                >
+                  <span className="size-3 rounded-full bg-black text-white font-bold flex items-center justify-center text-[7.5px]">
+                    {idx + 1}
+                  </span>
+                  <span>{modality}</span>
+                </span>
+              ))
+            ) : (
+              <p className="text-[9px] text-neutral-600 italic">
+                Standard Conservative Physiotherapy Protocol prescribed.
+              </p>
+            )}
+          </div>
+
+          {record.treatmentNotes && (
+            <div className="mt-1 pt-0.5 border-t border-neutral-300 text-[8.5px]">
+              <span className="font-bold text-black">Therapist Protocol: </span>
+              <span className="text-neutral-800">{record.treatmentNotes}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Home Advice & Posture Guidelines */}
+        <div className="border border-neutral-800 rounded-xs p-1.5 mb-1 bg-white text-[8.5px]">
+          <span className="font-black text-black block text-[9px] uppercase tracking-wide">
+            Home Advice &amp; Posture Care (গৃহ নির্দেশিকা):
+          </span>
+          <div className="grid grid-cols-2 gap-1 text-[8px] text-neutral-800 pt-0.5">
+            <div>
+              • Exercise Explained: <strong>{record.exerciseExplained ? "Yes" : "No"}</strong>
+            </div>
+            <div>
+              • Posture Advice: <strong>{record.homePostureAdvice ? "Yes" : "No"}</strong>
+            </div>
+          </div>
+          <p className="text-[7.5px] text-neutral-600 pt-0.5">
+            Avoid prolonged sitting, forward bending, and heavy lifting. Perform gentle stretches daily.
+          </p>
+        </div>
+
+        {/* Multi-Visit Trajectory Strip if multiple assessments exist */}
+        {allRecords.length > 1 && (
+          <div className="border border-neutral-300 rounded-xs p-1 bg-neutral-50 text-[7.5px]">
+            <span className="font-bold text-neutral-700">Assessment Trajectory: </span>
+            <span className="text-neutral-600">
+              {allRecords
+                .slice()
+                .reverse()
+                .map((r, i) => {
+                  const d = new Date(r.assessmentDate).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                  });
+                  return `Visit #${i + 1} (${d}, VAS: ${r.vasScore ?? "N/A"})`;
+                })
+                .join(" → ")}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Footer & Signature */}
+      <div className="pt-1.5 border-t border-black mt-1">
+        <div className="flex justify-between items-end pb-1">
+          <div className="text-[7.5px] text-neutral-600 space-y-0.5">
+            <p className="font-bold text-black">{CLINIC_CONFIG.name} Medical Desk</p>
+            <p>{CLINIC_CONFIG.fullLocation}</p>
+            <p>Official Patient Assessment Record • Valid with Specialist Signature</p>
+          </div>
+
+          <div className="text-center w-36">
+            <div className="border-b border-black pb-0.5 mb-0.5">
+              <p className="font-bold text-[9px] text-black">
+                {record.doctorSignature || record.doctor?.name || "Consultant Physiotherapist"}
+              </p>
+            </div>
+            <p className="text-[7px] text-neutral-600 uppercase tracking-wider font-semibold">
+              Authorized Specialist Signature
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
