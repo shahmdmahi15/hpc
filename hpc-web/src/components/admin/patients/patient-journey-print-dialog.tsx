@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, Compass, Clock, MapPin, User, CheckCircle2 } from "lucide-react";
 import { formatTime12h } from "@/lib/queue-punctuality";
 import { getPatientCompleteHistoryAction } from "@/actions/admin/patient-history.action";
+import { printElementIsolated } from "@/lib/pdf-generator";
 
 interface PatientJourneyPrintDialogProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function PatientJourneyPrintDialog({
   patientId,
 }: PatientJourneyPrintDialogProps) {
   const [data, setData] = React.useState<any>(patientData || null);
+  const printRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (patientData) {
@@ -42,7 +44,14 @@ export function PatientJourneyPrintDialog({
   if (!data) return null;
 
   const handlePrint = () => {
-    window.print();
+    if (printRef.current) {
+      printElementIsolated(printRef.current, {
+        title: `Patient_Journey_${data.mrn || data.name || "Audit"}`,
+        paperSize: "a4",
+      });
+    } else {
+      window.print();
+    }
   };
 
   const p = data;
@@ -81,7 +90,7 @@ export function PatientJourneyPrintDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 dark:bg-slate-950/40 print:p-0 print:bg-white">
-          <div className="max-w-[700px] mx-auto bg-white dark:bg-card p-6 sm:p-8 rounded-xl border border-border shadow-xs print:border-none print:shadow-none print:p-0 text-slate-900 dark:text-slate-100">
+          <div ref={printRef} className="max-w-[700px] mx-auto bg-white dark:bg-card p-6 sm:p-8 rounded-xl border border-border shadow-xs print:border-none print:shadow-none print:p-0 text-slate-900 dark:text-slate-100">
             {/* Header */}
             <div className="border-b-2 border-indigo-600 pb-3 mb-4 flex items-start justify-between">
               <div>

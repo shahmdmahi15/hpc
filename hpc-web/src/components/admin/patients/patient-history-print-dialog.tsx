@@ -14,6 +14,8 @@ import { CLINIC_CONFIG } from "@/lib/clinic-config";
 import { formatTime12h } from "@/lib/queue-punctuality";
 import { getPatientCompleteHistoryAction } from "@/actions/admin/patient-history.action";
 
+import { printElementIsolated } from "@/lib/pdf-generator";
+
 interface PatientHistoryPrintDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,7 +49,14 @@ export function PatientHistoryPrintDialog({
   if (!data) return null;
 
   const handlePrint = () => {
-    window.print();
+    if (printRef.current) {
+      printElementIsolated(printRef.current, {
+        title: `Patient_History_${data.mrn || data.name || "Dossier"}`,
+        paperSize: "a4",
+      });
+    } else {
+      window.print();
+    }
   };
 
   const p = data;

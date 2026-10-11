@@ -366,10 +366,14 @@ export function printElementIsolated(
           width: 100% !important;
           max-width: 100% !important;
           height: auto !important;
-          min-height: calc(297mm - 20mm) !important;
           border: 1.5px solid #000000 !important;
           padding: 6mm !important;
           box-sizing: border-box !important;
+        }
+        #hpc-print-root > div.no-outer-border,
+        .print-document-container > div.no-outer-border {
+          border: none !important;
+          padding: 0 !important;
         }
       }
     `;

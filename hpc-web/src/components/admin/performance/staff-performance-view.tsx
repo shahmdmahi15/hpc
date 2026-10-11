@@ -46,6 +46,7 @@ import {
   type CashierPerformanceMetric,
   type HandlerPerformanceMetric,
 } from "@/actions/admin/performance.action";
+import { StaffPerformancePrintDialog } from "./staff-performance-print-dialog";
 
 interface StaffPerformanceViewProps {
   initialData: StaffPerformanceReportData;
@@ -67,6 +68,7 @@ export function StaffPerformanceView({ initialData }: StaffPerformanceViewProps)
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [activeTab, setActiveTab] = React.useState<string>("all");
   const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = React.useState<boolean>(false);
 
   // Fetch report
   const fetchReport = React.useCallback(
@@ -246,7 +248,7 @@ export function StaffPerformanceView({ initialData }: StaffPerformanceViewProps)
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.print()}
+              onClick={() => setIsPrintDialogOpen(true)}
               className="gap-1.5 text-xs font-semibold shadow-xs cursor-pointer"
             >
               <Printer className="size-3.5 text-primary" />
@@ -706,6 +708,12 @@ export function StaffPerformanceView({ initialData }: StaffPerformanceViewProps)
           </div>
         </TabsContent>
       </Tabs>
+
+      <StaffPerformancePrintDialog
+        isOpen={isPrintDialogOpen}
+        onOpenChange={setIsPrintDialogOpen}
+        data={data}
+      />
     </div>
   );
 }
