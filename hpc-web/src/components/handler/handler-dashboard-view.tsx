@@ -35,10 +35,12 @@ import {
   Compass,
   MessageSquare,
   FolderOpen,
+  Stethoscope,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
+import { ConsultationSerialTab } from "@/components/receptionist/consultation-serial-tab";
 import { HandlerSendPatientDialog } from "@/components/handler/handler-send-patient-dialog";
 import { MarkInTherapyDialog } from "@/components/handler/mark-in-therapy-dialog";
 import { ModalityTimersWidget } from "@/components/handler/modality-timers-widget";
@@ -613,77 +615,71 @@ export function HandlerDashboardView({
                   </span>
                 </TabsTrigger>
 
-              <TabsTrigger
-                value="booking"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Clock className="size-3 text-primary" />
-                <span>Book Slots</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                  {data.slots.length}
-                </span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="tracking"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Compass className="size-3 text-indigo-500" />
-                <span>Patient Journey</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="extra-slots"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <AlertCircle className="size-3 text-amber-500" />
-                <span>Extra Slots</span>
-                {data.extraSlots.length > 0 ? (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold">
-                    {data.extraSlots.length}
+                <TabsTrigger
+                  value="completed"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <CheckCircle2 className="size-3 text-primary" />
+                  <span>Completed</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                    {data.completedTherapy.length}
                   </span>
-                ) : (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
-                    0
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="consultations"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Stethoscope className="size-3 text-teal-600 dark:text-teal-400" />
+                  <span>Consultation Serial</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-teal-500/15 text-teal-700 dark:text-teal-300 text-[10px] font-mono">
+                    {(data.consultationSerials || []).length}
                   </span>
-                )}
-              </TabsTrigger>
+                </TabsTrigger>
 
-              <TabsTrigger
-                value="patients"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Users className="size-3 text-indigo-500" />
-                <span>Patients</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
-                  {data.patients.length}
-                </span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="completed"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <CheckCircle2 className="size-3 text-primary" />
-                <span>Completed Today</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                  {data.completedTherapy.length}
-                </span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="chat"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <MessageSquare className="size-3 text-primary" />
-                <span>Clinic Chat</span>
-                {unreadChatCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
-                    {unreadChatCount}
+                <TabsTrigger
+                  value="slots"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Clock className="size-3 text-primary" />
+                  <span>Therapy Slot</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                    {data.slots.length}
                   </span>
-                )}
-              </TabsTrigger>
-            </TabsList>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="tracking"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Compass className="size-3 text-indigo-500" />
+                  <span>Journey</span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="patients"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Users className="size-3 text-indigo-500" />
+                  <span>Patients</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
+                    {data.patients.length}
+                  </span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="chat"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <MessageSquare className="size-3 text-primary" />
+                  <span>Chat</span>
+                  {unreadChatCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
+                      {unreadChatCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
             </div>
           </div>
 
@@ -724,8 +720,22 @@ export function HandlerDashboardView({
             )}
           </TabsContent>
 
-          {/* 2. Slot Booking Tab */}
-          <TabsContent value="booking" className="space-y-2 outline-none">
+          {/* 2. Consultation Serial Tab */}
+          <TabsContent value="consultations" className="space-y-2 outline-none">
+            <ConsultationSerialTab
+              serials={data.consultationSerials || []}
+              doctors={data.doctors || []}
+              performers={data.receptionistPerformers || []}
+              selectedDate={selectedDate}
+              dayOfWeek={data.dayOfWeek}
+              showDateSelector={false}
+              onSelectDate={handleSelectDate}
+              onRefresh={() => refreshData(selectedDate)}
+            />
+          </TabsContent>
+
+          {/* 3. Therapy Slot Tab */}
+          <TabsContent value="slots" className="space-y-2 outline-none">
             <SlotScheduleBoard
               slots={data.slots}
               stats={data.stats}

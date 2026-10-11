@@ -29,6 +29,8 @@ export interface HandlerDashboardData {
   activeTherapyAppointment: AppointmentWithRelations | null;
   todayPlansByPatientId: Record<string, TreatmentPlanRecord>;
   completedTherapy: AppointmentWithRelations[];
+  consultationSerials: ReceptionistDashboardData["consultationSerials"];
+  doctors: ReceptionistDashboardData["doctors"];
   slots: SlotWithTelemetry[];
   patients: PatientWithCount[];
   totalPatientsCount: number;
@@ -183,6 +185,7 @@ export async function getHandlerDashboardDataAction(
     activeTherapyAppointment,
     todayPlansByPatientId,
     completedTherapy,
+    consultationSerials: receptionistData.consultationSerials || [],
     slots: receptionistData.slots,
     patients: receptionistData.patients,
     totalPatientsCount: receptionistData.totalPatientsCount,
@@ -191,6 +194,7 @@ export async function getHandlerDashboardDataAction(
     pendingExtraSlots,
     decidedExtraSlots,
     rooms: receptionistData.rooms,
+    doctors: receptionistData.doctors,
     handlerPerformers,
     receptionistPerformers: receptionistData.receptionistPerformers,
     doctorPerformers,

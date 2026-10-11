@@ -47,6 +47,9 @@ import {
   Compass,
   MessageSquare,
   Pill,
+  User,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
@@ -63,6 +66,7 @@ import {
 } from "@/components/print/doctor-prescription-dialog";
 import { NewPrescriptionDialog } from "@/components/doctor/prescription/new-prescription-dialog";
 import { OldPrescriptionsDialog } from "@/components/doctor/prescription/old-prescriptions-dialog";
+import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
 
 interface DoctorDashboardViewProps {
   initialData: DoctorDashboardData;
@@ -119,6 +123,8 @@ export function DoctorDashboardView({
   >("today");
   const [isNewPrescriptionOpen, setIsNewPrescriptionOpen] = React.useState(false);
   const [isOldPrescriptionsOpen, setIsOldPrescriptionsOpen] = React.useState(false);
+  const [selectedClinicalAppointment, setSelectedClinicalAppointment] =
+    React.useState<any | null>(null);
 
 
   // Priority: 1. Doctor's assigned chamber from admin panel (strictly DOCTOR type), 2. First doctor consultation room
@@ -280,6 +286,79 @@ export function DoctorDashboardView({
       return name.includes(q) || phone.includes(q);
     });
   }, [data.therapyQueue, searchQuery]);
+
+  // Running Therapy Appointments (all active therapy sessions: on bed, calling, or checked in today)
+  const runningTherapyAppointments = React.useMemo(() => {
+    return data.appointments.filter(
+      (a) =>
+        a.status === AppointmentStatus.IN_THERAPY ||
+        (a.queueType === QueueType.THERAPY &&
+          (a.status === AppointmentStatus.CALLING ||
+            a.status === AppointmentStatus.CHECKED_IN)),
+    );
+  }, [data.appointments]);
+
+  const filteredRunningTherapy = React.useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return runningTherapyAppointments.filter((item) => {
+      if (!q) return true;
+      const name = (item.patient?.name || "").toLowerCase();
+      const phone = (item.patient?.phone || "").toLowerCase();
+      const mrn = (item.patient?.mrn || "").toLowerCase();
+      return name.includes(q) || phone.includes(q) || mrn.includes(q);
+    });
+  }, [runningTherapyAppointments, searchQuery]);
+
+  // Clinical action handlers for running therapy & active consultation
+  const handleOpenNewPrescription = (appointment: any) => {
+    setSelectedClinicalAppointment(appointment);
+    setSelectedHistoryPatient(appointment?.patient || null);
+    setIsNewPrescriptionOpen(true);
+  };
+
+  const handleOpenOldPrescriptions = (appointment: any) => {
+    setSelectedClinicalAppointment(appointment);
+    setSelectedHistoryPatient(appointment?.patient || null);
+    setIsOldPrescriptionsOpen(true);
+  };
+
+  const handleOpenMedicalHistory = (appointment: any) => {
+    setSelectedClinicalAppointment(appointment);
+    setSelectedHistoryPatient(appointment?.patient || null);
+    setIsHistoryOpen(true);
+  };
+
+  const handleOpenCreateRecord = (appointment: any) => {
+    setSelectedClinicalAppointment(appointment);
+    setSelectedHistoryPatient(appointment?.patient || null);
+    setIsCreateRecordOpen(true);
+  };
+
+  const handleOpenTreatmentPlan = (
+    appointment: any,
+    tab: "today" | "next" = "today",
+  ) => {
+    setSelectedClinicalAppointment(appointment);
+    setSelectedHistoryPatient(appointment?.patient || null);
+    setTreatmentPlanTab(tab);
+    setIsTreatmentPlanOpen(true);
+  };
+
+  const handleOpenSendPatient = (appointment: any) => {
+    setSelectedClinicalAppointment(appointment);
+    setSelectedHistoryPatient(appointment?.patient || null);
+    setIsSendPatientOpen(true);
+  };
+
+  const handlePrintReport = (appointment: any) => {
+    if (!appointment?.patient) return;
+    const plan = data.todayPlansByPatientId?.[appointment.patientId];
+    setPrescriptionPrintData({
+      patient: appointment.patient,
+      doctor: data.currentDoctor,
+      treatmentPlans: plan?.modalities || [],
+    });
+  };
 
   // Active consultation patient (if currently in session, strictly for consultation queue)
   const activeConsultation =
@@ -667,87 +746,76 @@ export function DoctorDashboardView({
                   </span>
                 </TabsTrigger>
 
-              <TabsTrigger
-                value="therapy"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Activity className="size-3 text-emerald-500" />
-                <span>Therapy Queue</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
-                  {data.therapyQueue.length}
-                </span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="booking"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Clock className="size-3 text-primary" />
-                <span>Book Slots</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                  {data.slots.length}
-                </span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="tracking"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Compass className="size-3 text-indigo-500" />
-                <span>Patient Journey</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="patients"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <Users className="size-3 text-indigo-500" />
-                <span>Patients</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
-                  {data.patients.length}
-                </span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="extra-slots"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <AlertCircle className="size-3 text-amber-500" />
-                <span>Extra Slots</span>
-                {data.pendingExtraSlots.length > 0 ? (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold animate-pulse">
-                    {data.pendingExtraSlots.length}
+                <TabsTrigger
+                  value="completed"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <CheckCircle2 className="size-3 text-primary" />
+                  <span>Completed</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
+                    {data.completedConsultations.length}
                   </span>
-                ) : (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
-                    0
-                  </span>
-                )}
-              </TabsTrigger>
+                </TabsTrigger>
 
-              <TabsTrigger
-                value="completed"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <CheckCircle2 className="size-3 text-primary" />
-                <span>Today&apos;s Completed</span>
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[10px] font-mono">
-                  {data.completedConsultations.length}
-                </span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="chat"
-                className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0"
-              >
-                <MessageSquare className="size-3 text-primary" />
-                <span>Clinic Chat</span>
-                {unreadChatCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
-                    {unreadChatCount}
+                <TabsTrigger
+                  value="running-therapy"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Activity className="size-3 text-emerald-500" />
+                  <span>Running Therapy</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono">
+                    {runningTherapyAppointments.length}
                   </span>
-                )}
-              </TabsTrigger>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="tracking"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Compass className="size-3 text-indigo-500" />
+                  <span>Journey</span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="patients"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <Users className="size-3 text-indigo-500" />
+                  <span>Patients</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono">
+                    {data.patients.length}
+                  </span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="extra-slots"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <AlertCircle className="size-3 text-amber-500" />
+                  <span>Extra Slots</span>
+                  {data.pendingExtraSlots.length > 0 ? (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[10px] font-mono font-bold animate-pulse">
+                      {data.pendingExtraSlots.length}
+                    </span>
+                  ) : (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground text-[10px] font-mono">
+                      0
+                    </span>
+                  )}
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="chat"
+                  className="rounded-md text-xs font-bold gap-1 px-3 py-1 data-[state=active]:bg-background data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <MessageSquare className="size-3 text-primary" />
+                  <span>Chat</span>
+                  {unreadChatCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
+                      {unreadChatCount}
+                    </span>
+                  )}
+                </TabsTrigger>
             </TabsList>
             </div>
           </div>
@@ -785,54 +853,288 @@ export function DoctorDashboardView({
             )}
           </TabsContent>
 
-          {/* 2. Therapy Queue Tab */}
-          <TabsContent value="therapy" className="space-y-2 outline-none">
-            {filteredTherapyQueue.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/80 bg-muted/10 p-5 text-center space-y-1.5">
-                <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20">
-                  <Activity className="size-4" />
+          {/* 2. Running Therapy Tab */}
+          <TabsContent value="running-therapy" className="space-y-3 outline-none">
+            {filteredRunningTherapy.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border/80 bg-muted/10 p-8 text-center space-y-2">
+                <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20">
+                  <Activity className="size-5" />
                 </div>
-                <h3 className="text-xs font-bold text-foreground">
-                  Therapy Queue is Clear
+                <h3 className="text-sm font-bold text-foreground">
+                  No Active Therapy Sessions Running
                 </h3>
-                <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
-                  No patients are currently in the Physical Therapy queue.
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Patients receiving physical therapy on bed or waiting in the therapy queue will appear here in real-time. You can view their modalities, add prescriptions, and manage treatment plans directly.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
-                {filteredTherapyQueue.map((appointment) => (
-                  <HandlerQueueCard
-                    key={appointment.id}
-                    appointment={appointment}
-                    todayPlan={
-                      data.todayPlansByPatientId?.[appointment.patientId]
-                    }
-                    performerId={selectedDoctorId}
-                    selectedRoomId={selectedRoomId}
-                    selectedRoomNumber={selectedRoom?.number}
-                    handlers={data.handlerPerformers || []}
-                    rooms={data.rooms}
-                    onRefresh={() => refreshData(selectedDate)}
-                  />
-                ))}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                {filteredRunningTherapy.map((apt) => {
+                  const plan = data.todayPlansByPatientId?.[apt.patientId];
+                  const modalities = (plan?.modalityItems && plan.modalityItems.length > 0)
+                    ? plan.modalityItems
+                    : (plan?.modalities && plan.modalities.length > 0)
+                      ? plan.modalities.map((m: any, idx: number) =>
+                          typeof m === "string"
+                            ? { name: m, durationMinutes: 15, order: idx + 1 }
+                            : { name: m.name || `Modality ${idx + 1}`, durationMinutes: m.durationMinutes || 15, order: m.order || idx + 1 }
+                        )
+                      : [];
+
+                  const isOnBed = apt.status === AppointmentStatus.IN_THERAPY;
+                  const isCalling = apt.status === AppointmentStatus.CALLING;
+
+                  return (
+                    <div
+                      key={apt.id}
+                      className={`rounded-xl border bg-card/80 backdrop-blur-xs p-3.5 space-y-3 transition-all shadow-xs ${
+                        isOnBed
+                          ? "border-emerald-500/40 ring-1 ring-emerald-500/20 shadow-emerald-500/5"
+                          : isCalling
+                          ? "border-sky-500/40 ring-1 ring-sky-500/20"
+                          : "border-border/80 hover:border-border"
+                      }`}
+                    >
+                      {/* Top Header: Patient identity & Status */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm text-foreground">
+                              {apt.patient?.name || "Patient"}
+                            </span>
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${
+                                apt.gender === "MALE"
+                                  ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
+                                  : "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20"
+                              }`}
+                            >
+                              {apt.gender === "MALE" ? "Male" : "Female"}
+                              {apt.patient?.age ? ` • ${apt.patient.age}y` : ""}
+                            </span>
+                            {apt.patient?.mrn && (
+                              <span className="font-mono text-[11px] text-muted-foreground bg-muted/40 px-1.5 py-0.2 rounded border border-border/50">
+                                {apt.patient.mrn}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                            {apt.patient?.phone && (
+                              <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                                <Phone className="size-3" />
+                                {apt.patient.phone}
+                              </span>
+                            )}
+                            <span className="inline-flex items-center gap-1">
+                              <DoorOpen className="size-3 text-primary" />
+                              <strong className="text-foreground">
+                                {apt.room?.number
+                                  ? `Room ${apt.room.number}`
+                                  : apt.therapySlot?.room?.number
+                                  ? `Room ${apt.therapySlot.room.number}`
+                                  : "Therapy Floor"}
+                              </strong>
+                            </span>
+                            {apt.performer?.name && (
+                              <span className="inline-flex items-center gap-1 text-[11px]">
+                                <User className="size-3 text-muted-foreground" />
+                                <span>Handler: {apt.performer.name}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div>
+                          {isOnBed ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10.5px] font-bold animate-pulse">
+                              <span className="size-1.5 rounded-full bg-emerald-500" />
+                              <span>On Bed • In Therapy</span>
+                            </span>
+                          ) : isCalling ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-[10.5px] font-bold">
+                              <Clock className="size-3" />
+                              <span>Calling to Bed</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10.5px] font-bold">
+                              <Clock className="size-3" />
+                              <span>Waiting in Queue</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Middle: Today's Prescribed Modalities / Treatment Plan */}
+                      <div className="rounded-lg bg-muted/30 border border-border/60 p-2.5 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                            <Activity className="size-3 text-emerald-500" />
+                            <span>Active Modalities & Treatment Plan</span>
+                          </span>
+                          {apt.inTherapyTime && (
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              Started: {formatTime12h(apt.inTherapyTime)}
+                            </span>
+                          )}
+                        </div>
+
+                        {modalities.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            {modalities.map((m: any, idx: number) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background border border-emerald-500/30 text-foreground text-[11px] font-medium shadow-2xs"
+                              >
+                                <span className="size-1.5 rounded-full bg-emerald-500" />
+                                <span>{m.name}</span>
+                                {m.durationMinutes && (
+                                  <span className="text-[9.5px] font-mono text-muted-foreground">
+                                    ({m.durationMinutes}m)
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between text-xs text-muted-foreground py-0.5">
+                            <span className="text-[11px] italic">No active modalities prescribed yet for today.</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleOpenTreatmentPlan(apt, "today")}
+                              className="h-6 px-2 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 cursor-pointer"
+                            >
+                              + Prescribe Today&apos;s Plan
+                            </Button>
+                          </div>
+                        )}
+
+                        {plan?.instructions && (
+                          <p className="text-[10.5px] text-muted-foreground line-clamp-1 border-t border-border/40 pt-1">
+                            <strong className="text-foreground">Instructions:</strong> {plan.instructions}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Bottom Clinical Actions: Prescriptions, Files, Plans, Notes, Routing */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/50">
+                        {/* New Prescription */}
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenNewPrescription(apt)}
+                          title="Prescribe new medications with master directory"
+                          className="h-7 px-2.5 rounded-lg font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer gap-1"
+                        >
+                          <Pill className="size-3" />
+                          <span>New Prescription</span>
+                        </Button>
+
+                        {/* Old Prescriptions */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenOldPrescriptions(apt)}
+                          title="View patient previous prescriptions"
+                          className="h-7 px-2 rounded-lg font-semibold text-xs border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer gap-1"
+                        >
+                          <FileText className="size-3" />
+                          <span>Old Prescriptions</span>
+                        </Button>
+
+                        {/* View Files */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenMedicalHistory(apt)}
+                          title="View clinical history & past assessment files"
+                          className="h-7 px-2 rounded-lg font-semibold text-xs border-sky-500/30 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 cursor-pointer gap-1"
+                        >
+                          <FolderOpen className="size-3" />
+                          <span>View Files</span>
+                        </Button>
+
+                        {/* Upload File */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenCreateRecord(apt)}
+                          title="Upload new assessment file or clinical document"
+                          className="h-7 px-2 rounded-lg font-semibold text-xs border-sky-500/30 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 cursor-pointer gap-1"
+                        >
+                          <FilePlus2 className="size-3" />
+                          <span>Upload File</span>
+                        </Button>
+
+                        {/* Today's Plan */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenTreatmentPlan(apt, "today")}
+                          title="Prescribe or review today's therapy plan"
+                          className="h-7 px-2 rounded-lg font-semibold text-xs border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer gap-1"
+                        >
+                          <Activity className="size-3" />
+                          <span>Today&apos;s Plan</span>
+                        </Button>
+
+                        {/* Next Plan */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenTreatmentPlan(apt, "next")}
+                          title="Prescribe next session treatment recommendations"
+                          className="h-7 px-2 rounded-lg font-semibold text-xs border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+                        >
+                          <CalendarCheck2 className="size-3" />
+                          <span>Next Plan</span>
+                        </Button>
+
+                        {/* Patient Clinical Notes */}
+                        <PatientNotesTriggerButton
+                          patientId={apt.patientId}
+                          patientName={apt.patient?.name || "Patient"}
+                          patientMrn={apt.patient?.mrn}
+                          appointmentId={apt.id}
+                          defaultCategory="DOCTOR"
+                          currentUserRole="DOCTOR"
+                          currentUserName={data.currentDoctor?.name || "Doctor"}
+                          currentUserId={selectedDoctorId}
+                          currentStation={
+                            apt.room?.number
+                              ? `Room ${apt.room.number}`
+                              : "Therapy Floor"
+                          }
+                          className="h-7 px-2 text-xs font-semibold border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+                        />
+
+                        {/* Print Report */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePrintReport(apt)}
+                          title="Print official clinical report & prescription"
+                          className="h-7 px-2 rounded-lg font-semibold text-xs border-border/80 text-foreground hover:bg-muted cursor-pointer gap-1"
+                        >
+                          <Printer className="size-3" />
+                          <span>Print</span>
+                        </Button>
+
+                        {/* Send Patient */}
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenSendPatient(apt)}
+                          className="h-7 px-2.5 rounded-lg font-bold text-xs bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer gap-1 ml-auto"
+                        >
+                          <Send className="size-3" />
+                          <span>Send Patient</span>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </TabsContent>
-
-          {/* 3. Slot Booking Tab */}
-          <TabsContent value="booking" className="space-y-2 outline-none">
-            <SlotScheduleBoard
-              slots={data.slots}
-              stats={data.stats}
-              selectedDate={selectedDate}
-              dayOfWeek={data.dayOfWeek}
-              showDateSelector={false}
-              onSelectDate={handleSelectDate}
-              onBookSlot={handleBookSlot}
-              onCheckIn={handleCheckIn}
-              onCancelAppointment={handleCancelAppointment}
-            />
           </TabsContent>
 
           {/* 3B. Patient Journey Tracking Tab */}
@@ -1005,8 +1307,11 @@ export function DoctorDashboardView({
       {/* 4. Modals for Medical Records & Clinical History */}
       <CreateMedicalRecordDialog
         isOpen={isCreateRecordOpen}
-        onOpenChange={setIsCreateRecordOpen}
-        appointment={activeConsultation}
+        onOpenChange={(open) => {
+          setIsCreateRecordOpen(open);
+          if (!open) setSelectedClinicalAppointment(null);
+        }}
+        appointment={selectedClinicalAppointment || activeConsultation}
         doctorId={selectedDoctorId}
         onSuccess={() => {
           refreshData(selectedDate);
@@ -1016,16 +1321,25 @@ export function DoctorDashboardView({
 
       <PatientMedicalHistoryDialog
         isOpen={isHistoryOpen}
-        onOpenChange={setIsHistoryOpen}
-        patient={selectedHistoryPatient || activeConsultation?.patient || null}
+        onOpenChange={(open) => {
+          setIsHistoryOpen(open);
+          if (!open) {
+            setSelectedHistoryPatient(null);
+            setSelectedClinicalAppointment(null);
+          }
+        }}
+        patient={selectedHistoryPatient || (selectedClinicalAppointment || activeConsultation)?.patient || null}
         onNewRecordRequested={() => setIsCreateRecordOpen(true)}
       />
 
       {/* 5. Send Patient Routing Dialog */}
       <SendPatientDialog
         isOpen={isSendPatientOpen}
-        onOpenChange={setIsSendPatientOpen}
-        appointment={activeConsultation}
+        onOpenChange={(open) => {
+          setIsSendPatientOpen(open);
+          if (!open) setSelectedClinicalAppointment(null);
+        }}
+        appointment={selectedClinicalAppointment || activeConsultation}
         doctorId={selectedDoctorId}
         onSuccess={() => refreshData(selectedDate)}
         onOpenTreatmentPlan={(tab) => {
@@ -1037,8 +1351,11 @@ export function DoctorDashboardView({
       {/* 6. Treatment Plan Dialog */}
       <TreatmentPlanDialog
         isOpen={isTreatmentPlanOpen}
-        onOpenChange={setIsTreatmentPlanOpen}
-        appointment={activeConsultation}
+        onOpenChange={(open) => {
+          setIsTreatmentPlanOpen(open);
+          if (!open) setSelectedClinicalAppointment(null);
+        }}
+        appointment={selectedClinicalAppointment || activeConsultation}
         defaultTab={treatmentPlanTab}
         doctorId={selectedDoctorId}
         currentDoctor={data.currentDoctor}
@@ -1059,19 +1376,31 @@ export function DoctorDashboardView({
       {/* 8. New Medication Prescription Modal */}
       <NewPrescriptionDialog
         isOpen={isNewPrescriptionOpen}
-        onOpenChange={setIsNewPrescriptionOpen}
-        patient={activeConsultation?.patient || null}
+        onOpenChange={(open) => {
+          setIsNewPrescriptionOpen(open);
+          if (!open) {
+            setSelectedClinicalAppointment(null);
+            setSelectedHistoryPatient(null);
+          }
+        }}
+        patient={(selectedClinicalAppointment || activeConsultation)?.patient || selectedHistoryPatient || null}
         doctorId={selectedDoctorId}
         doctorName={data.currentDoctor?.name || "Doctor"}
-        appointmentId={activeConsultation?.id}
+        appointmentId={(selectedClinicalAppointment || activeConsultation)?.id}
         onSuccess={() => refreshData(selectedDate)}
       />
 
       {/* 9. Old Prescriptions History Modal */}
       <OldPrescriptionsDialog
         isOpen={isOldPrescriptionsOpen}
-        onOpenChange={setIsOldPrescriptionsOpen}
-        patient={activeConsultation?.patient || null}
+        onOpenChange={(open) => {
+          setIsOldPrescriptionsOpen(open);
+          if (!open) {
+            setSelectedClinicalAppointment(null);
+            setSelectedHistoryPatient(null);
+          }
+        }}
+        patient={(selectedClinicalAppointment || activeConsultation)?.patient || selectedHistoryPatient || null}
         onNewPrescriptionRequested={() => setIsNewPrescriptionOpen(true)}
       />
     </div>

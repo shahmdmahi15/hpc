@@ -431,25 +431,25 @@ export function ReceptionistDashboardView({
                   </span>
                 </TabsTrigger>
 
-                {/* TAB 2: CONSULTATION */}
+                {/* TAB 2: CONSULTATION SERIAL */}
                 <TabsTrigger
                   value="consultations"
                   className="h-7.5 px-2.5 sm:px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
                 >
                   <Stethoscope className="size-3.5 text-teal-600 dark:text-teal-400" />
-                  <span>Consultation</span>
+                  <span>Consultation Serial</span>
                   <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-teal-500/15 text-teal-700 dark:text-teal-300 font-mono font-bold">
                     {(data.consultationSerials || []).length}
                   </span>
                 </TabsTrigger>
 
-                {/* TAB 3: THERAPY */}
+                {/* TAB 3: THERAPY SLOT */}
                 <TabsTrigger
                   value="slots"
                   className="h-7.5 px-2.5 sm:px-3 text-xs font-bold gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xs cursor-pointer shrink-0 whitespace-nowrap"
                 >
                   <Clock className="size-3.5" />
-                  <span>Therapy</span>
+                  <span>Therapy Slot</span>
                   <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-primary/10 text-primary font-mono font-bold">
                     {data.slots.length}
                   </span>

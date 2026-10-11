@@ -103,6 +103,12 @@ export function CashierDashboardView({
   // Search filter
   const [searchQuery, setSearchQuery] = React.useState("");
 
+  // Dedicated Consultation & Therapy Tabs Filters
+  const [consultationSubFilter, setConsultationSubFilter] =
+    React.useState<"ALL" | "PENDING" | "PAID">("ALL");
+  const [therapySubFilter, setTherapySubFilter] =
+    React.useState<"ALL" | "PENDING" | "PAID" | "SLOTS">("ALL");
+
   // Payment Collection Modal State (Therapy Sessions)
   const [collectingAppointment, setCollectingAppointment] =
     React.useState<AppointmentWithRelations | null>(null);
@@ -787,7 +793,7 @@ export function CashierDashboardView({
                   className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold shrink-0 whitespace-nowrap"
                 >
                   <CreditCard className="size-3 text-amber-500" />
-                  <span>Pending Bills</span>
+                  <span>Pending</span>
                   <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">
                     {totalPendingBillsCount}
                   </span>
@@ -798,18 +804,32 @@ export function CashierDashboardView({
                   className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold shrink-0 whitespace-nowrap"
                 >
                   <Receipt className="size-3 text-emerald-500" />
-                  <span>Paid Invoices</span>
+                  <span>Paid</span>
                   <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
                     {totalPaidInvoicesCount}
                   </span>
                 </TabsTrigger>
 
                 <TabsTrigger
-                  value="schedule"
+                  value="consultation"
                   className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold shrink-0 whitespace-nowrap"
                 >
-                  <CalendarDays className="size-3 text-blue-500" />
-                  <span>Book Slots</span>
+                  <Stethoscope className="size-3 text-indigo-500" />
+                  <span>Consultation</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">
+                    {filteredPendingConsultations.length + filteredPaidConsultations.length}
+                  </span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="therapy"
+                  className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold shrink-0 whitespace-nowrap"
+                >
+                  <Activity className="size-3 text-sky-500" />
+                  <span>Therapy</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                    {filteredPending.length + filteredPaid.length}
+                  </span>
                 </TabsTrigger>
 
                 <TabsTrigger
@@ -817,7 +837,7 @@ export function CashierDashboardView({
                   className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold shrink-0 whitespace-nowrap"
                 >
                   <Compass className="size-3 text-indigo-500" />
-                  <span>Patient Journey</span>
+                  <span>Journey</span>
                 </TabsTrigger>
 
                 <TabsTrigger
@@ -836,7 +856,7 @@ export function CashierDashboardView({
                   className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold shrink-0 whitespace-nowrap"
                 >
                   <MessageSquare className="size-3 text-primary" />
-                  <span>Clinic Chat</span>
+                  <span>Chat</span>
                   {unreadChatCount > 0 && (
                     <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-bold font-mono animate-pulse shadow-xs">
                       {unreadChatCount}
@@ -1508,19 +1528,373 @@ export function CashierDashboardView({
             )}
           </TabsContent>
 
-          {/* TAB 3: BOOK SLOTS / SCHEDULE BOARD */}
-          <TabsContent value="schedule" className="mt-0">
-            <SlotScheduleBoard
-              slots={data.slots}
-              stats={data.stats}
-              selectedDate={selectedDate}
-              dayOfWeek={data.dayOfWeek}
-              showDateSelector={false}
-              onSelectDate={handleSelectDate}
-              onBookSlot={handleBookSlot}
-              onCheckIn={handleCheckIn}
-              onCancelAppointment={handleCancelAppointment}
-            />
+          {/* TAB 3: DEDICATED DOCTOR CONSULTATION BILLING */}
+          <TabsContent value="consultation" className="mt-0 space-y-4">
+            {/* Consultation Filter Pills */}
+            <div className="flex items-center justify-between gap-2 flex-wrap text-xs bg-card/60 p-2.5 rounded-xl border border-border/80">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Button
+                  size="sm"
+                  variant={consultationSubFilter === "ALL" ? "default" : "outline"}
+                  onClick={() => setConsultationSubFilter("ALL")}
+                  className="h-7 px-2.5 text-xs font-semibold cursor-pointer"
+                >
+                  All Consultations ({filteredPendingConsultations.length + filteredPaidConsultations.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={consultationSubFilter === "PENDING" ? "default" : "outline"}
+                  onClick={() => setConsultationSubFilter("PENDING")}
+                  className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer text-amber-700 dark:text-amber-300 border-amber-500/30"
+                >
+                  <CreditCard className="size-3 text-amber-500" />
+                  <span>Pending Payment ({filteredPendingConsultations.length})</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={consultationSubFilter === "PAID" ? "default" : "outline"}
+                  onClick={() => setConsultationSubFilter("PAID")}
+                  className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                >
+                  <Receipt className="size-3 text-emerald-500" />
+                  <span>Paid &amp; Cleared ({filteredPaidConsultations.length})</span>
+                </Button>
+              </div>
+
+              <span className="font-mono text-indigo-700 dark:text-indigo-300 font-bold text-xs bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                Doctor Chamber Serials: {data.consultationSerials.length}
+              </span>
+            </div>
+
+            {/* PENDING SECTION */}
+            {(consultationSubFilter === "ALL" || consultationSubFilter === "PENDING") && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                    <CreditCard className="size-4 text-amber-500" />
+                    <span>Uncollected Consultation Serials ({filteredPendingConsultations.length})</span>
+                  </div>
+                </div>
+
+                {filteredPendingConsultations.length === 0 ? (
+                  <div className="p-6 text-center rounded-xl border border-dashed border-border bg-card/40 text-xs text-muted-foreground">
+                    No pending doctor consultation bills for this date.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+                    {filteredPendingConsultations.map((serial: any) => (
+                      <div
+                        key={serial.id}
+                        className="group flex flex-col justify-between p-3 rounded-xl border border-indigo-500/30 bg-card hover:border-indigo-500/60 hover:shadow-xs transition-all space-y-2.5"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-mono font-bold text-xs border border-indigo-500/30">
+                              Serial #{serial.serialNumber}
+                            </span>
+                            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md">
+                              ৳{serial.feeAmount} DUE
+                            </span>
+                          </div>
+
+                          <div>
+                            <div className="font-bold text-xs text-foreground truncate">
+                              {serial.patient?.name || "Patient"}
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Phone className="size-2.5" />
+                                {serial.patient?.phone || "---"}
+                              </span>
+                              {serial.patient?.mrn && (
+                                <span className="text-[10px] font-mono">
+                                  MRN: {serial.patient.mrn}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border/50">
+                            <div>Doctor: <span className="font-semibold text-foreground">{serial.doctor?.name || "Doctor"}</span></div>
+                            {serial.doctor?.consultationRoom && (
+                              <div>Room: <span className="font-mono font-bold text-foreground">{serial.doctor.consultationRoom.number}</span></div>
+                            )}
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenConsultPaymentModal(serial)}
+                          className="w-full h-8 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer gap-1.5 rounded-lg"
+                        >
+                          <CreditCard className="size-3.5" />
+                          <span>Collect ৳{serial.feeAmount}</span>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PAID SECTION */}
+            {(consultationSubFilter === "ALL" || consultationSubFilter === "PAID") && (
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                    <Receipt className="size-4 text-emerald-500" />
+                    <span>Paid &amp; Cleared Consultation Serials ({filteredPaidConsultations.length})</span>
+                  </div>
+                </div>
+
+                {filteredPaidConsultations.length === 0 ? (
+                  <div className="p-6 text-center rounded-xl border border-dashed border-border bg-card/40 text-xs text-muted-foreground">
+                    No paid consultation serials recorded for this date.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+                    {filteredPaidConsultations.map((serial: any) => (
+                      <div
+                        key={serial.id}
+                        className="group flex flex-col justify-between p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/60 hover:shadow-xs transition-all space-y-2.5"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 font-mono font-bold text-xs border border-emerald-500/30">
+                              Serial #{serial.serialNumber}
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.2 rounded-md font-mono">
+                              PAID ৳{serial.paidAmount || serial.feeAmount}
+                            </span>
+                          </div>
+
+                          <div>
+                            <div className="font-bold text-xs text-foreground truncate">
+                              {serial.patient?.name || "Patient"}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {serial.patient?.phone || "---"}
+                            </div>
+                          </div>
+
+                          <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border/50">
+                            <div>Doctor: <span className="font-semibold text-foreground">{serial.doctor?.name || "Doctor"}</span></div>
+                            {serial.invoice?.invoiceNumber && (
+                              <div className="font-mono text-[10px] text-muted-foreground">Inv: {serial.invoice.invoiceNumber}</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setReceiptAppointment({
+                              id: serial.invoice?.invoiceNumber || serial.id,
+                              appointmentDate: serial.appointmentDate || new Date(),
+                              feeAmount: serial.feeAmount || serial.invoice?.totalAmount || 0,
+                              paidAmount: serial.paidAmount || serial.invoice?.paidAmount || 0,
+                              dueAmount: serial.dueAmount || serial.invoice?.dueAmount || 0,
+                              paymentStatus: "PAID",
+                              patient: serial.patient,
+                              type: AppointmentType.CONSULTATION,
+                              invoice: serial.invoice,
+                              room: serial.room,
+                            } as any)
+                          }
+                          className="w-full h-7 text-xs font-semibold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer gap-1.5 rounded-lg"
+                        >
+                          <Printer className="size-3" />
+                          <span>Print Receipt</span>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* TAB 4: DEDICATED PHYSICAL THERAPY BILLING */}
+          <TabsContent value="therapy" className="mt-0 space-y-4">
+            {/* Therapy Filter Pills */}
+            <div className="flex items-center justify-between gap-2 flex-wrap text-xs bg-card/60 p-2.5 rounded-xl border border-border/80">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Button
+                  size="sm"
+                  variant={therapySubFilter === "ALL" ? "default" : "outline"}
+                  onClick={() => setTherapySubFilter("ALL")}
+                  className="h-7 px-2.5 text-xs font-semibold cursor-pointer"
+                >
+                  All Therapy ({filteredPending.length + filteredPaid.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={therapySubFilter === "PENDING" ? "default" : "outline"}
+                  onClick={() => setTherapySubFilter("PENDING")}
+                  className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer text-amber-700 dark:text-amber-300 border-amber-500/30"
+                >
+                  <CreditCard className="size-3 text-amber-500" />
+                  <span>Pending Bills ({filteredPending.length})</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={therapySubFilter === "PAID" ? "default" : "outline"}
+                  onClick={() => setTherapySubFilter("PAID")}
+                  className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                >
+                  <Receipt className="size-3 text-emerald-500" />
+                  <span>Paid Invoices ({filteredPaid.length})</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={therapySubFilter === "SLOTS" ? "default" : "outline"}
+                  onClick={() => setTherapySubFilter("SLOTS")}
+                  className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer text-blue-700 dark:text-blue-300 border-blue-500/30"
+                >
+                  <CalendarDays className="size-3 text-blue-500" />
+                  <span>Therapy Slot Schedule ({data.slots.length})</span>
+                </Button>
+              </div>
+
+              <span className="font-mono text-sky-700 dark:text-sky-300 font-bold text-xs bg-sky-500/10 px-2 py-0.5 rounded-md border border-sky-500/20">
+                Therapy Sessions: {filteredPending.length + filteredPaid.length}
+              </span>
+            </div>
+
+            {/* IF SLOTS SELECTED: RENDER SLOT SCHEDULE BOARD */}
+            {therapySubFilter === "SLOTS" ? (
+              <SlotScheduleBoard
+                slots={data.slots}
+                stats={data.stats}
+                selectedDate={selectedDate}
+                dayOfWeek={data.dayOfWeek}
+                showDateSelector={false}
+                onSelectDate={handleSelectDate}
+                onBookSlot={handleBookSlot}
+                onCheckIn={handleCheckIn}
+                onCancelAppointment={handleCancelAppointment}
+              />
+            ) : (
+              <div className="space-y-4">
+                {/* PENDING THERAPY SECTION */}
+                {(therapySubFilter === "ALL" || therapySubFilter === "PENDING") && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                      <CreditCard className="size-4 text-amber-500" />
+                      <span>Pending Physical Therapy Bills ({filteredPending.length})</span>
+                    </div>
+
+                    {filteredPending.length === 0 ? (
+                      <div className="p-6 text-center rounded-xl border border-dashed border-border bg-card/40 text-xs text-muted-foreground">
+                        No pending physical therapy bills for this date.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+                        {filteredPending.map((apt) => (
+                          <div
+                            key={apt.id}
+                            className="group flex flex-col justify-between p-3 rounded-xl border border-border/80 bg-card hover:border-amber-500/50 hover:shadow-xs transition-all space-y-2.5"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary font-mono font-bold text-xs">
+                                  {apt.therapySlot?.label || "Standby Ticket"}
+                                </span>
+                                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md font-mono">
+                                  ৳{apt.feeAmount ?? DEFAULT_FEE} DUE
+                                </span>
+                              </div>
+
+                              <div>
+                                <div className="font-bold text-xs text-foreground truncate">
+                                  {apt.patient?.name || "Patient"}
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="size-2.5" />
+                                    {apt.patient?.phone || "---"}
+                                  </span>
+                                  {apt.patient?.mrn && (
+                                    <span className="text-[10px] font-mono">
+                                      MRN: {apt.patient.mrn}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenPaymentModal(apt)}
+                              className="w-full h-8 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer gap-1.5 rounded-lg"
+                            >
+                              <CreditCard className="size-3.5" />
+                              <span>Collect ৳{apt.feeAmount ?? DEFAULT_FEE}</span>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* PAID THERAPY SECTION */}
+                {(therapySubFilter === "ALL" || therapySubFilter === "PAID") && (
+                  <div className="space-y-2.5 pt-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                      <Receipt className="size-4 text-emerald-500" />
+                      <span>Paid Physical Therapy Invoices ({filteredPaid.length})</span>
+                    </div>
+
+                    {filteredPaid.length === 0 ? (
+                      <div className="p-6 text-center rounded-xl border border-dashed border-border bg-card/40 text-xs text-muted-foreground">
+                        No paid physical therapy invoices recorded for this date.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+                        {filteredPaid.map((apt) => (
+                          <div
+                            key={apt.id}
+                            className="group flex flex-col justify-between p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/60 hover:shadow-xs transition-all space-y-2.5"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 font-mono font-bold text-xs border border-emerald-500/30">
+                                  {apt.therapySlot?.label || "Session"}
+                                </span>
+                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.2 rounded-md font-mono">
+                                  PAID ৳{apt.paidAmount || apt.feeAmount}
+                                </span>
+                              </div>
+
+                              <div>
+                                <div className="font-bold text-xs text-foreground truncate">
+                                  {apt.patient?.name || "Patient"}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground">
+                                  {apt.patient?.phone || "---"}
+                                </div>
+                              </div>
+                            </div>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setReceiptAppointment(apt as any)}
+                              className="w-full h-7 text-xs font-semibold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer gap-1.5 rounded-lg"
+                            >
+                              <Printer className="size-3" />
+                              <span>Print Receipt</span>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </TabsContent>
 
           {/* TAB 4: PATIENT JOURNEY TRACKER */}
