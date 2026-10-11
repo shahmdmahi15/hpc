@@ -33,6 +33,7 @@ export interface AdminDashboardData {
     todayCollected: number;
     todayDue: number;
     totalLifetimeRevenue: number;
+    medicineCount?: number;
     todayCash?: number;
     todayCard?: number;
     todayMfs?: number;
@@ -60,6 +61,7 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
   let todayCollected = 0;
   let todayDue = 0;
   let totalLifetimeRevenue = 0;
+  let medicineCount = 0;
   let todayCash = 0;
   let todayCard = 0;
   let todayMfs = 0;
@@ -92,6 +94,7 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
       todayPrevDuePayments,
       rLogs,
       allPatients,
+      medCount,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.session.count({
@@ -160,6 +163,7 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
           totalPaid: true,
         },
       }),
+      prisma.medicine.count(),
     ]);
 
     userCount = uCount;
@@ -171,6 +175,7 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
     patientCount = ptCount;
     rawLogs = rLogs;
     totalLifetimeRevenue = allPatients._sum.totalPaid || 0;
+    medicineCount = medCount;
 
     for (const apt of todayApts) {
       if (apt.type === "CONSULTATION") todayConsultationCount++;
@@ -260,6 +265,7 @@ export async function getAdminDashboardDataAction(): Promise<AdminDashboardData>
       todayCollected,
       todayDue,
       totalLifetimeRevenue,
+      medicineCount,
       todayCash,
       todayCard,
       todayMfs,

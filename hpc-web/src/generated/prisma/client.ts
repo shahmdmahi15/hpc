@@ -146,3 +146,8 @@ export type Prescription = Prisma.PrescriptionModel
  * 
  */
 export type TherapySessionTimer = Prisma.TherapySessionTimerModel
+/**
+ * Model Medicine
+ * 
+ */
+export type Medicine = Prisma.MedicineModel

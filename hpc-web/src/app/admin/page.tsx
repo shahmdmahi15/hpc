@@ -33,6 +33,7 @@ import {
   FileSpreadsheet,
   MessageSquare,
   Award,
+  Pill,
 } from "lucide-react";
 import { AdminExportButton } from "@/components/admin/admin-export-button";
 import { AdminBackupButton } from "@/components/admin/admin-backup-button";
@@ -49,6 +50,7 @@ export default async function AdminPage() {
     performerCount,
     roomCount,
     slotCount,
+    medicineCount = 0,
     patientCount,
     todayAppointmentsCount,
     todayConsultationCount,
@@ -411,6 +413,28 @@ export default async function AdminPage() {
               </div>
               <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 group-hover:text-primary transition-colors">
                 <span>Manage Schedule &amp; Quotas</span>
+                <ArrowUpRight className="size-3" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/medicines" className="group">
+          <Card className="border-border/80 bg-card/80 shadow-xs group-hover:border-rose-500/40 group-hover:shadow-md transition-all h-full cursor-pointer">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
+                Medicine Directory
+              </CardTitle>
+              <div className="size-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 group-hover:scale-105 transition-transform">
+                <Pill className="size-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {medicineCount}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 group-hover:text-primary transition-colors">
+                <span>Prescription Master &amp; Dosages</span>
                 <ArrowUpRight className="size-3" />
               </p>
             </CardContent>

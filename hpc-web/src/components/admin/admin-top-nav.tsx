@@ -17,6 +17,7 @@ import {
   Compass,
   MessageSquare,
   Award,
+  Pill,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChatNotifications } from "@/hooks/use-chat-notifications";
@@ -44,6 +45,12 @@ const NAV_ITEMS = [
     href: "/admin/performance",
     label: "Performance",
     icon: Award,
+    exact: false,
+  },
+  {
+    href: "/admin/medicines",
+    label: "Medicines",
+    icon: Pill,
     exact: false,
   },
   {

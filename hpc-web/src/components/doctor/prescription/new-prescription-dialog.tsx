@@ -30,6 +30,8 @@ import {
   createPrescriptionAction,
   type PrescriptionMedicineItem,
 } from "@/actions/doctor/prescription.action";
+import { type PrescriptionMedicineDirectoryItem } from "@/actions/doctor/medicine-search.action";
+import { MedicineSearchCombobox } from "./medicine-search-combobox";
 import { PrescriptionPrintDialog, type PrescriptionPrintRecord } from "./prescription-print-dialog";
 
 interface NewPrescriptionDialogProps {
@@ -132,16 +134,56 @@ export function NewPrescriptionDialog({
     });
   };
 
+  const handleSelectDirectoryMedicine = (
+    index: number,
+    item: PrescriptionMedicineDirectoryItem
+  ) => {
+    setMedicines((prev) => {
+      const copy = [...prev];
+      copy[index] = {
+        ...copy[index],
+        name: item.name,
+        mealTiming: item.defaultMealTiming || "AFTER",
+        times:
+          item.defaultTimes && item.defaultTimes.length > 0
+            ? item.defaultTimes
+            : ["MORNING", "NIGHT"],
+        duration: item.defaultDuration || "7 days",
+        instructions: item.instructions || "",
+      };
+      return copy;
+    });
+  };
+
+  const handleClearMedicine = (index: number) => {
+    setMedicines((prev) => {
+      const copy = [...prev];
+      copy[index] = {
+        ...copy[index],
+        name: "",
+      };
+      return copy;
+    });
+  };
+
   const handleSubmit = async (andPrint = false) => {
     if (!patient?.id) {
       toast.error("No active patient selected.");
       return;
     }
 
-    // Validate medicines
+    // Validate medicines: strict directory check
+    const emptyMedicines = medicines.filter((m) => !m.name.trim());
+    if (emptyMedicines.length > 0) {
+      toast.error(
+        "Please select a verified medicine from the directory for every medicine row."
+      );
+      return;
+    }
+
     const validMedicines = medicines.filter((m) => m.name.trim().length > 0);
     if (validMedicines.length === 0) {
-      toast.error("Please add at least one medicine with a name.");
+      toast.error("Please add at least one medicine from the directory.");
       return;
     }
 
@@ -251,19 +293,20 @@ export function NewPrescriptionDialog({
                     key={med.id || idx}
                     className="p-3.5 rounded-xl border border-border bg-card/70 space-y-3 relative shadow-2xs"
                   >
-                    {/* Header Row: Index + Name + Delete */}
+                    {/* Header Row: Index + Name (Combobox) + Delete */}
                     <div className="flex items-center gap-2">
                       <span className="size-5 rounded-full bg-sky-600/10 text-sky-600 font-bold text-[11px] flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
-                      <Input
-                        placeholder="Medicine Name (e.g. Tab. Ace Plus 500mg, Cap. Maxpro 20mg)..."
-                        value={med.name}
-                        onChange={(e) =>
-                          handleMedicineChange(idx, "name", e.target.value)
-                        }
-                        className="h-8.5 text-xs font-semibold flex-1 rounded-lg"
-                      />
+                      <div className="flex-1 min-w-0">
+                        <MedicineSearchCombobox
+                          value={med.name}
+                          onSelect={(item) =>
+                            handleSelectDirectoryMedicine(idx, item)
+                          }
+                          onClear={() => handleClearMedicine(idx)}
+                        />
+                      </div>
                       {medicines.length > 1 && (
                         <Button
                           type="button"

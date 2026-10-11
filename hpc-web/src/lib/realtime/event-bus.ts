@@ -28,7 +28,10 @@ export type RealtimeEventType =
   | "THERAPY_TIMER_UPDATED"
   | "PRESCRIPTION_CREATED"
   | "PRESCRIPTION_DELETED"
-  | "PATIENT_NOTE_ADDED";
+  | "PATIENT_NOTE_ADDED"
+  | "MEDICINE_CREATED"
+  | "MEDICINE_UPDATED"
+  | "MEDICINE_DELETED";
 
 export interface RealtimeEventPayload<T = any> {
   seq?: number;

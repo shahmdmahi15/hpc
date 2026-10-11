@@ -44,6 +44,7 @@ import {
   CalendarClock,
   Compass,
   Award,
+  Pill,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -150,6 +151,18 @@ export function AdminSidebar({
               >
                 <Award className="size-4 text-amber-500" />
                 <span className="font-semibold">Performance</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Master Medicine Directory */}
+            <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+              <SidebarMenuButton
+                render={<Link href="/admin/medicines" />}
+                isActive={pathname.startsWith("/admin/medicines")}
+                tooltip="Master Medicine Directory & Prescription Presets"
+              >
+                <Pill className="size-4 text-rose-500" />
+                <span className="font-semibold">Medicines</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 

@@ -71,7 +71,8 @@ export const ModelName = {
   PatientPayment: 'PatientPayment',
   ChatMessage: 'ChatMessage',
   Prescription: 'Prescription',
-  TherapySessionTimer: 'TherapySessionTimer'
+  TherapySessionTimer: 'TherapySessionTimer',
+  Medicine: 'Medicine'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -537,6 +538,26 @@ export const TherapySessionTimerScalarFieldEnum = {
 } as const
 
 export type TherapySessionTimerScalarFieldEnum = (typeof TherapySessionTimerScalarFieldEnum)[keyof typeof TherapySessionTimerScalarFieldEnum]
+
+
+export const MedicineScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  genericName: 'genericName',
+  strength: 'strength',
+  form: 'form',
+  company: 'company',
+  defaultMealTiming: 'defaultMealTiming',
+  defaultTimes: 'defaultTimes',
+  defaultDuration: 'defaultDuration',
+  instructions: 'instructions',
+  isActive: 'isActive',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineScalarFieldEnum = (typeof MedicineScalarFieldEnum)[keyof typeof MedicineScalarFieldEnum]
 
 
 export const SortOrder = {

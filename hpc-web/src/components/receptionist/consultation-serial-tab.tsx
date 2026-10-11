@@ -688,20 +688,20 @@ export function ConsultationSerialTab({
           </CardContent>
         </Card>
 
-        {/* Total Invoiced / Revenue */}
+        {/* Doctor Chambers (Operational metric) */}
         <Card className="border-border/80 bg-card/80 shadow-2xs">
           <CardHeader className="flex flex-row items-center justify-between pb-1 p-2.5">
             <CardTitle className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Doctor Invoiced
+              Doctor Chambers
             </CardTitle>
-            <Receipt className="size-3 text-teal-500" />
+            <Stethoscope className="size-3 text-teal-500" />
           </CardHeader>
           <CardContent className="p-2.5 pt-0">
             <div className="text-lg sm:text-xl font-bold text-teal-600 dark:text-teal-400">
-              ৳{telemetry.totalInvoiced.toLocaleString()}
+              {doctors.length}
             </div>
             <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-              ৳{telemetry.totalPaid.toLocaleString()} paid • ৳{telemetry.totalDue.toLocaleString()} due
+              Active consulting doctors
             </p>
           </CardContent>
         </Card>
