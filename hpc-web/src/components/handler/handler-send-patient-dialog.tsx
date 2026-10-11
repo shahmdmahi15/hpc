@@ -201,7 +201,7 @@ function HandlerSendPatientDialogContent({
   >([]);
   const [nextInstructions, setNextInstructions] = React.useState("");
 
-  const currentFee = appointment.feeAmount ?? DEFAULT_FEE;
+  const currentFee = initialTherapyFee;
   const isFeeModified = dueAmount !== currentFee;
 
   // Toggle next modality

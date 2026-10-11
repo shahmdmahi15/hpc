@@ -345,14 +345,16 @@ export async function createPatientAction(
         },
       });
 
-      // Broadcast appointment update & station changed
-      emitRealtimeEvent("APPOINTMENT_CREATED", {
-        id: createdAppointment.id,
+      // Broadcast patient arrival check-in & station changed
+      emitRealtimeEvent("PATIENT_CHECKED_IN", {
+        appointmentId: createdAppointment.id,
+        patientId: targetPatient.id,
         patientName: targetPatient.name,
+        mrn: targetPatient.mrn,
         gender: targetPatient.gender,
         status: AppointmentStatus.CHECKED_IN,
         roomNumber: waitingRoom.number,
-        currentStation: stationToSet,
+        station: stationToSet,
         checkInTime: checkInDateObj.toISOString(),
       });
       emitRealtimeEvent("STATION_CHANGED", {

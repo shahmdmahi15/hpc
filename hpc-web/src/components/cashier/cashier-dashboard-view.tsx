@@ -236,11 +236,15 @@ export function CashierDashboardView({
             id: `therapy-due-${event.data?.patientId || Date.now()}`,
           });
         } else if (type === "APPOINTMENT_CREATED") {
-          showPersistentRealtimeAlert({
-            title: `New Ticket Booked: ${event.data?.patientName || "Patient"}`,
-            description: `৳${event.data?.feeAmount ?? DEFAULT_FEE} Due on Bill`,
-            id: `ticket-${event.data?.id || Date.now()}`,
-          });
+          const isRealTherapySlot = Boolean(event.data?.slotId || event.data?.slotLabel);
+          const fee = Number(event.data?.feeAmount ?? 0);
+          if (isRealTherapySlot && fee > 0) {
+            showPersistentRealtimeAlert({
+              title: `New Therapy Ticket Booked: ${event.data?.patientName || "Patient"}`,
+              description: `${event.data?.slotLabel ? `${event.data.slotLabel} • ` : ""}৳${fee} Due on Bill`,
+              id: `ticket-${event.data?.id || Date.now()}`,
+            });
+          }
         }
       }
     },
@@ -438,7 +442,7 @@ export function CashierDashboardView({
   // Open Consultation Payment Modal
   const handleOpenConsultPaymentModal = (serial: any) => {
     setCollectingSerial(serial);
-    setConsultPaymentAmount(serial.feeAmount || 1000);
+    setConsultPaymentAmount(serial.feeAmount ?? (serial.doctor as any)?.consultationFee ?? 500);
     setConsultPaymentMethod("CASH");
     setConsultPaymentNotes("");
     setCashierPin("");
@@ -451,7 +455,7 @@ export function CashierDashboardView({
     );
     if (matchTherapy) {
       setIncludeTherapyInConsult(true);
-      setTherapyInConsultAmount(matchTherapy.feeAmount ?? DEFAULT_FEE);
+      setTherapyInConsultAmount(matchTherapy.feeAmount ?? 0);
     } else {
       setIncludeTherapyInConsult(false);
       setTherapyInConsultAmount(0);
@@ -1720,7 +1724,7 @@ export function CashierDashboardView({
 
                       {/* Settled Physical Therapy Appointments */}
                       {filteredPaid.map((item) => {
-                        const fee = item.feeAmount ?? DEFAULT_FEE;
+                        const fee = item.feeAmount ?? 0;
                         const paid = item.paidAmount ?? fee;
                         const due = item.dueAmount ?? 0;
 
@@ -2147,7 +2151,7 @@ export function CashierDashboardView({
                                   {apt.therapySlot?.label || "Standby Ticket"}
                                 </span>
                                 <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md font-mono">
-                                  ৳{apt.feeAmount ?? DEFAULT_FEE} DUE
+                                  ৳{apt.feeAmount ?? 0} DUE
                                 </span>
                               </div>
 
@@ -2175,7 +2179,7 @@ export function CashierDashboardView({
                               className="w-full h-8 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer gap-1.5 rounded-lg"
                             >
                               <CreditCard className="size-3.5" />
-                              <span>Collect ৳{apt.feeAmount ?? DEFAULT_FEE}</span>
+                              <span>Collect ৳{apt.feeAmount ?? 0}</span>
                             </Button>
                           </div>
                         ))}
@@ -2734,7 +2738,7 @@ export function CashierDashboardView({
                     <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-bold">
                       <Activity className="size-4 shrink-0" />
                       <span>
-                        Pending Physical Therapy: {pendingTherapyForConsult.therapySlot?.label || "Session"} (৳{pendingTherapyForConsult.feeAmount ?? DEFAULT_FEE})
+                        Pending Physical Therapy: {pendingTherapyForConsult.therapySlot?.label || "Session"} (৳{pendingTherapyForConsult.feeAmount ?? 0})
                       </span>
                     </div>
                     <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">

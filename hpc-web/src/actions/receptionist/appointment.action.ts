@@ -374,8 +374,8 @@ export async function bookTherapyTicketAction(
       success: true,
       message:
         finalBookingType === BookingType.EXTRA
-          ? `Standby extra ticket booked for ${patient.name} (${slot.label}) & submitted for Doctor approval. Bill: ৳${DEFAULT_FEE} BDT Due.`
-          : `Appointment booked for ${patient.name} (${slot.label}). Bill: ৳${DEFAULT_FEE} BDT Due.`,
+          ? `Standby extra ticket booked for ${patient.name} (${slot.label}) & submitted for Doctor approval. Bill: ৳${feeToCharge} BDT Due.`
+          : `Appointment booked for ${patient.name} (${slot.label}). Bill: ৳${feeToCharge} BDT Due.`,
       appointment,
     };
   } catch (error: unknown) {
