@@ -31,6 +31,9 @@ export interface PatientListItem {
 export interface PatientListResult {
   patients: PatientListItem[];
   totalCount: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
   kpis: {
     totalPatients: number;
     patientsWithDue: number;
@@ -55,8 +58,8 @@ export async function getAdminPatientsListAction(params: {
   const search = params.search?.trim().toLowerCase();
   const filter = params.filter || "ALL";
   const sortBy = params.sortBy || "recent";
-  const limit = Math.min(params.limit || 100, 200);
-  const offset = params.offset || 0;
+  const limit = Math.min(Math.max(1, params.limit || 50), 500);
+  const offset = Math.max(0, params.offset || 0);
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -205,9 +208,15 @@ export async function getAdminPatientsListAction(params: {
     };
   });
 
+  const page = Math.floor(offset / limit) + 1;
+  const totalPages = Math.ceil(totalCount / limit) || 1;
+
   return {
     patients: formattedPatients,
     totalCount,
+    page,
+    pageSize: limit,
+    totalPages,
     kpis: {
       totalPatients: allPatientsKPI.length,
       patientsWithDue,

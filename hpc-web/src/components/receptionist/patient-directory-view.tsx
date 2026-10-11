@@ -31,6 +31,10 @@ import {
   Loader2,
   X,
   Edit3,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { Gender } from "@/generated/prisma/enums";
 import {
@@ -76,37 +80,85 @@ export function PatientDirectoryView({
   const [editingPatient, setEditingPatient] =
     React.useState<PatientWithStats | null>(null);
 
-  const fetchFilteredPatients = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await getPatientsListAction({
-        query: searchQuery,
-        gender: genderFilter === "ALL" ? undefined : (genderFilter as Gender),
-        limit: 50,
-      });
-      setPatients(res);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [searchQuery, genderFilter]);
+  // Pagination states
+  const [page, setPage] = React.useState<number>(1);
+  const [pageSize, setPageSize] = React.useState<number>(50);
+  const [totalCountState, setTotalCountState] = React.useState<number>(totalCount);
+  const [totalPages, setTotalPages] = React.useState<number>(
+    Math.ceil(totalCount / 50) || 1
+  );
+  const [pageInput, setPageInput] = React.useState<string>("1");
 
-  // Sync initialPatients when updated by SSE or parent (only when no search/filter is active)
+  const fetchFilteredPatients = React.useCallback(
+    async (
+      targetPage = page,
+      targetPageSize = pageSize,
+      targetQuery = searchQuery,
+      targetGender = genderFilter
+    ) => {
+      setIsLoading(true);
+      try {
+        const res = await getPatientsListAction({
+          query: targetQuery,
+          gender: targetGender === "ALL" ? undefined : (targetGender as Gender),
+          page: targetPage,
+          limit: targetPageSize,
+        });
+        setPatients(res.patients);
+        setTotalCountState(res.totalCount);
+        setTotalPages(res.totalPages);
+        setPage(res.page);
+        setPageInput(String(res.page));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [page, pageSize, searchQuery, genderFilter]
+  );
+
+  // Sync initialPatients when updated by SSE or parent (only when no search/filter is active and on page 1)
   if (initialPatients !== prevInitial) {
     setPrevInitial(initialPatients);
-    if (!searchQuery.trim() && genderFilter === "ALL") {
+    if (!searchQuery.trim() && genderFilter === "ALL" && page === 1) {
       setPatients(initialPatients);
+      setTotalCountState(totalCount);
+      setTotalPages(Math.ceil(totalCount / pageSize) || 1);
     } else {
-      void fetchFilteredPatients();
+      void fetchFilteredPatients(page, pageSize, searchQuery, genderFilter);
     }
   }
 
-  // Debounced search & filtering
+  // Debounced search & filtering (resets to page 1)
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      void fetchFilteredPatients();
+      void fetchFilteredPatients(1, pageSize, searchQuery, genderFilter);
     }, 250);
     return () => clearTimeout(timer);
-  }, [fetchFilteredPatients]);
+  }, [searchQuery, genderFilter, pageSize, fetchFilteredPatients]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page || isLoading) return;
+    setPage(newPage);
+    setPageInput(String(newPage));
+    void fetchFilteredPatients(newPage, pageSize, searchQuery, genderFilter);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1);
+    setPageInput("1");
+    void fetchFilteredPatients(1, newSize, searchQuery, genderFilter);
+  };
+
+  const handlePageJump = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseInt(pageInput, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= totalPages) {
+      handlePageChange(parsed);
+    } else {
+      setPageInput(String(page));
+    }
+  };
 
   const handleCopyPhone = (phone: string) => {
     navigator.clipboard
@@ -180,7 +232,24 @@ export function PatientDirectoryView({
           </Select>
 
           <span className="text-[11px] text-muted-foreground font-medium shrink-0">
-            Showing {patients.length} of {totalCount}
+            {totalCountState > 0 ? (
+              <>
+                Showing{" "}
+                <strong className="text-foreground font-mono">
+                  {(page - 1) * pageSize + 1}
+                </strong>
+                -
+                <strong className="text-foreground font-mono">
+                  {Math.min(page * pageSize, totalCountState).toLocaleString()}
+                </strong>{" "}
+                of{" "}
+                <strong className="text-foreground font-mono">
+                  {totalCountState.toLocaleString()}
+                </strong>
+              </>
+            ) : (
+              "0 patients"
+            )}
           </span>
         </div>
 
@@ -377,6 +446,95 @@ export function PatientDirectoryView({
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination Bar */}
+          {totalCountState > 0 && (
+            <div className="p-2 sm:p-2.5 border-t border-border/80 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+                <span>
+                  Showing <strong className="text-foreground font-mono">{(page - 1) * pageSize + 1}</strong> -{" "}
+                  <strong className="text-foreground font-mono">{Math.min(page * pageSize, totalCountState).toLocaleString()}</strong> of{" "}
+                  <strong className="text-foreground font-mono">{totalCountState.toLocaleString()}</strong> patients
+                </span>
+
+                <div className="flex items-center gap-1.5 pl-2 border-l border-border/60">
+                  <span className="text-[11px]">Per Page:</span>
+                  <Select
+                    value={String(pageSize)}
+                    onValueChange={(val) => handlePageSizeChange(Number(val))}
+                  >
+                    <SelectTrigger className="h-6.5 w-[70px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 text-muted-foreground mr-1">
+                  <span>Page</span>
+                  <form onSubmit={handlePageJump} className="inline-flex">
+                    <Input
+                      value={pageInput}
+                      onChange={(e) => setPageInput(e.target.value)}
+                      onBlur={handlePageJump}
+                      className="h-6.5 w-11 text-center text-xs p-1 font-mono font-bold"
+                    />
+                  </form>
+                  <span>of <strong className="text-foreground font-mono">{totalPages.toLocaleString()}</strong></span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(1)}
+                    disabled={page <= 1 || isLoading}
+                    className="h-6.5 w-6.5 p-0 cursor-pointer"
+                    title="First Page"
+                  >
+                    <ChevronsLeft className="size-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page <= 1 || isLoading}
+                    className="h-6.5 w-6.5 p-0 cursor-pointer"
+                    title="Previous Page"
+                  >
+                    <ChevronLeft className="size-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page >= totalPages || isLoading}
+                    className="h-6.5 w-6.5 p-0 cursor-pointer"
+                    title="Next Page"
+                  >
+                    <ChevronRight className="size-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={page >= totalPages || isLoading}
+                    className="h-6.5 w-6.5 p-0 cursor-pointer"
+                    title="Last Page"
+                  >
+                    <ChevronsRight className="size-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 

@@ -2021,14 +2021,23 @@ export type PatientWithStats = PatientModel & {
   _count?: { appointments: number };
 };
 
+export interface PatientsListResult {
+  patients: PatientWithStats[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 /**
- * Loads patients directory with optional search query and gender filtering.
+ * Loads patients directory with optional search query, gender filtering, and full pagination.
  */
 export async function getPatientsListAction(params?: {
   query?: string;
   gender?: Gender | "ALL";
+  page?: number;
   limit?: number;
-}): Promise<PatientWithStats[]> {
+}): Promise<PatientsListResult> {
   try {
     await requireAuth([
       Role.RECEPTIONIST,
@@ -2040,6 +2049,9 @@ export async function getPatientsListAction(params?: {
     const query = params?.query?.trim();
     const gender =
       params?.gender && params.gender !== "ALL" ? params.gender : undefined;
+    const page = Math.max(1, params?.page || 1);
+    const limit = Math.min(Math.max(1, params?.limit || 50), 500);
+    const skip = (page - 1) * limit;
 
     const where: Prisma.PatientWhereInput = {};
     if (query) {
@@ -2053,17 +2065,35 @@ export async function getPatientsListAction(params?: {
       where.gender = gender;
     }
 
-    return await prisma.patient.findMany({
-      where,
-      include: {
-        _count: { select: { appointments: true } },
-      },
-      take: params?.limit || 50,
-      orderBy: { createdAt: "desc" },
-    });
+    const [patients, totalCount] = await Promise.all([
+      prisma.patient.findMany({
+        where,
+        include: {
+          _count: { select: { appointments: true } },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.patient.count({ where }),
+    ]);
+
+    return {
+      patients,
+      totalCount,
+      page,
+      pageSize: limit,
+      totalPages: Math.ceil(totalCount / limit) || 1,
+    };
   } catch (error) {
     console.error("[Get Patients List Error]:", error);
-    return [];
+    return {
+      patients: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: params?.limit || 50,
+      totalPages: 1,
+    };
   }
 }
 

@@ -25,11 +25,22 @@ import {
   Stethoscope,
   Activity,
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +66,9 @@ interface PatientDirectoryViewProps {
 
 export function PatientDirectoryView({ initialData }: PatientDirectoryViewProps) {
   const [data, setData] = React.useState<PatientListResult>(initialData);
+  const [page, setPage] = React.useState<number>(initialData.page || 1);
+  const [pageSize, setPageSize] = React.useState<number>(initialData.pageSize || 50);
+  const [pageInput, setPageInput] = React.useState<string>(String(initialData.page || 1));
   const [search, setSearch] = React.useState<string>("");
   const [filter, setFilter] = React.useState<"ALL" | "DUE" | "TODAY" | "FEMALE" | "MALE">("ALL");
   const [sortBy, setSortBy] = React.useState<"recent" | "due" | "bill" | "name">("recent");
@@ -67,12 +81,16 @@ export function PatientDirectoryView({ initialData }: PatientDirectoryViewProps)
   const [isPrintJourneyOpen, setIsPrintJourneyOpen] = React.useState<boolean>(false);
   const [isExportAllOpen, setIsExportAllOpen] = React.useState<boolean>(false);
 
-  // Debounced search / filter fetch
+  const totalPages = data.totalPages || Math.ceil(data.totalCount / pageSize) || 1;
+
+  // Debounced search / filter fetch with full pagination
   const fetchPatients = React.useCallback(
     async (
       searchQuery = search,
       activeFilter = filter,
       activeSort = sortBy,
+      targetPage = page,
+      targetPageSize = pageSize,
       silent = false
     ) => {
       try {
@@ -81,9 +99,12 @@ export function PatientDirectoryView({ initialData }: PatientDirectoryViewProps)
           search: searchQuery,
           filter: activeFilter,
           sortBy: activeSort,
-          limit: 150,
+          limit: targetPageSize,
+          offset: (targetPage - 1) * targetPageSize,
         });
         setData(res);
+        setPage(res.page || targetPage);
+        setPageInput(String(res.page || targetPage));
       } catch (err: any) {
         console.error("[Fetch Patients Error]:", err);
         if (!silent) {
@@ -93,16 +114,40 @@ export function PatientDirectoryView({ initialData }: PatientDirectoryViewProps)
         if (!silent) setIsLoading(false);
       }
     },
-    [search, filter, sortBy]
+    [search, filter, sortBy, page, pageSize]
   );
 
-  // Search input handler with debounce
+  // Search/filter input handler with debounce - resets to page 1
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      fetchPatients(search, filter, sortBy, true);
+      fetchPatients(search, filter, sortBy, 1, pageSize, true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, filter, sortBy, fetchPatients]);
+  }, [search, filter, sortBy, pageSize, fetchPatients]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page || isLoading) return;
+    setPage(newPage);
+    setPageInput(String(newPage));
+    fetchPatients(search, filter, sortBy, newPage, pageSize, false);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1);
+    setPageInput("1");
+    fetchPatients(search, filter, sortBy, 1, newSize, false);
+  };
+
+  const handlePageJump = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseInt(pageInput, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= totalPages) {
+      handlePageChange(parsed);
+    } else {
+      setPageInput(String(page));
+    }
+  };
 
   // Real-time synchronization: silently refresh on patient events
   useRealtimeEvents({
@@ -122,7 +167,7 @@ export function PatientDirectoryView({ initialData }: PatientDirectoryViewProps)
         "PRESCRIPTION_SAVED",
       ];
       if (relevantTypes.includes(event.type)) {
-        fetchPatients(search, filter, sortBy, true);
+        fetchPatients(search, filter, sortBy, page, pageSize, true);
       }
     },
   });
@@ -157,7 +202,7 @@ export function PatientDirectoryView({ initialData }: PatientDirectoryViewProps)
               <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 Patients & Clinical History Hub
                 <Badge variant="outline" className="text-xs font-mono font-bold bg-primary/5 text-primary border-primary/20">
-                  {data.totalCount} Registered
+                  {data.totalCount.toLocaleString()} Registered
                 </Badge>
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -171,7 +216,7 @@ export function PatientDirectoryView({ initialData }: PatientDirectoryViewProps)
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchPatients(search, filter, sortBy)}
+            onClick={() => fetchPatients(search, filter, sortBy, page, pageSize, false)}
             disabled={isLoading}
             className="h-9 gap-1.5 text-xs font-medium cursor-pointer shadow-xs"
           >
@@ -640,6 +685,95 @@ export function PatientDirectoryView({ initialData }: PatientDirectoryViewProps)
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Bar */}
+        {data.totalCount > 0 && (
+          <div className="p-3 sm:p-4 border-t border-border/80 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+              <span>
+                Showing <strong className="text-foreground font-mono">{(page - 1) * pageSize + 1}</strong> -{" "}
+                <strong className="text-foreground font-mono">{Math.min(page * pageSize, data.totalCount).toLocaleString()}</strong> of{" "}
+                <strong className="text-foreground font-mono">{data.totalCount.toLocaleString()}</strong> registered patients
+              </span>
+
+              <div className="flex items-center gap-1.5 pl-2 border-l border-border/60">
+                <span className="text-[11px]">Per Page:</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(val) => handlePageSizeChange(Number(val))}
+                >
+                  <SelectTrigger className="h-7 w-[75px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-muted-foreground mr-1">
+                <span>Page</span>
+                <form onSubmit={handlePageJump} className="inline-flex">
+                  <Input
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onBlur={handlePageJump}
+                    className="h-7 w-12 text-center text-xs p-1 font-mono font-bold"
+                  />
+                </form>
+                <span>of <strong className="text-foreground font-mono">{totalPages.toLocaleString()}</strong></span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={page <= 1 || isLoading}
+                  className="h-7 w-7 p-0 cursor-pointer"
+                  title="First Page"
+                >
+                  <ChevronsLeft className="size-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1 || isLoading}
+                  className="h-7 w-7 p-0 cursor-pointer"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="size-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages || isLoading}
+                  className="h-7 w-7 p-0 cursor-pointer"
+                  title="Next Page"
+                >
+                  <ChevronRight className="size-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={page >= totalPages || isLoading}
+                  className="h-7 w-7 p-0 cursor-pointer"
+                  title="Last Page"
+                >
+                  <ChevronsRight className="size-3.5" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
