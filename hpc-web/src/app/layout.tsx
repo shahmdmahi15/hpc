@@ -163,6 +163,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import { LandscapeLockGuard } from "@/components/layout/landscape-lock-guard";
 import { AutofillDisabler } from "@/components/common/autofill-disabler";
+import { AudioUnlocker } from "@/components/providers/audio-unlocker";
 
 export default function RootLayout({
   children,
@@ -187,6 +188,7 @@ export default function RootLayout({
         >
           <I18nProvider>
             <AutofillDisabler />
+            <AudioUnlocker />
             <PwaRegister />
             <LandscapeLockGuard />
             {children}

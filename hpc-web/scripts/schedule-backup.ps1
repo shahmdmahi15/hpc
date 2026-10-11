@@ -1,8 +1,12 @@
+param(
+    [string]$ScheduleTime = "20:00"
+)
+
 <#
 .SYNOPSIS
     Installs a Windows Scheduled Task for Daily Automated HPC Database Backups.
 .DESCRIPTION
-    Configures Windows Task Scheduler to run the backup script daily at 23:59 (11:59 PM).
+    Configures Windows Task Scheduler to run the backup script daily at 20:00 (8:00 PM Clinic Closing Time).
 #>
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -26,11 +30,11 @@ try {
         schtasks.exe /delete /tn "$TaskName" /f
     }
 
-    # Register task to run every day at 23:59
-    schtasks.exe /create /tn "$TaskName" /tr "$Action" /sc daily /st 23:59 /f /rl highest
+    # Register task to run every day at clinic closing time (default 20:00 / 8:00 PM)
+    schtasks.exe /create /tn "$TaskName" /tr "$Action" /sc daily /st $ScheduleTime /f /rl highest
     if ($LASTEXITCODE -eq 0) {
         Write-Host "`n✓ Windows Scheduled Task '$TaskName' created successfully!" -ForegroundColor Green
-        Write-Host "  Schedule: Daily at 11:59 PM (23:59)" -ForegroundColor White
+        Write-Host "  Schedule: Daily at 8:00 PM ($ScheduleTime) - Clinic Closing Time" -ForegroundColor White
         Write-Host "  Action:   $Action" -ForegroundColor Gray
     } else {
         throw "Failed to create scheduled task via schtasks."

@@ -105,8 +105,10 @@ export async function runDatabaseBackup(options?: {
   try {
     try {
       rawDb.pragma("wal_checkpoint(TRUNCATE)");
+      rawDb.pragma("incremental_vacuum");
+      rawDb.pragma("optimize");
     } catch (e) {
-      console.warn("  WAL checkpoint warning (continuing with live backup):", e);
+      console.warn("  WAL checkpoint / vacuum warning (continuing with live backup):", e);
     }
 
     console.log(`Step 2: Executing non-blocking SQLite Online Backup...`);

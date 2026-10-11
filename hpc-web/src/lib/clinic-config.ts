@@ -31,6 +31,14 @@ export const CLINIC_CONFIG = {
   currencySymbol: "৳",
   defaultConsultationFee: 1000,
   defaultTherapyFee: 500,
+
+  // Operational Hours (10:00 AM - 8:00 PM Daily)
+  openingTime: "10:00 AM",
+  closingTime: "8:00 PM",
+  operatingHours: "10:00 AM - 08:00 PM",
+  operatingHoursBangla: "সকাল ১০:০০ টা - রাত ০৮:০০ টা (প্রতিদিন)",
+  openHour24: 10,
+  closeHour24: 20,
 } as const;
 
 export type ClinicConfig = typeof CLINIC_CONFIG;
