@@ -58,6 +58,7 @@ import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey
 import { SendPatientDialog } from "@/components/doctor/send-patient-dialog";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import { ClinicChatView } from "@/components/chat/clinic-chat-view";
+import { ModalityTimersWidget } from "@/components/handler/modality-timers-widget";
 import { useChatNotifications } from "@/hooks/use-chat-notifications";
 import { playChatChime, showPersistentRealtimeAlert } from "@/lib/chat-chime";
 import {
@@ -297,6 +298,12 @@ export function DoctorDashboardView({
             a.status === AppointmentStatus.CHECKED_IN)),
     );
   }, [data.appointments]);
+
+  const inTherapyAppointments = React.useMemo(() => {
+    return runningTherapyAppointments.filter(
+      (a) => a.status === AppointmentStatus.IN_THERAPY,
+    );
+  }, [runningTherapyAppointments]);
 
   const filteredRunningTherapy = React.useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -857,6 +864,36 @@ export function DoctorDashboardView({
 
           {/* 2. Running Therapy Tab */}
           <TabsContent value="running-therapy" className="space-y-3 outline-none">
+            {/* Active Performing Beds Quick Bar */}
+            {inTherapyAppointments.length > 0 && (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-sky-500/10 border border-emerald-500/30 overflow-x-auto shadow-2xs">
+                <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+                  <Activity className="size-3.5 text-emerald-600 animate-pulse" />
+                  <span>Currently Performing Beds ({inTherapyAppointments.length}):</span>
+                </span>
+                {inTherapyAppointments.map((b) => {
+                  const roomNum = b.room?.number || b.therapySlot?.room?.number || "Bed";
+                  const timer = data.activeTherapyTimersByAppointmentId?.[b.id];
+                  const currMod = timer?.modalities?.[timer?.currentStepIndex]?.name;
+                  return (
+                    <div
+                      key={b.id}
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 text-white border border-emerald-700 shadow-2xs flex items-center gap-1.5 shrink-0"
+                    >
+                      <DoorOpen className="size-3" />
+                      <span>Room {roomNum}:</span>
+                      <span className="font-normal opacity-95">{b.patient?.name}</span>
+                      {currMod && (
+                        <span className="text-[10px] font-mono bg-black/25 px-1.5 py-0.2 rounded font-bold">
+                          • {currMod}
+                        </span>
+                      )}
+                      <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             {filteredRunningTherapy.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border/80 bg-muted/10 p-8 text-center space-y-2">
                 <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/20">
@@ -967,57 +1004,83 @@ export function DoctorDashboardView({
                         </div>
                       </div>
 
-                      {/* Middle: Today's Prescribed Modalities / Treatment Plan */}
-                      <div className="rounded-lg bg-muted/30 border border-border/60 p-2.5 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
-                            <Activity className="size-3 text-emerald-500" />
-                            <span>Active Modalities & Treatment Plan</span>
-                          </span>
-                          {apt.inTherapyTime && (
-                            <span className="text-[10px] font-mono text-muted-foreground">
-                              Started: {formatTime12h(apt.inTherapyTime)}
-                            </span>
+                      {/* Middle: Currently Running Therapy by Handler vs Standby Modalities */}
+                      {isOnBed ? (
+                        <div className="space-y-2">
+                          <ModalityTimersWidget
+                            appointmentId={apt.id}
+                            patientId={apt.patientId}
+                            bedNumber={apt.room?.number ? `Room ${apt.room.number}` : "Bed"}
+                            roomNumber={apt.room?.number || apt.therapySlot?.room?.number}
+                            handlers={data.handlerPerformers}
+                            isDoctorView={true}
+                            doctorId={selectedDoctorId}
+                            initialTimerState={data.activeTherapyTimersByAppointmentId?.[apt.id]}
+                            initialModalityItems={modalities}
+                          />
+
+                          {plan?.instructions && (
+                            <p className="text-[10.5px] text-muted-foreground p-2 rounded-lg bg-muted/40 border border-border/60">
+                              <strong className="text-foreground">Specialist Protocol Instructions:</strong> {plan.instructions}
+                            </p>
                           )}
                         </div>
-
-                        {modalities.length > 0 ? (
-                          <div className="flex flex-wrap gap-1.5 pt-0.5">
-                            {modalities.map((m: any, idx: number) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background border border-emerald-500/30 text-foreground text-[11px] font-medium shadow-2xs"
-                              >
-                                <span className="size-1.5 rounded-full bg-emerald-500" />
-                                <span>{m.name}</span>
-                                {m.durationMinutes && (
-                                  <span className="text-[9.5px] font-mono text-muted-foreground">
-                                    ({m.durationMinutes}m)
-                                  </span>
-                                )}
+                      ) : (
+                        <div className="rounded-lg bg-muted/30 border border-border/60 p-2.5 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                              <Activity className="size-3 text-emerald-500" />
+                              <span>Prescribed Modalities &amp; Treatment Plan</span>
+                            </span>
+                            {apt.inTherapyTime ? (
+                              <span className="text-[10px] font-mono text-muted-foreground">
+                                Started: {formatTime12h(apt.inTherapyTime)}
                               </span>
-                            ))}
+                            ) : (
+                              <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold">
+                                Standby in Queue
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <div className="flex items-center justify-between text-xs text-muted-foreground py-0.5">
-                            <span className="text-[11px] italic">No active modalities prescribed yet for today.</span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleOpenTreatmentPlan(apt, "today")}
-                              className="h-6 px-2 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 cursor-pointer"
-                            >
-                              + Prescribe Today&apos;s Plan
-                            </Button>
-                          </div>
-                        )}
 
-                        {plan?.instructions && (
-                          <p className="text-[10.5px] text-muted-foreground line-clamp-1 border-t border-border/40 pt-1">
-                            <strong className="text-foreground">Instructions:</strong> {plan.instructions}
-                          </p>
-                        )}
-                      </div>
+                          {modalities.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                              {modalities.map((m: any, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background border border-emerald-500/30 text-foreground text-[11px] font-medium shadow-2xs"
+                                >
+                                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                                  <span>{m.name}</span>
+                                  {m.durationMinutes && (
+                                    <span className="text-[9.5px] font-mono text-muted-foreground">
+                                      ({m.durationMinutes}m)
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between text-xs text-muted-foreground py-0.5">
+                              <span className="text-[11px] italic">No active modalities prescribed yet for today.</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleOpenTreatmentPlan(apt, "today")}
+                                className="h-6 px-2 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 cursor-pointer"
+                              >
+                                + Prescribe Today&apos;s Plan
+                              </Button>
+                            </div>
+                          )}
+
+                          {plan?.instructions && (
+                            <p className="text-[10.5px] text-muted-foreground line-clamp-1 border-t border-border/40 pt-1">
+                              <strong className="text-foreground">Instructions:</strong> {plan.instructions}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Bottom Clinical Actions: Prescriptions, Files, Plans, Notes, Routing */}
                       <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/50">

@@ -26,6 +26,9 @@ interface ModalityTimersWidgetProps {
   modalities?: string[];
   initialModalityItems?: { name: string; durationMinutes?: number; order?: number }[];
   handlers?: PerformerModel[];
+  isDoctorView?: boolean;
+  doctorId?: string;
+  initialTimerState?: TherapyTimerState | null;
 }
 
 export function ModalityTimersWidget({
@@ -36,10 +39,37 @@ export function ModalityTimersWidget({
   modalities = [],
   initialModalityItems = [],
   handlers = [],
+  isDoctorView = false,
+  doctorId,
+  initialTimerState,
 }: ModalityTimersWidgetProps) {
-  const [timerState, setTimerState] = React.useState<TherapyTimerState | null>(null);
-  const [isLoading, setIsLoading] = React.useState<boolean>(Boolean(appointmentId));
-  const [displayRemaining, setDisplayRemaining] = React.useState<number>(0);
+  const [timerState, setTimerState] = React.useState<TherapyTimerState | null>(
+    initialTimerState || null,
+  );
+  const [isLoading, setIsLoading] = React.useState<boolean>(
+    !initialTimerState && Boolean(appointmentId),
+  );
+  const [displayRemaining, setDisplayRemaining] = React.useState<number>(() => {
+    if (
+      initialTimerState?.modalities &&
+      initialTimerState.modalities[initialTimerState.currentStepIndex]
+    ) {
+      return initialTimerState.modalities[initialTimerState.currentStepIndex].remainingSeconds;
+    }
+    return 0;
+  });
+
+  // Keep state in sync if parent sends fresh timer telemetry
+  React.useEffect(() => {
+    if (initialTimerState) {
+      setTimerState(initialTimerState);
+      const curr = initialTimerState.modalities[initialTimerState.currentStepIndex];
+      if (curr) {
+        setDisplayRemaining(curr.remainingSeconds);
+      }
+      setIsLoading(false);
+    }
+  }, [initialTimerState]);
 
   // PIN Authorization Modal State
   const [pinAction, setPinAction] = React.useState<TimerActionType | null>(null);
@@ -154,27 +184,29 @@ export function ModalityTimersWidget({
 
       if (remaining <= 0) {
         clearInterval(interval);
-        playTimerCompleteChime();
-        toast.success(`🔔 Time's up for ${currModality.name}! Advancing to next modality.`, {
-          duration: Infinity,
-          closeButton: true,
-        });
-
-        if (appointmentId) {
-          void completeCurrentModalityAction({
-            appointmentId,
-            stepIndex: timerState.currentStepIndex,
-          }).then((res) => {
-            if (res.success && res.timer) {
-              setTimerState(res.timer);
-            }
+        if (!isDoctorView) {
+          playTimerCompleteChime();
+          toast.success(`🔔 Time's up for ${currModality.name}! Advancing to next modality.`, {
+            duration: Infinity,
+            closeButton: true,
           });
+
+          if (appointmentId) {
+            void completeCurrentModalityAction({
+              appointmentId,
+              stepIndex: timerState.currentStepIndex,
+            }).then((res) => {
+              if (res.success && res.timer) {
+                setTimerState(res.timer);
+              }
+            });
+          }
         }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timerState, appointmentId, playTimerCompleteChime]);
+  }, [timerState, appointmentId, isDoctorView, playTimerCompleteChime]);
 
   // Fallback to local state if no appointmentId passed
   if (!appointmentId) {
@@ -196,8 +228,67 @@ export function ModalityTimersWidget({
   const currentStep = timerState?.currentStepIndex ?? 0;
   const activeModality = modalitiesList[currentStep];
 
-  // Actions triggering PIN Dialog
-  const handleOpenPin = (action: TimerActionType, stepIdx: number) => {
+  // Actions triggering PIN Dialog (or direct execution for Doctor)
+  const handleOpenPin = async (action: TimerActionType, stepIdx: number) => {
+    if (isDoctorView) {
+      if (!appointmentId) return;
+      try {
+        if (action === "START") {
+          const res = await startTherapyTimerAction({
+            appointmentId,
+            performerId: doctorId || "doctor",
+            pin: "0000",
+            stepIndex: stepIdx,
+          });
+          if (res.success && res.timer) {
+            setTimerState(res.timer);
+            toast.success(res.message);
+          } else {
+            toast.error(res.message);
+          }
+        } else if (action === "PAUSE") {
+          const res = await pauseTherapyTimerAction({
+            appointmentId,
+            performerId: doctorId || "doctor",
+            pin: "0000",
+          });
+          if (res.success && res.timer) {
+            setTimerState(res.timer);
+            toast.success(res.message);
+          } else {
+            toast.error(res.message);
+          }
+        } else if (action === "SKIP") {
+          const res = await skipTherapyTimerAction({
+            appointmentId,
+            performerId: doctorId || "doctor",
+            pin: "0000",
+          });
+          if (res.success && res.timer) {
+            setTimerState(res.timer);
+            toast.success(res.message);
+          } else {
+            toast.error(res.message);
+          }
+        } else if (action === "RESET") {
+          const res = await resetTherapyTimerAction({
+            appointmentId,
+            performerId: doctorId || "doctor",
+            pin: "0000",
+          });
+          if (res.success && res.timer) {
+            setTimerState(res.timer);
+            toast.success(res.message);
+          } else {
+            toast.error(res.message);
+          }
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Failed to update therapy timer.");
+      }
+      return;
+    }
+
     setPinAction(action);
     setTargetStepIndex(stepIdx);
   };
@@ -271,18 +362,27 @@ export function ModalityTimersWidget({
           </div>
           <div>
             <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <span>Per-Bed Prescribed Therapy Timers</span>
+              <span>{isDoctorView ? "Currently Running Therapy (Handler Performance)" : "Per-Bed Prescribed Therapy Timers"}</span>
               {timerState?.isRunning && (
                 <span className="size-2 rounded-full bg-emerald-500 animate-ping inline-block" />
               )}
             </h4>
             <p className="text-[10px] text-muted-foreground">
-              Live synchronized across all clinic devices • Auto-advances when finished
+              {isDoctorView
+                ? (timerState?.isRunning
+                    ? `Live synchronized countdown • Handler actively performing on Bed ${roomNumber || bedNumber || ""}`
+                    : "Live bed telemetry • Session paused or standby")
+                : "Live synchronized across all clinic devices • Auto-advances when finished"}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
+          {timerState?.performerId && (
+            <span className="text-[10px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60 hidden sm:inline-block">
+              Handler: {handlers.find((h) => h.id === timerState.performerId)?.name || "Assigned"}
+            </span>
+          )}
           <Button
             size="xs"
             variant="ghost"

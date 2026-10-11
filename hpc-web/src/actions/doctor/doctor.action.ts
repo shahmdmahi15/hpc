@@ -29,6 +29,10 @@ import { type TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action
 import { parsePlan } from "@/schemas/doctor/treatment-plan.schema";
 import { syncBillingForAppointment } from "@/lib/billing-sync";
 import { verifyPerformerPin } from "@/lib/performer-auth";
+import {
+  type TherapyTimerState,
+  recalculateTimer,
+} from "@/lib/therapy-timer-utils";
 import { revalidatePath } from "next/cache";
 
 export interface DoctorDashboardData {
@@ -42,6 +46,7 @@ export interface DoctorDashboardData {
   consultationQueue: AppointmentWithRelations[];
   therapyQueue: AppointmentWithRelations[];
   todayPlansByPatientId?: Record<string, TreatmentPlanRecord>;
+  activeTherapyTimersByAppointmentId?: Record<string, TherapyTimerState>;
   activeConsultation: AppointmentWithRelations | null;
   callingAppointment: AppointmentWithRelations | null;
   completedConsultations: AppointmentWithRelations[];
@@ -237,6 +242,31 @@ export async function getDoctorDashboardDataAction(
     }
   }
 
+  // Fetch active therapy timers for all running and queued physical therapy appointments
+  const runningTherapyIds = appointments
+    .filter(
+      (a) =>
+        a.status === AppointmentStatus.IN_THERAPY ||
+        (a.queueType === QueueType.THERAPY &&
+          (a.status === AppointmentStatus.CALLING ||
+            a.status === AppointmentStatus.CHECKED_IN)),
+    )
+    .map((a) => a.id);
+
+  const rawTimers =
+    runningTherapyIds.length > 0
+      ? await prisma.therapySessionTimer.findMany({
+          where: { appointmentId: { in: runningTherapyIds } },
+        })
+      : [];
+
+  const activeTherapyTimersByAppointmentId: Record<string, TherapyTimerState> = {};
+  for (const t of rawTimers) {
+    if (t.appointmentId) {
+      activeTherapyTimersByAppointmentId[t.appointmentId] = recalculateTimer(t);
+    }
+  }
+
   return {
     selectedDate: targetDateStr,
     dayOfWeek: receptionistData.dayOfWeek,
@@ -248,6 +278,7 @@ export async function getDoctorDashboardDataAction(
     consultationQueue,
     therapyQueue,
     todayPlansByPatientId,
+    activeTherapyTimersByAppointmentId,
     activeConsultation,
     callingAppointment,
     completedConsultations,
