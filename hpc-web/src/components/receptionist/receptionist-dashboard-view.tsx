@@ -39,6 +39,7 @@ import { PatientArrivalTab } from "@/components/receptionist/patient-arrival-tab
 import { ConsultationSerialTab } from "@/components/receptionist/consultation-serial-tab";
 import { ClinicChatView } from "@/components/chat/clinic-chat-view";
 import { useChatNotifications } from "@/hooks/use-chat-notifications";
+import { showPersistentRealtimeAlert } from "@/lib/chat-chime";
 
 interface ReceptionistDashboardViewProps {
   initialData: ReceptionistDashboardData;
@@ -125,6 +126,13 @@ export function ReceptionistDashboardView({
       const type = (event?.type || "").toUpperCase();
       if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         refreshData(selectedDateRef.current);
+        if (type === "PATIENT_FORWARDED") {
+          showPersistentRealtimeAlert({
+            title: `Patient Movement: ${event.data?.patientName || "Patient"}`,
+            description: `Routed to ${event.data?.targetStation || event.data?.station || "Next Station"}`,
+            id: `rec-fwd-${event.data?.patientId || Date.now()}`,
+          });
+        }
       }
     },
     onReconnect: () => {

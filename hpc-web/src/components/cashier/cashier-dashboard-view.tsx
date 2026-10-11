@@ -74,7 +74,7 @@ import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey
 import { DashboardDateSelector, formatLocalDate } from "@/components/ui/dashboard-date-selector";
 import { ClinicChatView } from "@/components/chat/clinic-chat-view";
 import { useChatNotifications } from "@/hooks/use-chat-notifications";
-import { playChatChime } from "@/lib/chat-chime";
+import { playChatChime, showPersistentRealtimeAlert } from "@/lib/chat-chime";
 
 interface CashierDashboardViewProps {
   initialData: CashierDashboardData;
@@ -218,22 +218,23 @@ export function CashierDashboardView({
       if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         refreshData(selectedDateRef.current);
         if (type === "CONSULTATION_SERIAL_BOOKED") {
-          playChatChime(false);
-          toast.info(
-            `Doctor Consultation Forwarded: ${event.data?.patientName || "Patient"} (Dr. ${event.data?.doctorName || "Doctor"}) • ৳${event.data?.feeAmount ?? 0}`,
-            { id: `serial-${event.data?.serialNumber || Date.now()}` },
-          );
+          showPersistentRealtimeAlert({
+            title: `Doctor Consultation Forwarded: ${event.data?.patientName || "Patient"}`,
+            description: `Dr. ${event.data?.doctorName || "Doctor"} • ৳${event.data?.feeAmount ?? 0}`,
+            id: `serial-${event.data?.serialNumber || Date.now()}`,
+          });
         } else if (type === "THERAPY_FORWARDED_FOR_DUE") {
-          playChatChime(false);
-          toast.info(
-            `Therapy Arrival with Due: ${event.data?.patientName || "Patient"} (${event.data?.slotLabel || "Therapy Slot"}) • Due: ৳${event.data?.totalDue ?? 0}`,
-            { id: `therapy-due-${event.data?.patientId || Date.now()}` },
-          );
+          showPersistentRealtimeAlert({
+            title: `Therapy Arrival with Due: ${event.data?.patientName || "Patient"}`,
+            description: `${event.data?.slotLabel || "Therapy Slot"} • Due: ৳${event.data?.totalDue ?? 0}`,
+            id: `therapy-due-${event.data?.patientId || Date.now()}`,
+          });
         } else if (type === "APPOINTMENT_CREATED") {
-          toast.info(
-            `New Ticket Booked: ${event.data?.patientName || "Patient"} • ৳${event.data?.feeAmount ?? DEFAULT_FEE} Due on Bill`,
-            { id: `ticket-${event.data?.id || Date.now()}` },
-          );
+          showPersistentRealtimeAlert({
+            title: `New Ticket Booked: ${event.data?.patientName || "Patient"}`,
+            description: `৳${event.data?.feeAmount ?? DEFAULT_FEE} Due on Bill`,
+            id: `ticket-${event.data?.id || Date.now()}`,
+          });
         }
       }
     },

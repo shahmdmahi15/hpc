@@ -43,6 +43,7 @@ import {
   DoorOpen,
   CalendarClock,
   Compass,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -137,6 +138,18 @@ export function AdminSidebar({
               >
                 <UserCheck className="size-4 text-emerald-500" />
                 <span className="font-semibold">Patients &amp; History</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Staff & Performer Performance Telemetry */}
+            <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+              <SidebarMenuButton
+                render={<Link href="/admin/performance" />}
+                isActive={pathname.startsWith("/admin/performance")}
+                tooltip="Staff & Performer Performance Analytics"
+              >
+                <Award className="size-4 text-amber-500" />
+                <span className="font-semibold">Performance</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 

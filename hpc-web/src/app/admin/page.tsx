@@ -32,6 +32,7 @@ import {
   CircleDollarSign,
   FileSpreadsheet,
   MessageSquare,
+  Award,
 } from "lucide-react";
 import { AdminExportButton } from "@/components/admin/admin-export-button";
 import { AdminBackupButton } from "@/components/admin/admin-backup-button";
@@ -107,6 +108,15 @@ export default async function AdminPage() {
       badge: "Messaging",
       color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
     },
+    {
+      title: "Staff Performance",
+      description:
+        "Comprehensive metrics for doctors, receptionists, cashiers, and handlers.",
+      href: "/admin/performance",
+      icon: Award,
+      badge: "Telemetry",
+      color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+    },
   ];
 
   return (
@@ -152,6 +162,16 @@ export default async function AdminPage() {
             <AdminExportButton />
             <AdminBackupButton />
             <AdminDailyClosingButton data={counts} />
+
+            <Link
+              href="/admin/performance"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              title="Track doctor earnings, consultation time, top medicines, cashier revenue, and handler bed utilization"
+            >
+              <Award className="size-3.5" />
+              <span>Staff Performance</span>
+              <ArrowUpRight className="size-3" />
+            </Link>
 
             <Link
               href="/admin/patients"

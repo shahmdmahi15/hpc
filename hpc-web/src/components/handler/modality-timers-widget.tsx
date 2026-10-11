@@ -155,7 +155,10 @@ export function ModalityTimersWidget({
       if (remaining <= 0) {
         clearInterval(interval);
         playTimerCompleteChime();
-        toast.success(`Time's up for ${currModality.name}! Advancing to next modality.`);
+        toast.success(`🔔 Time's up for ${currModality.name}! Advancing to next modality.`, {
+          duration: Infinity,
+          closeButton: true,
+        });
 
         if (appointmentId) {
           void completeCurrentModalityAction({

@@ -73,7 +73,8 @@ export function useChatNotifications({
               : `💬 [${channelName}] ${msg.senderName}`,
             {
               description: snippet,
-              duration: 5000,
+              duration: Infinity,
+              closeButton: true,
               action: onOpenChatTab
                 ? {
                     label: "Open Chat",

@@ -118,6 +118,58 @@ export function playChatChime(isUrgent = false) {
 /**
  * Triggers native HTML5 browser notification if permission has been granted.
  */
+import { toast } from "sonner";
+
+export interface PersistentRealtimeAlertOptions {
+  title: string;
+  description?: string;
+  type?: "info" | "success" | "warning" | "error";
+  isUrgent?: boolean;
+  id?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
+
+/**
+ * Triggers a persistent clinical alert toast with offline Web Audio chime.
+ * Toasts will stay open until manually dismissed with their close button.
+ */
+export function showPersistentRealtimeAlert({
+  title,
+  description,
+  type = "info",
+  isUrgent = false,
+  id,
+  action,
+}: PersistentRealtimeAlertOptions) {
+  playChatChime(isUrgent);
+
+  const toastOptions = {
+    description,
+    duration: Infinity,
+    closeButton: true,
+    id,
+    action,
+  };
+
+  if (type === "success") {
+    toast.success(title, toastOptions);
+  } else if (type === "warning") {
+    toast.warning(title, toastOptions);
+  } else if (type === "error") {
+    toast.error(title, toastOptions);
+  } else {
+    toast.info(title, toastOptions);
+  }
+
+  showChatBrowserNotification(title, description || "");
+}
+
+/**
+ * Triggers native HTML5 browser notification if permission has been granted.
+ */
 export function showChatBrowserNotification(title: string, body: string) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
 
@@ -136,3 +188,5 @@ export function showChatBrowserNotification(title: string, body: string) {
     Notification.requestPermission().catch(() => {});
   }
 }
+
+

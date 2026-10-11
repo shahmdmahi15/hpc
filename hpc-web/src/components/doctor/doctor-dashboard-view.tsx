@@ -56,7 +56,7 @@ import { SendPatientDialog } from "@/components/doctor/send-patient-dialog";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import { ClinicChatView } from "@/components/chat/clinic-chat-view";
 import { useChatNotifications } from "@/hooks/use-chat-notifications";
-import { playChatChime } from "@/lib/chat-chime";
+import { playChatChime, showPersistentRealtimeAlert } from "@/lib/chat-chime";
 import {
   DoctorPrescriptionDialog,
   type DoctorPrescriptionData,
@@ -176,11 +176,12 @@ export function DoctorDashboardView({
       if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         refreshData(selectedDateRef.current);
         if (type === "CONSULTATION_QUEUED") {
-          playChatChime(false);
-          toast.info(
-            `New Patient in Consultation Queue: ${event.data?.patientName || "Patient"} (Serial #${event.data?.serialNumber || ""})`,
-            { id: `queue-consult-${event.data?.serialId || Date.now()}` },
-          );
+          showPersistentRealtimeAlert({
+            title: `New Patient in Consultation Queue: ${event.data?.patientName || "Patient"}`,
+            description: `Serial #${event.data?.serialNumber || ""} • Room: ${event.data?.roomNumber || "Cabin"}`,
+            isUrgent: false,
+            id: `queue-consult-${event.data?.serialId || Date.now()}`,
+          });
         }
       }
     },

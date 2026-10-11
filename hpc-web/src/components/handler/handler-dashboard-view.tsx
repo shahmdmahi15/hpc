@@ -45,7 +45,7 @@ import { ModalityTimersWidget } from "@/components/handler/modality-timers-widge
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
 import { ClinicChatView } from "@/components/chat/clinic-chat-view";
 import { useChatNotifications } from "@/hooks/use-chat-notifications";
-import { playChatChime } from "@/lib/chat-chime";
+import { playChatChime, showPersistentRealtimeAlert } from "@/lib/chat-chime";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import { PatientMedicalHistoryDialog } from "@/components/doctor/medical/patient-medical-history-dialog";
 import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
@@ -153,11 +153,12 @@ export function HandlerDashboardView({
       if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         refreshData(selectedDateRef.current);
         if (type === "PATIENT_QUEUED_FOR_THERAPY") {
-          playChatChime(false);
-          toast.info(
-            `New Patient in Therapy Queue: ${event.data?.patientName || "Patient"} (${event.data?.slotLabel || "Therapy Slot"})`,
-            { id: `queue-therapy-${event.data?.appointmentId || Date.now()}` },
-          );
+          showPersistentRealtimeAlert({
+            title: `New Patient in Therapy Queue: ${event.data?.patientName || "Patient"}`,
+            description: `${event.data?.slotLabel || "Therapy Slot"} • Room: ${event.data?.roomNumber || "Therapy Area"}`,
+            isUrgent: false,
+            id: `queue-therapy-${event.data?.appointmentId || Date.now()}`,
+          });
         }
       }
     },
