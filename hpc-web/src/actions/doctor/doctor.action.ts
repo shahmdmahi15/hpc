@@ -1347,3 +1347,235 @@ export async function getPatientTodayTherapyDueAction(patientId: string): Promis
     };
   }
 }
+
+export interface RequestImmediateExtraTherapyParams {
+  appointmentId: string;
+  doctorId?: string;
+  reason?: string;
+  therapyFee?: number;
+  consultationFee?: number;
+  routingNote?: string;
+}
+
+/**
+ * 1-Click Doctor Action: Authorizes an immediate extra physical therapy session for today,
+ * creates an approved extra appointment ticket, links billing, routes the patient directly
+ * to the Handler Station / Therapy Queue, and emits real-time events.
+ */
+export async function requestImmediateExtraTherapyAction(
+  params: RequestImmediateExtraTherapyParams,
+): Promise<{
+  success: boolean;
+  message: string;
+  appointment?: AppointmentWithRelations;
+}> {
+  try {
+    const sessionData = await requireAuth([Role.DOCTOR, Role.ADMIN]);
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: params.appointmentId },
+      include: {
+        patient: true,
+        therapySlot: { include: { room: true } },
+        room: true,
+        doctor: true,
+      },
+    });
+
+    if (!appointment) {
+      return { success: false, message: "Appointment record not found." };
+    }
+
+    const todayDate = new Date();
+    const appointmentDate = new Date(
+      todayDate.getFullYear(),
+      todayDate.getMonth(),
+      todayDate.getDate(),
+      12,
+      0,
+      0,
+    );
+
+    // Consultation fee and therapy fee calculations
+    const consultationFee =
+      params.consultationFee !== undefined
+        ? Math.max(0, params.consultationFee)
+        : (appointment.consultationFee ??
+          (appointment.type === AppointmentType.CONSULTATION
+            ? (appointment.feeAmount ?? 500)
+            : 0));
+
+    const therapyFee =
+      params.therapyFee !== undefined
+        ? Math.max(0, params.therapyFee)
+        : (appointment.therapyFee ?? 800);
+
+    const totalFee = consultationFee + therapyFee;
+
+    // Stamp current consultation appointment as completed or out of consultation
+    await prisma.appointment.update({
+      where: { id: appointment.id },
+      data: {
+        status: AppointmentStatus.COMPLETED,
+        outConsultationTime: appointment.outConsultationTime || new Date(),
+        roomId: null, // Release chamber room
+      },
+    });
+
+    // Ensure Therapy Queue exists
+    let queueRecord = await prisma.queue.findUnique({
+      where: { type: QueueType.THERAPY },
+    });
+    if (!queueRecord) {
+      queueRecord = await prisma.queue.create({
+        data: {
+          type: QueueType.THERAPY,
+          name: "Therapy Queue",
+          description: "Queue for physical therapy patients",
+        },
+      });
+    }
+
+    // Create the approved Extra Therapy appointment ticket
+    const extraApt = await prisma.appointment.create({
+      data: {
+        patientId: appointment.patientId,
+        gender: appointment.gender,
+        appointmentDate,
+        type: AppointmentType.THERAPY,
+        queueType: QueueType.THERAPY,
+        queueId: queueRecord.id,
+        status: AppointmentStatus.CHECKED_IN,
+        bookingType: BookingType.EXTRA,
+        extraStatus: ExtraApprovalStatus.APPROVED,
+        extraApprovedById: sessionData.user.id,
+        extraReason:
+          params.reason ||
+          "Doctor prescribed immediate extra therapy session",
+        feeAmount: totalFee,
+        consultationFee,
+        therapyFee,
+        paidAmount: appointment.paidAmount ?? 0,
+        dueAmount: Math.max(0, totalFee - (appointment.paidAmount ?? 0)),
+        paymentStatus:
+          totalFee - (appointment.paidAmount ?? 0) <= 0 &&
+          (appointment.paidAmount ?? 0) > 0
+            ? "PAID"
+            : (appointment.paidAmount ?? 0) > 0
+              ? "PARTIAL"
+              : "PENDING",
+        currentStation: "HANDLER_STATION",
+        routedAt: new Date(),
+        checkInTime: new Date(),
+        outConsultationTime: new Date(),
+        outTherapyTime: null,
+        routingNote:
+          params.routingNote ||
+          params.reason ||
+          "Doctor authorized immediate extra therapy session",
+        doctorId: appointment.doctorId || params.doctorId || null,
+      },
+      include: {
+        patient: true,
+        therapySlot: { include: { room: true } },
+        room: true,
+        bookedBy: true,
+        extraApprovedBy: true,
+        queue: true,
+        doctor: true,
+      },
+    });
+
+    // Record Patient Step Log
+    await prisma.patientStepLog
+      .create({
+        data: {
+          patientId: appointment.patientId,
+          step: "PATIENT_FORWARDED",
+          station: "HANDLER_STATION",
+          details: `Doctor authorized immediate extra therapy session for ${appointment.patient.name}. Routed to Handler Desk.`,
+        },
+      })
+      .catch(() => {});
+
+    // Sync billing
+    await syncBillingForAppointment(extraApt.id);
+
+    // Audit Log
+    await logAudit({
+      userId: sessionData.user.id,
+      performerId: params.doctorId || null,
+      action: AuditAction.APPOINTMENT_CREATE,
+      entity: "Appointment",
+      entityId: extraApt.id,
+      status: AuditStatus.SUCCESS,
+      details: {
+        action: "IMMEDIATE_EXTRA_THERAPY_APPROVED",
+        patientName: appointment.patient.name,
+        totalFee,
+      },
+    });
+
+    // Realtime Events
+    emitRealtimeEvent("APPOINTMENT_CREATED", {
+      id: extraApt.id,
+      patientId: extraApt.patientId,
+      patientName: appointment.patient.name,
+      queueType: extraApt.queueType,
+      type: extraApt.type,
+      status: extraApt.status,
+      currentStation: extraApt.currentStation,
+      date: extraApt.appointmentDate.toISOString().split("T")[0],
+    });
+
+    emitRealtimeEvent("PATIENT_QUEUED_FOR_THERAPY", {
+      id: extraApt.id,
+      patientId: extraApt.patientId,
+      patientName: appointment.patient.name,
+      status: extraApt.status,
+      currentStation: extraApt.currentStation,
+      isExtra: true,
+      date: extraApt.appointmentDate.toISOString().split("T")[0],
+    });
+
+    emitRealtimeEvent("STATION_CHANGED", {
+      appointmentId: extraApt.id,
+      patientId: extraApt.patientId,
+      patientName: appointment.patient.name,
+      fromStation: "DOCTOR_CHAMBER",
+      toStation: "HANDLER_STATION",
+      status: extraApt.status,
+    });
+
+    emitRealtimeEvent("PATIENT_FORWARDED", {
+      appointmentId: extraApt.id,
+      patientId: extraApt.patientId,
+      patientName: appointment.patient.name,
+      destination: "HANDLER",
+      toStation: "HANDLER_STATION",
+      routingNote: extraApt.routingNote,
+    });
+
+    revalidatePath("/doctor");
+    revalidatePath("/handler");
+    revalidatePath("/cashier");
+    revalidatePath("/receptionist");
+    revalidatePath("/admin/tracking");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      message: `Immediate extra therapy session approved for ${appointment.patient.name}. Patient is queued to the Handler Desk!`,
+      appointment: extraApt as AppointmentWithRelations,
+    };
+  } catch (error: unknown) {
+    console.error("[Request Immediate Extra Therapy Error]:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to request immediate extra therapy.",
+    };
+  }
+}

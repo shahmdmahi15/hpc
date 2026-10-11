@@ -150,6 +150,123 @@ export async function downloadElementAsPdf(
   }
 }
 
+/**
+ * Compiles multiple DOM elements into a single multi-page PDF document.
+ * Each element is rendered on its own dedicated high-resolution page.
+ */
+export async function downloadMultipleElementsAsPdf(
+  elementsOrIds: (HTMLElement | string)[],
+  options: PdfGenerationOptions = {}
+): Promise<boolean> {
+  if (typeof window === "undefined" || elementsOrIds.length === 0) return false;
+
+  const {
+    filename = `HPC-Doc-History-${Date.now()}.pdf`,
+    format = "a4",
+    orientation = "portrait",
+    quality = 0.95,
+  } = options;
+
+  try {
+    const isCustom55 =
+      format === "custom-5.5x8.125" ||
+      format === "statement" ||
+      format === "half-sheet";
+
+    const pdf = isCustom55
+      ? new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: [STANDARD_PAPER_SIZE.widthMm, STANDARD_PAPER_SIZE.heightMm],
+          compress: true,
+        })
+      : new jsPDF({
+          orientation,
+          unit: "mm",
+          format: format === "thermal" ? "a4" : format,
+          compress: true,
+        });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const marginMm = isCustom55 ? 5 : 8;
+    const contentWidth = pageWidth - marginMm * 2;
+
+    let pageAdded = 0;
+
+    for (let i = 0; i < elementsOrIds.length; i++) {
+      const item = elementsOrIds[i];
+      const targetElement =
+        typeof item === "string" ? document.getElementById(item) : item;
+
+      if (!targetElement) continue;
+
+      const originalBg = targetElement.style.backgroundColor;
+      targetElement.style.backgroundColor = "#ffffff";
+
+      const dataUrl = await htmlToImage.toPng(targetElement, {
+        quality,
+        pixelRatio: 2.5,
+        backgroundColor: "#ffffff",
+        cacheBust: true,
+        skipFonts: false,
+      });
+
+      targetElement.style.backgroundColor = originalBg;
+
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+
+      const aspectRatio = img.height / img.width;
+      const contentHeight = contentWidth * aspectRatio;
+
+      if (pageAdded > 0) {
+        pdf.addPage();
+      }
+
+      if (contentHeight <= pageHeight - marginMm * 2) {
+        pdf.addImage(
+          dataUrl,
+          "PNG",
+          marginMm,
+          marginMm,
+          contentWidth,
+          contentHeight,
+          undefined,
+          "FAST"
+        );
+      } else {
+        const scaledWidth = (pageHeight - marginMm * 2) / aspectRatio;
+        const xOffset = (pageWidth - scaledWidth) / 2;
+        pdf.addImage(
+          dataUrl,
+          "PNG",
+          xOffset,
+          marginMm,
+          scaledWidth,
+          pageHeight - marginMm * 2,
+          undefined,
+          "FAST"
+        );
+      }
+
+      pageAdded++;
+    }
+
+    if (pageAdded === 0) return false;
+
+    pdf.save(filename);
+    return true;
+  } catch (err) {
+    console.error("[PDF Generator] Failed to generate multi-page PDF:", err);
+    return false;
+  }
+}
+
 export interface PrintIsolatedOptions {
   title?: string;
   paperSize?: string; // Default: "5.5in 8.125in"

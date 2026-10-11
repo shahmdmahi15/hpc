@@ -10,13 +10,19 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Server-Sent Events (SSE) + Catch-Up Poll Endpoint for 100% offline real-time synchronization.
- * Runs on Node.js standalone runtime with native ReadableStream and EventSource.
+ * Server-Sent Events (SSE) + Replay & Catch-Up Poll Endpoint backed by SQLite WAL.
+ * Ensures 100% offline, zero-external-cloud multi-process real-time event synchronization.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get("mode");
-  const sinceParam = Number(searchParams.get("since") || "0");
+  const lastEventIdHeader = request.headers.get("Last-Event-ID");
+  const sinceParam = Number(
+    searchParams.get("since") ||
+      searchParams.get("lastEventId") ||
+      lastEventIdHeader ||
+      "0",
+  );
 
   // Fast JSON catch-up poll mode for zero-miss synchronization
   if (mode === "poll") {
@@ -49,6 +55,8 @@ export async function GET(request: NextRequest) {
     start(controller) {
       // 1. Initial connection handshake with current sequence number
       const currentSeq = getLatestRealtimeSeq();
+      let lastStreamedSeq = currentSeq;
+
       const initialPayload = JSON.stringify({
         connected: true,
         seq: currentSeq,
@@ -58,7 +66,7 @@ export async function GET(request: NextRequest) {
         encoder.encode(`event: connected\ndata: ${initialPayload}\n\n`),
       );
 
-      // Replay any missed events if client reconnected with ?since=
+      // Replay any missed events from SQLite WAL if client reconnected with ?since= or Last-Event-ID
       if (sinceParam > 0 && sinceParam < currentSeq) {
         const missed = getRealtimeEventsSince(sinceParam);
         for (const item of missed) {
@@ -67,19 +75,25 @@ export async function GET(request: NextRequest) {
             controller.enqueue(
               encoder.encode(`id: ${item.seq ?? ""}\ndata: ${data}\n\n`),
             );
+            if (item.seq && item.seq > lastStreamedSeq) {
+              lastStreamedSeq = item.seq;
+            }
           } catch {
             // Stream closed
           }
         }
       }
 
-      // 2. Event listener for real-time broadcast
+      // 2. In-process event listener for immediate zero-latency local broadcast
       const onEvent = (payload: RealtimeEventPayload) => {
         try {
           const data = JSON.stringify(payload);
           controller.enqueue(
             encoder.encode(`id: ${payload.seq ?? ""}\ndata: ${data}\n\n`),
           );
+          if (payload.seq && payload.seq > lastStreamedSeq) {
+            lastStreamedSeq = payload.seq;
+          }
         } catch {
           // Stream might be closed
         }
@@ -87,7 +101,29 @@ export async function GET(request: NextRequest) {
 
       bus.on("*", onEvent);
 
-      // 3. Heartbeat keep-alive with latest seq every 8 seconds
+      // 3. Multi-process SQLite WAL synchronization ticker every 1000ms
+      // Catches and streams any events committed to SQLite WAL by other server worker processes
+      const crossProcessSyncInterval = setInterval(() => {
+        try {
+          const currentMaxSeq = getLatestRealtimeSeq();
+          if (currentMaxSeq > lastStreamedSeq) {
+            const newEvents = getRealtimeEventsSince(lastStreamedSeq, 50);
+            for (const item of newEvents) {
+              const data = JSON.stringify(item);
+              controller.enqueue(
+                encoder.encode(`id: ${item.seq ?? ""}\ndata: ${data}\n\n`),
+              );
+              if (item.seq && item.seq > lastStreamedSeq) {
+                lastStreamedSeq = item.seq;
+              }
+            }
+          }
+        } catch {
+          if (cleanup) cleanup();
+        }
+      }, 1000);
+
+      // 4. Heartbeat keep-alive with latest seq every 8 seconds
       const pingInterval = setInterval(() => {
         try {
           const heartbeatPayload = JSON.stringify({
@@ -103,6 +139,7 @@ export async function GET(request: NextRequest) {
       }, 8000);
 
       cleanup = () => {
+        clearInterval(crossProcessSyncInterval);
         clearInterval(pingInterval);
         bus.off("*", onEvent);
         try {
@@ -112,7 +149,7 @@ export async function GET(request: NextRequest) {
         }
       };
 
-      // 4. Cleanup on client disconnect
+      // 5. Cleanup on client disconnect
       request.signal.addEventListener("abort", () => {
         if (cleanup) cleanup();
       });
@@ -131,4 +168,3 @@ export async function GET(request: NextRequest) {
     },
   });
 }
-

@@ -33,12 +33,14 @@ import {
   Save,
   FileText,
   Timer,
+  Zap,
 } from "lucide-react";
 import type { AppointmentWithRelations } from "@/actions/receptionist/appointment.action";
 import {
   routePatientAction,
   updateAppointmentFeeAction,
   getPatientTodayTherapyDueAction,
+  requestImmediateExtraTherapyAction,
 } from "@/actions/doctor/doctor.action";
 import {
   getPatientTreatmentPlansAction,
@@ -269,6 +271,43 @@ function SendPatientDialogContent({
       }
     } catch {
       toast.error("Failed to route patient.");
+    } finally {
+      setIsRouting(false);
+      setRoutingDestination(null);
+    }
+  };
+
+  // 1-Click Request Immediate Extra Therapy
+  const handleRequestImmediateExtraTherapy = async () => {
+    setIsRouting(true);
+    setRoutingDestination("HANDLER");
+    try {
+      const therapyFeeForRouting =
+        todayTherapyDueInfo?.therapyFee || (appointment as any).therapyFee || 800;
+
+      const res = await requestImmediateExtraTherapyAction({
+        appointmentId: appointment.id,
+        doctorId,
+        therapyFee: therapyFeeForRouting,
+        consultationFee: Number(dueAmount),
+        reason:
+          routingNote.trim() ||
+          "Doctor prescribed immediate additional physical therapy session",
+        routingNote: routingNote.trim() || undefined,
+      });
+
+      if (res.success) {
+        toast.success(res.message);
+        onOpenChange(false);
+        setIsCompletedSlotPromptOpen(false);
+        setIsMissingSlotPromptOpen(false);
+        setIsMissingPlanPromptOpen(false);
+        onSuccess?.();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to request immediate extra therapy.");
     } finally {
       setIsRouting(false);
       setRoutingDestination(null);
@@ -1003,6 +1042,20 @@ function SendPatientDialogContent({
           </div>
 
           <div className="flex flex-col gap-2 pt-3">
+            <Button
+              type="button"
+              onClick={handleRequestImmediateExtraTherapy}
+              disabled={isRouting}
+              className="w-full h-9 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
+            >
+              {isRouting && routingDestination === "HANDLER" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Zap className="size-3.5" />
+              )}
+              <span>⚡ Authorize Extra Slot & Send to Handler Immediately</span>
+            </Button>
+
             {!todayPlan && onOpenTreatmentPlan && (
               <Button
                 type="button"
@@ -1135,14 +1188,28 @@ function SendPatientDialogContent({
                   `Today's booked therapy session has already been completed for this patient. To conduct another physical therapy session today, a new therapy slot must be booked.`}
               </DialogDescription>
               <div className="p-2.5 rounded-xl bg-muted/60 border border-border text-xs text-muted-foreground">
-                Please select an alternative destination: route the patient to the{" "}
-                <strong className="text-foreground">Receptionist Desk</strong> to book an additional slot, or forward directly to the{" "}
+                You can authorize an immediate extra therapy session with 1 click below, or forward the patient to the{" "}
+                <strong className="text-foreground">Receptionist Desk</strong> or{" "}
                 <strong className="text-foreground">Cashier Counter</strong>.
               </div>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 pt-3">
+            <Button
+              type="button"
+              onClick={handleRequestImmediateExtraTherapy}
+              disabled={isRouting}
+              className="w-full h-9 text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
+            >
+              {isRouting && routingDestination === "HANDLER" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Zap className="size-3.5" />
+              )}
+              <span>⚡ Request Immediate Extra Therapy (1-Click Forward to Handler)</span>
+            </Button>
+
             <Button
               type="button"
               onClick={() => {

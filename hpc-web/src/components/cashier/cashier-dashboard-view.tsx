@@ -691,6 +691,81 @@ export function CashierDashboardView({
     });
   }, [data.therapyAwaitingDueClearance, searchQuery]);
 
+  // All patients with active outstanding dues
+  const duePatientsList = React.useMemo(() => {
+    const map = new Map<
+      string,
+      { patient: any; totalDue: number; sources: string[]; latestApt?: any }
+    >();
+
+    // 1. From patients list
+    for (const p of data.patients || []) {
+      if ((p.totalDue ?? 0) > 0) {
+        map.set(p.id, {
+          patient: p,
+          totalDue: p.totalDue,
+          sources: ["Historical / Previous Balance"],
+        });
+      }
+    }
+
+    // 2. From pending therapy appointments with dueAmount
+    for (const a of data.pendingAppointments || []) {
+      const due = a.dueAmount ?? 0;
+      if (due > 0 && a.patient) {
+        const existing = map.get(a.patientId);
+        if (existing) {
+          if (!existing.sources.includes("Therapy Session"))
+            existing.sources.push("Therapy Session");
+          if (!existing.latestApt) existing.latestApt = a;
+        } else {
+          map.set(a.patientId, {
+            patient: a.patient,
+            totalDue: due,
+            sources: ["Therapy Session"],
+            latestApt: a,
+          });
+        }
+      }
+    }
+
+    // 3. From consultation serials with dueAmount
+    for (const s of data.consultationSerials || []) {
+      const due =
+        s.dueAmount ?? (s.paymentStatus === "DUE" ? s.feeAmount : 0);
+      if (due > 0 && s.patient) {
+        const existing = map.get(s.patientId);
+        if (existing) {
+          if (!existing.sources.includes("Doctor Consultation"))
+            existing.sources.push("Doctor Consultation");
+        } else {
+          map.set(s.patientId, {
+            patient: s.patient,
+            totalDue: due,
+            sources: ["Doctor Consultation"],
+          });
+        }
+      }
+    }
+
+    return Array.from(map.values()).sort((a, b) => b.totalDue - a.totalDue);
+  }, [data.patients, data.pendingAppointments, data.consultationSerials]);
+
+  const filteredDuePatients = React.useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return duePatientsList.filter((item) => {
+      if (!q) return true;
+      const name = (item.patient?.name || "").toLowerCase();
+      const phone = (item.patient?.phone || "").toLowerCase();
+      const mrn = (item.patient?.mrn || "").toLowerCase();
+      return name.includes(q) || phone.includes(q) || mrn.includes(q);
+    });
+  }, [duePatientsList, searchQuery]);
+
+  const totalDueSum = React.useMemo(() => {
+    return duePatientsList.reduce((sum, item) => sum + item.totalDue, 0);
+  }, [duePatientsList]);
+
   const totalPendingBillsCount =
     filteredPending.length +
     filteredPendingConsultations.length +
@@ -796,6 +871,17 @@ export function CashierDashboardView({
                   <span>Pending</span>
                   <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300">
                     {totalPendingBillsCount}
+                  </span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="due"
+                  className="text-xs h-7 px-3 gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-semibold shrink-0 whitespace-nowrap"
+                >
+                  <AlertCircle className="size-3 text-rose-500" />
+                  <span>Due</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                    {duePatientsList.length}
                   </span>
                 </TabsTrigger>
 
@@ -1298,6 +1384,163 @@ export function CashierDashboardView({
                       </div>
                     </div>
                   )}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* TAB 1B: OUTSTANDING DUES (Due Tab) */}
+          <TabsContent value="due" className="mt-0 space-y-3">
+            {/* Top Metrics Banner */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/5 space-y-1">
+                <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <AlertCircle className="size-3.5 text-rose-500" />
+                  Total Outstanding Dues
+                </span>
+                <div className="text-xl font-bold font-mono text-rose-700 dark:text-rose-300">
+                  ৳{totalDueSum.toLocaleString()}
+                </div>
+                <p className="text-[10.5px] text-muted-foreground">
+                  Across all active patient accounts &amp; unpaid bills
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl border border-border bg-card space-y-1">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="size-3.5 text-primary" />
+                  Patients with Due Balance
+                </span>
+                <div className="text-xl font-bold font-mono text-foreground">
+                  {duePatientsList.length}
+                </div>
+                <p className="text-[10.5px] text-muted-foreground">
+                  Individuals with active dues needing clearance
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-1">
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Activity className="size-3.5 text-amber-500" />
+                  Therapy Arrivals on Hold
+                </span>
+                <div className="text-xl font-bold font-mono text-amber-700 dark:text-amber-300">
+                  {data.therapyAwaitingDueClearance.length}
+                </div>
+                <p className="text-[10.5px] text-muted-foreground">
+                  Waiting at Cashier before entering therapy queue
+                </p>
+              </div>
+            </div>
+
+            {/* List / Table of Patients with Due */}
+            {filteredDuePatients.length === 0 ? (
+              <div className="p-8 text-center rounded-xl border border-dashed border-border bg-card/40 space-y-2">
+                <CheckCircle2 className="size-8 text-emerald-500/60 mx-auto" />
+                <h3 className="text-sm font-semibold text-foreground">
+                  All Patient Dues Cleared!
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  No patients with active outstanding dues found. All bills and accounts are in good standing.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border/70 bg-muted/40 text-muted-foreground font-semibold">
+                        <th className="py-2.5 px-3">Patient</th>
+                        <th className="py-2.5 px-3">MRN / Phone</th>
+                        <th className="py-2.5 px-3">Due Sources</th>
+                        <th className="py-2.5 px-3 text-right">Outstanding Balance</th>
+                        <th className="py-2.5 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {filteredDuePatients.map((item) => {
+                        const p = item.patient;
+                        return (
+                          <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="py-2.5 px-3">
+                              <div className="font-bold text-foreground">
+                                {p.name || "Patient"}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <span
+                                  className={`px-1 py-0.2 rounded font-bold ${
+                                    p.gender === "MALE"
+                                      ? "bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                                      : "bg-pink-500/10 text-pink-700 dark:text-pink-300"
+                                  }`}
+                                >
+                                  {p.gender === "MALE" ? "M" : "F"}
+                                </span>
+                                {p.age ? <span>• {p.age} yrs</span> : null}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 font-mono">
+                              <div className="font-semibold text-foreground">
+                                {p.phone || "---"}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {p.mrn || "No MRN"}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <div className="flex flex-wrap gap-1">
+                                {item.sources.map((s, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted border border-border/60 text-muted-foreground"
+                                  >
+                                    {s}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono">
+                              <span className="font-bold text-sm text-rose-600 dark:text-rose-400">
+                                ৳{item.totalDue.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <PatientNotesTriggerButton
+                                  patientId={p.id}
+                                  patientName={p.name || "Patient"}
+                                  patientMrn={p.mrn}
+                                  defaultCategory="CASHIER"
+                                  currentUserRole="CASHIER"
+                                  currentUserName={data.currentCashier?.name || "Cashier Desk"}
+                                  currentUserId={currentCashierId}
+                                  currentStation="Cashier Counter"
+                                  className="h-7 px-2 text-xs font-semibold border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+                                />
+
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    handleOpenClearDueModal({
+                                      patientId: p.id,
+                                      patient: p,
+                                      feeAmount: item.totalDue,
+                                      dueAmount: item.totalDue,
+                                      id: item.latestApt?.id,
+                                    })
+                                  }
+                                  className="h-7 px-2.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer gap-1 rounded-lg"
+                                >
+                                  <CreditCard className="size-3" />
+                                  <span>Collect Due</span>
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </TabsContent>

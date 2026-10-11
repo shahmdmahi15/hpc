@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Clock,
   Utensils,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -27,6 +28,7 @@ import {
   type PrescriptionMedicineItem,
 } from "@/actions/doctor/prescription.action";
 import { PrescriptionPrintDialog, type PrescriptionPrintRecord } from "./prescription-print-dialog";
+import { downloadMultipleElementsAsPdf } from "@/lib/pdf-generator";
 
 interface OldPrescriptionsDialogProps {
   isOpen: boolean;
@@ -53,6 +55,33 @@ export function OldPrescriptionsDialog({
   const [selectedPrintRecord, setSelectedPrintRecord] =
     React.useState<PrescriptionPrintRecord | null>(null);
   const [isPrintOpen, setIsPrintOpen] = React.useState(false);
+  const [isExportingAllPdf, setIsExportingAllPdf] = React.useState(false);
+
+  const handleDownloadAllPdf = async () => {
+    if (prescriptions.length === 0 || !patient) return;
+    setIsExportingAllPdf(true);
+    toast.info("Compiling consolidated multi-page PDF...");
+    try {
+      const elementIds = prescriptions.map((p, idx) => `prescription-card-${p.id || idx}`);
+      const patientSafeName = (patient.name || "Patient").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const filename = `Prescriptions_${patientSafeName}_${patient.mrn || "HPC"}.pdf`;
+      const ok = await downloadMultipleElementsAsPdf(elementIds, {
+        filename,
+        format: "a4",
+        quality: 0.95,
+      });
+      if (ok) {
+        toast.success("Consolidated multi-page PDF downloaded!");
+      } else {
+        toast.error("Could not generate multi-page PDF.");
+      }
+    } catch (err) {
+      console.error("[Export All Prescriptions PDF Error]:", err);
+      toast.error("Failed to generate multi-page PDF.");
+    } finally {
+      setIsExportingAllPdf(false);
+    }
+  };
 
   const loadPrescriptions = React.useCallback(async () => {
     if (!patient?.id) return;
@@ -137,19 +166,38 @@ export function OldPrescriptionsDialog({
               </div>
             </div>
 
-            {onNewPrescriptionRequested && (
-              <Button
-                size="sm"
-                onClick={() => {
-                  onOpenChange(false);
-                  onNewPrescriptionRequested();
-                }}
-                className="h-8 text-xs font-semibold bg-sky-600 hover:bg-sky-700 text-white gap-1.5 cursor-pointer"
-              >
-                <Plus className="size-3.5" />
-                <span>New Prescription</span>
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {prescriptions.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadAllPdf}
+                  disabled={isExportingAllPdf}
+                  className="h-8 text-xs font-semibold border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 gap-1.5 cursor-pointer shadow-xs"
+                >
+                  {isExportingAllPdf ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Download className="size-3.5" />
+                  )}
+                  <span>Export All ({prescriptions.length}) Multi-Page PDF</span>
+                </Button>
+              )}
+
+              {onNewPrescriptionRequested && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onNewPrescriptionRequested();
+                  }}
+                  className="h-8 text-xs font-semibold bg-sky-600 hover:bg-sky-700 text-white gap-1.5 cursor-pointer"
+                >
+                  <Plus className="size-3.5" />
+                  <span>New Prescription</span>
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           {/* List Content */}
@@ -187,6 +235,7 @@ export function OldPrescriptionsDialog({
               prescriptions.map((p, pIdx) => (
                 <div
                   key={p.id || pIdx}
+                  id={`prescription-card-${p.id || pIdx}`}
                   className="rounded-xl border border-border bg-card p-4 space-y-3.5 shadow-xs"
                 >
                   {/* Top Bar: Doctor, Date, Print Action */}
