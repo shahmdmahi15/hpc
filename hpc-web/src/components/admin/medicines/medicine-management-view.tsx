@@ -45,6 +45,7 @@ import {
 import { CreateMedicineDialog } from "./create-medicine-dialog";
 import { EditMedicineDialog } from "./edit-medicine-dialog";
 import { DeleteMedicineDialog } from "./delete-medicine-dialog";
+import { DgdaSeedDialog } from "./dgda-seed-dialog";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 
 interface MedicineItem {
@@ -95,6 +96,7 @@ export function MedicineManagementView({
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [deletingMedicine, setDeletingMedicine] = React.useState<MedicineItem | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+  const [isDgdaSeedOpen, setIsDgdaSeedOpen] = React.useState(false);
 
   // Load Data
   const loadMedicines = React.useCallback(async () => {
@@ -225,18 +227,15 @@ export function MedicineManagementView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {counts.total === 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSeed}
-                disabled={isSeeding}
-                className="gap-1.5 text-xs font-semibold border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 shadow-xs cursor-pointer"
-              >
-                <Sparkles className="size-3.5 text-purple-500" />
-                <span>Seed Standard Medicines</span>
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDgdaSeedOpen(true)}
+              className="gap-1.5 text-xs font-semibold border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 shadow-xs cursor-pointer"
+            >
+              <Database className="size-3.5 text-emerald-600" />
+              <span>DGDA Seeding</span>
+            </Button>
 
             <Button
               variant="outline"
@@ -521,6 +520,13 @@ export function MedicineManagementView({
         isOpen={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
         medicine={deletingMedicine}
+        onSuccess={loadMedicines}
+      />
+
+      <DgdaSeedDialog
+        isOpen={isDgdaSeedOpen}
+        onOpenChange={setIsDgdaSeedOpen}
+        currentCount={counts.total}
         onSuccess={loadMedicines}
       />
     </div>

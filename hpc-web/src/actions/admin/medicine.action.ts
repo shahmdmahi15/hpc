@@ -6,6 +6,7 @@ import { Role, AuditAction, AuditStatus } from "@/generated/prisma/enums";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
+import { seedDgdaMedicines, type MedicineSeedResult } from "@/lib/medicine-seeder";
 
 export interface CreateMedicineInput {
   name: string; // Mandatory
@@ -670,6 +671,50 @@ export async function seedDefaultMedicinesAction() {
     return {
       success: false,
       message: error?.message || "Failed to seed medicines.",
+    };
+  }
+}
+
+/**
+ * Seeds the comprehensive DGDA Bangladesh national drug catalog (dgda.csv and medicine_information_export.csv).
+ */
+export async function seedDgdaMedicinesAction(
+  mode: "all" | "generics" | "brands" = "all"
+): Promise<MedicineSeedResult> {
+  try {
+    const { session, user } = await requireAuth([Role.ADMIN]);
+
+    const result = seedDgdaMedicines(undefined, mode);
+
+    await logAudit({
+      userId: user.id,
+      action: AuditAction.MEDICINE_SEED,
+      status: AuditStatus.SUCCESS,
+      entity: "Medicine",
+      details: `DGDA Bangladesh Seeding (${mode}): ${result.message}`,
+      ipAddress: session.ipAddress || undefined,
+      userAgent: session.userAgent || undefined,
+    });
+
+    emitRealtimeEvent("MEDICINE_CREATED", {
+      count: result.totalInserted,
+      mode,
+    });
+
+    revalidatePath("/admin/medicines");
+    revalidatePath("/doctor");
+
+    return result;
+  } catch (error: any) {
+    console.error("[DGDA Medicine Seed Error]:", error);
+    return {
+      success: false,
+      insertedGenerics: 0,
+      insertedBrands: 0,
+      totalInserted: 0,
+      totalInDatabase: 0,
+      durationMs: 0,
+      message: error?.message || "Failed to seed DGDA medicines.",
     };
   }
 }
