@@ -34,7 +34,14 @@ export type RealtimeEventType =
   | "PATIENT_NOTE_ADDED"
   | "MEDICINE_CREATED"
   | "MEDICINE_UPDATED"
-  | "MEDICINE_DELETED";
+  | "MEDICINE_DELETED"
+  | "BULLETIN_NOTICE_CREATED"
+  | "BULLETIN_NOTICE_UPDATED"
+  | "BULLETIN_NOTICE_DELETED"
+  | "DEVICE_CONNECTED"
+  | "DEVICE_HEARTBEAT"
+  | "DEVICE_DISCONNECTED"
+  | "SYSTEM_BROADCAST_ALERT";
 
 export interface RealtimeEventPayload<T = any> {
   seq?: number;

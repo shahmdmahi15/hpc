@@ -21,15 +21,18 @@ import {
 import { useLiveClock } from "@/hooks/use-live-clock";
 import type { ConnectionStatus } from "@/hooks/use-realtime-events";
 import { Role } from "@/generated/prisma/enums";
+import { NetworkStatusBadge } from "@/components/network/network-status-badge";
 
 interface ReceptionistHeaderProps {
   connectionStatus: ConnectionStatus;
   currentUserRole?: Role;
+  station?: string;
 }
 
 export function ReceptionistHeader({
   connectionStatus,
   currentUserRole,
+  station,
 }: ReceptionistHeaderProps) {
   const { lang } = useI18n();
   // Live local clock with zero cascading renders
@@ -47,21 +50,13 @@ export function ReceptionistHeader({
           </span>
         </div>
 
-        {/* Compact SSE Connection Dot on Mobile (< lg) */}
-        <div
-          className="flex lg:hidden items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-muted/50 border border-border/60 shrink-0"
-          title={`SSE LAN Status: ${connectionStatus}`}
-        >
-          {connectionStatus === "connected" ? (
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-          ) : connectionStatus === "connecting" ? (
-            <span className="size-2 rounded-full bg-amber-500 animate-ping" />
-          ) : (
-            <span className="size-2 rounded-full bg-zinc-400" />
-          )}
-          <span className="hidden xs:inline text-[10px] text-muted-foreground font-mono">
-            {connectionStatus === "connected" ? "LAN" : "OFFLINE"}
-          </span>
+        {/* Network Badge on Mobile (< lg) */}
+        <div className="flex lg:hidden items-center shrink-0">
+          <NetworkStatusBadge
+            role={currentUserRole || Role.RECEPTIONIST}
+            station={station || "Reception Desk"}
+            variant="minimal"
+          />
         </div>
       </div>
 
@@ -95,33 +90,12 @@ export function ReceptionistHeader({
           </span>
         </div>
 
-        {/* Realtime Offline SSE Status */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background border border-border/70 text-[11px] font-medium shadow-xs">
-          {connectionStatus === "connected" ? (
-            <>
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <Wifi className="size-3" />
-                {lang === "bn" ? "সরাসরি" : "Live"}
-              </span>
-            </>
-          ) : connectionStatus === "connecting" ? (
-            <>
-              <span className="size-2 rounded-full bg-amber-500 animate-ping" />
-              <span className="text-amber-600 dark:text-amber-400">
-                {lang === "bn" ? "সংযুক্ত হচ্ছে..." : "Connecting..."}
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="size-2 rounded-full bg-zinc-400" />
-              <span className="text-muted-foreground flex items-center gap-1">
-                <WifiOff className="size-3" />
-                {lang === "bn" ? "অফলাইন মোড" : "Offline Mode"}
-              </span>
-            </>
-          )}
-        </div>
+        {/* Realtime Network Latency & Telemetry Badge */}
+        <NetworkStatusBadge
+          role={currentUserRole || Role.RECEPTIONIST}
+          station={station || "Reception Desk"}
+          variant="badge"
+        />
       </div>
 
       {/* 3. Right: Controls & Shortcuts */}

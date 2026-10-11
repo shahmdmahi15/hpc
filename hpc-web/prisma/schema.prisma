@@ -191,6 +191,10 @@ model User {
   sentChatMessages          ChatMessage[]        @relation("SentChatMessages")
   receivedChatMessages      ChatMessage[]        @relation("ReceivedChatMessages")
 
+  // Bulletin and Device Fleet relations
+  bulletinNotices           BulletinNotice[]     @relation("UserBulletinNotices")
+  connectedDevices          ConnectedDevice[]    @relation("UserConnectedDevices")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -996,5 +1000,67 @@ model Medicine {
   @@index([form])
   @@index([isActive])
   @@index([order])
+}
+
+// --------------------------------------------------------
+// CLINIC BULLETIN & NOTICE BOARD SYSTEM
+// --------------------------------------------------------
+
+model BulletinNotice {
+  id             String    @id @default(cuid())
+  title          String?
+  message        String
+  priority       String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  targetAudience String    @default("ALL")    // ALL, WAITING_ROOM, STAFF
+  isActive       Boolean   @default(true)
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdById    String?
+  createdBy      User?     @relation("UserBulletinNotices", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([isActive, targetAudience])
+}
+
+// --------------------------------------------------------
+// HARDWARE / DEVICE FLEET MONITORING & TELEMETRY
+// --------------------------------------------------------
+
+model ConnectedDevice {
+  id             String    @id @default(cuid())
+  deviceId       String    @unique
+  deviceName     String?
+  ipAddress      String?
+  role           String?
+  station        String?
+  deviceType     String    @default("DESKTOP") // DESKTOP, MOBILE, TABLET, ANDROID_TV, UNKNOWN
+  browser        String?
+  userAgent      String?
+  latencyMs      Int       @default(0)
+  isOnline       Boolean   @default(true)
+  lastSeenAt     DateTime  @default(now())
+  firstSeenAt    DateTime  @default(now())
+  userId         String?
+  user           User?     @relation("UserConnectedDevices", fields: [userId], references: [id], onDelete: SetNull)
+  metadata       String?
+
+  @@index([isOnline, lastSeenAt])
+  @@index([ipAddress])
+}
+
+// --------------------------------------------------------
+// REALTIME EVENT REPLAY JOURNAL
+// --------------------------------------------------------
+
+model RealtimeEvent {
+  id        Int      @id @default(autoincrement())
+  type      String
+  data      String
+  timestamp String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([id])
+  @@map("realtime_events")
 }
 

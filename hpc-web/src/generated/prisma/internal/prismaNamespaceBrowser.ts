@@ -72,7 +72,10 @@ export const ModelName = {
   ChatMessage: 'ChatMessage',
   Prescription: 'Prescription',
   TherapySessionTimer: 'TherapySessionTimer',
-  Medicine: 'Medicine'
+  Medicine: 'Medicine',
+  BulletinNotice: 'BulletinNotice',
+  ConnectedDevice: 'ConnectedDevice',
+  RealtimeEvent: 'RealtimeEvent'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -558,6 +561,55 @@ export const MedicineScalarFieldEnum = {
 } as const
 
 export type MedicineScalarFieldEnum = (typeof MedicineScalarFieldEnum)[keyof typeof MedicineScalarFieldEnum]
+
+
+export const BulletinNoticeScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  message: 'message',
+  priority: 'priority',
+  targetAudience: 'targetAudience',
+  isActive: 'isActive',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  createdById: 'createdById'
+} as const
+
+export type BulletinNoticeScalarFieldEnum = (typeof BulletinNoticeScalarFieldEnum)[keyof typeof BulletinNoticeScalarFieldEnum]
+
+
+export const ConnectedDeviceScalarFieldEnum = {
+  id: 'id',
+  deviceId: 'deviceId',
+  deviceName: 'deviceName',
+  ipAddress: 'ipAddress',
+  role: 'role',
+  station: 'station',
+  deviceType: 'deviceType',
+  browser: 'browser',
+  userAgent: 'userAgent',
+  latencyMs: 'latencyMs',
+  isOnline: 'isOnline',
+  lastSeenAt: 'lastSeenAt',
+  firstSeenAt: 'firstSeenAt',
+  userId: 'userId',
+  metadata: 'metadata'
+} as const
+
+export type ConnectedDeviceScalarFieldEnum = (typeof ConnectedDeviceScalarFieldEnum)[keyof typeof ConnectedDeviceScalarFieldEnum]
+
+
+export const RealtimeEventScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  data: 'data',
+  timestamp: 'timestamp',
+  createdAt: 'createdAt'
+} as const
+
+export type RealtimeEventScalarFieldEnum = (typeof RealtimeEventScalarFieldEnum)[keyof typeof RealtimeEventScalarFieldEnum]
 
 
 export const SortOrder = {

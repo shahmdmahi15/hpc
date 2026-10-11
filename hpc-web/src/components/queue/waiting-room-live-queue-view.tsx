@@ -46,6 +46,11 @@ import {
   Radio,
   Tv,
 } from "lucide-react";
+import { NetworkStatusBadge } from "@/components/network/network-status-badge";
+import {
+  getActiveBulletinNoticesAction,
+  type BulletinNoticeData,
+} from "@/actions/admin/bulletin-notice.action";
 
 export interface DoctorCallAnnouncement {
   appointmentId: string;
@@ -85,6 +90,15 @@ export function WaitingRoomLiveQueueView({
   const [departmentFilter, setDepartmentFilter] = React.useState<
     "ALL" | "CONSULTATION" | "THERAPY"
   >("ALL");
+
+  // Bulletin notices and emergency system alerts
+  const [bulletinNotices, setBulletinNotices] = React.useState<BulletinNoticeData[]>([]);
+  const [emergencyAlert, setEmergencyAlert] = React.useState<{
+    message: string;
+    priority?: string;
+    sentBy?: string;
+    sentAt?: string;
+  } | null>(null);
 
   // Screen Wake Lock API state (Prevents TV/Kiosk sleep mode)
   const [isWakeLockActive, setIsWakeLockActive] = React.useState<boolean>(false);
@@ -292,6 +306,38 @@ export function WaitingRoomLiveQueueView({
       });
     } catch (err) {
       console.warn("[Doctor Call Chime Error]:", err);
+    }
+  }, [getAudioContext]);
+
+  // Play alert tone for emergency broadcasts (100% offline)
+  const playEmergencyChime = React.useCallback(() => {
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+      [0, 0.22, 0.44].forEach((t) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(880, ctx.currentTime + t);
+        gainNode.gain.setValueAtTime(0.001, ctx.currentTime + t);
+        gainNode.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + t + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.18);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.onended = () => {
+          try {
+            osc.disconnect();
+            gainNode.disconnect();
+          } catch {}
+        };
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.2);
+      });
+    } catch (err) {
+      console.warn("[Emergency Chime Error]:", err);
     }
   }, [getAudioContext]);
 
@@ -574,6 +620,33 @@ export function WaitingRoomLiveQueueView({
     });
   }, []);
 
+  const loadNotices = React.useCallback(() => {
+    startTransition(async () => {
+      try {
+        const res = await getActiveBulletinNoticesAction("WAITING_ROOM");
+        if (res && res.success && Array.isArray(res.data)) {
+          setBulletinNotices(res.data);
+        }
+      } catch (err) {
+        console.error("[Waiting Room Bulletin Notices Error]:", err);
+      }
+    });
+  }, []);
+
+  // Initial load of bulletin notices
+  React.useEffect(() => {
+    loadNotices();
+  }, [loadNotices]);
+
+  // Auto-dismiss emergency broadcast alert after 25 seconds
+  React.useEffect(() => {
+    if (!emergencyAlert) return;
+    const timer = setTimeout(() => {
+      setEmergencyAlert(null);
+    }, 25000);
+    return () => clearTimeout(timer);
+  }, [emergencyAlert]);
+
   // Real-time SSE subscription (100% offline local network sync)
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
@@ -593,6 +666,18 @@ export function WaitingRoomLiveQueueView({
         setCountdownSeconds(16);
         playAnnouncementSound(announcementData);
         refreshQueue();
+      } else if (
+        type === "BULLETIN_NOTICE_CREATED" ||
+        type === "BULLETIN_NOTICE_UPDATED" ||
+        type === "BULLETIN_NOTICE_DELETED"
+      ) {
+        loadNotices();
+      } else if (type === "SYSTEM_BROADCAST_ALERT") {
+        const payload = event.data;
+        if (payload?.message) {
+          setEmergencyAlert(payload);
+          playEmergencyChime();
+        }
       } else if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
         if (type === "APPOINTMENT_UPDATED" && event.data?.id) {
           const d = event.data;
@@ -642,6 +727,7 @@ export function WaitingRoomLiveQueueView({
     },
     onReconnect: () => {
       refreshQueue();
+      loadNotices();
     },
   });
 
@@ -1005,6 +1091,30 @@ export function WaitingRoomLiveQueueView({
 
   return (
     <div className="min-h-screen lg:h-dvh lg:max-h-dvh w-full max-w-full overflow-x-hidden overflow-y-auto lg:overflow-hidden flex flex-col justify-between bg-white dark:bg-black text-zinc-950 dark:text-white select-none pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] transition-colors duration-200">
+      {/* Emergency Broadcast Alert Overlay Banner */}
+      {emergencyAlert && (
+        <div className="w-full bg-red-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 shadow-xl flex items-center justify-between gap-3 animate-pulse shrink-0 z-50">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <AlertTriangle className="size-4 sm:size-5 text-yellow-300 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded mr-2">
+                {lang === "bn" ? "জরুরি সম্প্রচার বার্তা" : "EMERGENCY BROADCAST"}
+              </span>
+              <span className="text-xs sm:text-sm font-bold truncate">
+                {emergencyAlert.message}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEmergencyAlert(null)}
+            className="px-2 sm:px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-semibold text-white shrink-0 cursor-pointer"
+          >
+            {lang === "bn" ? "বন্ধ করুন" : "Dismiss"}
+          </button>
+        </div>
+      )}
+
       {/* ---------------------------------------------------- */}
       {/* 1. Header (Adaptive Across Mobile to 4K TV)          */}
       {/* ---------------------------------------------------- */}
@@ -1113,39 +1223,19 @@ export function WaitingRoomLiveQueueView({
             </span>
           </div>
 
-          {/* SSE Connection Health */}
-          <div
-            className={`flex items-center gap-1 px-1 sm:px-1.5 py-0.5 rounded-lg text-[10px] 2xl:text-xs font-semibold border ${
-              connectionStatus === "connected"
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 animate-pulse"
-            }`}
-            title={
-              connectionStatus === "connected"
-                ? lang === "bn"
-                  ? "রিয়েল-টাইম লাইভ ইভেন্ট সক্রিয়"
-                  : "Real-time SSE event stream active"
-                : lang === "bn"
-                  ? "রিয়েল-টাইম ইভেন্টে সংযুক্ত হচ্ছে..."
-                  : "Connecting to real-time event stream..."
-            }
-          >
-            {connectionStatus === "connected" ? (
-              <>
-                <Wifi className="size-2.5 sm:size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="hidden 2xl:inline">
-                  {lang === "bn" ? "লাইভ" : "Live"}
-                </span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="size-2.5 sm:size-3 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span className="hidden 2xl:inline">
-                  {lang === "bn" ? "সিঙ্ক..." : "Syncing..."}
-                </span>
-              </>
-            )}
-          </div>
+          {/* Network Health & Ping Indicator */}
+          <NetworkStatusBadge
+            role="WAITING_ROOM"
+            station="Waiting Room TV"
+            variant="badge"
+            className="hidden sm:inline-flex"
+          />
+          <NetworkStatusBadge
+            role="WAITING_ROOM"
+            station="Waiting Room TV"
+            variant="minimal"
+            className="sm:hidden"
+          />
 
           {/* Offline Audio / Speech Controls */}
           <div className="flex items-center gap-0.5 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 shadow-2xs">
@@ -1506,12 +1596,43 @@ export function WaitingRoomLiveQueueView({
       {/* 2.5 Clinical Health & Patient Guidance Marquee Ticker */}
       {/* ---------------------------------------------------- */}
       <div className="w-full bg-zinc-100 dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800 py-1 px-2.5 sm:px-4 text-xs font-semibold text-zinc-900 dark:text-zinc-100 overflow-hidden whitespace-nowrap flex items-center gap-2 sm:gap-2.5 shrink-0">
-        <span className="bg-emerald-600 dark:bg-emerald-500 text-white text-[9px] sm:text-[9.5px] 2xl:text-xs px-1.5 py-0.5 rounded font-black uppercase tracking-wider shrink-0 shadow-2xs">
-          {lang === "bn" ? "জরুরি নোটিশ" : "CLINIC NOTICE"}
+        <span
+          className={`text-white text-[9px] sm:text-[9.5px] 2xl:text-xs px-1.5 py-0.5 rounded font-black uppercase tracking-wider shrink-0 shadow-2xs ${
+            bulletinNotices.some((n) => n.priority === "URGENT")
+              ? "bg-red-600 animate-pulse"
+              : bulletinNotices.some((n) => n.priority === "HIGH")
+                ? "bg-amber-600"
+                : "bg-emerald-600 dark:bg-emerald-500"
+          }`}
+        >
+          {bulletinNotices.some((n) => n.priority === "URGENT")
+            ? lang === "bn"
+              ? "জরুরি নোটিশ"
+              : "URGENT NOTICE"
+            : lang === "bn"
+              ? "ক্লিনিক নোটিশ"
+              : "CLINIC NOTICE"}
         </span>
         <div className="overflow-hidden relative w-full text-[10.5px] sm:text-[11.5px] 2xl:text-sm text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
           <div className="inline-block animate-marquee whitespace-nowrap font-medium space-x-6 sm:space-x-8">
-            {lang === "bn" ? (
+            {bulletinNotices.length > 0 ? (
+              bulletinNotices.map((n) => (
+                <span key={n.id} className="inline-flex items-center gap-1.5">
+                  {n.priority === "URGENT" ? (
+                    <span className="bg-red-600 text-white text-[8px] sm:text-[9px] px-1 py-0.2 rounded font-black uppercase">
+                      {lang === "bn" ? "জরুরি" : "URGENT"}
+                    </span>
+                  ) : n.priority === "HIGH" ? (
+                    <span className="bg-amber-600 text-white text-[8px] sm:text-[9px] px-1 py-0.2 rounded font-black uppercase">
+                      {lang === "bn" ? "সতর্কতা" : "ALERT"}
+                    </span>
+                  ) : null}
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    • {n.title ? `${n.title}: ` : ""}{n.message}
+                  </span>
+                </span>
+              ))
+            ) : lang === "bn" ? (
               <>
                 <span>• সিরিয়াল ডাকা হলে অনুগ্রহ করে টোকেন টিকিটটি সাথে রাখুন</span>
                 <span>• ওয়েটিং রুমে বসার সময় মেরুদণ্ড সোজা রাখুন</span>

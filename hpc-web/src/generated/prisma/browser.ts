@@ -127,3 +127,18 @@ export type TherapySessionTimer = Prisma.TherapySessionTimerModel
  * 
  */
 export type Medicine = Prisma.MedicineModel
+/**
+ * Model BulletinNotice
+ * 
+ */
+export type BulletinNotice = Prisma.BulletinNoticeModel
+/**
+ * Model ConnectedDevice
+ * 
+ */
+export type ConnectedDevice = Prisma.ConnectedDeviceModel
+/**
+ * Model RealtimeEvent
+ * 
+ */
+export type RealtimeEvent = Prisma.RealtimeEventModel

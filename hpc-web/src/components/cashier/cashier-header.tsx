@@ -21,15 +21,18 @@ import {
 import { useLiveClock } from "@/hooks/use-live-clock";
 import type { ConnectionStatus } from "@/hooks/use-realtime-events";
 import { Role } from "@/generated/prisma/enums";
+import { NetworkStatusBadge } from "@/components/network/network-status-badge";
 
 interface CashierHeaderProps {
   connectionStatus: ConnectionStatus;
   currentUserRole?: Role;
+  station?: string;
 }
 
 export function CashierHeader({
   connectionStatus,
   currentUserRole,
+  station,
 }: CashierHeaderProps) {
   const { lang } = useI18n();
   const currentTime = useLiveClock();
@@ -79,37 +82,24 @@ export function CashierHeader({
           </span>
         </div>
 
-        {/* Realtime Offline SSE Status */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background border border-border/70 text-[11px] font-medium shadow-xs">
-          {connectionStatus === "connected" ? (
-            <>
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <Wifi className="size-3" />
-                {lang === "bn" ? "সরাসরি" : "Live"}
-              </span>
-            </>
-          ) : connectionStatus === "connecting" ? (
-            <>
-              <span className="size-2 rounded-full bg-amber-500 animate-ping" />
-              <span className="text-amber-600 dark:text-amber-400">
-                {lang === "bn" ? "সংযুক্ত হচ্ছে..." : "Connecting..."}
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="size-2 rounded-full bg-zinc-400" />
-              <span className="text-muted-foreground flex items-center gap-1">
-                <WifiOff className="size-3" />
-                {lang === "bn" ? "অফলাইন মোড" : "Offline Mode"}
-              </span>
-            </>
-          )}
-        </div>
+        {/* Realtime Network Latency & Telemetry Badge */}
+        <NetworkStatusBadge
+          role={currentUserRole || Role.CASHIER}
+          station={station || "Cashier Desk"}
+          variant="badge"
+        />
       </div>
 
       {/* 3. Right: Controls & Shortcuts */}
       <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Mobile Network Badge */}
+        <div className="lg:hidden flex items-center">
+          <NetworkStatusBadge
+            role={currentUserRole || Role.CASHIER}
+            station={station || "Cashier Desk"}
+            variant="minimal"
+          />
+        </div>
         {/* Admin Panel shortcut (if logged in user has ADMIN role) */}
         {currentUserRole === Role.ADMIN && (
           <Link

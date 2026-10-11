@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import tls from "tls";
+import dgram from "dgram";
 
 // Check if launched in development or production mode
 const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
@@ -281,6 +282,81 @@ app.prepare().then(() => {
       console.log(`> Root CA:   ${protocol}://localhost:${port}/rootCA.crt (Download for devices)`);
       console.log(`> SSL Guide: ${protocol}://localhost:${port}/guide.html (Device setup guide)`);
     }
+
+    // Start lightweight UDP Auto-Discovery Responder on port 8888 for Android TV / Jetpack fleet
+    startUdpDiscoveryResponder(port, hasSsl);
     console.log("========================================================");
   });
 });
+
+/**
+ * Lightweight UDP Auto-Discovery Responder on port 8888.
+ * Listens for HPC_DISCOVER_SERVER or HPC_PING broadcast packets from native Android TV devices
+ * and replies with server LAN IP, port, SSL status, and clinic name.
+ */
+function startUdpDiscoveryResponder(httpPort: number, ssl: boolean) {
+  try {
+    const udpSocket = dgram.createSocket({ type: "udp4", reuseAddr: true });
+
+    udpSocket.on("error", (err: any) => {
+      console.warn(`[UDP Auto-Discovery Notice]: ${err?.message || err}`);
+      try {
+        udpSocket.close();
+      } catch {
+        // Socket already closed
+      }
+    });
+
+    udpSocket.on("message", (msg, rinfo) => {
+      try {
+        const text = msg.toString().trim();
+        if (text.includes("HPC_DISCOVER_SERVER") || text.includes("HPC_PING")) {
+          const localIps = getLocalIps();
+          const serverIp = localIps[0] || "127.0.0.1";
+          const payload = JSON.stringify({
+            service: "hpc-clinic-server",
+            ip: serverIp,
+            port: httpPort,
+            ssl,
+            name: "Health Peak Center",
+          });
+          const buf = Buffer.from(payload);
+          udpSocket.send(buf, 0, buf.length, rinfo.port, rinfo.address, (sendErr) => {
+            if (sendErr) {
+              console.warn(
+                `[UDP send error to ${rinfo.address}:${rinfo.port}]:`,
+                sendErr.message,
+              );
+            }
+          });
+        }
+      } catch (parseErr: any) {
+        console.warn("[UDP message parse error]:", parseErr?.message);
+      }
+    });
+
+    const UDP_PORT = 8888;
+    udpSocket.bind(UDP_PORT, () => {
+      try {
+        udpSocket.setBroadcast(true);
+      } catch {
+        // Ignore broadcast flag error if unsupported
+      }
+      console.log(`> UDP Disc: udp://0.0.0.0:${UDP_PORT} (Android TV auto-discovery active)`);
+    });
+
+    const closeUdp = () => {
+      try {
+        udpSocket.close();
+      } catch {
+        // Already closed
+      }
+    };
+
+    process.on("exit", closeUdp);
+    process.on("SIGINT", closeUdp);
+    process.on("SIGTERM", closeUdp);
+  } catch (err: any) {
+    console.warn("[UDP Auto-Discovery initialization skipped]:", err?.message);
+  }
+}

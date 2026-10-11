@@ -18,6 +18,8 @@ import {
   MessageSquare,
   Award,
   Pill,
+  Radio,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChatNotifications } from "@/hooks/use-chat-notifications";
@@ -81,6 +83,18 @@ const NAV_ITEMS = [
     href: "/admin/clinical",
     label: "Clinical Config",
     icon: Stethoscope,
+    exact: false,
+  },
+  {
+    href: "/admin/network",
+    label: "Network & Fleet",
+    icon: Radio,
+    exact: false,
+  },
+  {
+    href: "/admin/notices",
+    label: "Bulletin Notices",
+    icon: Megaphone,
     exact: false,
   },
   {
