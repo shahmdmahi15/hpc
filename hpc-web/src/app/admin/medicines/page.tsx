@@ -22,6 +22,8 @@ export default async function AdminMedicinesPage() {
         totalCount={res.totalCount || 0}
         activeCount={res.activeCount || 0}
         inactiveCount={res.inactiveCount || 0}
+        initialPage={res.page || 1}
+        initialTotalPages={res.totalPages || 1}
       />
     </div>
   );

@@ -17,6 +17,10 @@ import {
   Utensils,
   Sparkles,
   Layers,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import {
   Card,
@@ -69,6 +73,8 @@ interface MedicineManagementViewProps {
   totalCount: number;
   activeCount: number;
   inactiveCount: number;
+  initialPage?: number;
+  initialTotalPages?: number;
 }
 
 export function MedicineManagementView({
@@ -76,6 +82,8 @@ export function MedicineManagementView({
   totalCount: initialTotal,
   activeCount: initialActive,
   inactiveCount: initialInactive,
+  initialPage = 1,
+  initialTotalPages,
 }: MedicineManagementViewProps) {
   const [medicines, setMedicines] = React.useState<MedicineItem[]>(initialMedicines);
   const [counts, setCounts] = React.useState({
@@ -83,6 +91,13 @@ export function MedicineManagementView({
     active: initialActive,
     inactive: initialInactive,
   });
+
+  const [page, setPage] = React.useState<number>(initialPage);
+  const [pageSize, setPageSize] = React.useState<number>(100);
+  const [totalPages, setTotalPages] = React.useState<number>(
+    initialTotalPages || Math.ceil(initialTotal / 100) || 1
+  );
+  const [pageInput, setPageInput] = React.useState<string>(String(initialPage));
 
   const [searchQuery, setSearchQuery] = React.useState("");
   const [formFilter, setFormFilter] = React.useState("ALL");
@@ -99,37 +114,44 @@ export function MedicineManagementView({
   const [isDgdaSeedOpen, setIsDgdaSeedOpen] = React.useState(false);
 
   // Load Data
-  const loadMedicines = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await getAdminMedicinesListAction({
-        query: searchQuery,
-        form: formFilter !== "ALL" ? formFilter : undefined,
-        isActive:
-          statusFilter === "ACTIVE"
-            ? true
-            : statusFilter === "INACTIVE"
-              ? false
-              : undefined,
-        limit: 150,
-      });
-
-      if (res.success) {
-        setMedicines(res.medicines as MedicineItem[]);
-        setCounts({
-          total: res.totalCount,
-          active: res.activeCount,
-          inactive: res.inactiveCount,
+  const loadMedicines = React.useCallback(
+    async (targetPage = page, targetLimit = pageSize) => {
+      setIsLoading(true);
+      try {
+        const res = await getAdminMedicinesListAction({
+          query: searchQuery,
+          form: formFilter !== "ALL" ? formFilter : undefined,
+          isActive:
+            statusFilter === "ACTIVE"
+              ? true
+              : statusFilter === "INACTIVE"
+                ? false
+                : undefined,
+          page: targetPage,
+          limit: targetLimit,
         });
-      } else {
-        toast.error(res.message);
+
+        if (res.success) {
+          setMedicines(res.medicines as MedicineItem[]);
+          setCounts({
+            total: res.totalCount,
+            active: res.activeCount,
+            inactive: res.inactiveCount,
+          });
+          setPage(res.page);
+          setTotalPages(res.totalPages || 1);
+          setPageInput(String(res.page));
+        } else {
+          toast.error(res.message);
+        }
+      } catch {
+        toast.error("Failed to refresh medicines list.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch {
-      toast.error("Failed to refresh medicines list.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [searchQuery, formFilter, statusFilter]);
+    },
+    [searchQuery, formFilter, statusFilter, page, pageSize]
+  );
 
   // Real-time synchronization
   useRealtimeEvents({
@@ -140,18 +162,41 @@ export function MedicineManagementView({
         type === "MEDICINE_UPDATED" ||
         type === "MEDICINE_DELETED"
       ) {
-        void loadMedicines();
+        void loadMedicines(page, pageSize);
       }
     },
   });
 
-  // Debounced search
+  // Debounced search - resets to page 1
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      void loadMedicines();
+      void loadMedicines(1, pageSize);
     }, 250);
     return () => clearTimeout(timer);
-  }, [searchQuery, formFilter, statusFilter, loadMedicines]);
+  }, [searchQuery, formFilter, statusFilter, pageSize]);
+
+  // Page handlers
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page) return;
+    setPage(newPage);
+    void loadMedicines(newPage, pageSize);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1);
+    void loadMedicines(1, newSize);
+  };
+
+  const handlePageJump = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseInt(pageInput, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= totalPages) {
+      handlePageChange(parsed);
+    } else {
+      setPageInput(String(page));
+    }
+  };
 
   // Toggle active
   const handleToggleActive = async (id: string, current: boolean) => {
@@ -335,12 +380,17 @@ export function MedicineManagementView({
             <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
               <Layers className="size-3.5" />
             </div>
-            <div>
-              <CardTitle className="text-xs font-bold text-foreground">
-                Verified Medicines Catalog ({medicines.length})
+            <div className="space-y-0.5">
+              <CardTitle className="text-xs font-bold text-foreground flex items-center gap-2">
+                <span>Verified Medicines Catalog</span>
+                <Badge variant="outline" className="font-mono text-[10px] font-bold bg-muted/60">
+                  {counts.total.toLocaleString()} Total Items
+                </Badge>
               </CardTitle>
               <CardDescription className="text-[11px]">
-                Active items are instantly searchable by doctors in the prescription drawer
+                Showing {counts.total > 0 ? (page - 1) * pageSize + 1 : 0} -{" "}
+                {Math.min(page * pageSize, counts.total).toLocaleString()} on Page {page} of{" "}
+                {totalPages.toLocaleString()} • Active items are instantly searchable by doctors in the prescription drawer
               </CardDescription>
             </div>
           </div>
@@ -500,6 +550,95 @@ export function MedicineManagementView({
             </div>
           )}
         </CardContent>
+
+        {/* Pagination Bar */}
+        {counts.total > 0 && (
+          <div className="p-3 sm:p-4 border-t border-border/80 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+              <span>
+                Showing <strong className="text-foreground font-mono">{(page - 1) * pageSize + 1}</strong> -{" "}
+                <strong className="text-foreground font-mono">{Math.min(page * pageSize, counts.total).toLocaleString()}</strong> of{" "}
+                <strong className="text-foreground font-mono">{counts.total.toLocaleString()}</strong> medicines
+              </span>
+
+              <div className="flex items-center gap-1.5 pl-2 border-l border-border/60">
+                <span className="text-[11px]">Per Page:</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(val) => handlePageSizeChange(Number(val))}
+                >
+                  <SelectTrigger className="h-7 w-[75px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="200">200</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-muted-foreground mr-1">
+                <span>Page</span>
+                <form onSubmit={handlePageJump} className="inline-flex">
+                  <Input
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onBlur={handlePageJump}
+                    className="h-7 w-12 text-center text-xs p-1 font-mono font-bold"
+                  />
+                </form>
+                <span>of <strong className="text-foreground font-mono">{totalPages.toLocaleString()}</strong></span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={page <= 1 || isLoading}
+                  className="h-7 w-7 p-0 cursor-pointer"
+                  title="First Page"
+                >
+                  <ChevronsLeft className="size-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1 || isLoading}
+                  className="h-7 w-7 p-0 cursor-pointer"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="size-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages || isLoading}
+                  className="h-7 w-7 p-0 cursor-pointer"
+                  title="Next Page"
+                >
+                  <ChevronRight className="size-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={page >= totalPages || isLoading}
+                  className="h-7 w-7 p-0 cursor-pointer"
+                  title="Last Page"
+                >
+                  <ChevronsRight className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Dialogs */}
