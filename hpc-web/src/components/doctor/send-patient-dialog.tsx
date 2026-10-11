@@ -283,7 +283,7 @@ function SendPatientDialogContent({
     setRoutingDestination("HANDLER");
     try {
       const therapyFeeForRouting =
-        todayTherapyDueInfo?.therapyFee || (appointment as any).therapyFee || 800;
+        todayTherapyDueInfo?.therapyFee || (appointment as any).therapyFee || 0;
 
       const res = await requestImmediateExtraTherapyAction({
         appointmentId: appointment.id,

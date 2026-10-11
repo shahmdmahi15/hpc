@@ -105,7 +105,7 @@ export function CashierDashboardView({
 
   // Dedicated Consultation & Therapy Tabs Filters
   const [consultationSubFilter, setConsultationSubFilter] =
-    React.useState<"ALL" | "PENDING" | "PAID">("ALL");
+    React.useState<"ALL" | "PENDING" | "DUE" | "PAID">("ALL");
   const [therapySubFilter, setTherapySubFilter] =
     React.useState<"ALL" | "PENDING" | "PAID" | "SLOTS">("ALL");
 
@@ -347,9 +347,12 @@ export function CashierDashboardView({
     setPaymentMethod("CASH");
     setPaymentNotes("");
     setCashierPin("");
-    const patientDue = appointment.patient?.totalDue ?? 0;
-    setIncludePreviousDueInTherapy(patientDue > 0);
-    setPreviousDueInTherapyAmount(patientDue);
+    const embeddedConsultFee = (appointment as any).consultationFee ?? 0;
+    const rawPatientDue = appointment.patient?.totalDue ?? 0;
+    // Deduplicate: If consultation fee is already embedded in this session ticket, do not add it again!
+    const externalPatientDue = Math.max(0, rawPatientDue - embeddedConsultFee);
+    setIncludePreviousDueInTherapy(externalPatientDue > 0);
+    setPreviousDueInTherapyAmount(externalPatientDue);
 
     const matchSerial = data.pendingConsultationSerials.find(
       (s) => s.patientId === appointment.patientId,
@@ -649,7 +652,7 @@ export function CashierDashboardView({
     });
   }, [data.paidAppointments, searchQuery]);
 
-  // Filtered settled consultation serials for Paid Invoices tab
+  // Filtered settled consultation serials for Paid Invoices tab (strictly paid only)
   const filteredPaidConsultations = React.useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     const list = data.paidConsultationSerials || [];
@@ -671,6 +674,29 @@ export function CashierDashboardView({
       );
     });
   }, [data.paidConsultationSerials, searchQuery]);
+
+  // Filtered due consultation serials (cleared to queue without upfront payment)
+  const filteredDueConsultations = React.useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const list = (data as any).dueConsultationSerials || [];
+    return list.filter((item: any) => {
+      if (!q) return true;
+      const name = (item.patient?.name || "").toLowerCase();
+      const phone = (item.patient?.phone || "").toLowerCase();
+      const mrn = (item.patient?.mrn || "").toLowerCase();
+      const doc = (item.doctor?.name || "").toLowerCase();
+      const serial = String(item.serialNumber || "");
+      const inv = (item.invoice?.invoiceNumber || "").toLowerCase();
+      return (
+        name.includes(q) ||
+        phone.includes(q) ||
+        mrn.includes(q) ||
+        doc.includes(q) ||
+        serial.includes(q) ||
+        inv.includes(q)
+      );
+    });
+  }, [(data as any).dueConsultationSerials, searchQuery]);
 
   // Filtered therapy arrivals awaiting due clearance (Scenario 7)
   const filteredTherapyDueClearance = React.useMemo(() => {
@@ -1250,8 +1276,12 @@ export function CashierDashboardView({
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
                         {filteredPending.map((item) => {
-                          const estimatedFee = item.feeAmount ?? DEFAULT_FEE;
-                          const patientDue = item.patient?.totalDue ?? 0;
+                          const estimatedFee = item.feeAmount ?? 0;
+                          const embeddedConsultFee = (item as any).consultationFee ?? 0;
+                          const rawPatientDue = item.patient?.totalDue ?? 0;
+                          // Deduplicate: If consultation fee is already embedded in session feeAmount, do not add it again from patientDue!
+                          const externalPatientDue = Math.max(0, rawPatientDue - embeddedConsultFee);
+                          const totalDueToDisplay = estimatedFee + externalPatientDue;
 
                           return (
                             <div
@@ -1275,12 +1305,12 @@ export function CashierDashboardView({
                                   </div>
                                   <span
                                     className={`text-[10.5px] font-bold px-1.5 py-0.2 rounded-md ${
-                                      patientDue > 0
+                                      externalPatientDue > 0
                                         ? "text-rose-700 dark:text-rose-300 bg-rose-500/15 border border-rose-500/30 font-mono"
                                         : "text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30"
                                     }`}
                                   >
-                                    ৳{patientDue > 0 ? estimatedFee + patientDue : estimatedFee} {patientDue > 0 ? "TOTAL DUE" : "DUE"}
+                                    ৳{totalDueToDisplay} {externalPatientDue > 0 ? "TOTAL DUE" : "DUE"}
                                   </span>
                                 </div>
 
@@ -1319,14 +1349,14 @@ export function CashierDashboardView({
                                   </div>
                                 )}
 
-                                {patientDue > 0 && (
+                                {externalPatientDue > 0 && (
                                   <div className="flex items-center justify-between text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/25 font-bold">
                                     <span className="flex items-center gap-1">
                                       <AlertCircle className="size-2.5 text-rose-500" />
                                       <span>Previous Due:</span>
                                     </span>
                                     <span className="font-mono text-rose-600 dark:text-rose-400">
-                                      ৳{patientDue}
+                                      ৳{externalPatientDue}
                                     </span>
                                   </div>
                                 )}
@@ -1339,11 +1369,11 @@ export function CashierDashboardView({
                                   </span>
                                   <div className="text-right">
                                     <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400">
-                                      ৳{patientDue > 0 ? estimatedFee + patientDue : estimatedFee} Due
+                                      ৳{totalDueToDisplay} Due
                                     </span>
-                                    {patientDue > 0 && (
+                                    {externalPatientDue > 0 && (
                                       <span className="block text-[9.5px] text-muted-foreground font-mono">
-                                        (৳{estimatedFee} session + ৳{patientDue} due)
+                                        (৳{estimatedFee} session + ৳{externalPatientDue} due)
                                       </span>
                                     )}
                                   </div>
@@ -1358,10 +1388,10 @@ export function CashierDashboardView({
                                 >
                                   <CreditCard className="size-3.5" />
                                   <span>
-                                    {estimatedFee === 0 && patientDue > 0
-                                      ? `Clear ৳${patientDue} Due`
-                                      : patientDue > 0
-                                        ? `Collect ৳${estimatedFee} + ৳${patientDue} Due (৳${estimatedFee + patientDue})`
+                                    {estimatedFee === 0 && externalPatientDue > 0
+                                      ? `Clear ৳${externalPatientDue} Due`
+                                      : externalPatientDue > 0
+                                        ? `Collect ৳${estimatedFee} + ৳${externalPatientDue} Due (৳${totalDueToDisplay})`
                                         : `Collect ৳${estimatedFee} Bill`}
                                   </span>
                                 </Button>
@@ -1782,7 +1812,7 @@ export function CashierDashboardView({
                   onClick={() => setConsultationSubFilter("ALL")}
                   className="h-7 px-2.5 text-xs font-semibold cursor-pointer"
                 >
-                  All Consultations ({filteredPendingConsultations.length + filteredPaidConsultations.length})
+                  All Consultations ({filteredPendingConsultations.length + filteredDueConsultations.length + filteredPaidConsultations.length})
                 </Button>
                 <Button
                   size="sm"
@@ -1792,6 +1822,15 @@ export function CashierDashboardView({
                 >
                   <CreditCard className="size-3 text-amber-500" />
                   <span>Pending Payment ({filteredPendingConsultations.length})</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={consultationSubFilter === "DUE" ? "default" : "outline"}
+                  onClick={() => setConsultationSubFilter("DUE")}
+                  className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer text-rose-700 dark:text-rose-300 border-rose-500/30"
+                >
+                  <AlertCircle className="size-3 text-rose-500" />
+                  <span>Due Cleared ({filteredDueConsultations.length})</span>
                 </Button>
                 <Button
                   size="sm"
@@ -1872,6 +1911,69 @@ export function CashierDashboardView({
                         >
                           <CreditCard className="size-3.5" />
                           <span>Collect ৳{serial.feeAmount}</span>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* DUE CLEARED SECTION */}
+            {(consultationSubFilter === "ALL" || consultationSubFilter === "DUE") && (
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-rose-700 dark:text-rose-300">
+                    <AlertCircle className="size-4 text-rose-500" />
+                    <span>Cleared to Consultation as DUE ({filteredDueConsultations.length})</span>
+                  </div>
+                </div>
+
+                {filteredDueConsultations.length === 0 ? (
+                  <div className="p-6 text-center rounded-xl border border-dashed border-border bg-card/40 text-xs text-muted-foreground">
+                    No consultation serials marked as due for this date.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+                    {filteredDueConsultations.map((serial: any) => (
+                      <div
+                        key={serial.id}
+                        className="group flex flex-col justify-between p-3 rounded-xl border border-rose-500/30 bg-rose-500/5 hover:border-rose-500/60 hover:shadow-xs transition-all space-y-2.5"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-800 dark:text-rose-200 font-mono font-bold text-xs border border-rose-500/30">
+                              Serial #{serial.serialNumber}
+                            </span>
+                            <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.2 rounded-md font-mono">
+                              DUE ৳{serial.dueAmount ?? serial.feeAmount}
+                            </span>
+                          </div>
+
+                          <div>
+                            <div className="font-bold text-xs text-foreground truncate">
+                              {serial.patient?.name || "Patient"}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {serial.patient?.phone || "---"}
+                            </div>
+                          </div>
+
+                          <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-border/50">
+                            <div>Doctor: <span className="font-semibold text-foreground">{serial.doctor?.name || "Doctor"}</span></div>
+                            {serial.invoice?.invoiceNumber && (
+                              <div className="font-mono text-[10px] text-muted-foreground">Inv: {serial.invoice.invoiceNumber} (DUE)</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenConsultPaymentModal(serial)}
+                          className="w-full h-8 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer gap-1.5 rounded-lg"
+                        >
+                          <CreditCard className="size-3.5" />
+                          <span>Collect ৳{serial.dueAmount ?? serial.feeAmount} Due</span>
                         </Button>
                       </div>
                     ))}
@@ -2274,59 +2376,66 @@ export function CashierDashboardView({
               </div>
 
               {/* Previous Due Callout & Option to Collect */}
-              {(collectingAppointment.patient?.totalDue ?? 0) > 0 && (
-                <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-rose-700 dark:text-rose-300 font-bold">
-                      <AlertCircle className="size-4 shrink-0" />
-                      <span>
-                        Previous Unpaid Due: ৳
-                        {collectingAppointment.patient?.totalDue.toLocaleString()}
-                      </span>
-                    </div>
-                    <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includePreviousDueInTherapy}
-                        onChange={(e) =>
-                          setIncludePreviousDueInTherapy(e.target.checked)
-                        }
-                        className="size-3.5 rounded border-rose-500 text-rose-600 focus:ring-rose-500"
-                      />
-                      <span>Clear Due Now</span>
-                    </label>
-                  </div>
+              {(() => {
+                const embeddedConsultFee = (collectingAppointment as any).consultationFee ?? 0;
+                const rawPatientDue = collectingAppointment.patient?.totalDue ?? 0;
+                const externalPatientDue = Math.max(0, rawPatientDue - embeddedConsultFee);
 
-                  {includePreviousDueInTherapy && (
-                    <div className="pt-2 border-t border-rose-500/20 space-y-1">
-                      <label className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-                        <span>Previous Due Amount to Clear</span>
-                        <span className="font-mono text-rose-600 font-bold">
-                          Max: ৳{collectingAppointment.patient?.totalDue}
+                if (externalPatientDue <= 0) return null;
+
+                return (
+                  <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 text-rose-700 dark:text-rose-300 font-bold">
+                        <AlertCircle className="size-4 shrink-0" />
+                        <span>
+                          Previous Unpaid Due: ৳{externalPatientDue.toLocaleString()}
                         </span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono font-bold text-muted-foreground text-xs">
-                          ৳
-                        </span>
-                        <Input
-                          type="number"
-                          value={previousDueInTherapyAmount}
-                          onChange={(e) =>
-                            setPreviousDueInTherapyAmount(
-                              Math.min(
-                                collectingAppointment.patient?.totalDue ?? 0,
-                                Math.max(0, Number(e.target.value)),
-                              ),
-                            )
-                          }
-                          className="pl-6 h-7.5 text-xs font-mono font-bold rounded-lg border-rose-500/40"
-                        />
                       </div>
+                      <label className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includePreviousDueInTherapy}
+                          onChange={(e) =>
+                            setIncludePreviousDueInTherapy(e.target.checked)
+                          }
+                          className="size-3.5 rounded border-rose-500 text-rose-600 focus:ring-rose-500"
+                        />
+                        <span>Clear Due Now</span>
+                      </label>
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {includePreviousDueInTherapy && (
+                      <div className="pt-2 border-t border-rose-500/20 space-y-1">
+                        <label className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                          <span>Previous Due Amount to Clear</span>
+                          <span className="font-mono text-rose-600 font-bold">
+                            Max: ৳{externalPatientDue}
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono font-bold text-muted-foreground text-xs">
+                            ৳
+                          </span>
+                          <Input
+                            type="number"
+                            value={previousDueInTherapyAmount}
+                            onChange={(e) =>
+                              setPreviousDueInTherapyAmount(
+                                Math.min(
+                                  externalPatientDue,
+                                  Math.max(0, Number(e.target.value)),
+                                ),
+                              )
+                            }
+                            className="pl-6 h-7.5 text-xs font-mono font-bold rounded-lg border-rose-500/40"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Option to Bundle Pending Doctor Consultation */}
               {pendingSerialForTherapy && (

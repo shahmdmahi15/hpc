@@ -1670,7 +1670,7 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
     }
     if (feeToCharge === undefined) {
       feeToCharge =
-        input.queueType === QueueType.CONSULTATION ? DEFAULT_FEE : 800;
+        input.queueType === QueueType.CONSULTATION ? DEFAULT_FEE : 0;
     }
 
     let updatedAppointment;

@@ -33,6 +33,7 @@ export interface CashierDashboardData {
   consultationSerials: any[];
   pendingConsultationSerials: any[];
   paidConsultationSerials: any[];
+  dueConsultationSerials: any[];
   therapyAwaitingDueClearance: AppointmentWithRelations[];
   slots: SlotWithTelemetry[];
   patients: PatientWithCount[];
@@ -162,9 +163,20 @@ export async function getCashierDashboardDataAction(
   const pendingConsultationSerials = consultationSerials.filter(
     (s) => s.status === "FORWARDED_TO_CASHIER",
   );
-  // Settled / queued consultation serials
+  // Settled / paid consultation serials (strictly only those with paid amount or paymentStatus PAID)
   const paidConsultationSerials = consultationSerials.filter(
-    (s) => s.status !== "FORWARDED_TO_CASHIER" && s.status !== "CANCELLED",
+    (s) =>
+      s.status !== "FORWARDED_TO_CASHIER" &&
+      s.status !== "CANCELLED" &&
+      (s.paymentStatus === "PAID" || (s.paidAmount ?? 0) >= (s.feeAmount ?? 0)),
+  );
+  // Consultation serials cleared as DUE or PARTIAL with remaining due
+  const dueConsultationSerials = consultationSerials.filter(
+    (s) =>
+      s.status !== "FORWARDED_TO_CASHIER" &&
+      s.status !== "CANCELLED" &&
+      s.paymentStatus !== "PAID" &&
+      ((s.dueAmount ?? 0) > 0 || (s.paidAmount ?? 0) < (s.feeAmount ?? 0)),
   );
 
   const pendingSerialPatientIds = new Set(
@@ -276,6 +288,7 @@ export async function getCashierDashboardDataAction(
     consultationSerials,
     pendingConsultationSerials,
     paidConsultationSerials,
+    dueConsultationSerials,
     therapyAwaitingDueClearance,
     slots: receptionistData.slots,
     patients: receptionistData.patients,
@@ -433,6 +446,12 @@ export async function collectPaymentAction(params: {
           notes: params.notes || "Doctor Consultation Fee",
         },
       });
+
+      // Automatically clear prior consultation due invoice if consult share is paid
+      if (consultShare > 0 && !isDue) {
+        const { clearPreviousDuesForPatient } = await import("@/lib/billing-sync");
+        await clearPreviousDuesForPatient(appointment.patientId, consultShare, invoice.id);
+      }
     } else {
       await prisma.patientPayment.create({
         data: {

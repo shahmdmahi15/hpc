@@ -603,7 +603,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
           toldTime: separateTherapyApt.toldTime || appointment.toldTime,
         };
         if (newTherapyFee === 0 && (separateTherapyApt.therapyFee ?? separateTherapyApt.feeAmount ?? 0) > 0) {
-          newTherapyFee = separateTherapyApt.therapyFee ?? separateTherapyApt.feeAmount ?? 800;
+          newTherapyFee = separateTherapyApt.therapyFee ?? separateTherapyApt.feeAmount ?? 0;
           feeToSet = newConsultationFee + newTherapyFee;
         }
 
@@ -1439,7 +1439,7 @@ export async function requestImmediateExtraTherapyAction(
     const therapyFee =
       params.therapyFee !== undefined
         ? Math.max(0, params.therapyFee)
-        : (appointment.therapyFee ?? 800);
+        : (appointment.therapyFee ?? 0);
 
     const totalFee = consultationFee + therapyFee;
 
