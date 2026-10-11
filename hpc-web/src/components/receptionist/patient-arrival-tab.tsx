@@ -1752,7 +1752,7 @@ export function PatientArrivalTab({
                     value={consultDoctorId}
                     onValueChange={handleDoctorSelectionChange}
                   >
-                    <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-border/80">
+                    <SelectTrigger className="w-full min-w-0 h-10 text-xs rounded-xl bg-background border-border/80">
                       <SelectValue placeholder="Choose a doctor..." />
                     </SelectTrigger>
                     <SelectContent>

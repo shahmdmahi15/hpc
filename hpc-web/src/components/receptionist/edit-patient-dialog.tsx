@@ -265,7 +265,7 @@ function EditPatientForm({
                 value={gender}
                 onValueChange={(val) => val && setGender(val as Gender)}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="w-full min-w-0 h-9 text-xs">
                   <SelectValue placeholder="Select gender">
                     {(val: string | null) =>
                       val === Gender.FEMALE ? "Female" : "Male"

@@ -318,7 +318,7 @@ function EditSlotForm({
                 value={roomId}
                 onValueChange={(val) => setRoomId(val || "NONE")}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="w-full min-w-0 h-9 text-xs">
                   <SelectValue placeholder="General / Open">
                     {(val: string | null) => {
                       const match = roomItems.find((r) => r.value === val);
@@ -343,7 +343,7 @@ function EditSlotForm({
                 value={status}
                 onValueChange={(val) => setStatus(val as SlotStatus)}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="w-full min-w-0 h-9 text-xs">
                   <SelectValue placeholder="Select status">
                     {(val: string | null) => {
                       const match = EDIT_SLOT_STATUS_ITEMS.find(

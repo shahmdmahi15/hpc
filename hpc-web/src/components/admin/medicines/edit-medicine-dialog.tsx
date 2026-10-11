@@ -240,7 +240,7 @@ export function EditMedicineDialog({
                   Dosage Form (Optional)
                 </Label>
                 <Select value={form} onValueChange={(val) => setForm(val || "")}>
-                  <SelectTrigger className="h-8.5 text-xs rounded-lg">
+                  <SelectTrigger className="w-full min-w-0 h-8.5 text-xs rounded-lg">
                     <SelectValue placeholder="Select form" />
                   </SelectTrigger>
                   <SelectContent>

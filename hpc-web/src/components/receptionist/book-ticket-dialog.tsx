@@ -484,7 +484,7 @@ export function BookTicketDialog({
                   value={slotId}
                   onValueChange={(val) => setSlotId(val || "")}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="w-full min-w-0 h-9 text-xs">
                     <SelectValue placeholder="Select hourly slot">
                       {(val: string | null) => {
                         const s = slotItems.find((item) => item.value === val);

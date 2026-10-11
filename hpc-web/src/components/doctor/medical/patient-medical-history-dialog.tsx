@@ -352,9 +352,9 @@ export function PatientMedicalHistoryDialog({
             <div className="space-y-3">
               {/* Record Selector Bar if multiple assessments exist */}
               {records.length > 1 && (
-                <div className="flex items-center justify-between gap-3 bg-muted/40 p-2.5 rounded-xl border border-border/70">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-foreground">Viewing Record:</span>
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/40 p-2.5 rounded-xl border border-border/70">
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    <span className="font-bold text-xs text-foreground shrink-0">Viewing Record:</span>
                     <Select
                       value={activeRecord?.id || records[0].id}
                       onValueChange={(val) => {
@@ -362,7 +362,7 @@ export function PatientMedicalHistoryDialog({
                         setExpandedRecordId(val);
                       }}
                     >
-                      <SelectTrigger className="h-8 text-xs font-mono font-bold bg-background min-w-[240px]">
+                      <SelectTrigger className="h-8 text-xs font-mono font-bold bg-background w-full sm:w-[260px] min-w-0 truncate">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

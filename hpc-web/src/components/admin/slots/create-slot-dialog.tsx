@@ -310,7 +310,7 @@ export function CreateSlotDialog({
                   value={roomId}
                   onValueChange={(val) => setRoomId(val || "NONE")}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="w-full min-w-0 h-9 text-xs">
                     <SelectValue placeholder="General (No room)">
                       {(val: string | null) => {
                         const match = roomItems.find((r) => r.value === val);
@@ -335,7 +335,7 @@ export function CreateSlotDialog({
                   value={status}
                   onValueChange={(val) => setStatus(val as SlotStatus)}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="w-full min-w-0 h-9 text-xs">
                     <SelectValue placeholder="Select status">
                       {(val: string | null) => {
                         const match = SLOT_STATUS_ITEMS.find(

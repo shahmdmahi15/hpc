@@ -486,7 +486,7 @@ export function ConsultationSerialTab({
               value={selectedDoctorFilter}
               onValueChange={(val) => setSelectedDoctorFilter(val || "all")}
             >
-              <SelectTrigger className="h-7.5 text-xs bg-background border-border/80">
+              <SelectTrigger className="w-full min-w-0 h-7.5 text-xs bg-background border-border/80">
                 <SelectValue placeholder="All Doctors" />
               </SelectTrigger>
               <SelectContent>
@@ -508,7 +508,7 @@ export function ConsultationSerialTab({
               value={selectedStatusFilter}
               onValueChange={(val) => setSelectedStatusFilter(val || "all")}
             >
-              <SelectTrigger className="h-7.5 text-xs bg-background border-border/80">
+              <SelectTrigger className="w-full min-w-0 h-7.5 text-xs bg-background border-border/80">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
@@ -1251,7 +1251,7 @@ export function ConsultationSerialTab({
                 2. Select Doctor *
               </Label>
               <Select value={bookDoctorId} onValueChange={handleDoctorChange}>
-                <SelectTrigger className="h-8 text-xs bg-background">
+                <SelectTrigger className="w-full min-w-0 h-8 text-xs bg-background">
                   <SelectValue placeholder="Choose a doctor..." />
                 </SelectTrigger>
                 <SelectContent>

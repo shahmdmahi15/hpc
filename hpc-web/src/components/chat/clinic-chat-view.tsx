@@ -518,7 +518,7 @@ export function ClinicChatView({
                   if (val) setAuthorPerformerId(val);
                 }}
               >
-                <SelectTrigger className="h-5.5 text-[11px] font-semibold bg-transparent border-0 p-0 shadow-none focus:ring-0">
+                <SelectTrigger className="h-5.5 text-[11px] font-semibold bg-transparent border-0 p-0 shadow-none focus:ring-0 max-w-[120px] sm:max-w-[160px] min-w-0 truncate">
                   <SelectValue placeholder="Staff" />
                 </SelectTrigger>
                 <SelectContent>
@@ -915,7 +915,7 @@ export function ClinicChatView({
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
                 placeholder={`Message in ${activeChannelMeta.name}...`}
-                className={`flex-1 h-9 text-xs bg-background transition-all ${
+                className={`flex-1 min-w-0 h-9 text-xs bg-background transition-all ${
                   isUrgent ? "border-rose-500 focus-visible:ring-rose-500" : ""
                 }`}
                 autoFocus
@@ -935,14 +935,14 @@ export function ClinicChatView({
               </Button>
 
               {/* Tag Room Selector */}
-              <div className="w-28 sm:w-36 shrink-0">
+              <div className="w-28 sm:w-36 shrink-0 min-w-0">
                 <Select
                   value={selectedRoomNumber || "none"}
                   onValueChange={(val) => {
                     setSelectedRoomNumber(val === "none" ? "" : val || "");
                   }}
                 >
-                  <SelectTrigger className="h-9 text-xs bg-background border-border/80 truncate">
+                  <SelectTrigger className="w-full max-w-full min-w-0 h-9 text-xs bg-background border-border/80 truncate">
                     <SelectValue placeholder="Room" />
                   </SelectTrigger>
                   <SelectContent className="max-h-64">
@@ -964,14 +964,14 @@ export function ClinicChatView({
                 variant={isUrgent ? "destructive" : "outline"}
                 size="sm"
                 onClick={() => setIsUrgent((prev) => !prev)}
-                className={`h-9 px-2 text-xs shrink-0 ${
+                className={`h-9 px-2.5 text-xs shrink-0 ${
                   isUrgent
                     ? "font-bold"
                     : "text-muted-foreground hover:text-rose-500 border-border/80"
                 }`}
                 title="Mark Urgent Alert"
               >
-                <AlertTriangle className="size-3.5" />
+                <AlertTriangle className="size-3.5 shrink-0" />
               </Button>
 
               {/* Send Button */}
@@ -1016,7 +1016,7 @@ export function ClinicChatView({
                 value={patientSearchQuery}
                 onChange={(e) => setPatientSearchQuery(e.target.value)}
                 placeholder="Search patient name, phone, MRN..."
-                className="pl-7 h-8 text-xs bg-background"
+                className="pl-8 h-8 text-xs bg-background"
                 autoFocus
               />
               {isSearchingPatient && (
