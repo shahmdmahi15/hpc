@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   FileText,
   Sparkles,
+  Code,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,7 +34,7 @@ interface AdminExportDialogProps {
 
 export function AdminExportDialog({ isOpen, onOpenChange }: AdminExportDialogProps) {
   const [reportType, setReportType] = React.useState<"all" | "payments" | "patients" | "appointments" | "audit">("all");
-  const [exportFormat, setExportFormat] = React.useState<"xlsx" | "csv">("xlsx");
+  const [exportFormat, setExportFormat] = React.useState<"xlsx" | "csv" | "json">("xlsx");
   const [datePreset, setDatePreset] = React.useState<"today" | "yesterday" | "this_week" | "this_month" | "last_month" | "custom" | "all_time">("today");
   
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -244,6 +245,33 @@ export function AdminExportDialog({ isOpen, onOpenChange }: AdminExportDialogPro
                     </div>
                     {exportFormat === "csv" && (
                       <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                    )}
+                  </button>
+
+                  {/* Machine JSON */}
+                  <button
+                    type="button"
+                    onClick={() => setExportFormat("json")}
+                    className={`relative flex items-start gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      exportFormat === "json"
+                        ? "border-blue-600 bg-blue-500/10 ring-2 ring-blue-600/40 shadow-xs"
+                        : "border-border/70 hover:border-border hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="size-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Code className="size-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-foreground">Machine JSON (.json)</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">API Ready</span>
+                      </div>
+                      <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">
+                        Full nested JSON structure for data backup, integrations, and developers.
+                      </p>
+                    </div>
+                    {exportFormat === "json" && (
+                      <CheckCircle2 className="size-4 text-blue-600 shrink-0" />
                     )}
                   </button>
                 </div>

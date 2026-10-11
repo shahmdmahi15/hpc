@@ -42,6 +42,7 @@ import {
   ScrollText,
   DoorOpen,
   CalendarClock,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -124,6 +125,30 @@ export function AdminSidebar({
               >
                 <LayoutDashboard className="size-4 text-primary" />
                 <span className="font-semibold">Dashboard</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Patients & Complete Clinical History */}
+            <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+              <SidebarMenuButton
+                render={<Link href="/admin/patients" />}
+                isActive={pathname.startsWith("/admin/patients")}
+                tooltip="Patients & Clinical History Hub"
+              >
+                <UserCheck className="size-4 text-emerald-500" />
+                <span className="font-semibold">Patients &amp; History</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Live Patient Journey Tracker */}
+            <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+              <SidebarMenuButton
+                render={<Link href="/admin/tracking" />}
+                isActive={pathname.startsWith("/admin/tracking")}
+                tooltip="Live Patient Journey Board"
+              >
+                <Compass className="size-4 text-indigo-500" />
+                <span className="font-semibold">Patient Journey</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 

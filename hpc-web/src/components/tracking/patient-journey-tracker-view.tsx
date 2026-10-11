@@ -57,6 +57,7 @@ import {
 import { toast } from "sonner";
 import { formatTime12h, evaluatePunctuality } from "@/lib/queue-punctuality";
 import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
+import { PatientWholeHistoryDialog } from "@/components/admin/patients/patient-whole-history-dialog";
 
 interface PatientJourneyTrackerViewProps {
   initialData?: PatientTrackingData;
@@ -161,6 +162,10 @@ export function PatientJourneyTrackerView({
   // Quick Check-in modal state
   const [isQuickCheckInOpen, setIsQuickCheckInOpen] =
     React.useState<boolean>(false);
+
+  // Whole Medical History modal state
+  const [historyModalPatientId, setHistoryModalPatientId] =
+    React.useState<string | null>(null);
 
   // Fetch / Refresh data
   const loadTrackingData = React.useCallback(
@@ -780,6 +785,17 @@ export function PatientJourneyTrackerView({
                     variant="outline"
                     className="h-8 px-2.5 text-xs font-semibold gap-1.5 border-purple-500/30 hover:bg-purple-500/10 text-purple-700 dark:text-purple-300 cursor-pointer shrink-0"
                   />
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setHistoryModalPatientId(patient.patientId)}
+                    className="h-8 px-2.5 text-xs font-semibold gap-1 text-primary border-primary/30 hover:bg-primary/10 cursor-pointer shrink-0"
+                    title="Open Whole Medical & Journey History Dossier"
+                  >
+                    <Eye className="size-3.5" />
+                    <span className="hidden sm:inline">Dossier</span>
+                  </Button>
                 </div>
               </div>
             );
@@ -902,6 +918,15 @@ export function PatientJourneyTrackerView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Whole Patient Medical History Dossier Modal */}
+      <PatientWholeHistoryDialog
+        patientId={historyModalPatientId}
+        isOpen={Boolean(historyModalPatientId)}
+        onOpenChange={(open) => {
+          if (!open) setHistoryModalPatientId(null);
+        }}
+      />
     </div>
   );
 }

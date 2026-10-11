@@ -34,6 +34,12 @@ const NAV_ITEMS = [
     exact: false,
   },
   {
+    href: "/admin/patients",
+    label: "Patients & History",
+    icon: UserCheck,
+    exact: false,
+  },
+  {
     href: "/admin/tracking",
     label: "Patient Journey",
     icon: Compass,

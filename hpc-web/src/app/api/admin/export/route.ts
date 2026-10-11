@@ -11,6 +11,7 @@ import {
   addSummaryRow,
 } from "@/lib/excel-export";
 import { CLINIC_CONFIG } from "@/lib/clinic-config";
+import { getPatientCompleteHistoryData } from "@/actions/admin/patient-history.action";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -131,6 +132,417 @@ export async function GET(request: NextRequest) {
     const filenameLabel = startDate && endDate
       ? `${startDate.toISOString().slice(0, 10)}_to_${endDate.toISOString().slice(0, 10)}`
       : "all_time";
+
+    // ─────────────────────────────────────────────────────────────
+    // 0. SPECIALIZED: INDIVIDUAL PATIENT COMPLETE MEDICAL & JOURNEY DOSSIER
+    // ─────────────────────────────────────────────────────────────
+    if (exportType === "patient_history") {
+      const patientId = searchParams.get("patientId");
+      if (!patientId) {
+        return new NextResponse("Missing patientId parameter", { status: 400 });
+      }
+
+      let patientDataResult: any;
+      try {
+        patientDataResult = await getPatientCompleteHistoryData(patientId);
+      } catch {
+        return new NextResponse("Patient record not found", { status: 404 });
+      }
+      const patient = patientDataResult.patient;
+
+      // JSON format
+      if (exportFormat === "json") {
+        const jsonContent = JSON.stringify(
+          {
+            exportedAt: new Date().toISOString(),
+            clinic: CLINIC_CONFIG,
+            patient,
+          },
+          null,
+          2
+        );
+        return new NextResponse(jsonContent, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Content-Disposition": `attachment; filename="patient_${patient.mrn || patient.id}_history.json"`,
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+          },
+        });
+      }
+
+      // Excel .xlsx multi-sheet dossier
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = `${CLINIC_CONFIG.name} Patient Dossier`;
+      workbook.lastModifiedBy = sessionData.user.name || "System Admin";
+      workbook.created = new Date();
+      workbook.modified = new Date();
+
+      // Sheet 1: Patient Profile & Demographics
+      const wsProfile = workbook.addWorksheet("Patient Profile", {
+        views: [{ showGridLines: true }],
+      });
+      const pR = applyTitleBanner(
+        wsProfile,
+        `Patient Medical Dossier: ${patient.name} (${patient.mrn})`,
+        CLINIC_CONFIG.tagline,
+        "Master Patient History",
+        6
+      );
+
+      wsProfile.mergeCells(pR, 1, pR, 6);
+      const s1 = wsProfile.getRow(pR);
+      s1.values = ["PATIENT MASTER IDENTIFICATION & DEMOGRAPHICS"];
+      s1.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFF" } };
+      s1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "0F766E" } };
+      s1.height = 24;
+
+      const profileFields = [
+        ["Patient Full Name", patient.name, "Medical Record No (MRN)", patient.mrn],
+        ["Primary Contact Phone", patient.phone, "Gender / Sex", patient.gender],
+        ["Blood Group", patient.bloodGroup || "Not Specified", "Date of Birth", patient.dateOfBirth || "N/A"],
+        ["Emergency Contact", patient.emergencyPhone || patient.emergencyContact || "None Recorded", "Residential Address", patient.address || "None Recorded"],
+        ["Total Lifetime Billed", patient.totalBill, "Total Collections Paid", patient.totalPaid],
+        ["Current Outstanding Due", patient.totalDue, "Account Status", patient.totalDue > 0 ? "DUE BALANCE" : "SETTLED"],
+        ["Registered Date", patient.createdAt.toISOString().slice(0, 10), "Last Profile Update", patient.updatedAt.toISOString().slice(0, 10)],
+      ];
+
+      profileFields.forEach((fields, idx) => {
+        const row = wsProfile.getRow(pR + 1 + idx);
+        row.values = [fields[0], fields[1], fields[2], fields[3]];
+        row.height = 22;
+        if (typeof fields[1] === "number") row.getCell(2).numFmt = '"৳" #,##0.00';
+        if (typeof fields[3] === "number") row.getCell(4).numFmt = '"৳" #,##0.00';
+      });
+
+      applyHeaderStyle(wsProfile, pR + 1);
+      autoFitColumns(wsProfile, 16, 40);
+
+      // Sheet 2: Consultations
+      const wsConsult = workbook.addWorksheet("Consultations", {
+        views: [{ state: "frozen", ySplit: 5, showGridLines: true }],
+      });
+      const cR = applyTitleBanner(
+        wsConsult,
+        `Doctor Consultations: ${patient.name}`,
+        CLINIC_CONFIG.tagline,
+        "Clinical Consultations",
+        7
+      );
+      const consultHeaders = [
+        "Date",
+        "Token / Serial",
+        "Attending Doctor",
+        "Chamber / Room",
+        "Service Category",
+        "Appointment Status",
+        "Clinical Notes",
+      ];
+      wsConsult.getRow(cR).values = consultHeaders;
+      applyHeaderStyle(wsConsult, cR);
+      patient.appointments
+        .filter((a: any) => a.type === "CONSULTATION")
+        .forEach((a: any, idx: number) => {
+          const row = wsConsult.getRow(cR + 1 + idx);
+          row.values = [
+            a.appointmentDate.toISOString().slice(0, 10),
+            a.serialNumber ? `#${a.serialNumber}` : `#${a.id.slice(-4).toUpperCase()}`,
+            a.doctor?.name || "Dr. Assigned",
+            a.room?.number ? `Room ${a.room.number}` : "Chamber",
+            "Doctor Consultation",
+            a.status,
+            a.notes || "",
+          ];
+          row.height = 20;
+        });
+      autoFitColumns(wsConsult, 14, 40);
+
+      // Sheet 3: Prescriptions & Medicines
+      const wsRx = workbook.addWorksheet("Prescriptions", {
+        views: [{ state: "frozen", ySplit: 5, showGridLines: true }],
+      });
+      const rxR = applyTitleBanner(
+        wsRx,
+        `Prescriptions & Medications: ${patient.name}`,
+        CLINIC_CONFIG.tagline,
+        "Prescribed Medicines",
+        8
+      );
+      const rxHeaders = [
+        "Prescription Date",
+        "Doctor",
+        "Medicine Name",
+        "Dosage",
+        "Timing (M-A-N)",
+        "Meal Timing",
+        "Duration",
+        "Special Instructions",
+      ];
+      wsRx.getRow(rxR).values = rxHeaders;
+      applyHeaderStyle(wsRx, rxR);
+      let rxRowCount = 0;
+      patient.prescriptions.forEach((rx: any) => {
+        let medicines: any[] = [];
+        try {
+          if (typeof rx.medicines === "string") medicines = JSON.parse(rx.medicines);
+          else if (Array.isArray(rx.medicines)) medicines = rx.medicines;
+        } catch {
+          medicines = [];
+        }
+        if (medicines.length === 0) {
+          rxRowCount++;
+          const row = wsRx.getRow(rxR + rxRowCount);
+          row.values = [
+            rx.createdAt.toISOString().slice(0, 10),
+            rx.doctor?.name || "Attending Doctor",
+            "General Clinical Advice",
+            "",
+            "",
+            "",
+            "",
+            rx.instructions || "",
+          ];
+          row.height = 20;
+        } else {
+          medicines.forEach((m) => {
+            rxRowCount++;
+            const row = wsRx.getRow(rxR + rxRowCount);
+            const timingStr = [
+              m.timing?.morning ? "Morn" : null,
+              m.timing?.afternoon ? "Noon" : null,
+              m.timing?.night ? "Night" : null,
+            ]
+              .filter(Boolean)
+              .join(" + ") || "As directed";
+            row.values = [
+              rx.createdAt.toISOString().slice(0, 10),
+              rx.doctor?.name || "Attending Doctor",
+              m.name || "Medicine",
+              m.dosage || "",
+              timingStr,
+              m.mealTiming === "BEFORE_MEAL" ? "Before Meal" : m.mealTiming === "AFTER_MEAL" ? "After Meal" : "",
+              m.duration || "",
+              m.instructions || rx.instructions || "",
+            ];
+            row.height = 20;
+          });
+        }
+      });
+      autoFitColumns(wsRx, 14, 40);
+
+      // Sheet 4: Therapy Protocols
+      const wsTherapy = workbook.addWorksheet("Therapy Protocols", {
+        views: [{ state: "frozen", ySplit: 5, showGridLines: true }],
+      });
+      const tR = applyTitleBanner(
+        wsTherapy,
+        `Physical Therapy & Modality Protocols: ${patient.name}`,
+        CLINIC_CONFIG.tagline,
+        "Therapy Protocols",
+        7
+      );
+      const therapyHeaders = [
+        "Plan Date",
+        "Prescribed By Doctor",
+        "Clinical Diagnosis",
+        "Target Modalities",
+        "Duration (Mins)",
+        "Completed Sessions",
+        "Status",
+      ];
+      wsTherapy.getRow(tR).values = therapyHeaders;
+      applyHeaderStyle(wsTherapy, tR);
+      patient.treatmentPlans.forEach((tp: any, idx: number) => {
+        let modalities: any[] = [];
+        try {
+          if (typeof tp.modalities === "string") modalities = JSON.parse(tp.modalities);
+          else if (Array.isArray(tp.modalities)) modalities = tp.modalities;
+        } catch {
+          modalities = [];
+        }
+        const row = wsTherapy.getRow(tR + 1 + idx);
+        row.values = [
+          tp.createdAt.toISOString().slice(0, 10),
+          tp.doctor?.name || "Dr. Assigned",
+          tp.diagnosis || "Physiotherapy Rehabilitation",
+          modalities.map((m: any) => (typeof m === "string" ? m : m.name || m.label)).join(", ") || "General PT",
+          tp.durationMinutes ?? 30,
+          `${tp.completedDays || 0} / ${tp.totalDays || 1}`,
+          tp.status || "ACTIVE",
+        ];
+        row.height = 20;
+      });
+      autoFitColumns(wsTherapy, 14, 40);
+
+      // Sheet 5: Invoices & Ledger
+      const wsInv = workbook.addWorksheet("Invoices & Ledger", {
+        views: [{ state: "frozen", ySplit: 5, showGridLines: true }],
+      });
+      const invR = applyTitleBanner(
+        wsInv,
+        `Itemized Billing & Payments Ledger: ${patient.name}`,
+        CLINIC_CONFIG.tagline,
+        "Financial Ledger",
+        7
+      );
+      const invHeaders = [
+        "Invoice Number",
+        "Created Date",
+        "Total Billed (BDT)",
+        "Paid Amount (BDT)",
+        "Outstanding Due (BDT)",
+        "Invoice Status",
+        "Notes / Remarks",
+      ];
+      wsInv.getRow(invR).values = invHeaders;
+      applyHeaderStyle(wsInv, invR);
+      patient.invoices.forEach((inv: any, idx: number) => {
+        const row = wsInv.getRow(invR + 1 + idx);
+        row.values = [
+          inv.invoiceNumber,
+          inv.createdAt.toISOString().slice(0, 10),
+          inv.totalAmount,
+          inv.paidAmount,
+          inv.dueAmount,
+          inv.status,
+          inv.notes || "",
+        ];
+        row.height = 20;
+        row.getCell(3).numFmt = '"৳" #,##0.00';
+        row.getCell(4).numFmt = '"৳" #,##0.00';
+        row.getCell(5).numFmt = '"৳" #,##0.00';
+      });
+      autoFitColumns(wsInv, 14, 35);
+
+      // Sheet 6: Station Journey & Audit Trail
+      const wsJourney = workbook.addWorksheet("Station Journey", {
+        views: [{ state: "frozen", ySplit: 5, showGridLines: true }],
+      });
+      const jR = applyTitleBanner(
+        wsJourney,
+        `Patient Station Journey Audit Trail: ${patient.name}`,
+        CLINIC_CONFIG.tagline,
+        "Station Journey",
+        6
+      );
+      const journeyHeaders = [
+        "Step #",
+        "Timestamp",
+        "Station / Stage",
+        "Room / Chamber",
+        "Staff / Performer",
+        "Activity Notes",
+      ];
+      wsJourney.getRow(jR).values = journeyHeaders;
+      applyHeaderStyle(wsJourney, jR);
+      patient.stepLogs.forEach((step: any, idx: number) => {
+        const row = wsJourney.getRow(jR + 1 + idx);
+        row.values = [
+          idx + 1,
+          step.timestamp ? new Date(step.timestamp).toISOString().replace("T", " ").slice(0, 19) : "",
+          step.station,
+          step.roomNumber ? `Room ${step.roomNumber}` : "Main Center",
+          step.performerId || "HPC Staff",
+          step.details || "",
+        ];
+        row.height = 20;
+      });
+      autoFitColumns(wsJourney, 14, 35);
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const nodeBuffer = Buffer.from(buffer);
+      const filename = `HPC_Patient_${patient.mrn || patient.id}_Complete_History.xlsx`;
+
+      return new NextResponse(nodeBuffer, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+          "Content-Length": nodeBuffer.length.toString(),
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 0.1 GENERAL JSON EXPORT (WHEN FORMAT === "JSON")
+    // ─────────────────────────────────────────────────────────────
+    if (exportFormat === "json") {
+      let jsonData: any = {};
+      if (exportType === "patients") {
+        const patients = await prisma.patient.findMany({
+          where: dateFilterClause ? { createdAt: dateFilterClause } : undefined,
+          orderBy: { createdAt: "desc" },
+          include: { _count: { select: { appointments: true, medicalRecords: true } } },
+        });
+        jsonData = { exportType, exportedAt: new Date().toISOString(), count: patients.length, patients };
+      } else if (exportType === "appointments") {
+        const appointments = await prisma.appointment.findMany({
+          where: dateFilterClause ? { appointmentDate: dateFilterClause } : undefined,
+          orderBy: { appointmentDate: "desc" },
+          include: { patient: true, therapySlot: true, room: true, doctor: true, performer: true, invoice: true },
+        });
+        jsonData = { exportType, exportedAt: new Date().toISOString(), count: appointments.length, appointments };
+      } else if (exportType === "payments" || exportType === "invoices") {
+        const invoices = await prisma.patientInvoice.findMany({
+          where: dateFilterClause ? { createdAt: dateFilterClause } : undefined,
+          orderBy: { createdAt: "desc" },
+          include: { patient: true, payments: true },
+        });
+        jsonData = { exportType, exportedAt: new Date().toISOString(), count: invoices.length, invoices };
+      } else if (exportType === "audit") {
+        const logs = await prisma.auditLog.findMany({
+          where: dateFilterClause ? { createdAt: dateFilterClause } : undefined,
+          take: 3000,
+          orderBy: { createdAt: "desc" },
+          include: { user: true, performer: true },
+        });
+        jsonData = { exportType, exportedAt: new Date().toISOString(), count: logs.length, auditLogs: logs };
+      } else {
+        const [patients, appointments, invoices, auditLogs] = await Promise.all([
+          prisma.patient.findMany({
+            where: dateFilterClause ? { createdAt: dateFilterClause } : undefined,
+            orderBy: { createdAt: "desc" },
+            take: 1000,
+          }),
+          prisma.appointment.findMany({
+            where: dateFilterClause ? { appointmentDate: dateFilterClause } : undefined,
+            orderBy: { appointmentDate: "desc" },
+            include: { patient: true, therapySlot: true, room: true, doctor: true },
+            take: 2000,
+          }),
+          prisma.patientInvoice.findMany({
+            where: dateFilterClause ? { createdAt: dateFilterClause } : undefined,
+            orderBy: { createdAt: "desc" },
+            include: { payments: true },
+            take: 2000,
+          }),
+          prisma.auditLog.findMany({
+            where: dateFilterClause ? { createdAt: dateFilterClause } : undefined,
+            orderBy: { createdAt: "desc" },
+            take: 1000,
+          }),
+        ]);
+        jsonData = {
+          exportType: "all",
+          exportedAt: new Date().toISOString(),
+          clinic: CLINIC_CONFIG,
+          patients,
+          appointments,
+          invoices,
+          auditLogs,
+        };
+      }
+
+      return new NextResponse(JSON.stringify(jsonData, null, 2), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Content-Disposition": `attachment; filename="HPC_${exportType}_${filenameLabel}.json"`,
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      });
+    }
 
     // ─────────────────────────────────────────────────────────────
     // 1. EXCEL WORKBOOK (.XLSX) MULTI-SHEET GENERATOR
@@ -270,7 +682,7 @@ export async function GET(request: NextRequest) {
       // ───────────────────────────────────────────────────────────
       // SHEET 2: BILLING & COLLECTIONS LEDGER
       // ───────────────────────────────────────────────────────────
-      if (exportType === "all" || exportType === "payments") {
+      if (exportType === "all" || exportType === "payments" || exportType === "invoices") {
         const wsBilling = workbook.addWorksheet("Billing & Collections", {
           views: [{ state: "frozen", ySplit: 5, showGridLines: true }],
         });
@@ -736,7 +1148,7 @@ export async function GET(request: NextRequest) {
         headers.map(sanitizeCsvField).join(","),
         ...rows.map((row) => row.map(sanitizeCsvField).join(",")),
       ].join("\r\n");
-    } else if (exportType === "payments") {
+    } else if (exportType === "payments" || exportType === "invoices") {
       const appointments = await prisma.appointment.findMany({
         where: dateFilterClause ? { appointmentDate: dateFilterClause } : undefined,
         orderBy: { appointmentDate: "desc" },

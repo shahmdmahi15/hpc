@@ -154,6 +154,16 @@ export default async function AdminPage() {
             <AdminDailyClosingButton data={counts} />
 
             <Link
+              href="/admin/patients"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              title="Inspect complete patient medical dossiers, print reports, and export records"
+            >
+              <Users className="size-3.5" />
+              <span>Patients &amp; History Hub</span>
+              <ArrowUpRight className="size-3" />
+            </Link>
+
+            <Link
               href="/"
               target="_blank"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-border/80 bg-card hover:bg-muted text-foreground text-xs font-semibold shadow-xs transition-all"
@@ -236,24 +246,27 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/80 bg-card/80 shadow-xs border-l-4 border-l-teal-500">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Total Registered Patients
-            </CardTitle>
-            <div className="size-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-500">
-              <Users className="size-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {patientCount}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Unique Medical Record Numbers (MRN)
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/admin/patients" className="group">
+          <Card className="border-border/80 bg-card/80 shadow-xs border-l-4 border-l-teal-500 group-hover:border-teal-500/80 group-hover:shadow-md transition-all h-full cursor-pointer">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
+                Total Registered Patients
+              </CardTitle>
+              <div className="size-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-500 group-hover:scale-105 transition-transform">
+                <Users className="size-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {patientCount}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1 group-hover:text-primary transition-colors">
+                <span>View Directory &amp; History Hub</span>
+                <ArrowUpRight className="size-3" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* ---------------------------------------------------- */}
