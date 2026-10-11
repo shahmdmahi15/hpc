@@ -357,6 +357,7 @@ export function DoctorDashboardView({
       patient: appointment.patient,
       doctor: data.currentDoctor,
       treatmentPlans: plan?.modalities || [],
+      notes: plan?.instructions || undefined,
     });
   };
 
@@ -651,6 +652,7 @@ export function DoctorDashboardView({
                       patient: activeConsultation.patient,
                       doctor: data.currentDoctor,
                       treatmentPlans: plan?.modalities || [],
+                      notes: plan?.instructions || undefined,
                     });
                   }}
                   title="Print official A4 clinical assessment report & prescription"
@@ -1183,76 +1185,81 @@ export function DoctorDashboardView({
               </div>
             ) : (
               <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-2xs">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
-                      <th className="py-2 px-3 text-[11px]">Patient</th>
-                      <th className="py-2 px-2.5 text-[11px]">Gender</th>
-                      <th className="py-2 px-2.5 text-[11px]">Phone</th>
-                      <th className="py-2 px-2.5 text-[11px]">Room</th>
-                      <th className="py-2 px-2.5 text-[11px]">Told / In</th>
-                      <th className="py-2 px-3 text-right text-[11px]">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {data.completedConsultations.map((a) => (
-                      <tr
-                        key={a.id}
-                        className="hover:bg-muted/20 transition-colors"
-                      >
-                        <td className="py-1.5 px-3 font-bold text-foreground">
-                          {a.patient?.name || "Patient"}
-                        </td>
-                        <td className="py-1.5 px-2.5">
-                          <span
-                            className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold border ${
-                              a.gender === "MALE"
-                                ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
-                                : "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20"
-                            }`}
-                          >
-                            {a.gender === "MALE" ? "M" : "F"}
-                          </span>
-                        </td>
-                        <td className="py-1.5 px-2.5 font-mono text-[11px] text-muted-foreground">
-                          {a.patient?.phone || "---"}
-                        </td>
-                        <td className="py-1.5 px-2.5 font-mono text-[11px]">
-                          {a.room?.number ? `R${a.room.number}` : "Chamber"}
-                        </td>
-                        <td className="py-1.5 px-2.5 font-mono text-[11px] text-muted-foreground">
-                          {a.toldTime || "--"} / {formatTime12h(a.checkInTime)}
-                        </td>
-                        <td className="py-1.5 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="outline"
-                              size="xs"
-                              onClick={() => {
-                                if (!a.patient) return;
-                                setPrescriptionPrintData({
-                                  patient: a.patient,
-                                  doctor: a.doctor || data.currentDoctor,
-                                });
-                              }}
-                              className="h-6 px-2 text-[10.5px] font-semibold gap-1 text-sky-700 dark:text-sky-300 border-sky-500/30 hover:bg-sky-500/10 cursor-pointer"
-                              title="Print A4 Clinical Assessment & Prescription"
-                            >
-                              <Printer className="size-2.5" />
-                              <span>Prescription</span>
-                            </Button>
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                              <CheckCircle2 className="size-2.5" />
-                              <span>Completed</span>
-                            </span>
-                          </div>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[580px] text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
+                        <th className="py-2 px-3 text-[11px]">Patient</th>
+                        <th className="py-2 px-2.5 text-[11px]">Gender</th>
+                        <th className="py-2 px-2.5 text-[11px]">Phone</th>
+                        <th className="py-2 px-2.5 text-[11px]">Room</th>
+                        <th className="py-2 px-2.5 text-[11px]">Told / In</th>
+                        <th className="py-2 px-3 text-right text-[11px]">
+                          Status
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {data.completedConsultations.map((a) => (
+                        <tr
+                          key={a.id}
+                          className="hover:bg-muted/20 transition-colors"
+                        >
+                          <td className="py-1.5 px-3 font-bold text-foreground">
+                            {a.patient?.name || "Patient"}
+                          </td>
+                          <td className="py-1.5 px-2.5">
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[9.5px] font-bold border ${
+                                a.gender === "MALE"
+                                  ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
+                                  : "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20"
+                              }`}
+                            >
+                              {a.gender === "MALE" ? "M" : "F"}
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-2.5 font-mono text-[11px] text-muted-foreground">
+                            {a.patient?.phone || "---"}
+                          </td>
+                          <td className="py-1.5 px-2.5 font-mono text-[11px]">
+                            {a.room?.number ? `R${a.room.number}` : "Chamber"}
+                          </td>
+                          <td className="py-1.5 px-2.5 font-mono text-[11px] text-muted-foreground">
+                            {a.toldTime || "--"} / {formatTime12h(a.checkInTime)}
+                          </td>
+                          <td className="py-1.5 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                onClick={() => {
+                                  if (!a.patient) return;
+                                  const plan = data.todayPlansByPatientId?.[a.patientId];
+                                  setPrescriptionPrintData({
+                                    patient: a.patient,
+                                    doctor: a.doctor || data.currentDoctor,
+                                    treatmentPlans: plan?.modalities || [],
+                                    notes: plan?.instructions || undefined,
+                                  });
+                                }}
+                                className="h-6 px-2 text-[10.5px] font-semibold gap-1 text-sky-700 dark:text-sky-300 border-sky-500/30 hover:bg-sky-500/10 cursor-pointer"
+                                title="Print A4 Clinical Assessment & Prescription"
+                              >
+                                <Printer className="size-2.5" />
+                                <span>A4 Report</span>
+                              </Button>
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                                <CheckCircle2 className="size-2.5" />
+                                <span>Completed</span>
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </TabsContent>

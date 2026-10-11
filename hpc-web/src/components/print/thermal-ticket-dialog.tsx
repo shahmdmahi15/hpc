@@ -93,7 +93,7 @@ export function ThermalTicketDialog({
         </DialogHeader>
 
         {/* Printable Ticket Preview Area (Formatted for standard 80mm continuous thermal POS rolls) */}
-        <div className="p-3 sm:p-5 flex-1 min-h-0 overflow-y-auto overscroll-contain overflow-x-hidden flex justify-center bg-neutral-200/70 dark:bg-neutral-950">
+        <div className="p-3 sm:p-5 flex-1 min-h-0 overflow-y-auto overscroll-contain overflow-x-auto flex justify-center bg-neutral-200/70 dark:bg-neutral-950">
           <div
             id="standard-ticket-print"
             className="w-full max-w-[340px] bg-white text-black p-4 rounded-lg border border-slate-300 font-sans space-y-3 shadow-inner"
