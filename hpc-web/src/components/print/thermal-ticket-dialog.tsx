@@ -29,33 +29,33 @@ export function ThermalTicketDialog({
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
 
   const handlePrint = () => {
-    printElementIsolated(
-      "standard-ticket-print",
-      `Queue Slip - Token #${appointment?.id.slice(-4).toUpperCase() || ""}`
-    );
+    printElementIsolated("standard-ticket-print", {
+      title: `Therapy Queue Slip - Token #${appointment?.id.slice(-4).toUpperCase() || ""}`,
+      paperSize: "80mm",
+    });
   };
 
   const handleDownloadPdf = async () => {
     if (!appointment) return;
     setIsGeneratingPdf(true);
     const tokenNo = appointment.id.slice(-4).toUpperCase();
-    const filename = `HPC-Token-${tokenNo}.pdf`;
+    const filename = `HPC-Therapy-Token-${tokenNo}.pdf`;
 
     try {
       const success = await downloadElementAsPdf("standard-ticket-print", {
         filename,
-        format: "custom-5.5x8.125",
+        format: "thermal",
         orientation: "portrait",
       });
 
       if (success) {
-        toast.success("Queue token slip PDF downloaded!");
+        toast.success("Physical Therapy queue slip PDF downloaded!");
       } else {
-        toast.error("Failed to generate PDF token.");
+        toast.error("Failed to generate PDF slip.");
       }
     } catch (err) {
       console.error("[Token PDF] Error:", err);
-      toast.error("Error generating token PDF.");
+      toast.error("Error generating slip PDF.");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -79,174 +79,119 @@ export function ThermalTicketDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-5xl lg:max-w-6xl max-h-[92dvh] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl">
+      <DialogContent className="sm:max-w-md w-[95vw] max-h-[92dvh] flex flex-col p-0 overflow-hidden bg-background border-border shadow-2xl rounded-2xl">
         <DialogHeader className="p-4 sm:p-5 pr-12 sm:pr-14 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
               <Ticket className="size-4 text-emerald-600" />
-              <span>Queue Token &amp; Intake Slip</span>
+              <span>Physical Therapy Queue Slip</span>
             </DialogTitle>
             <span className="text-[11px] text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded border border-border self-start sm:self-auto">
-              5.5″ × 8.27″ (HPC Paper)
+              80mm Thermal Slip
             </span>
           </div>
         </DialogHeader>
 
-        {/* Printable Ticket Preview Area (Formatted for 5.5" x 8.27" custom Wi-Fi paper) */}
-        <div className="p-3 sm:p-6 flex-1 min-h-0 overflow-y-auto overscroll-contain overflow-x-hidden flex justify-center bg-neutral-200/70 dark:bg-neutral-950">
+        {/* Printable Ticket Preview Area (Formatted for standard 80mm continuous thermal POS rolls) */}
+        <div className="p-3 sm:p-5 flex-1 min-h-0 overflow-y-auto overscroll-contain overflow-x-hidden flex justify-center bg-neutral-200/70 dark:bg-neutral-950">
           <div
             id="standard-ticket-print"
-            className="w-full max-w-[500px] min-h-[750px] p-4 sm:p-5 bg-white text-black font-sans text-xs leading-normal border border-black rounded-xs shadow-xl flex flex-col justify-between"
+            className="w-full max-w-[340px] bg-white text-black p-4 rounded-lg border border-slate-300 font-sans space-y-3 shadow-inner"
           >
-            {/* Top Section */}
-            <div className="space-y-2.5">
-              {/* Header Letterhead with Official Logo */}
-              <div className="flex items-start justify-between border-b-2 border-black pb-2.5 mb-2.5">
-                <div className="flex items-center gap-2.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logo.jpg"
-                    alt="Health & Pain Care Center Logo"
-                    className="size-12 object-contain shrink-0"
-                  />
-                  <div>
-                    <h1 className="font-black text-base tracking-tight uppercase text-black leading-tight">
-                      {CLINIC_CONFIG.name}
-                    </h1>
-                    <p className="text-[10px] font-bold text-neutral-800 tracking-wide">
-                      {CLINIC_CONFIG.nameBangla}
-                    </p>
-                    <p className="text-[9px] font-medium text-neutral-600 pt-0.5">
-                      {CLINIC_CONFIG.tagline}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right text-[9px] text-neutral-800 space-y-0.5">
-                  <div className="flex items-center justify-end gap-1 font-bold text-black">
-                    <Phone className="size-2.5 text-black" />
-                    <span>Hotline: {CLINIC_CONFIG.phone}</span>
-                  </div>
-                  <div className="flex items-start justify-end gap-1 text-[8.5px] text-neutral-700 max-w-[170px] text-right">
-                    <MapPin className="size-2.5 text-black shrink-0 mt-0.5" />
-                    <span>{CLINIC_CONFIG.addressBangla}</span>
-                  </div>
-                  <p className="text-[8px] text-neutral-600 font-mono">
-                    {CLINIC_CONFIG.city}, Bangladesh
-                  </p>
-                </div>
+            {/* Clinic Header */}
+            <div className="text-center border-b border-dashed border-slate-300 pb-2 space-y-0.5">
+              <div className="flex justify-center mb-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.jpg"
+                  alt="HPC Logo"
+                  className="size-9 object-contain"
+                />
               </div>
+              <h2 className="text-xs font-black tracking-wide uppercase text-slate-900 leading-tight">
+                {CLINIC_CONFIG.name}
+              </h2>
+              <p className="text-[9.5px] font-semibold text-slate-700">
+                {CLINIC_CONFIG.nameBangla}
+              </p>
+              <p className="text-[8.5px] text-slate-500 font-mono">
+                {CLINIC_CONFIG.phone} • {CLINIC_CONFIG.city}
+              </p>
+            </div>
 
-              {/* Document Header Bar */}
-              <div className="flex items-center justify-between border-y border-black py-1 mb-2 bg-neutral-50 print:bg-white">
-                <div className="flex items-center gap-2">
-                  <span className="bg-black text-white font-black text-[9.5px] tracking-wider uppercase px-2 py-0.5 rounded-xs">
-                    PATIENT INTAKE TOKEN
-                  </span>
-                  <span className="text-[10.5px] font-bold text-black">
-                    ক্রমিক টোকেন ও রিসিট
-                  </span>
-                </div>
-                <div className="text-[10px] text-right font-mono font-bold text-black">
-                  {dateStr}
-                </div>
+            {/* Big Token Number Centerpiece */}
+            <div className="text-center py-2 bg-slate-100 rounded border border-slate-200">
+              <div className="text-[9.5px] font-bold text-slate-600 uppercase tracking-widest">
+                {appointment.type === "THERAPY" ? "PHYSICAL THERAPY QUEUE" : `${appointment.type} SERVICE QUEUE`}
               </div>
-
-              {/* Token Badge Centerpiece (B&W High Contrast) */}
-              <div className="border-2 border-black rounded-xs p-3.5 my-2 text-center bg-white">
-                <span className="text-[10px] uppercase font-bold text-neutral-700 tracking-wider block">
-                  {appointment.type} SERVICE QUEUE
-                </span>
-                <div className="text-5xl sm:text-6xl font-black text-black tracking-tight my-1.5 font-mono">
-                  #{tokenNumber}
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-xs text-[10px] font-black uppercase bg-black text-white">
-                  {appointment.bookingType === "EXTRA" ? "★ EXTRA SLOT (APPROVED)" : "REGULAR SERIAL"}
-                </div>
+              <div className="text-4xl font-black text-slate-900 font-mono tracking-tight my-0.5">
+                #{tokenNumber}
               </div>
-
-              {/* Patient & Booking Details (2 Columns) */}
-              <div className="grid grid-cols-2 gap-2 p-2.5 bg-white rounded-xs border border-neutral-800 text-[10.5px] mb-2">
-                <div className="space-y-1">
-                  <div>
-                    <span className="text-[9.5px] text-neutral-600 block font-medium">Patient Name:</span>
-                    <span className="font-bold text-black uppercase truncate block">
-                      {appointment.patient?.name || "Patient"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9.5px] text-neutral-600 block font-medium">Patient MRN / Phone:</span>
-                    <span className="font-mono font-bold text-black block">
-                      {appointment.patient?.mrn || appointment.patient?.phone || "N/A"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9.5px] text-neutral-600 block font-medium">Expected Call Time:</span>
-                    <span className="font-mono font-bold text-black block">
-                      {appointment.willCallTime || appointment.toldTime || "Next Available"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1 border-l border-neutral-300 pl-3">
-                  <div>
-                    <span className="text-[9.5px] text-neutral-600 block font-medium">Service Unit / Chamber:</span>
-                    <span className="font-bold text-black block">
-                      {appointment.room?.number ? `Chamber Room ${appointment.room.number}` : appointment.therapySlot?.room?.number ? `Therapy Room ${appointment.therapySlot.room.number}` : "Main Waiting Hall"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9.5px] text-neutral-600 block font-medium">Attending Specialist / Desk:</span>
-                    <span className="font-semibold text-black block truncate">
-                      {appointment.doctor?.name ||
-                        (appointment.type === "CONSULTATION"
-                          ? "Dr. Farhan Ahmed, PT, DPT"
-                          : "Physiotherapy & Rehabilitation Desk")}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9.5px] text-neutral-600 block font-medium">Issue Time:</span>
-                    <span className="font-mono text-neutral-700 block">
-                      {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Financial Status Strip (Crisp Monochrome) */}
-              <div className="flex items-center justify-between p-2.5 rounded-xs border border-black text-xs mb-2.5 bg-white">
-                <div>
-                  <span className="text-neutral-600 text-[9.5px] block font-medium">Service Fee / ফি:</span>
-                  <span className="font-black text-black font-sans text-sm">৳ {fee.toLocaleString()} BDT</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-neutral-600 text-[9.5px] block font-medium">Payment Status:</span>
-                  <span className={`font-black uppercase text-[10.5px] px-2.5 py-0.5 rounded-xs border border-black ${
-                    isPaid ? "bg-white text-black font-black" : "bg-neutral-200 text-black"
-                  }`}>
-                    {isPaid ? "★ PAID IN FULL ★" : `⚠ DUE: ৳ ${due.toLocaleString()}`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Guidance & Notice Box */}
-              <div className="border border-neutral-400 p-2.5 rounded-xs text-[9.5px] text-neutral-800 space-y-1 mb-2">
-                <div className="flex items-center gap-2.5">
-                  <QrCode className="size-9 text-black shrink-0" />
-                  <p className="leading-relaxed">
-                    <span className="font-bold text-black">রোগী নির্দেশিকা:</span> অনুগ্রহপূর্বক এই টোকেনটি সাথে রাখুন। ওয়েটিং রুমের ডিজিটাল ডিসপ্লে স্ক্রিনে আপনার সিরিয়াল লক্ষ্য করুন অথবা লাউডস্পিকারের ভয়েস কল শুনুন।
-                  </p>
-                </div>
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase bg-slate-900 text-white">
+                {appointment.bookingType === "EXTRA" ? "★ EXTRA SLOT (APPROVED)" : "REGULAR SERIAL"}
               </div>
             </div>
 
-            {/* Flexible Spacer */}
-            <div className="flex-1 min-h-6"></div>
+            {/* Patient & Service Details */}
+            <div className="space-y-1.5 text-xs border-b border-dashed border-slate-300 pb-2.5">
+              <div className="flex justify-between items-start">
+                <span className="text-slate-500 font-medium text-[11px]">Patient:</span>
+                <span className="font-bold text-slate-900 text-right text-[11px] truncate max-w-[190px]">
+                  {appointment.patient?.name || "Patient"} ({appointment.patient?.gender || "N/A"})
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium text-[11px]">Phone:</span>
+                <span className="font-mono text-slate-900 text-[11px]">
+                  {appointment.patient?.phone || "N/A"}
+                </span>
+              </div>
+              {appointment.patient?.mrn && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-medium text-[11px]">MRN:</span>
+                  <span className="font-mono text-slate-900 text-[11px]">
+                    {appointment.patient.mrn}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-start">
+                <span className="text-slate-500 font-medium text-[11px]">Unit / Chamber:</span>
+                <span className="font-bold text-slate-900 text-right text-[11px]">
+                  {appointment.room?.number
+                    ? `Chamber Room ${appointment.room.number}`
+                    : appointment.therapySlot?.room?.number
+                    ? `Therapy Room ${appointment.therapySlot.room.number}`
+                    : "Main Therapy Hall"}
+                </span>
+              </div>
+              <div className="flex justify-between items-start">
+                <span className="text-slate-500 font-medium text-[11px]">Specialist / Desk:</span>
+                <span className="font-semibold text-slate-900 text-right text-[11px] truncate max-w-[180px]">
+                  {appointment.doctor?.name || "Physiotherapy & Rehabilitation Desk"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium text-[11px]">Date &amp; Time:</span>
+                <span className="font-mono text-slate-900 text-[11px]">
+                  {dateStr} • {appointment.willCallTime || appointment.toldTime || "Walk-In"}
+                </span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-slate-200">
+                <span className="text-slate-600 font-bold text-[11px]">Service Fee:</span>
+                <span className="font-bold text-slate-900 font-mono text-[11px]">
+                  ৳{fee.toLocaleString()} ({isPaid ? "PAID" : `DUE: ৳${due.toLocaleString()}`})
+                </span>
+              </div>
+            </div>
 
-            {/* Footer */}
-            <div className="pt-2.5 border-t border-black flex justify-between items-center text-[9px] text-neutral-600">
-              <span>{CLINIC_CONFIG.fullLocation}</span>
-              <span className="font-mono font-bold text-black">HPC-LAN-OFFLINE-SYS</span>
+            {/* Guidance & Notice Box */}
+            <div className="text-center text-[9.5px] text-slate-600 space-y-1">
+              <p className="font-medium leading-relaxed">
+                <strong className="text-slate-900">রোগী নির্দেশিকা:</strong> অনুগ্রহপূর্বক এই টোকেনটি সাথে রাখুন। ওয়েটিং রুমের ডিজিটাল ডিসপ্লে স্ক্রিনে আপনার সিরিয়াল লক্ষ্য করুন অথবা লাউডস্পিকারের ভয়েস কল শুনুন।
+              </p>
+              <p className="font-mono text-[8.5px] text-slate-400">
+                {CLINIC_CONFIG.fullLocation} • HPC-LAN
+              </p>
             </div>
           </div>
         </div>
@@ -282,7 +227,7 @@ export function ThermalTicketDialog({
               className="gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-xs flex-1 sm:flex-initial"
             >
               <Printer className="size-3.5" />
-              <span>Print Slip (5.5″ × 8.125″)</span>
+              <span>Print Thermal Slip (80mm)</span>
             </Button>
           </div>
         </DialogFooter>

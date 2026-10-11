@@ -151,10 +151,10 @@ export function PatientMedicalHistoryDialog({
       setSelectedVoucherRecordId(target.id);
     }
     setTimeout(() => {
-      printElementIsolated(
-        "patient-medical-checkup-print",
-        `Medical File - ${patient?.name || "Patient"}`
-      );
+      printElementIsolated("patient-medical-checkup-print", {
+        title: `Medical File - ${patient?.name || "Patient"}`,
+        paperSize: "A4",
+      });
     }, 50);
   };
 
@@ -174,11 +174,11 @@ export function PatientMedicalHistoryDialog({
       const filename = `HPC_Medical_File_${patientSlug}_${dateStr}.pdf`;
       const success = await downloadElementAsPdf("patient-medical-checkup-print", {
         filename,
-        format: "custom-5.5x8.125",
+        format: "a4",
         orientation: "portrait",
       });
       if (success) {
-        toast.success("Medical File PDF downloaded successfully!");
+        toast.success("Medical File PDF (A4) downloaded successfully!");
       } else {
         toast.error("Failed to generate PDF. Please try again.");
       }
@@ -230,7 +230,7 @@ export function PatientMedicalHistoryDialog({
                     className="h-7 px-2.5 text-xs font-semibold gap-1.5 cursor-pointer"
                   >
                     <Eye className="size-3.5" />
-                    <span>5.5″ × 8.27″ Voucher</span>
+                    <span>A4 Clinical Dossier</span>
                   </Button>
                 </div>
               )}
@@ -347,7 +347,7 @@ export function PatientMedicalHistoryDialog({
             </div>
           ) : viewMode === "voucher" ? (
             /* ========================================================== */
-            /* 5.5" x 8.27" HPC VOUCHER LIVE PREVIEW VIEW                 */
+            /* A4 CLINICAL DOSSIER LIVE PREVIEW VIEW                      */
             /* ========================================================== */
             <div className="space-y-3">
               {/* Record Selector Bar if multiple assessments exist */}
@@ -389,7 +389,7 @@ export function PatientMedicalHistoryDialog({
                       className="h-8 text-xs font-bold gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Printer className="size-3.5" />
-                      <span>Print Voucher</span>
+                      <span>Print A4 Dossier</span>
                     </Button>
                   </div>
                 </div>
@@ -815,7 +815,7 @@ export function PatientMedicalHistoryDialog({
           <div className="text-xs text-muted-foreground">
             {records.length > 0 && activeRecord && (
               <span>
-                Selected: <strong>{new Date(activeRecord.assessmentDate).toLocaleDateString("en-GB")}</strong> (5.5″ × 8.27″ HPC Format)
+                Selected: <strong>{new Date(activeRecord.assessmentDate).toLocaleDateString("en-GB")}</strong> (A4 Format)
               </span>
             )}
           </div>
@@ -848,7 +848,7 @@ export function PatientMedicalHistoryDialog({
 }
 
 /**
- * High-resolution Clinical Medical Checkup File formatted for 5.5″ × 8.27″ HPC standard cut paper
+ * High-resolution Clinical Medical Checkup File formatted for A4 standard clinical paper (210mm × 297mm)
  */
 function MedicalRecordVoucher({
   patient,
@@ -872,84 +872,84 @@ function MedicalRecordVoucher({
   return (
     <div
       id={containerId}
-      className="w-full max-w-[500px] min-h-[750px] bg-white text-black p-4 sm:p-5 rounded-xs border border-black shadow-xl font-sans text-xs leading-normal flex flex-col justify-between"
+      className="w-full max-w-[760px] min-h-[1050px] bg-white text-black p-6 sm:p-8 rounded-xs border border-black shadow-xl font-sans text-xs leading-normal flex flex-col justify-between"
     >
       {/* Top Section */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {/* Formal Letterhead with Official Logo */}
-        <div className="flex items-start justify-between border-b-2 border-black pb-2 mb-1.5">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-start justify-between border-b-2 border-black pb-3 mb-2">
+          <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.jpg"
               alt="Health & Pain Care Center Logo"
-              className="size-13 sm:size-14 object-contain shrink-0"
+              className="size-14 sm:size-16 object-contain shrink-0"
             />
             <div>
-              <h1 className="font-black text-sm sm:text-base tracking-tight uppercase text-black leading-tight">
+              <h1 className="font-black text-base sm:text-lg tracking-tight uppercase text-black leading-tight">
                 {CLINIC_CONFIG.name}
               </h1>
-              <p className="text-[10px] font-bold text-neutral-800 tracking-wide">
+              <p className="text-xs font-bold text-neutral-800 tracking-wide">
                 {CLINIC_CONFIG.nameBangla}
               </p>
-              <p className="text-[8.5px] font-medium text-neutral-600 pt-0.5">
+              <p className="text-[10px] font-medium text-neutral-600 pt-0.5">
                 {CLINIC_CONFIG.tagline}
               </p>
             </div>
           </div>
 
-          <div className="text-right text-[9px] text-neutral-800 space-y-0.5">
+          <div className="text-right text-[10px] text-neutral-800 space-y-0.5">
             <p className="font-bold text-black flex items-center justify-end gap-1">
-              <Phone className="size-2.5 text-black" />
+              <Phone className="size-3 text-black" />
               <span>Hotline: {CLINIC_CONFIG.phone}</span>
             </p>
-            <p className="text-neutral-700 max-w-[170px] text-right text-[8.5px] leading-tight">
+            <p className="text-neutral-700 max-w-[210px] text-right text-[9.5px] leading-tight">
               {CLINIC_CONFIG.addressBangla}
             </p>
-            <p className="text-neutral-600 font-mono text-[8px]">
+            <p className="text-neutral-600 font-mono text-[9px]">
               {CLINIC_CONFIG.city}, Bangladesh
             </p>
           </div>
         </div>
 
         {/* Document Title & Voucher Bar */}
-        <div className="flex items-center justify-between border-y border-black py-1 mb-1.5 bg-neutral-50 print:bg-white">
+        <div className="flex items-center justify-between border-y border-black py-1.5 mb-2 bg-neutral-50 print:bg-white">
           <div className="flex items-center gap-2">
-            <span className="bg-black text-white font-black text-[9px] tracking-wider uppercase px-2 py-0.5 rounded-xs">
-              MEDICAL CHECKUP FILE
+            <span className="bg-black text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-0.5 rounded-xs">
+              A4 CLINICAL DOSSIER &amp; INITIAL ASSESSMENT
             </span>
-            <span className="text-[10px] font-bold text-black">
-              চিকিৎসা মূল্যায়ন ও ফাইল
+            <span className="text-xs font-bold text-black">
+              চিকিৎসা মূল্যায়ন ও বিস্তারিত ক্লিনিকাল ফাইল
             </span>
           </div>
-          <div className="text-[9.5px] text-right font-mono">
+          <div className="text-[10.5px] text-right font-mono">
             <span className="text-neutral-600 mr-1 font-medium">Date:</span>
             <span className="font-black text-black">{recDateFormatted}</span>
           </div>
         </div>
 
         {/* Patient Demographics Strip */}
-        <div className="grid grid-cols-4 gap-1.5 p-2 bg-white border border-neutral-800 rounded-xs mb-1.5 text-[10px]">
+        <div className="grid grid-cols-4 gap-2 p-2.5 bg-white border border-neutral-800 rounded-xs mb-2 text-[11px]">
           <div>
-            <span className="text-neutral-600 block text-[8px] font-medium">Patient Name:</span>
-            <span className="font-bold text-black uppercase truncate block">
+            <span className="text-neutral-600 block text-[9px] font-medium">Patient Name:</span>
+            <span className="font-bold text-black uppercase truncate block text-xs">
               {patient?.name || "Patient"}
             </span>
           </div>
           <div>
-            <span className="text-neutral-600 block text-[8px] font-medium">MRN (ID):</span>
-            <span className="font-mono font-bold text-black block">
+            <span className="text-neutral-600 block text-[9px] font-medium">MRN (ID):</span>
+            <span className="font-mono font-bold text-black block text-xs">
               {patient?.mrn || patient?.id.slice(-6).toUpperCase() || "N/A"}
             </span>
           </div>
           <div>
-            <span className="text-neutral-600 block text-[8px] font-medium">Age / Gender:</span>
+            <span className="text-neutral-600 block text-[9px] font-medium">Age / Gender:</span>
             <span className="font-semibold text-black block">
               {record.age ? `${record.age} Yrs` : patient?.age ? `${patient.age} Yrs` : "N/A"} • {patient?.gender || "N/A"}
             </span>
           </div>
           <div>
-            <span className="text-neutral-600 block text-[8px] font-medium">Contact Phone:</span>
+            <span className="text-neutral-600 block text-[9px] font-medium">Contact Phone:</span>
             <span className="font-mono font-bold text-black block">
               {patient?.phone || "N/A"}
             </span>
@@ -957,56 +957,56 @@ function MedicalRecordVoucher({
         </div>
 
         {/* Provisional Clinical Diagnosis Banner */}
-        <div className="border border-black rounded-xs p-1.5 mb-1.5 bg-neutral-50 print:bg-white">
-          <span className="text-[8.5px] font-black text-black uppercase tracking-wider block">
+        <div className="border border-black rounded-xs p-2 mb-2 bg-neutral-50 print:bg-white">
+          <span className="text-[9.5px] font-black text-black uppercase tracking-wider block">
             PROVISIONAL CLINICAL DIAGNOSIS / রোগ নির্ণয়:
           </span>
-          <p className="text-xs font-black text-black mt-0.5 leading-snug">
+          <p className="text-sm font-black text-black mt-0.5 leading-snug">
             {diagnosis}
           </p>
         </div>
 
         {/* Clinical Findings & Pain Assessment (2-column layout) */}
-        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+        <div className="grid grid-cols-2 gap-2 mb-2">
           {/* Left Column: Complaints & Pain Profile */}
-          <div className="border border-neutral-800 rounded-xs p-1.5 space-y-1 bg-white text-[9px]">
-            <h3 className="font-black text-[9.5px] uppercase tracking-wide text-black border-b border-black pb-0.5 flex items-center justify-between">
+          <div className="border border-neutral-800 rounded-xs p-2.5 space-y-1.5 bg-white text-[10px]">
+            <h3 className="font-black text-[10.5px] uppercase tracking-wide text-black border-b border-black pb-1 flex items-center justify-between">
               <span>Clinical Pain Profile</span>
-              <Activity className="size-2.5 text-black" />
+              <Activity className="size-3 text-black" />
             </h3>
 
             <div>
-              <span className="text-neutral-600 text-[8px] block font-medium">Chief Areas:</span>
-              <span className="font-bold text-black">
+              <span className="text-neutral-600 text-[9px] block font-medium">Chief Areas:</span>
+              <span className="font-bold text-black text-[10.5px]">
                 {record.painAreasList.join(", ") || "None recorded"}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-1 text-[8.5px]">
+            <div className="grid grid-cols-2 gap-1.5 text-[9.5px]">
               <div>
-                <span className="text-neutral-600 block text-[7.5px]">Side:</span>
+                <span className="text-neutral-600 block text-[8.5px]">Side:</span>
                 <span className="font-bold text-black">{record.painSide || "---"}</span>
               </div>
               <div>
-                <span className="text-neutral-600 block text-[7.5px]">Duration:</span>
+                <span className="text-neutral-600 block text-[8.5px]">Duration:</span>
                 <span className="font-bold text-black">{record.duration || "---"}</span>
               </div>
             </div>
 
             {/* VAS Score Box */}
-            <div className="p-1 bg-neutral-50 rounded-xs flex items-center justify-between border border-neutral-600">
-              <span className="font-bold text-[8.5px] text-black">VAS Score (0-10):</span>
-              <span className="font-black font-mono text-[10px] text-black">
+            <div className="p-1.5 bg-neutral-50 rounded-xs flex items-center justify-between border border-neutral-600">
+              <span className="font-bold text-[9.5px] text-black">VAS Score (0-10):</span>
+              <span className="font-black font-mono text-[11px] text-black">
                 {record.vasScore !== null ? `${record.vasScore}/10` : "N/A"}
                 {record.followUpVasScore !== null && (
-                  <span className="text-[8.5px] font-normal text-neutral-700 ml-1">
+                  <span className="text-[9.5px] font-normal text-neutral-700 ml-1">
                     → Post: {record.followUpVasScore}/10
                   </span>
                 )}
               </span>
             </div>
 
-            <div className="text-[8px] space-y-0.5 pt-0.5">
+            <div className="text-[9px] space-y-0.5 pt-0.5">
               <div>
                 <span className="text-neutral-600 font-semibold">Increases with: </span>
                 <span className="text-black">{record.aggravatingFactorsList.join(", ") || "---"}</span>
@@ -1019,42 +1019,42 @@ function MedicalRecordVoucher({
           </div>
 
           {/* Right Column: Physical Examination */}
-          <div className="border border-neutral-800 rounded-xs p-1.5 space-y-1 bg-white text-[9px]">
-            <h3 className="font-black text-[9.5px] uppercase tracking-wide text-black border-b border-black pb-0.5 flex items-center justify-between">
+          <div className="border border-neutral-800 rounded-xs p-2.5 space-y-1.5 bg-white text-[10px]">
+            <h3 className="font-black text-[10.5px] uppercase tracking-wide text-black border-b border-black pb-1 flex items-center justify-between">
               <span>Physical Examination</span>
-              <HeartPulse className="size-2.5 text-black" />
+              <HeartPulse className="size-3 text-black" />
             </h3>
 
-            <div className="grid grid-cols-2 gap-1 text-[8.5px]">
+            <div className="grid grid-cols-2 gap-1.5 text-[9.5px]">
               <div>
-                <span className="text-neutral-600 block text-[7.5px]">ROM:</span>
+                <span className="text-neutral-600 block text-[8.5px]">ROM:</span>
                 <span className="font-bold text-black">{record.rom || "Normal"}</span>
               </div>
               <div>
-                <span className="text-neutral-600 block text-[7.5px]">Spasm:</span>
+                <span className="text-neutral-600 block text-[8.5px]">Spasm:</span>
                 <span className="font-bold text-black">{record.muscleSpasm ? "Present (+)" : "Absent (-)"}</span>
               </div>
               <div>
-                <span className="text-neutral-600 block text-[7.5px]">Tenderness:</span>
+                <span className="text-neutral-600 block text-[8.5px]">Tenderness:</span>
                 <span className="font-bold text-black">{record.tenderness ? "Present (+)" : "Absent (-)"}</span>
               </div>
               <div>
-                <span className="text-neutral-600 block text-[7.5px]">Swelling:</span>
+                <span className="text-neutral-600 block text-[8.5px]">Swelling:</span>
                 <span className="font-bold text-black">{record.swelling ? "Present (+)" : "Absent (-)"}</span>
               </div>
             </div>
 
             {record.physicalExamNotes && (
-              <div className="pt-0.5 border-t border-neutral-200">
-                <span className="text-neutral-600 text-[7.5px] block">Notes:</span>
-                <p className="italic text-neutral-800 text-[8px] leading-tight">
+              <div className="pt-1 border-t border-neutral-200">
+                <span className="text-neutral-600 text-[8.5px] block">Notes:</span>
+                <p className="italic text-neutral-800 text-[9px] leading-tight">
                   {record.physicalExamNotes}
                 </p>
               </div>
             )}
 
-            <div className="pt-0.5 border-t border-neutral-200 text-[8px]">
-              <span className="text-neutral-600 block text-[7.5px]">Past History:</span>
+            <div className="pt-1 border-t border-neutral-200 text-[9px]">
+              <span className="text-neutral-600 block text-[8.5px]">Past History:</span>
               <span>
                 Injury: <strong>{record.injuryAccident ? (record.injuryDetails || "Yes") : "No"}</strong> •
                 Surgery: <strong>{record.surgeryHistory ? (record.surgeryDetails || "Yes") : "No"}</strong>
@@ -1064,38 +1064,38 @@ function MedicalRecordVoucher({
         </div>
 
         {/* Prescribed Physical Therapy Modalities */}
-        <div className="border border-black rounded-xs p-1.5 mb-1.5 bg-white">
-          <div className="flex items-center justify-between border-b border-black pb-0.5 mb-1">
-            <h3 className="font-black text-[10px] uppercase tracking-wide text-black">
+        <div className="border border-black rounded-xs p-2 mb-2 bg-white">
+          <div className="flex items-center justify-between border-b border-black pb-1 mb-1.5">
+            <h3 className="font-black text-[11px] uppercase tracking-wide text-black">
               ℞ Prescribed Physical Therapy Modalities (থেরাপি প্রেসক্রিপশন)
             </h3>
-            <span className="text-[8px] font-mono font-bold text-neutral-600">
+            <span className="text-[9px] font-mono font-bold text-neutral-600">
               {record.treatmentPlansList.length} Modalities
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {record.treatmentPlansList.length > 0 ? (
               record.treatmentPlansList.map((modality, idx) => (
                 <span
                   key={modality}
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 text-black border border-neutral-800 rounded-xs text-[9px] font-bold"
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-neutral-100 text-black border border-neutral-800 rounded-xs text-[9.5px] font-bold"
                 >
-                  <span className="size-3 rounded-full bg-black text-white font-bold flex items-center justify-center text-[7.5px]">
+                  <span className="size-3.5 rounded-full bg-black text-white font-bold flex items-center justify-center text-[8px]">
                     {idx + 1}
                   </span>
                   <span>{modality}</span>
                 </span>
               ))
             ) : (
-              <p className="text-[9px] text-neutral-600 italic">
+              <p className="text-[9.5px] text-neutral-600 italic">
                 Standard Conservative Physiotherapy Protocol prescribed.
               </p>
             )}
           </div>
 
           {record.treatmentNotes && (
-            <div className="mt-1 pt-0.5 border-t border-neutral-300 text-[8.5px]">
+            <div className="mt-1.5 pt-1 border-t border-neutral-300 text-[9.5px]">
               <span className="font-bold text-black">Therapist Protocol: </span>
               <span className="text-neutral-800">{record.treatmentNotes}</span>
             </div>
@@ -1103,11 +1103,11 @@ function MedicalRecordVoucher({
         </div>
 
         {/* Home Advice & Posture Guidelines */}
-        <div className="border border-neutral-800 rounded-xs p-1.5 mb-1 bg-white text-[8.5px]">
-          <span className="font-black text-black block text-[9px] uppercase tracking-wide">
+        <div className="border border-neutral-800 rounded-xs p-2 mb-1.5 bg-white text-[9.5px]">
+          <span className="font-black text-black block text-[10px] uppercase tracking-wide">
             Home Advice &amp; Posture Care (গৃহ নির্দেশিকা):
           </span>
-          <div className="grid grid-cols-2 gap-1 text-[8px] text-neutral-800 pt-0.5">
+          <div className="grid grid-cols-2 gap-1.5 text-[9px] text-neutral-800 pt-0.5">
             <div>
               • Exercise Explained: <strong>{record.exerciseExplained ? "Yes" : "No"}</strong>
             </div>
@@ -1115,14 +1115,14 @@ function MedicalRecordVoucher({
               • Posture Advice: <strong>{record.homePostureAdvice ? "Yes" : "No"}</strong>
             </div>
           </div>
-          <p className="text-[7.5px] text-neutral-600 pt-0.5">
-            Avoid prolonged sitting, forward bending, and heavy lifting. Perform gentle stretches daily.
+          <p className="text-[8.5px] text-neutral-600 pt-0.5">
+            Avoid prolonged sitting, forward bending, and heavy lifting. Perform gentle stretches daily as instructed.
           </p>
         </div>
 
         {/* Multi-Visit Trajectory Strip if multiple assessments exist */}
         {allRecords.length > 1 && (
-          <div className="border border-neutral-300 rounded-xs p-1 bg-neutral-50 text-[7.5px]">
+          <div className="border border-neutral-300 rounded-xs p-1.5 bg-neutral-50 text-[8.5px]">
             <span className="font-bold text-neutral-700">Assessment Trajectory: </span>
             <span className="text-neutral-600">
               {allRecords
@@ -1142,21 +1142,21 @@ function MedicalRecordVoucher({
       </div>
 
       {/* Bottom Footer & Signature */}
-      <div className="pt-1.5 border-t border-black mt-1">
+      <div className="pt-2 border-t border-black mt-2">
         <div className="flex justify-between items-end pb-1">
-          <div className="text-[7.5px] text-neutral-600 space-y-0.5">
+          <div className="text-[8.5px] text-neutral-600 space-y-0.5">
             <p className="font-bold text-black">{CLINIC_CONFIG.name} Medical Desk</p>
             <p>{CLINIC_CONFIG.fullLocation}</p>
             <p>Official Patient Assessment Record • Valid with Specialist Signature</p>
           </div>
 
-          <div className="text-center w-36">
-            <div className="border-b border-black pb-0.5 mb-0.5">
-              <p className="font-bold text-[9px] text-black">
+          <div className="text-center w-40">
+            <div className="border-b border-black pb-1 mb-1">
+              <p className="font-bold text-[10px] text-black">
                 {record.doctorSignature || record.doctor?.name || "Consultant Physiotherapist"}
               </p>
             </div>
-            <p className="text-[7px] text-neutral-600 uppercase tracking-wider font-semibold">
+            <p className="text-[8px] text-neutral-600 uppercase tracking-wider font-semibold">
               Authorized Specialist Signature
             </p>
           </div>

@@ -269,13 +269,14 @@ export async function downloadMultipleElementsAsPdf(
 
 export interface PrintIsolatedOptions {
   title?: string;
-  paperSize?: string; // Default: "5.5in 8.125in"
-  margin?: string; // Default: "0.2in"
+  paperSize?: "hpc" | "5.5x8.27" | "a4" | "A4" | "thermal" | "80mm" | string; // Default: "5.5in 8.27in"
+  margin?: string; // Optional custom margin
 }
 
 /**
  * Prints a specific DOM element cleanly via the dedicated #hpc-print-root mount point.
- * Configured specifically for 5.5" width x 8.125" height standard paper Wi-Fi printers.
+ * Dynamically provisions exact CSS @page rules for A4 clinical sheets, 80mm thermal POS slips,
+ * or standard 5.5" x 8.27" HPC paper Wi-Fi printers.
  * Ensures the main dashboard, browser chrome, navigation, and dialog overlays are NOT printed.
  * Eliminates blank pages caused by zero-dimension iframe sandbox restrictions.
  */
@@ -290,7 +291,7 @@ export function printElementIsolated(
       ? { title: titleOrOptions }
       : titleOrOptions;
 
-  const { title = "Print Document" } = options;
+  const { title = "Print Document", paperSize = "5.5x8.27" } = options;
 
   const targetElement =
     typeof elementOrId === "string"
@@ -321,7 +322,126 @@ export function printElementIsolated(
     document.title = title;
   }
 
-  // 4. Setup cleanup listener that cleans up once print dialog finishes
+  // 4. Inject dynamic @page styling matching the requested hardware paper geometry
+  const normalizedSize = (paperSize || "").toLowerCase();
+  const isA4 = normalizedSize === "a4";
+  const isThermal = normalizedSize === "thermal" || normalizedSize === "80mm";
+
+  let dynamicStyle = document.getElementById(
+    "hpc-dynamic-print-style"
+  ) as HTMLStyleElement | null;
+  if (!dynamicStyle) {
+    dynamicStyle = document.createElement("style");
+    dynamicStyle.id = "hpc-dynamic-print-style";
+    document.head.appendChild(dynamicStyle);
+  }
+
+  if (isA4) {
+    dynamicStyle.textContent = `
+      @media print {
+        @page {
+          size: A4 portrait !important;
+          margin: 8mm !important;
+        }
+        html, body {
+          width: 100% !important;
+          height: auto !important;
+          min-height: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+        }
+        #hpc-print-root,
+        .print-document-container {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          min-height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: none !important;
+        }
+        #hpc-print-root > div,
+        .print-document-container > div {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          min-height: calc(297mm - 20mm) !important;
+          border: 1.5px solid #000000 !important;
+          padding: 6mm !important;
+          box-sizing: border-box !important;
+        }
+      }
+    `;
+  } else if (isThermal) {
+    dynamicStyle.textContent = `
+      @media print {
+        @page {
+          size: 80mm auto !important;
+          margin: 2mm !important;
+        }
+        html, body {
+          width: 80mm !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+        }
+        #hpc-print-root,
+        .print-document-container {
+          width: 76mm !important;
+          max-width: 76mm !important;
+          height: auto !important;
+          min-height: auto !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+          border: none !important;
+        }
+        #hpc-print-root > div,
+        .print-document-container > div {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          min-height: auto !important;
+          border: 1px dashed #64748b !important;
+          padding: 2.5mm !important;
+          box-sizing: border-box !important;
+          justify-content: flex-start !important;
+        }
+      }
+    `;
+  } else {
+    dynamicStyle.textContent = `
+      @media print {
+        @page {
+          size: 5.5in 8.27in !important;
+          margin: 0 !important;
+        }
+        #hpc-print-root,
+        .print-document-container {
+          width: 5.5in !important;
+          height: 8.27in !important;
+          max-width: 5.5in !important;
+          min-height: 8.27in !important;
+          margin: 0 auto !important;
+          padding: 0.18in !important;
+          border: none !important;
+        }
+        #hpc-print-root > div,
+        .print-document-container > div {
+          width: 100% !important;
+          max-width: none !important;
+          height: 100% !important;
+          min-height: calc(8.27in - 0.36in) !important;
+          border: 1.5px solid #000000 !important;
+          padding: 0.16in !important;
+          box-sizing: border-box !important;
+        }
+      }
+    `;
+  }
+
+  // 5. Setup cleanup listener that cleans up once print dialog finishes
   let isCleanedUp = false;
   const cleanup = () => {
     if (isCleanedUp) return;
@@ -332,12 +452,16 @@ export function printElementIsolated(
     if (originalTitle) {
       document.title = originalTitle;
     }
+    const injectedStyle = document.getElementById("hpc-dynamic-print-style");
+    if (injectedStyle) {
+      injectedStyle.remove();
+    }
     window.removeEventListener("afterprint", cleanup);
   };
 
   window.addEventListener("afterprint", cleanup);
 
-  // 5. Trigger print cleanly on the next animation frame after DOM commitment
+  // 6. Trigger print cleanly on the next animation frame after DOM commitment
   requestAnimationFrame(() => {
     try {
       window.print();

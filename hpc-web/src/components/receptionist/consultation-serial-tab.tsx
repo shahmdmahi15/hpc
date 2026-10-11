@@ -304,6 +304,7 @@ export function ConsultationSerialTab({
     if (!printModalSerial) return;
     printElementIsolated("consultation-serial-slip-print", {
       title: `Consultation Serial #${printModalSerial.serialNumber} - ${printModalSerial.patient.name}`,
+      paperSize: "80mm",
     });
   };
 
