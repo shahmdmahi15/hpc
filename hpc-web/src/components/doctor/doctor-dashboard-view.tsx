@@ -1286,7 +1286,9 @@ export function DoctorDashboardView({
                             {a.patient?.phone || "---"}
                           </td>
                           <td className="py-1.5 px-2.5 font-mono text-[11px]">
-                            {a.room?.number ? `R${a.room.number}` : "Chamber"}
+                            {a.room?.number && a.room.number !== "200"
+                              ? `R${a.room.number}`
+                              : "Chamber"}
                           </td>
                           <td className="py-1.5 px-2.5 font-mono text-[11px] text-muted-foreground">
                             {a.toldTime || "--"} / {formatTime12h(a.checkInTime)}

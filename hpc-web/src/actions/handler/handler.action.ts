@@ -153,7 +153,7 @@ export async function getHandlerDashboardDataAction(
   }
 
   // Completed Therapy Sessions today (includes patients forwarded to Receptionist, Cashier, or Doctor after therapy)
-  const completedTherapy = appointments.filter(
+  const completedTherapyRaw = appointments.filter(
     (a) =>
       a.status !== AppointmentStatus.IN_THERAPY &&
       a.status !== AppointmentStatus.CALLING &&
@@ -162,6 +162,74 @@ export async function getHandlerDashboardDataAction(
         (a.queueType === QueueType.THERAPY &&
           a.status === AppointmentStatus.COMPLETED)),
   );
+
+  // If any completed appointment has roomId = 200 (waiting room) or missing room, look up actual therapy room from TherapySessionTimer or StepLogs
+  const completedApptIds = completedTherapyRaw.map((a) => a.id);
+  const timers =
+    completedApptIds.length > 0
+      ? await prisma.therapySessionTimer.findMany({
+          where: { appointmentId: { in: completedApptIds } },
+          select: { appointmentId: true, roomNumber: true },
+        })
+      : [];
+
+  const timerRoomByApptId: Record<string, string> = {};
+  for (const t of timers) {
+    if (t.appointmentId && t.roomNumber) {
+      timerRoomByApptId[t.appointmentId] = t.roomNumber;
+    }
+  }
+
+  // Also query step logs for any THERAPY_ROOM entries with roomNumber
+  const stepLogs =
+    completedApptIds.length > 0
+      ? await prisma.patientStepLog.findMany({
+          where: {
+            step: { in: ["THERAPY_START", "QUEUED_FOR_THERAPY"] },
+            roomNumber: { not: null },
+            patientId: { in: completedTherapyRaw.map((a) => a.patientId) },
+          },
+          select: { patientId: true, roomNumber: true },
+          orderBy: { timestamp: "desc" },
+        })
+      : [];
+
+  const stepRoomByPatientId: Record<string, string> = {};
+  for (const log of stepLogs) {
+    if (
+      log.roomNumber &&
+      log.roomNumber !== "200" &&
+      !stepRoomByPatientId[log.patientId]
+    ) {
+      stepRoomByPatientId[log.patientId] = log.roomNumber;
+    }
+  }
+
+  const completedTherapy = completedTherapyRaw.map((a) => {
+    const actualRoomNumber =
+      timerRoomByApptId[a.id] ||
+      (a.room?.number && a.room.number !== "200" ? a.room.number : null) ||
+      stepRoomByPatientId[a.patientId] ||
+      a.therapySlot?.room?.number ||
+      null;
+
+    if (actualRoomNumber && (!a.room || a.room.number === "200")) {
+      return {
+        ...a,
+        room: {
+          id: a.room?.id || "therapy-room",
+          number: actualRoomNumber,
+          purpose: "Therapy Room",
+          accessType: a.room?.accessType || "THERAPY",
+          gender: a.room?.gender || "COMMON",
+          status: a.room?.status || "AVAILABLE",
+          createdAt: a.room?.createdAt || new Date(),
+          updatedAt: a.room?.updatedAt || new Date(),
+        },
+      };
+    }
+    return a;
+  });
 
   // Standby Extra Slots for monitoring
   const extraSlots = appointments.filter(

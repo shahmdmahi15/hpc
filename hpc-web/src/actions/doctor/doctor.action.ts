@@ -780,6 +780,40 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
 
     const waitingRoom = await getOrCreateWaitingRoom200();
 
+    // Preserve the actual clinical room where therapy or consultation took place!
+    // When routing to CASHIER or RECEPTIONIST (e.g. after completing therapy in Room 207), keep the clinical room so the historical record reflects where treatment took place.
+    let targetRoomId = appointment.roomId;
+    if (params.destination === "HANDLER") {
+      targetRoomId = waitingRoom.id;
+    } else if (params.destination === "DOCTOR") {
+      const docUser = validatedDoctorId
+        ? await prisma.user.findUnique({
+            where: { id: validatedDoctorId },
+            select: { consultationRoomId: true },
+          })
+        : null;
+      targetRoomId =
+        docUser?.consultationRoomId ||
+        (appointment.roomId && appointment.room?.number !== "200"
+          ? appointment.roomId
+          : waitingRoom.id);
+    } else if (!targetRoomId || appointment.room?.number === "200") {
+      // If patient was in therapy in a room, check if a therapy timer was started
+      const timer = await prisma.therapySessionTimer.findUnique({
+        where: { appointmentId: appointment.id },
+        select: { roomNumber: true },
+      });
+      if (timer?.roomNumber && timer.roomNumber !== "200") {
+        const therapyRoom = await prisma.room.findUnique({
+          where: { number: timer.roomNumber },
+          select: { id: true },
+        });
+        targetRoomId = therapyRoom ? therapyRoom.id : waitingRoom.id;
+      } else {
+        targetRoomId = waitingRoom.id;
+      }
+    }
+
     // Reset willCallTime to null whenever routing to a new queue or desk
     const updated = await prisma.appointment.update({
       where: { id: params.appointmentId },
@@ -809,7 +843,7 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
             : Math.max(0, feeToSet - (appointment.paidAmount ?? 0)),
         paymentStatus,
         willCallTime: null,
-        roomId: waitingRoom.id,
+        roomId: targetRoomId,
         notes: params.notes !== undefined ? params.notes : appointment.notes,
         ...(validatedPerformerId !== undefined ? { performerId: validatedPerformerId } : {}),
         ...(validatedDoctorId !== undefined ? { doctorId: validatedDoctorId } : {}),
