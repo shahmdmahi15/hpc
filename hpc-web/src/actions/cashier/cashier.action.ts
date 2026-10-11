@@ -504,6 +504,10 @@ export async function collectPaymentAction(params: {
           notes: `Previous outstanding balance clearance (${params.notes || ""})`.trim(),
         },
       });
+
+      // Clear prior unpaid/partial invoices and serials in FIFO order
+      const { clearPreviousDuesForPatient } = await import("@/lib/billing-sync");
+      await clearPreviousDuesForPatient(appointment.patientId, previousDueCollected, invoice.id);
     }
 
     const shouldMoveToReception =
@@ -853,6 +857,10 @@ export async function processConsultationBillingAction(params: {
           notes: `Previous outstanding balance clearance (${params.notes || ""})`.trim(),
         },
       });
+
+      // Clear prior unpaid/partial invoices and serials in FIFO order
+      const { clearPreviousDuesForPatient } = await import("@/lib/billing-sync");
+      await clearPreviousDuesForPatient(serial.patientId, previousDueCollected, invoice.id);
     }
 
     // Check if the consultation serial is scheduled for the SAME DAY (today)
@@ -1200,6 +1208,10 @@ export async function clearPreviousDueAction(params: {
           notes: params.notes || "Previous outstanding balance payment",
         },
       });
+
+      // Clear prior unpaid/partial invoices and serials in FIFO order
+      const { clearPreviousDuesForPatient } = await import("@/lib/billing-sync");
+      await clearPreviousDuesForPatient(patient.id, amountToPay, invoice.id);
     }
 
     // Recalculate lifetime totalBill, totalPaid, totalDue

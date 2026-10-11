@@ -805,23 +805,31 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         const endOfDay = new Date(updated.appointmentDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        await prisma.consultationSerial.updateMany({
+        const serialsToUpdate = await prisma.consultationSerial.findMany({
           where: {
             patientId: updated.patientId,
             appointmentDate: { gte: startOfDay, lte: endOfDay },
             status: { in: ["QUEUED", "CALLING", "IN_CONSULTATION", "BOOKED"] },
           },
-          data: {
+        });
+
+        for (const serial of serialsToUpdate) {
+          const updateData: any = {
             status: "COMPLETED",
             outConsultationTime: routeTime,
-            ...(routingOrigin === "DOCTOR"
-              ? {
-                  feeAmount: feeToSet,
-                  dueAmount: Math.max(0, feeToSet - (appointment.paidAmount ?? 0)),
-                }
-              : {}),
-          },
-        });
+          };
+
+          // Only update fee on UNINVOICED serials if doctor explicitly entered a consultation fee > 0
+          if (!serial.invoiceId && routingOrigin === "DOCTOR" && newConsultationFee > 0) {
+            updateData.feeAmount = newConsultationFee;
+            updateData.dueAmount = Math.max(0, newConsultationFee - (serial.paidAmount ?? 0));
+          }
+
+          await prisma.consultationSerial.update({
+            where: { id: serial.id },
+            data: updateData,
+          });
+        }
       } catch (serialErr) {
         console.error("[Complete ConsultationSerial on Route Error]:", serialErr);
       }

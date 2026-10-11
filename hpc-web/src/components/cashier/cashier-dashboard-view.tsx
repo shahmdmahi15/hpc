@@ -1166,8 +1166,14 @@ export function CashierDashboardView({
                                         : item.type}
                                     </Badge>
                                   </div>
-                                  <span className="text-[10.5px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md">
-                                    ৳{estimatedFee} DUE
+                                  <span
+                                    className={`text-[10.5px] font-bold px-1.5 py-0.2 rounded-md ${
+                                      patientDue > 0
+                                        ? "text-rose-700 dark:text-rose-300 bg-rose-500/15 border border-rose-500/30 font-mono"
+                                        : "text-amber-700 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30"
+                                    }`}
+                                  >
+                                    ৳{patientDue > 0 ? estimatedFee + patientDue : estimatedFee} {patientDue > 0 ? "TOTAL DUE" : "DUE"}
                                   </span>
                                 </div>
 
@@ -1224,9 +1230,16 @@ export function CashierDashboardView({
                                       ? `${formatTime12h(item.therapySlot.startTime)} - ${formatTime12h(item.therapySlot.endTime)}`
                                       : item.room?.number || "General Chamber"}
                                   </span>
-                                  <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400">
-                                    ৳{estimatedFee} Due
-                                  </span>
+                                  <div className="text-right">
+                                    <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400">
+                                      ৳{patientDue > 0 ? estimatedFee + patientDue : estimatedFee} Due
+                                    </span>
+                                    {patientDue > 0 && (
+                                      <span className="block text-[9.5px] text-muted-foreground font-mono">
+                                        (৳{estimatedFee} session + ৳{patientDue} due)
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
@@ -1240,7 +1253,9 @@ export function CashierDashboardView({
                                   <span>
                                     {estimatedFee === 0 && patientDue > 0
                                       ? `Clear ৳${patientDue} Due`
-                                      : `Collect ৳${estimatedFee} Bill${patientDue > 0 ? " + Due" : ""}`}
+                                      : patientDue > 0
+                                        ? `Collect ৳${estimatedFee} + ৳${patientDue} Due (৳${estimatedFee + patientDue})`
+                                        : `Collect ৳${estimatedFee} Bill`}
                                   </span>
                                 </Button>
                                 <PatientNotesTriggerButton
