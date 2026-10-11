@@ -889,6 +889,70 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       })
       .catch((stepErr) => console.error("[Route StepLog Error]:", stepErr));
 
+    // Auto-record Forwarded note in PatientVisitNote and mirror to role-specific column
+    if (params.routingNote && params.routingNote.trim()) {
+      const trimmedRoutingNote = params.routingNote.trim();
+      const authorRole = sessionData.user.role || "STAFF";
+      const authorName = sessionData.user.name || "Clinic Staff";
+
+      await prisma.patientVisitNote
+        .create({
+          data: {
+            patientId: updated.patientId,
+            visitId: updated.visitId || undefined,
+            appointmentId: updated.id,
+            category: "FORWARDED",
+            note: trimmedRoutingNote,
+            authorName,
+            authorRole,
+            authorId: sessionData.user.id,
+            originStation: routingOrigin || null,
+            targetStation: params.destination,
+          },
+        })
+        .catch((err) => console.error("[Auto Forwarded Note Create Error]:", err));
+
+      if (authorRole === Role.DOCTOR) {
+        await prisma.appointment
+          .update({
+            where: { id: updated.id },
+            data: { doctorNote: trimmedRoutingNote },
+          })
+          .catch(() => {});
+        if (updated.visitId) {
+          await prisma.patientVisit
+            .update({
+              where: { id: updated.visitId },
+              data: { doctorNote: trimmedRoutingNote },
+            })
+            .catch(() => {});
+        }
+      } else if (authorRole === Role.HANDLER) {
+        await prisma.appointment
+          .update({
+            where: { id: updated.id },
+            data: { handlerNote: trimmedRoutingNote },
+          })
+          .catch(() => {});
+        if (updated.visitId) {
+          await prisma.patientVisit
+            .update({
+              where: { id: updated.visitId },
+              data: { handlerNote: trimmedRoutingNote },
+            })
+            .catch(() => {});
+        }
+      }
+
+      emitRealtimeEvent("PATIENT_NOTE_ADDED", {
+        patientId: updated.patientId,
+        appointmentId: updated.id,
+        category: "FORWARDED",
+        authorName,
+        note: trimmedRoutingNote,
+      });
+    }
+
     // Audit Logging
     await logAudit({
       userId: sessionData.user.id,

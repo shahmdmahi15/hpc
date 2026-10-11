@@ -896,6 +896,60 @@ export async function checkInArrivingPatientAction(
       },
     });
 
+    // Auto-record Receptionist note in PatientVisitNote and mirror to receptionistNote
+    if (notes && notes.trim()) {
+      const trimmedReceptionistNote = notes.trim();
+      let authorName = sessionData.user.name || "Receptionist Staff";
+      if (performerId) {
+        const perf = await prisma.performer.findUnique({
+          where: { id: performerId },
+          select: { name: true },
+        });
+        if (perf?.name) authorName = perf.name;
+      }
+
+      await prisma.patientVisitNote
+        .create({
+          data: {
+            patientId: patient.id,
+            visitId: visit.id,
+            appointmentId: updatedAppointment?.id || undefined,
+            category: "RECEPTIONIST",
+            note: trimmedReceptionistNote,
+            authorName,
+            authorRole: "RECEPTIONIST",
+            authorId: sessionData.user.id,
+            originStation: "RECEPTIONIST_DESK",
+            targetStation: stationToSet,
+          },
+        })
+        .catch((err) => console.error("[Auto Receptionist Note Create Error]:", err));
+
+      await prisma.patientVisit
+        .update({
+          where: { id: visit.id },
+          data: { receptionistNote: trimmedReceptionistNote },
+        })
+        .catch(() => {});
+
+      if (updatedAppointment?.id) {
+        await prisma.appointment
+          .update({
+            where: { id: updatedAppointment.id },
+            data: { receptionistNote: trimmedReceptionistNote },
+          })
+          .catch(() => {});
+      }
+
+      emitRealtimeEvent("PATIENT_NOTE_ADDED", {
+        patientId: patient.id,
+        appointmentId: updatedAppointment?.id || undefined,
+        category: "RECEPTIONIST",
+        authorName,
+        note: trimmedReceptionistNote,
+      });
+    }
+
     // Audit Log
     await logAudit({
       userId: sessionData.user.id,

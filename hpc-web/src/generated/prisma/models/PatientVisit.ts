@@ -45,6 +45,11 @@ export type PatientVisitMinAggregateOutputType = {
   checkInPerformerId: string | null
   checkOutPerformerId: string | null
   notes: string | null
+  receptionistNote: string | null
+  doctorNote: string | null
+  handlerNote: string | null
+  cashierNote: string | null
+  medicalNotes: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,6 +65,11 @@ export type PatientVisitMaxAggregateOutputType = {
   checkInPerformerId: string | null
   checkOutPerformerId: string | null
   notes: string | null
+  receptionistNote: string | null
+  doctorNote: string | null
+  handlerNote: string | null
+  cashierNote: string | null
+  medicalNotes: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -75,6 +85,11 @@ export type PatientVisitCountAggregateOutputType = {
   checkInPerformerId: number
   checkOutPerformerId: number
   notes: number
+  receptionistNote: number
+  doctorNote: number
+  handlerNote: number
+  cashierNote: number
+  medicalNotes: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -100,6 +115,11 @@ export type PatientVisitMinAggregateInputType = {
   checkInPerformerId?: true
   checkOutPerformerId?: true
   notes?: true
+  receptionistNote?: true
+  doctorNote?: true
+  handlerNote?: true
+  cashierNote?: true
+  medicalNotes?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -115,6 +135,11 @@ export type PatientVisitMaxAggregateInputType = {
   checkInPerformerId?: true
   checkOutPerformerId?: true
   notes?: true
+  receptionistNote?: true
+  doctorNote?: true
+  handlerNote?: true
+  cashierNote?: true
+  medicalNotes?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -130,6 +155,11 @@ export type PatientVisitCountAggregateInputType = {
   checkInPerformerId?: true
   checkOutPerformerId?: true
   notes?: true
+  receptionistNote?: true
+  doctorNote?: true
+  handlerNote?: true
+  cashierNote?: true
+  medicalNotes?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -232,6 +262,11 @@ export type PatientVisitGroupByOutputType = {
   checkInPerformerId: string | null
   checkOutPerformerId: string | null
   notes: string | null
+  receptionistNote: string | null
+  doctorNote: string | null
+  handlerNote: string | null
+  cashierNote: string | null
+  medicalNotes: string | null
   createdAt: Date
   updatedAt: Date
   _count: PatientVisitCountAggregateOutputType | null
@@ -270,6 +305,11 @@ export type PatientVisitWhereInput = {
   checkInPerformerId?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   checkOutPerformerId?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   notes?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  receptionistNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  doctorNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  handlerNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  cashierNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  medicalNotes?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PatientVisit"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PatientVisit"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
@@ -278,6 +318,7 @@ export type PatientVisitWhereInput = {
   invoices?: Prisma.PatientInvoiceListRelationFilter
   payments?: Prisma.PatientPaymentListRelationFilter
   appointments?: Prisma.AppointmentListRelationFilter
+  visitNotes?: Prisma.PatientVisitNoteListRelationFilter
 }
 
 export type PatientVisitOrderByWithRelationInput = {
@@ -291,6 +332,11 @@ export type PatientVisitOrderByWithRelationInput = {
   checkInPerformerId?: Prisma.SortOrderInput | Prisma.SortOrder
   checkOutPerformerId?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
+  receptionistNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  doctorNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  handlerNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  cashierNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  medicalNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   patient?: Prisma.PatientOrderByWithRelationInput
@@ -299,6 +345,7 @@ export type PatientVisitOrderByWithRelationInput = {
   invoices?: Prisma.PatientInvoiceOrderByRelationAggregateInput
   payments?: Prisma.PatientPaymentOrderByRelationAggregateInput
   appointments?: Prisma.AppointmentOrderByRelationAggregateInput
+  visitNotes?: Prisma.PatientVisitNoteOrderByRelationAggregateInput
 }
 
 export type PatientVisitWhereUniqueInput = Prisma.AtLeast<{
@@ -315,6 +362,11 @@ export type PatientVisitWhereUniqueInput = Prisma.AtLeast<{
   checkInPerformerId?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   checkOutPerformerId?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   notes?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  receptionistNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  doctorNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  handlerNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  cashierNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  medicalNotes?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PatientVisit"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PatientVisit"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
@@ -323,6 +375,7 @@ export type PatientVisitWhereUniqueInput = Prisma.AtLeast<{
   invoices?: Prisma.PatientInvoiceListRelationFilter
   payments?: Prisma.PatientPaymentListRelationFilter
   appointments?: Prisma.AppointmentListRelationFilter
+  visitNotes?: Prisma.PatientVisitNoteListRelationFilter
 }, "id">
 
 export type PatientVisitOrderByWithAggregationInput = {
@@ -336,6 +389,11 @@ export type PatientVisitOrderByWithAggregationInput = {
   checkInPerformerId?: Prisma.SortOrderInput | Prisma.SortOrder
   checkOutPerformerId?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
+  receptionistNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  doctorNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  handlerNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  cashierNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  medicalNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.PatientVisitCountOrderByAggregateInput
@@ -359,6 +417,11 @@ export type PatientVisitScalarWhereWithAggregatesInput = {
   checkInPerformerId?: Prisma.StringNullableWithAggregatesFilter<"PatientVisit"> | string | null
   checkOutPerformerId?: Prisma.StringNullableWithAggregatesFilter<"PatientVisit"> | string | null
   notes?: Prisma.StringNullableWithAggregatesFilter<"PatientVisit"> | string | null
+  receptionistNote?: Prisma.StringNullableWithAggregatesFilter<"PatientVisit"> | string | null
+  doctorNote?: Prisma.StringNullableWithAggregatesFilter<"PatientVisit"> | string | null
+  handlerNote?: Prisma.StringNullableWithAggregatesFilter<"PatientVisit"> | string | null
+  cashierNote?: Prisma.StringNullableWithAggregatesFilter<"PatientVisit"> | string | null
+  medicalNotes?: Prisma.StringNullableWithAggregatesFilter<"PatientVisit"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PatientVisit"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"PatientVisit"> | Date | string
 }
@@ -373,6 +436,11 @@ export type PatientVisitCreateInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVisitsInput
@@ -381,6 +449,7 @@ export type PatientVisitCreateInput = {
   invoices?: Prisma.PatientInvoiceCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitUncheckedCreateInput = {
@@ -394,6 +463,11 @@ export type PatientVisitUncheckedCreateInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedCreateNestedManyWithoutVisitInput
@@ -401,6 +475,7 @@ export type PatientVisitUncheckedCreateInput = {
   invoices?: Prisma.PatientInvoiceUncheckedCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentUncheckedCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitUpdateInput = {
@@ -413,6 +488,11 @@ export type PatientVisitUpdateInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVisitsNestedInput
@@ -421,6 +501,7 @@ export type PatientVisitUpdateInput = {
   invoices?: Prisma.PatientInvoiceUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitUncheckedUpdateInput = {
@@ -434,6 +515,11 @@ export type PatientVisitUncheckedUpdateInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedUpdateManyWithoutVisitNestedInput
@@ -441,6 +527,7 @@ export type PatientVisitUncheckedUpdateInput = {
   invoices?: Prisma.PatientInvoiceUncheckedUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUncheckedUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitCreateManyInput = {
@@ -454,6 +541,11 @@ export type PatientVisitCreateManyInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -468,6 +560,11 @@ export type PatientVisitUpdateManyMutationInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -483,6 +580,11 @@ export type PatientVisitUncheckedUpdateManyInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -513,6 +615,11 @@ export type PatientVisitCountOrderByAggregateInput = {
   checkInPerformerId?: Prisma.SortOrder
   checkOutPerformerId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
+  receptionistNote?: Prisma.SortOrder
+  doctorNote?: Prisma.SortOrder
+  handlerNote?: Prisma.SortOrder
+  cashierNote?: Prisma.SortOrder
+  medicalNotes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -532,6 +639,11 @@ export type PatientVisitMaxOrderByAggregateInput = {
   checkInPerformerId?: Prisma.SortOrder
   checkOutPerformerId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
+  receptionistNote?: Prisma.SortOrder
+  doctorNote?: Prisma.SortOrder
+  handlerNote?: Prisma.SortOrder
+  cashierNote?: Prisma.SortOrder
+  medicalNotes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -547,6 +659,11 @@ export type PatientVisitMinOrderByAggregateInput = {
   checkInPerformerId?: Prisma.SortOrder
   checkOutPerformerId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
+  receptionistNote?: Prisma.SortOrder
+  doctorNote?: Prisma.SortOrder
+  handlerNote?: Prisma.SortOrder
+  cashierNote?: Prisma.SortOrder
+  medicalNotes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -645,6 +762,22 @@ export type PatientVisitUpdateOneWithoutStepLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.PatientVisitUpdateToOneWithWhereWithoutStepLogsInput, Prisma.PatientVisitUpdateWithoutStepLogsInput>, Prisma.PatientVisitUncheckedUpdateWithoutStepLogsInput>
 }
 
+export type PatientVisitCreateNestedOneWithoutVisitNotesInput = {
+  create?: Prisma.XOR<Prisma.PatientVisitCreateWithoutVisitNotesInput, Prisma.PatientVisitUncheckedCreateWithoutVisitNotesInput>
+  connectOrCreate?: Prisma.PatientVisitCreateOrConnectWithoutVisitNotesInput
+  connect?: Prisma.PatientVisitWhereUniqueInput
+}
+
+export type PatientVisitUpdateOneWithoutVisitNotesNestedInput = {
+  create?: Prisma.XOR<Prisma.PatientVisitCreateWithoutVisitNotesInput, Prisma.PatientVisitUncheckedCreateWithoutVisitNotesInput>
+  connectOrCreate?: Prisma.PatientVisitCreateOrConnectWithoutVisitNotesInput
+  upsert?: Prisma.PatientVisitUpsertWithoutVisitNotesInput
+  disconnect?: Prisma.PatientVisitWhereInput | boolean
+  delete?: Prisma.PatientVisitWhereInput | boolean
+  connect?: Prisma.PatientVisitWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PatientVisitUpdateToOneWithWhereWithoutVisitNotesInput, Prisma.PatientVisitUpdateWithoutVisitNotesInput>, Prisma.PatientVisitUncheckedUpdateWithoutVisitNotesInput>
+}
+
 export type PatientVisitCreateNestedOneWithoutInvoicesInput = {
   create?: Prisma.XOR<Prisma.PatientVisitCreateWithoutInvoicesInput, Prisma.PatientVisitUncheckedCreateWithoutInvoicesInput>
   connectOrCreate?: Prisma.PatientVisitCreateOrConnectWithoutInvoicesInput
@@ -687,6 +820,11 @@ export type PatientVisitCreateWithoutPatientInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   consultationSerials?: Prisma.ConsultationSerialCreateNestedManyWithoutVisitInput
@@ -694,6 +832,7 @@ export type PatientVisitCreateWithoutPatientInput = {
   invoices?: Prisma.PatientInvoiceCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitUncheckedCreateWithoutPatientInput = {
@@ -706,6 +845,11 @@ export type PatientVisitUncheckedCreateWithoutPatientInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedCreateNestedManyWithoutVisitInput
@@ -713,6 +857,7 @@ export type PatientVisitUncheckedCreateWithoutPatientInput = {
   invoices?: Prisma.PatientInvoiceUncheckedCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentUncheckedCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitCreateOrConnectWithoutPatientInput = {
@@ -754,6 +899,11 @@ export type PatientVisitScalarWhereInput = {
   checkInPerformerId?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   checkOutPerformerId?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   notes?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  receptionistNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  doctorNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  handlerNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  cashierNote?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
+  medicalNotes?: Prisma.StringNullableFilter<"PatientVisit"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PatientVisit"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"PatientVisit"> | Date | string
 }
@@ -768,6 +918,11 @@ export type PatientVisitCreateWithoutAppointmentsInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVisitsInput
@@ -775,6 +930,7 @@ export type PatientVisitCreateWithoutAppointmentsInput = {
   stepLogs?: Prisma.PatientStepLogCreateNestedManyWithoutVisitInput
   invoices?: Prisma.PatientInvoiceCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitUncheckedCreateWithoutAppointmentsInput = {
@@ -788,12 +944,18 @@ export type PatientVisitUncheckedCreateWithoutAppointmentsInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedCreateNestedManyWithoutVisitInput
   stepLogs?: Prisma.PatientStepLogUncheckedCreateNestedManyWithoutVisitInput
   invoices?: Prisma.PatientInvoiceUncheckedCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentUncheckedCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitCreateOrConnectWithoutAppointmentsInput = {
@@ -822,6 +984,11 @@ export type PatientVisitUpdateWithoutAppointmentsInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVisitsNestedInput
@@ -829,6 +996,7 @@ export type PatientVisitUpdateWithoutAppointmentsInput = {
   stepLogs?: Prisma.PatientStepLogUpdateManyWithoutVisitNestedInput
   invoices?: Prisma.PatientInvoiceUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitUncheckedUpdateWithoutAppointmentsInput = {
@@ -842,12 +1010,18 @@ export type PatientVisitUncheckedUpdateWithoutAppointmentsInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedUpdateManyWithoutVisitNestedInput
   stepLogs?: Prisma.PatientStepLogUncheckedUpdateManyWithoutVisitNestedInput
   invoices?: Prisma.PatientInvoiceUncheckedUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUncheckedUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitCreateWithoutConsultationSerialsInput = {
@@ -860,6 +1034,11 @@ export type PatientVisitCreateWithoutConsultationSerialsInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVisitsInput
@@ -867,6 +1046,7 @@ export type PatientVisitCreateWithoutConsultationSerialsInput = {
   invoices?: Prisma.PatientInvoiceCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitUncheckedCreateWithoutConsultationSerialsInput = {
@@ -880,12 +1060,18 @@ export type PatientVisitUncheckedCreateWithoutConsultationSerialsInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   stepLogs?: Prisma.PatientStepLogUncheckedCreateNestedManyWithoutVisitInput
   invoices?: Prisma.PatientInvoiceUncheckedCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentUncheckedCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitCreateOrConnectWithoutConsultationSerialsInput = {
@@ -914,6 +1100,11 @@ export type PatientVisitUpdateWithoutConsultationSerialsInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVisitsNestedInput
@@ -921,6 +1112,7 @@ export type PatientVisitUpdateWithoutConsultationSerialsInput = {
   invoices?: Prisma.PatientInvoiceUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitUncheckedUpdateWithoutConsultationSerialsInput = {
@@ -934,12 +1126,18 @@ export type PatientVisitUncheckedUpdateWithoutConsultationSerialsInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   stepLogs?: Prisma.PatientStepLogUncheckedUpdateManyWithoutVisitNestedInput
   invoices?: Prisma.PatientInvoiceUncheckedUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUncheckedUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitCreateWithoutStepLogsInput = {
@@ -952,6 +1150,11 @@ export type PatientVisitCreateWithoutStepLogsInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVisitsInput
@@ -959,6 +1162,7 @@ export type PatientVisitCreateWithoutStepLogsInput = {
   invoices?: Prisma.PatientInvoiceCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitUncheckedCreateWithoutStepLogsInput = {
@@ -972,12 +1176,18 @@ export type PatientVisitUncheckedCreateWithoutStepLogsInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedCreateNestedManyWithoutVisitInput
   invoices?: Prisma.PatientInvoiceUncheckedCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentUncheckedCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitCreateOrConnectWithoutStepLogsInput = {
@@ -1006,6 +1216,11 @@ export type PatientVisitUpdateWithoutStepLogsInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVisitsNestedInput
@@ -1013,6 +1228,7 @@ export type PatientVisitUpdateWithoutStepLogsInput = {
   invoices?: Prisma.PatientInvoiceUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitUncheckedUpdateWithoutStepLogsInput = {
@@ -1026,9 +1242,131 @@ export type PatientVisitUncheckedUpdateWithoutStepLogsInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedUpdateManyWithoutVisitNestedInput
+  invoices?: Prisma.PatientInvoiceUncheckedUpdateManyWithoutVisitNestedInput
+  payments?: Prisma.PatientPaymentUncheckedUpdateManyWithoutVisitNestedInput
+  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedUpdateManyWithoutVisitNestedInput
+}
+
+export type PatientVisitCreateWithoutVisitNotesInput = {
+  id?: string
+  visitNumber?: number
+  visitDate?: Date | string
+  checkInTime?: Date | string
+  checkOutTime?: Date | string | null
+  status?: string
+  checkInPerformerId?: string | null
+  checkOutPerformerId?: string | null
+  notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  patient: Prisma.PatientCreateNestedOneWithoutVisitsInput
+  consultationSerials?: Prisma.ConsultationSerialCreateNestedManyWithoutVisitInput
+  stepLogs?: Prisma.PatientStepLogCreateNestedManyWithoutVisitInput
+  invoices?: Prisma.PatientInvoiceCreateNestedManyWithoutVisitInput
+  payments?: Prisma.PatientPaymentCreateNestedManyWithoutVisitInput
+  appointments?: Prisma.AppointmentCreateNestedManyWithoutVisitInput
+}
+
+export type PatientVisitUncheckedCreateWithoutVisitNotesInput = {
+  id?: string
+  patientId: string
+  visitNumber?: number
+  visitDate?: Date | string
+  checkInTime?: Date | string
+  checkOutTime?: Date | string | null
+  status?: string
+  checkInPerformerId?: string | null
+  checkOutPerformerId?: string | null
+  notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  consultationSerials?: Prisma.ConsultationSerialUncheckedCreateNestedManyWithoutVisitInput
+  stepLogs?: Prisma.PatientStepLogUncheckedCreateNestedManyWithoutVisitInput
+  invoices?: Prisma.PatientInvoiceUncheckedCreateNestedManyWithoutVisitInput
+  payments?: Prisma.PatientPaymentUncheckedCreateNestedManyWithoutVisitInput
+  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutVisitInput
+}
+
+export type PatientVisitCreateOrConnectWithoutVisitNotesInput = {
+  where: Prisma.PatientVisitWhereUniqueInput
+  create: Prisma.XOR<Prisma.PatientVisitCreateWithoutVisitNotesInput, Prisma.PatientVisitUncheckedCreateWithoutVisitNotesInput>
+}
+
+export type PatientVisitUpsertWithoutVisitNotesInput = {
+  update: Prisma.XOR<Prisma.PatientVisitUpdateWithoutVisitNotesInput, Prisma.PatientVisitUncheckedUpdateWithoutVisitNotesInput>
+  create: Prisma.XOR<Prisma.PatientVisitCreateWithoutVisitNotesInput, Prisma.PatientVisitUncheckedCreateWithoutVisitNotesInput>
+  where?: Prisma.PatientVisitWhereInput
+}
+
+export type PatientVisitUpdateToOneWithWhereWithoutVisitNotesInput = {
+  where?: Prisma.PatientVisitWhereInput
+  data: Prisma.XOR<Prisma.PatientVisitUpdateWithoutVisitNotesInput, Prisma.PatientVisitUncheckedUpdateWithoutVisitNotesInput>
+}
+
+export type PatientVisitUpdateWithoutVisitNotesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  visitNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  visitDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  checkInTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  checkOutTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patient?: Prisma.PatientUpdateOneRequiredWithoutVisitsNestedInput
+  consultationSerials?: Prisma.ConsultationSerialUpdateManyWithoutVisitNestedInput
+  stepLogs?: Prisma.PatientStepLogUpdateManyWithoutVisitNestedInput
+  invoices?: Prisma.PatientInvoiceUpdateManyWithoutVisitNestedInput
+  payments?: Prisma.PatientPaymentUpdateManyWithoutVisitNestedInput
+  appointments?: Prisma.AppointmentUpdateManyWithoutVisitNestedInput
+}
+
+export type PatientVisitUncheckedUpdateWithoutVisitNotesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string
+  visitNumber?: Prisma.IntFieldUpdateOperationsInput | number
+  visitDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  checkInTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  checkOutTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  consultationSerials?: Prisma.ConsultationSerialUncheckedUpdateManyWithoutVisitNestedInput
+  stepLogs?: Prisma.PatientStepLogUncheckedUpdateManyWithoutVisitNestedInput
   invoices?: Prisma.PatientInvoiceUncheckedUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUncheckedUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutVisitNestedInput
@@ -1044,6 +1382,11 @@ export type PatientVisitCreateWithoutInvoicesInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVisitsInput
@@ -1051,6 +1394,7 @@ export type PatientVisitCreateWithoutInvoicesInput = {
   stepLogs?: Prisma.PatientStepLogCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitUncheckedCreateWithoutInvoicesInput = {
@@ -1064,12 +1408,18 @@ export type PatientVisitUncheckedCreateWithoutInvoicesInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedCreateNestedManyWithoutVisitInput
   stepLogs?: Prisma.PatientStepLogUncheckedCreateNestedManyWithoutVisitInput
   payments?: Prisma.PatientPaymentUncheckedCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitCreateOrConnectWithoutInvoicesInput = {
@@ -1098,6 +1448,11 @@ export type PatientVisitUpdateWithoutInvoicesInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVisitsNestedInput
@@ -1105,6 +1460,7 @@ export type PatientVisitUpdateWithoutInvoicesInput = {
   stepLogs?: Prisma.PatientStepLogUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitUncheckedUpdateWithoutInvoicesInput = {
@@ -1118,12 +1474,18 @@ export type PatientVisitUncheckedUpdateWithoutInvoicesInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedUpdateManyWithoutVisitNestedInput
   stepLogs?: Prisma.PatientStepLogUncheckedUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUncheckedUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitCreateWithoutPaymentsInput = {
@@ -1136,6 +1498,11 @@ export type PatientVisitCreateWithoutPaymentsInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVisitsInput
@@ -1143,6 +1510,7 @@ export type PatientVisitCreateWithoutPaymentsInput = {
   stepLogs?: Prisma.PatientStepLogCreateNestedManyWithoutVisitInput
   invoices?: Prisma.PatientInvoiceCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitUncheckedCreateWithoutPaymentsInput = {
@@ -1156,12 +1524,18 @@ export type PatientVisitUncheckedCreateWithoutPaymentsInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedCreateNestedManyWithoutVisitInput
   stepLogs?: Prisma.PatientStepLogUncheckedCreateNestedManyWithoutVisitInput
   invoices?: Prisma.PatientInvoiceUncheckedCreateNestedManyWithoutVisitInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutVisitInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedCreateNestedManyWithoutVisitInput
 }
 
 export type PatientVisitCreateOrConnectWithoutPaymentsInput = {
@@ -1190,6 +1564,11 @@ export type PatientVisitUpdateWithoutPaymentsInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVisitsNestedInput
@@ -1197,6 +1576,7 @@ export type PatientVisitUpdateWithoutPaymentsInput = {
   stepLogs?: Prisma.PatientStepLogUpdateManyWithoutVisitNestedInput
   invoices?: Prisma.PatientInvoiceUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitUncheckedUpdateWithoutPaymentsInput = {
@@ -1210,12 +1590,18 @@ export type PatientVisitUncheckedUpdateWithoutPaymentsInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedUpdateManyWithoutVisitNestedInput
   stepLogs?: Prisma.PatientStepLogUncheckedUpdateManyWithoutVisitNestedInput
   invoices?: Prisma.PatientInvoiceUncheckedUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitCreateManyPatientInput = {
@@ -1228,6 +1614,11 @@ export type PatientVisitCreateManyPatientInput = {
   checkInPerformerId?: string | null
   checkOutPerformerId?: string | null
   notes?: string | null
+  receptionistNote?: string | null
+  doctorNote?: string | null
+  handlerNote?: string | null
+  cashierNote?: string | null
+  medicalNotes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1242,6 +1633,11 @@ export type PatientVisitUpdateWithoutPatientInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   consultationSerials?: Prisma.ConsultationSerialUpdateManyWithoutVisitNestedInput
@@ -1249,6 +1645,7 @@ export type PatientVisitUpdateWithoutPatientInput = {
   invoices?: Prisma.PatientInvoiceUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitUncheckedUpdateWithoutPatientInput = {
@@ -1261,6 +1658,11 @@ export type PatientVisitUncheckedUpdateWithoutPatientInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   consultationSerials?: Prisma.ConsultationSerialUncheckedUpdateManyWithoutVisitNestedInput
@@ -1268,6 +1670,7 @@ export type PatientVisitUncheckedUpdateWithoutPatientInput = {
   invoices?: Prisma.PatientInvoiceUncheckedUpdateManyWithoutVisitNestedInput
   payments?: Prisma.PatientPaymentUncheckedUpdateManyWithoutVisitNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutVisitNestedInput
+  visitNotes?: Prisma.PatientVisitNoteUncheckedUpdateManyWithoutVisitNestedInput
 }
 
 export type PatientVisitUncheckedUpdateManyWithoutPatientInput = {
@@ -1280,6 +1683,11 @@ export type PatientVisitUncheckedUpdateManyWithoutPatientInput = {
   checkInPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   checkOutPerformerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receptionistNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  handlerNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cashierNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1295,6 +1703,7 @@ export type PatientVisitCountOutputType = {
   invoices: number
   payments: number
   appointments: number
+  visitNotes: number
 }
 
 export type PatientVisitCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1303,6 +1712,7 @@ export type PatientVisitCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   invoices?: boolean | PatientVisitCountOutputTypeCountInvoicesArgs
   payments?: boolean | PatientVisitCountOutputTypeCountPaymentsArgs
   appointments?: boolean | PatientVisitCountOutputTypeCountAppointmentsArgs
+  visitNotes?: boolean | PatientVisitCountOutputTypeCountVisitNotesArgs
 }
 
 /**
@@ -1350,6 +1760,13 @@ export type PatientVisitCountOutputTypeCountAppointmentsArgs<ExtArgs extends run
   where?: Prisma.AppointmentWhereInput
 }
 
+/**
+ * PatientVisitCountOutputType without action
+ */
+export type PatientVisitCountOutputTypeCountVisitNotesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PatientVisitNoteWhereInput
+}
+
 
 export type PatientVisitSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1362,6 +1779,11 @@ export type PatientVisitSelect<ExtArgs extends runtime.Types.Extensions.Internal
   checkInPerformerId?: boolean
   checkOutPerformerId?: boolean
   notes?: boolean
+  receptionistNote?: boolean
+  doctorNote?: boolean
+  handlerNote?: boolean
+  cashierNote?: boolean
+  medicalNotes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
@@ -1370,6 +1792,7 @@ export type PatientVisitSelect<ExtArgs extends runtime.Types.Extensions.Internal
   invoices?: boolean | Prisma.PatientVisit$invoicesArgs<ExtArgs>
   payments?: boolean | Prisma.PatientVisit$paymentsArgs<ExtArgs>
   appointments?: boolean | Prisma.PatientVisit$appointmentsArgs<ExtArgs>
+  visitNotes?: boolean | Prisma.PatientVisit$visitNotesArgs<ExtArgs>
   _count?: boolean | Prisma.PatientVisitCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["patientVisit"]>
 
@@ -1384,6 +1807,11 @@ export type PatientVisitSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   checkInPerformerId?: boolean
   checkOutPerformerId?: boolean
   notes?: boolean
+  receptionistNote?: boolean
+  doctorNote?: boolean
+  handlerNote?: boolean
+  cashierNote?: boolean
+  medicalNotes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
@@ -1400,6 +1828,11 @@ export type PatientVisitSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   checkInPerformerId?: boolean
   checkOutPerformerId?: boolean
   notes?: boolean
+  receptionistNote?: boolean
+  doctorNote?: boolean
+  handlerNote?: boolean
+  cashierNote?: boolean
+  medicalNotes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
@@ -1416,11 +1849,16 @@ export type PatientVisitSelectScalar = {
   checkInPerformerId?: boolean
   checkOutPerformerId?: boolean
   notes?: boolean
+  receptionistNote?: boolean
+  doctorNote?: boolean
+  handlerNote?: boolean
+  cashierNote?: boolean
+  medicalNotes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type PatientVisitOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "visitNumber" | "visitDate" | "checkInTime" | "checkOutTime" | "status" | "checkInPerformerId" | "checkOutPerformerId" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["patientVisit"]>
+export type PatientVisitOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "visitNumber" | "visitDate" | "checkInTime" | "checkOutTime" | "status" | "checkInPerformerId" | "checkOutPerformerId" | "notes" | "receptionistNote" | "doctorNote" | "handlerNote" | "cashierNote" | "medicalNotes" | "createdAt" | "updatedAt", ExtArgs["result"]["patientVisit"]>
 export type PatientVisitInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   consultationSerials?: boolean | Prisma.PatientVisit$consultationSerialsArgs<ExtArgs>
@@ -1428,6 +1866,7 @@ export type PatientVisitInclude<ExtArgs extends runtime.Types.Extensions.Interna
   invoices?: boolean | Prisma.PatientVisit$invoicesArgs<ExtArgs>
   payments?: boolean | Prisma.PatientVisit$paymentsArgs<ExtArgs>
   appointments?: boolean | Prisma.PatientVisit$appointmentsArgs<ExtArgs>
+  visitNotes?: boolean | Prisma.PatientVisit$visitNotesArgs<ExtArgs>
   _count?: boolean | Prisma.PatientVisitCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type PatientVisitIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1446,6 +1885,7 @@ export type $PatientVisitPayload<ExtArgs extends runtime.Types.Extensions.Intern
     invoices: Prisma.$PatientInvoicePayload<ExtArgs>[]
     payments: Prisma.$PatientPaymentPayload<ExtArgs>[]
     appointments: Prisma.$AppointmentPayload<ExtArgs>[]
+    visitNotes: Prisma.$PatientVisitNotePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1458,6 +1898,11 @@ export type $PatientVisitPayload<ExtArgs extends runtime.Types.Extensions.Intern
     checkInPerformerId: string | null
     checkOutPerformerId: string | null
     notes: string | null
+    receptionistNote: string | null
+    doctorNote: string | null
+    handlerNote: string | null
+    cashierNote: string | null
+    medicalNotes: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["patientVisit"]>
@@ -1860,6 +2305,7 @@ export interface Prisma__PatientVisitClient<T, Null = never, ExtArgs extends run
   invoices<T extends Prisma.PatientVisit$invoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientVisit$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PatientInvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   payments<T extends Prisma.PatientVisit$paymentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientVisit$paymentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PatientPaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   appointments<T extends Prisma.PatientVisit$appointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientVisit$appointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  visitNotes<T extends Prisma.PatientVisit$visitNotesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientVisit$visitNotesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PatientVisitNotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1899,6 +2345,11 @@ export interface PatientVisitFieldRefs {
   readonly checkInPerformerId: Prisma.FieldRef<"PatientVisit", 'String'>
   readonly checkOutPerformerId: Prisma.FieldRef<"PatientVisit", 'String'>
   readonly notes: Prisma.FieldRef<"PatientVisit", 'String'>
+  readonly receptionistNote: Prisma.FieldRef<"PatientVisit", 'String'>
+  readonly doctorNote: Prisma.FieldRef<"PatientVisit", 'String'>
+  readonly handlerNote: Prisma.FieldRef<"PatientVisit", 'String'>
+  readonly cashierNote: Prisma.FieldRef<"PatientVisit", 'String'>
+  readonly medicalNotes: Prisma.FieldRef<"PatientVisit", 'String'>
   readonly createdAt: Prisma.FieldRef<"PatientVisit", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"PatientVisit", 'DateTime'>
 }
@@ -2417,6 +2868,30 @@ export type PatientVisit$appointmentsArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   distinct?: Prisma.AppointmentScalarFieldEnum | Prisma.AppointmentScalarFieldEnum[]
+}
+
+/**
+ * PatientVisit.visitNotes
+ */
+export type PatientVisit$visitNotesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PatientVisitNote
+   */
+  select?: Prisma.PatientVisitNoteSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PatientVisitNote
+   */
+  omit?: Prisma.PatientVisitNoteOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PatientVisitNoteInclude<ExtArgs> | null
+  where?: Prisma.PatientVisitNoteWhereInput
+  orderBy?: Prisma.PatientVisitNoteOrderByWithRelationInput | Prisma.PatientVisitNoteOrderByWithRelationInput[]
+  cursor?: Prisma.PatientVisitNoteWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PatientVisitNoteScalarFieldEnum | Prisma.PatientVisitNoteScalarFieldEnum[]
 }
 
 /**

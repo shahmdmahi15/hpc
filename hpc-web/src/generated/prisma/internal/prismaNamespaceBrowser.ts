@@ -66,6 +66,7 @@ export const ModelName = {
   PatientVisit: 'PatientVisit',
   ConsultationSerial: 'ConsultationSerial',
   PatientStepLog: 'PatientStepLog',
+  PatientVisitNote: 'PatientVisitNote',
   PatientInvoice: 'PatientInvoice',
   PatientPayment: 'PatientPayment',
   ChatMessage: 'ChatMessage',
@@ -250,6 +251,10 @@ export const AppointmentScalarFieldEnum = {
   routingOrigin: 'routingOrigin',
   routingNote: 'routingNote',
   routedAt: 'routedAt',
+  receptionistNote: 'receptionistNote',
+  doctorNote: 'doctorNote',
+  handlerNote: 'handlerNote',
+  cashierNote: 'cashierNote',
   queueId: 'queueId',
   queueType: 'queueType',
   currentStation: 'currentStation',
@@ -367,6 +372,11 @@ export const PatientVisitScalarFieldEnum = {
   checkInPerformerId: 'checkInPerformerId',
   checkOutPerformerId: 'checkOutPerformerId',
   notes: 'notes',
+  receptionistNote: 'receptionistNote',
+  doctorNote: 'doctorNote',
+  handlerNote: 'handlerNote',
+  cashierNote: 'cashierNote',
+  medicalNotes: 'medicalNotes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -415,6 +425,25 @@ export const PatientStepLogScalarFieldEnum = {
 } as const
 
 export type PatientStepLogScalarFieldEnum = (typeof PatientStepLogScalarFieldEnum)[keyof typeof PatientStepLogScalarFieldEnum]
+
+
+export const PatientVisitNoteScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  visitId: 'visitId',
+  appointmentId: 'appointmentId',
+  category: 'category',
+  note: 'note',
+  authorName: 'authorName',
+  authorRole: 'authorRole',
+  authorId: 'authorId',
+  originStation: 'originStation',
+  targetStation: 'targetStation',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PatientVisitNoteScalarFieldEnum = (typeof PatientVisitNoteScalarFieldEnum)[keyof typeof PatientVisitNoteScalarFieldEnum]
 
 
 export const PatientInvoiceScalarFieldEnum = {

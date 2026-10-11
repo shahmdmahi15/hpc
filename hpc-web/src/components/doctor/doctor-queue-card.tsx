@@ -39,6 +39,7 @@ import { SendPatientDialog } from "@/components/doctor/send-patient-dialog";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import { NewPrescriptionDialog } from "@/components/doctor/prescription/new-prescription-dialog";
 import { OldPrescriptionsDialog } from "@/components/doctor/prescription/old-prescriptions-dialog";
+import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
 
 interface DoctorQueueCardProps {
   appointment: AppointmentWithRelations;
@@ -542,6 +543,22 @@ export function DoctorQueueCard({
             </div>
 
             <div className="flex items-center gap-1.5 w-full">
+              <PatientNotesTriggerButton
+                patientId={appointment.patientId}
+                patientName={appointment.patient?.name || "Patient"}
+                patientMrn={appointment.patient?.mrn}
+                appointmentId={appointment.id}
+                defaultCategory="DOCTOR"
+                currentUserRole="DOCTOR"
+                currentStation={
+                  selectedRoomNumber
+                    ? `Room ${selectedRoomNumber}`
+                    : "Doctor Chamber"
+                }
+                size="sm"
+                variant="outline"
+                className="h-7 px-2.5 text-[10px] font-semibold border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+              />
               <Button
                 size="sm"
                 onClick={() => setIsSendDialogOpen(true)}
@@ -555,18 +572,36 @@ export function DoctorQueueCard({
             </div>
           </div>
         ) : (
-          <Button
-            size="sm"
-            onClick={() => setIsCallDialogOpen(true)}
-            disabled={isActionLoading}
-            className="flex-1 h-7 rounded-lg font-bold text-[11px] bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer gap-1"
-          >
-            <Volume2 className="size-3" />
-            <span>
-              Call to Chamber{" "}
-              {selectedRoomNumber ? `(R${selectedRoomNumber})` : ""}
-            </span>
-          </Button>
+          <div className="flex items-center gap-1.5 w-full">
+            <Button
+              size="sm"
+              onClick={() => setIsCallDialogOpen(true)}
+              disabled={isActionLoading}
+              className="flex-1 h-7 rounded-lg font-bold text-[11px] bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer gap-1"
+            >
+              <Volume2 className="size-3" />
+              <span>
+                Call to Chamber{" "}
+                {selectedRoomNumber ? `(R${selectedRoomNumber})` : ""}
+              </span>
+            </Button>
+            <PatientNotesTriggerButton
+              patientId={appointment.patientId}
+              patientName={appointment.patient?.name || "Patient"}
+              patientMrn={appointment.patient?.mrn}
+              appointmentId={appointment.id}
+              defaultCategory="DOCTOR"
+              currentUserRole="DOCTOR"
+              currentStation={
+                selectedRoomNumber
+                  ? `Room ${selectedRoomNumber}`
+                  : "Doctor Chamber"
+              }
+              size="sm"
+              variant="outline"
+              className="h-7 px-2.5 text-[10px] font-semibold border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+            />
+          </div>
         )}
       </div>
 

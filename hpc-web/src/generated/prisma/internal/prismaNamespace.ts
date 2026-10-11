@@ -412,6 +412,7 @@ export const ModelName = {
   PatientVisit: 'PatientVisit',
   ConsultationSerial: 'ConsultationSerial',
   PatientStepLog: 'PatientStepLog',
+  PatientVisitNote: 'PatientVisitNote',
   PatientInvoice: 'PatientInvoice',
   PatientPayment: 'PatientPayment',
   ChatMessage: 'ChatMessage',
@@ -432,7 +433,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "auditLog" | "performer" | "room" | "therapySlot" | "patient" | "appointment" | "queue" | "clinicalOption" | "medicalRecord" | "treatmentPlan" | "patientVisit" | "consultationSerial" | "patientStepLog" | "patientInvoice" | "patientPayment" | "chatMessage" | "prescription" | "therapySessionTimer"
+    modelProps: "user" | "session" | "auditLog" | "performer" | "room" | "therapySlot" | "patient" | "appointment" | "queue" | "clinicalOption" | "medicalRecord" | "treatmentPlan" | "patientVisit" | "consultationSerial" | "patientStepLog" | "patientVisitNote" | "patientInvoice" | "patientPayment" | "chatMessage" | "prescription" | "therapySessionTimer"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1546,6 +1547,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PatientVisitNote: {
+      payload: Prisma.$PatientVisitNotePayload<ExtArgs>
+      fields: Prisma.PatientVisitNoteFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PatientVisitNoteFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PatientVisitNoteFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>
+        }
+        findFirst: {
+          args: Prisma.PatientVisitNoteFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PatientVisitNoteFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>
+        }
+        findMany: {
+          args: Prisma.PatientVisitNoteFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>[]
+        }
+        create: {
+          args: Prisma.PatientVisitNoteCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>
+        }
+        createMany: {
+          args: Prisma.PatientVisitNoteCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PatientVisitNoteCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>[]
+        }
+        delete: {
+          args: Prisma.PatientVisitNoteDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>
+        }
+        update: {
+          args: Prisma.PatientVisitNoteUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>
+        }
+        deleteMany: {
+          args: Prisma.PatientVisitNoteDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PatientVisitNoteUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PatientVisitNoteUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>[]
+        }
+        upsert: {
+          args: Prisma.PatientVisitNoteUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientVisitNotePayload>
+        }
+        aggregate: {
+          args: Prisma.PatientVisitNoteAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePatientVisitNote>
+        }
+        groupBy: {
+          args: Prisma.PatientVisitNoteGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PatientVisitNoteGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PatientVisitNoteCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PatientVisitNoteCountAggregateOutputType> | number
+        }
+      }
+    }
     PatientInvoice: {
       payload: Prisma.$PatientInvoicePayload<ExtArgs>
       fields: Prisma.PatientInvoiceFieldRefs
@@ -2116,6 +2191,10 @@ export const AppointmentScalarFieldEnum = {
   routingOrigin: 'routingOrigin',
   routingNote: 'routingNote',
   routedAt: 'routedAt',
+  receptionistNote: 'receptionistNote',
+  doctorNote: 'doctorNote',
+  handlerNote: 'handlerNote',
+  cashierNote: 'cashierNote',
   queueId: 'queueId',
   queueType: 'queueType',
   currentStation: 'currentStation',
@@ -2233,6 +2312,11 @@ export const PatientVisitScalarFieldEnum = {
   checkInPerformerId: 'checkInPerformerId',
   checkOutPerformerId: 'checkOutPerformerId',
   notes: 'notes',
+  receptionistNote: 'receptionistNote',
+  doctorNote: 'doctorNote',
+  handlerNote: 'handlerNote',
+  cashierNote: 'cashierNote',
+  medicalNotes: 'medicalNotes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -2281,6 +2365,25 @@ export const PatientStepLogScalarFieldEnum = {
 } as const
 
 export type PatientStepLogScalarFieldEnum = (typeof PatientStepLogScalarFieldEnum)[keyof typeof PatientStepLogScalarFieldEnum]
+
+
+export const PatientVisitNoteScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  visitId: 'visitId',
+  appointmentId: 'appointmentId',
+  category: 'category',
+  note: 'note',
+  authorName: 'authorName',
+  authorRole: 'authorRole',
+  authorId: 'authorId',
+  originStation: 'originStation',
+  targetStation: 'targetStation',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PatientVisitNoteScalarFieldEnum = (typeof PatientVisitNoteScalarFieldEnum)[keyof typeof PatientVisitNoteScalarFieldEnum]
 
 
 export const PatientInvoiceScalarFieldEnum = {
@@ -2703,6 +2806,7 @@ export type GlobalOmitConfig = {
   patientVisit?: Prisma.PatientVisitOmit
   consultationSerial?: Prisma.ConsultationSerialOmit
   patientStepLog?: Prisma.PatientStepLogOmit
+  patientVisitNote?: Prisma.PatientVisitNoteOmit
   patientInvoice?: Prisma.PatientInvoiceOmit
   patientPayment?: Prisma.PatientPaymentOmit
   chatMessage?: Prisma.ChatMessageOmit

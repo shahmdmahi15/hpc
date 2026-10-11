@@ -31,6 +31,7 @@ import { CancelCallDialog } from "@/components/handler/cancel-call-dialog";
 import { MarkInTherapyDialog } from "@/components/handler/mark-in-therapy-dialog";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import { PatientMedicalHistoryDialog } from "@/components/doctor/medical/patient-medical-history-dialog";
+import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
 
 interface HandlerQueueCardProps {
   appointment: AppointmentWithRelations;
@@ -489,6 +490,20 @@ export function HandlerQueueCard({
               <span>Send</span>
             </Button>
           )}
+
+          {/* Patient Visit & Department Notes */}
+          <PatientNotesTriggerButton
+            patientId={appointment.patientId}
+            patientName={appointment.patient?.name || "Patient"}
+            patientMrn={appointment.patient?.mrn}
+            appointmentId={appointment.id}
+            defaultCategory="HANDLER"
+            currentUserRole="HANDLER"
+            currentStation={appointment.room?.number ? `Room ${appointment.room.number}` : "Therapy Room"}
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-[10px] font-semibold border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+          />
         </div>
       </div>
 

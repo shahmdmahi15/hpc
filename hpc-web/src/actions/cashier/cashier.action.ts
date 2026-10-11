@@ -562,6 +562,60 @@ export async function collectPaymentAction(params: {
       });
     }
 
+    // Auto-record Cashier note in PatientVisitNote and mirror to cashierNote
+    if (params.notes && params.notes.trim()) {
+      const trimmedCashierNote = params.notes.trim();
+      let authorName = sessionData.user.name || "Cashier Staff";
+      if (params.performerId) {
+        const perf = await prisma.performer.findUnique({
+          where: { id: params.performerId },
+          select: { name: true },
+        });
+        if (perf?.name) authorName = perf.name;
+      }
+
+      await prisma.patientVisitNote
+        .create({
+          data: {
+            patientId: appointment.patientId,
+            visitId: appointment.visitId || undefined,
+            appointmentId: updated.id,
+            category: "CASHIER",
+            note: trimmedCashierNote,
+            authorName,
+            authorRole: "CASHIER",
+            authorId: sessionData.user.id,
+            originStation: "CASHIER_REGISTER",
+            targetStation: updated.currentStation || null,
+          },
+        })
+        .catch((err) => console.error("[Auto Cashier Note Create Error]:", err));
+
+      await prisma.appointment
+        .update({
+          where: { id: updated.id },
+          data: { cashierNote: trimmedCashierNote },
+        })
+        .catch(() => {});
+
+      if (appointment.visitId) {
+        await prisma.patientVisit
+          .update({
+            where: { id: appointment.visitId },
+            data: { cashierNote: trimmedCashierNote },
+          })
+          .catch(() => {});
+      }
+
+      emitRealtimeEvent("PATIENT_NOTE_ADDED", {
+        patientId: appointment.patientId,
+        appointmentId: updated.id,
+        category: "CASHIER",
+        authorName,
+        note: trimmedCashierNote,
+      });
+    }
+
     await logAudit({
       userId: sessionData.user.id,
       performerId: params.performerId || null,
@@ -1001,6 +1055,51 @@ export async function processConsultationBillingAction(params: {
       returnMessage = `Invoice ${invoiceNumber} printed for ${serial.patient.name}. Consultation Serial #${serial.serialNumber} is scheduled for ${formattedDate} (patient will enter queue on appointment date upon arrival).`;
     }
 
+    // Auto-record Cashier note in PatientVisitNote and mirror to cashierNote
+    if (params.notes && params.notes.trim()) {
+      const trimmedCashierNote = params.notes.trim();
+      let authorName = sessionData.user.name || "Cashier Staff";
+      if (params.performerId) {
+        const perf = await prisma.performer.findUnique({
+          where: { id: params.performerId },
+          select: { name: true },
+        });
+        if (perf?.name) authorName = perf.name;
+      }
+
+      await prisma.patientVisitNote
+        .create({
+          data: {
+            patientId: serial.patientId,
+            visitId: serial.visitId || undefined,
+            category: "CASHIER",
+            note: trimmedCashierNote,
+            authorName,
+            authorRole: "CASHIER",
+            authorId: sessionData.user.id,
+            originStation: "CASHIER_REGISTER",
+            targetStation: isSameDay ? "CONSULTATION_ROOM" : null,
+          },
+        })
+        .catch((err) => console.error("[Auto Cashier Note Create Error]:", err));
+
+      if (serial.visitId) {
+        await prisma.patientVisit
+          .update({
+            where: { id: serial.visitId },
+            data: { cashierNote: trimmedCashierNote },
+          })
+          .catch(() => {});
+      }
+
+      emitRealtimeEvent("PATIENT_NOTE_ADDED", {
+        patientId: serial.patientId,
+        category: "CASHIER",
+        authorName,
+        note: trimmedCashierNote,
+      });
+    }
+
     revalidatePath("/cashier");
     revalidatePath("/receptionist");
     revalidatePath("/doctor");
@@ -1224,6 +1323,52 @@ export async function clearPreviousDueAction(params: {
           include: { payments: true },
         })
       : null;
+
+    // Auto-record Cashier note in PatientVisitNote and mirror to cashierNote
+    if (params.notes && params.notes.trim()) {
+      const trimmedCashierNote = params.notes.trim();
+      let authorName = sessionData.user.name || "Cashier Staff";
+      if (params.performerId) {
+        const perf = await prisma.performer.findUnique({
+          where: { id: params.performerId },
+          select: { name: true },
+        });
+        if (perf?.name) authorName = perf.name;
+      }
+
+      await prisma.patientVisitNote
+        .create({
+          data: {
+            patientId: patient.id,
+            appointmentId: params.appointmentId || undefined,
+            category: "CASHIER",
+            note: trimmedCashierNote,
+            authorName,
+            authorRole: "CASHIER",
+            authorId: sessionData.user.id,
+            originStation: "CASHIER_REGISTER",
+            targetStation: "THERAPY_ROOM",
+          },
+        })
+        .catch((err) => console.error("[Auto Cashier Note Create Error]:", err));
+
+      if (params.appointmentId) {
+        await prisma.appointment
+          .update({
+            where: { id: params.appointmentId },
+            data: { cashierNote: trimmedCashierNote },
+          })
+          .catch(() => {});
+      }
+
+      emitRealtimeEvent("PATIENT_NOTE_ADDED", {
+        patientId: patient.id,
+        appointmentId: params.appointmentId || undefined,
+        category: "CASHIER",
+        authorName,
+        note: trimmedCashierNote,
+      });
+    }
 
     revalidatePath("/cashier");
     revalidatePath("/receptionist");

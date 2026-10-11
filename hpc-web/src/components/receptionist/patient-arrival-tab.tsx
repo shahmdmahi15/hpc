@@ -32,6 +32,7 @@ import {
   bookConsultationSerialAction,
   checkoutPatientVisitAction,
 } from "@/actions/receptionist/patient.action";
+import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
 import { Gender, QueueType, AppointmentStatus } from "@/generated/prisma/enums";
 import { BLOOD_GROUPS } from "@/schemas/receptionist/patient.schema";
 import { evaluatePunctuality } from "@/lib/queue-punctuality";
@@ -1204,7 +1205,22 @@ export function PatientArrivalTab({
                         </Button>
                       )}
 
-                      {/* Action 2: Check Out Patient */}
+                      {/* Action 2: Patient Visit Notes */}
+                      <PatientNotesTriggerButton
+                        patientId={apt.patientId}
+                        patientName={apt.patient?.name || "Patient"}
+                        patientMrn={apt.patient?.mrn}
+                        visitId={apt.visitId}
+                        appointmentId={apt.id}
+                        defaultCategory="RECEPTIONIST"
+                        currentUserRole="RECEPTIONIST"
+                        currentStation={stationBadgeText}
+                        size="sm"
+                        variant="outline"
+                        className="h-7.5 px-2.5 text-xs font-bold gap-1 rounded-lg border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer shadow-2xs"
+                      />
+
+                      {/* Action 3: Check Out Patient */}
                       <Button
                         type="button"
                         size="sm"

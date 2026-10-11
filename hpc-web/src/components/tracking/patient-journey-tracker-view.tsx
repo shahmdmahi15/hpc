@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatTime12h, evaluatePunctuality } from "@/lib/queue-punctuality";
+import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
 
 interface PatientJourneyTrackerViewProps {
   initialData?: PatientTrackingData;
@@ -768,6 +769,17 @@ export function PatientJourneyTrackerView({
                       </Button>
                     )}
                   </div>
+
+                  <PatientNotesTriggerButton
+                    patientId={patient.patientId}
+                    patientName={patient.name}
+                    patientMrn={patient.mrn}
+                    appointmentId={patient.id}
+                    currentStation={stationCfg.shortLabel}
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2.5 text-xs font-semibold gap-1.5 border-purple-500/30 hover:bg-purple-500/10 text-purple-700 dark:text-purple-300 cursor-pointer shrink-0"
+                  />
                 </div>
               </div>
             );

@@ -93,6 +93,11 @@ export type ConsultationSerial = Prisma.ConsultationSerialModel
  */
 export type PatientStepLog = Prisma.PatientStepLogModel
 /**
+ * Model PatientVisitNote
+ * 
+ */
+export type PatientVisitNote = Prisma.PatientVisitNoteModel
+/**
  * Model PatientInvoice
  * 
  */

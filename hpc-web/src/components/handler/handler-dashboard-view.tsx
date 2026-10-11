@@ -48,6 +48,7 @@ import { useChatNotifications } from "@/hooks/use-chat-notifications";
 import { playChatChime } from "@/lib/chat-chime";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import { PatientMedicalHistoryDialog } from "@/components/doctor/medical/patient-medical-history-dialog";
+import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
 
 interface HandlerDashboardViewProps {
   initialData: HandlerDashboardData;
@@ -93,6 +94,8 @@ export function HandlerDashboardView({
     React.useState<any | null>(null);
   const [isSpotlightActionLoading, setIsSpotlightActionLoading] =
     React.useState(false);
+  const [selectedSpotlightId, setSelectedSpotlightId] =
+    React.useState<string | null>(null);
 
   // Handler Performer identity
   const selectedHandlerId = React.useMemo(() => {
@@ -243,13 +246,30 @@ export function HandlerDashboardView({
     });
   }, [data.therapyQueue, searchQuery]);
 
-  // In Therapy count
-  const inTherapyCount = data.therapyQueue.filter(
-    (a) => a.status === AppointmentStatus.IN_THERAPY,
-  ).length;
+  // In Therapy appointments and multi-bed support
+  const inTherapyAppointments = React.useMemo(() => {
+    return data.therapyQueue.filter(
+      (a) => a.status === AppointmentStatus.IN_THERAPY,
+    );
+  }, [data.therapyQueue]);
+
+  const inTherapyCount = inTherapyAppointments.length;
 
   const callingApt = data.callingTherapyAppointment;
-  const activeApt = data.activeTherapyAppointment;
+  const activeApt = React.useMemo(() => {
+    if (selectedSpotlightId) {
+      const found = inTherapyAppointments.find(
+        (a) => a.id === selectedSpotlightId,
+      );
+      if (found) return found;
+    }
+    return inTherapyAppointments[0] || data.activeTherapyAppointment;
+  }, [
+    selectedSpotlightId,
+    inTherapyAppointments,
+    data.activeTherapyAppointment,
+  ]);
+
   const activePlan = activeApt
     ? data.todayPlansByPatientId?.[activeApt.patientId]
     : null;
@@ -414,6 +434,38 @@ export function HandlerDashboardView({
         {/* Active In-Therapy Spotlight Banner */}
         {activeApt && (
           <div className="relative overflow-hidden rounded-xl border border-emerald-500/50 bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-sky-500/10 p-3 px-4 shadow-sm backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Multi-bed switcher when multiple patients are in therapy */}
+            {inTherapyAppointments.length > 1 && (
+              <div className="flex items-center gap-1.5 mb-2.5 pb-2 border-b border-emerald-500/20 overflow-x-auto scrollbar-none">
+                <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+                  <Activity className="size-3 text-emerald-600" /> Active Beds ({inTherapyAppointments.length}):
+                </span>
+                {inTherapyAppointments.map((apt) => {
+                  const isSelected = apt.id === activeApt.id;
+                  const roomNum =
+                    apt.room?.number || apt.therapySlot?.room?.number || "Bed";
+                  return (
+                    <button
+                      key={apt.id}
+                      type="button"
+                      onClick={() => setSelectedSpotlightId(apt.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shrink-0 ${
+                        isSelected
+                          ? "bg-emerald-600 text-white border-emerald-700 shadow-xs ring-2 ring-emerald-500/30"
+                          : "bg-background/80 text-foreground border-border/80 hover:bg-emerald-500/10"
+                      }`}
+                    >
+                      <DoorOpen className="size-3" />
+                      <span>Room {roomNum}</span>
+                      <span className="font-normal opacity-90 truncate max-w-[120px]">
+                        {apt.patient?.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -489,6 +541,20 @@ export function HandlerDashboardView({
                   <FolderOpen className="size-3" />
                   <span>View Files</span>
                 </Button>
+                <PatientNotesTriggerButton
+                  patientId={activeApt.patientId}
+                  patientName={activeApt.patient?.name || "Patient"}
+                  patientMrn={activeApt.patient?.mrn}
+                  appointmentId={activeApt.id}
+                  defaultCategory="HANDLER"
+                  currentUserRole="HANDLER"
+                  currentStation={
+                    activeApt.room?.number
+                      ? `Room ${activeApt.room.number}`
+                      : "Therapy Room"
+                  }
+                  className="h-7.5 px-2.5 text-xs font-semibold border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+                />
                 <Button
                   size="sm"
                   onClick={() => setSpotlightSendAppointment(activeApt)}
@@ -503,25 +569,28 @@ export function HandlerDashboardView({
             {/* Live Modality Countdown Timers */}
             <ModalityTimersWidget
               appointmentId={activeApt.id}
+              patientId={activeApt.patientId}
               bedNumber={activeApt.room?.number ? `Room ${activeApt.room.number}` : "Bed 1"}
               roomNumber={activeApt.room?.number || activeApt.therapySlot?.room?.number}
               handlers={data.handlerPerformers}
               initialModalityItems={
-                activePlan?.modalities && activePlan.modalities.length > 0
-                  ? activePlan.modalities.map((m: any, i: number) =>
-                      typeof m === "string"
-                        ? { name: m, durationMinutes: 15, order: i + 1 }
-                        : {
-                            name: m.name || `Treatment ${i + 1}`,
-                            durationMinutes: m.durationMinutes || 15,
-                            order: m.order || i + 1,
-                          }
-                    )
-                  : [
-                      { name: "Hot Pack (Spinal)", durationMinutes: 15, order: 1 },
-                      { name: "IFT / TENS", durationMinutes: 15, order: 2 },
-                      { name: "Ultrasound Therapy", durationMinutes: 10, order: 3 },
-                    ]
+                activePlan?.modalityItems && activePlan.modalityItems.length > 0
+                  ? activePlan.modalityItems
+                  : activePlan?.modalities && activePlan.modalities.length > 0
+                    ? activePlan.modalities.map((m: any, i: number) =>
+                        typeof m === "string"
+                          ? { name: m, durationMinutes: 15, order: i + 1 }
+                          : {
+                              name: m.name || `Treatment ${i + 1}`,
+                              durationMinutes: m.durationMinutes || 15,
+                              order: m.order || i + 1,
+                            }
+                      )
+                    : [
+                        { name: "Hot Pack (Spinal)", durationMinutes: 15, order: 1 },
+                        { name: "IFT / TENS", durationMinutes: 15, order: 2 },
+                        { name: "Ultrasound Therapy", durationMinutes: 10, order: 3 },
+                      ]
               }
             />
           </div>

@@ -29,6 +29,7 @@ import { PatientDirectoryView } from "@/components/receptionist/patient-director
 import { CreatePatientDialog } from "@/components/receptionist/create-patient-dialog";
 import { BookTicketDialog } from "@/components/receptionist/book-ticket-dialog";
 import { ThermalReceiptDialog } from "@/components/print/thermal-receipt-dialog";
+import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -997,15 +998,26 @@ export function CashierDashboardView({
                                 </div>
                               </div>
 
-                              <div className="pt-2 border-t border-border/50">
+                              <div className="pt-2 border-t border-border/50 flex items-center gap-1.5">
                                 <Button
                                   size="sm"
                                   onClick={() => handleOpenConsultPaymentModal(serial)}
-                                  className="w-full h-7.5 text-xs font-semibold gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
+                                  className="flex-1 h-7.5 text-xs font-semibold gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer"
                                 >
                                   <CreditCard className="size-3.5" />
                                   <span>Collect / Mark Due &amp; Queue</span>
                                 </Button>
+                                <PatientNotesTriggerButton
+                                  patientId={serial.patientId}
+                                  patientName={serial.patient.name}
+                                  patientMrn={serial.patient.mrn}
+                                  defaultCategory="CASHIER"
+                                  currentUserRole="CASHIER"
+                                  currentStation="CASHIER_REGISTER"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7.5 px-2 text-xs border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+                                />
                               </div>
                             </div>
                           );
@@ -1089,15 +1101,27 @@ export function CashierDashboardView({
                                 </div>
                               </div>
 
-                              <div className="pt-2 border-t border-border/50">
+                              <div className="pt-2 border-t border-border/50 flex items-center gap-1.5">
                                 <Button
                                   size="sm"
                                   onClick={() => handleOpenClearDueModal(item)}
-                                  className="w-full h-7.5 text-xs font-semibold gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer"
+                                  className="flex-1 h-7.5 text-xs font-semibold gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer"
                                 >
                                   <CreditCard className="size-3.5" />
-                                  <span>Clear Due &amp; Queue for Therapy</span>
+                                  <span>Clear Due &amp; Queue</span>
                                 </Button>
+                                <PatientNotesTriggerButton
+                                  patientId={item.patientId}
+                                  patientName={item.patient.name}
+                                  patientMrn={item.patient.mrn}
+                                  appointmentId={item.id}
+                                  defaultCategory="CASHIER"
+                                  currentUserRole="CASHIER"
+                                  currentStation="CASHIER_REGISTER"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7.5 px-2 text-xs border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+                                />
                               </div>
                             </div>
                           );
@@ -1206,19 +1230,31 @@ export function CashierDashboardView({
                                 </div>
                               </div>
 
-                              <div className="pt-2 border-t border-border/50">
+                              <div className="pt-2 border-t border-border/50 flex items-center gap-1.5">
                                 <Button
                                   size="sm"
                                   onClick={() => handleOpenPaymentModal(item)}
-                                  className="w-full h-7.5 text-xs font-semibold gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer"
+                                  className="flex-1 h-7.5 text-xs font-semibold gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer"
                                 >
                                   <CreditCard className="size-3.5" />
                                   <span>
                                     {estimatedFee === 0 && patientDue > 0
-                                      ? `Clear ৳${patientDue} Due & Issue ৳0 Bill`
+                                      ? `Clear ৳${patientDue} Due`
                                       : `Collect ৳${estimatedFee} Bill${patientDue > 0 ? " + Due" : ""}`}
                                   </span>
                                 </Button>
+                                <PatientNotesTriggerButton
+                                  patientId={item.patientId}
+                                  patientName={item.patient?.name || "Patient"}
+                                  patientMrn={item.patient?.mrn}
+                                  appointmentId={item.id}
+                                  defaultCategory="CASHIER"
+                                  currentUserRole="CASHIER"
+                                  currentStation="CASHIER_REGISTER"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7.5 px-2 text-xs border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 cursor-pointer gap-1"
+                                />
                               </div>
                             </div>
                           );

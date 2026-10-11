@@ -49,7 +49,10 @@ export function ModalityTimersWidget({
 
   // Fetch / Sync Timer from Server
   const loadServerTimer = React.useCallback(async () => {
-    if (!appointmentId || !patientId) return;
+    if (!appointmentId) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const itemsToPass =
         initialModalityItems.length > 0
@@ -58,7 +61,7 @@ export function ModalityTimersWidget({
 
       const res = await getTherapyTimerAction({
         appointmentId,
-        patientId,
+        patientId: patientId || undefined,
         roomNumber,
         initialModalities: itemsToPass,
       });

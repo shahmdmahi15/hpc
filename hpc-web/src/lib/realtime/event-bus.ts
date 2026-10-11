@@ -27,7 +27,8 @@ export type RealtimeEventType =
   | "CHAT_MESSAGE_DELETED"
   | "THERAPY_TIMER_UPDATED"
   | "PRESCRIPTION_CREATED"
-  | "PRESCRIPTION_DELETED";
+  | "PRESCRIPTION_DELETED"
+  | "PATIENT_NOTE_ADDED";
 
 export interface RealtimeEventPayload<T = any> {
   seq?: number;

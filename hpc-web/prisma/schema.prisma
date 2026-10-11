@@ -366,6 +366,7 @@ model Patient {
   payments            PatientPayment[]
   prescriptions       Prescription[]
   chatMessages        ChatMessage[]
+  visitNotes          PatientVisitNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -466,6 +467,12 @@ model Appointment {
   routingNote String?
   routedAt    DateTime?
 
+  // Department-specific notes for this appointment visit
+  receptionistNote String?
+  doctorNote       String?
+  handlerNote      String?
+  cashierNote      String?
+
   // Queue assignment upon check-in: THERAPY or CONSULTATION
   queueId   String?
   queue     Queue?     @relation(fields: [queueId], references: [id], onDelete: SetNull)
@@ -490,6 +497,7 @@ model Appointment {
   medicalRecords MedicalRecord[]
   treatmentPlans TreatmentPlan[]
   prescriptions  Prescription[]
+  visitNotes     PatientVisitNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -706,11 +714,19 @@ model PatientVisit {
   checkOutPerformerId String?
   notes               String?
 
+  // Department-specific visit notes
+  receptionistNote    String?
+  doctorNote          String?
+  handlerNote         String?
+  cashierNote         String?
+  medicalNotes        String?
+
   consultationSerials ConsultationSerial[]
   stepLogs            PatientStepLog[]
   invoices            PatientInvoice[]
   payments            PatientPayment[]
   appointments        Appointment[]
+  visitNotes          PatientVisitNote[]
 
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -775,6 +791,32 @@ model PatientStepLog {
 
   @@index([patientId, timestamp])
   @@index([visitId])
+}
+
+model PatientVisitNote {
+  id            String        @id @default(cuid())
+  patientId     String
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId       String?
+  visit         PatientVisit? @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  appointmentId String?
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  category      String        // "FORWARDED", "RECEPTIONIST", "DOCTOR", "HANDLER", "CASHIER", "MEDICAL"
+  note          String
+  authorName    String?
+  authorRole    String?       // "DOCTOR", "HANDLER", "RECEPTIONIST", "CASHIER", "ADMIN"
+  authorId      String?
+  originStation String?
+  targetStation String?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([patientId, createdAt])
+  @@index([visitId])
+  @@index([appointmentId])
+  @@index([category])
 }
 
 model PatientInvoice {

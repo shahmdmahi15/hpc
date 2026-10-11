@@ -97,12 +97,21 @@ function recalculateTimer(timer: any): TherapyTimerState {
  */
 export async function getTherapyTimerAction(params: {
   appointmentId: string;
-  patientId: string;
+  patientId?: string;
   roomNumber?: string | null;
   initialModalities?: { name: string; durationMinutes?: number; order?: number }[];
 }): Promise<{ success: boolean; timer: TherapyTimerState | null; message?: string }> {
   try {
     await requireAuth([Role.HANDLER, Role.DOCTOR, Role.ADMIN, Role.RECEPTIONIST]);
+
+    let effectivePatientId = params.patientId;
+    if (!effectivePatientId) {
+      const apt = await prisma.appointment.findUnique({
+        where: { id: params.appointmentId },
+        select: { patientId: true },
+      });
+      effectivePatientId = apt?.patientId || "";
+    }
 
     let timer = await prisma.therapySessionTimer.findUnique({
       where: { appointmentId: params.appointmentId },
@@ -127,7 +136,7 @@ export async function getTherapyTimerAction(params: {
       } else {
         const plan = await prisma.treatmentPlan.findFirst({
           where: {
-            patientId: params.patientId,
+            patientId: effectivePatientId,
             planType: "TODAY",
             isActive: true,
           },
@@ -179,7 +188,7 @@ export async function getTherapyTimerAction(params: {
       timer = await prisma.therapySessionTimer.create({
         data: {
           appointmentId: params.appointmentId,
-          patientId: params.patientId,
+          patientId: effectivePatientId,
           roomNumber: params.roomNumber || null,
           modalities: JSON.stringify(parsedItems),
           currentStepIndex: 0,
