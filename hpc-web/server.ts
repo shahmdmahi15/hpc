@@ -151,11 +151,13 @@ app.prepare().then(() => {
       res.end(
         JSON.stringify({
           status: "ok",
+          service: "hpc-clinic-server",
           app: "hpc",
           ssl: hasSsl,
           timestamp: new Date().toISOString(),
           name: "Health And Pain Care Center",
           role: "server",
+          port: port,
           defaultPort: port,
           pid: process.pid,
           uptime: process.uptime(),
