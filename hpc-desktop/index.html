@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HPC Center — Health & Pain Care Center</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Top Navigation & Branding Header -->
+      <header class="app-header">
+        <div class="brand-section">
+          <img src="/hpclogo.jpg" class="brand-logo-img" alt="HPC Center" />
+          <div class="brand-text">
+            <h1 class="brand-title">HPC Center</h1>
+            <p class="brand-subtitle">Health & Pain Care Center • Universal Workstation</p>
+          </div>
+        </div>
+
+        <div class="header-status">
+          <div id="network-badge" class="network-badge searching">
+            <span class="status-dot"></span>
+            <span id="network-status-text">Scanning Clinic Network...</span>
+            <span id="latency-pill" class="latency-pill hidden">0ms</span>
+          </div>
+          <button id="btn-login-portal" class="btn-secondary" title="Open Staff Login Portal">
+            🔐 Staff Login
+          </button>
+          <button id="btn-manual-ip" class="btn-icon" title="Server Settings">
+            ⚙️
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Discovered Server Banner -->
+        <div id="server-banner" class="server-banner">
+          <div class="server-info">
+            <span class="server-label">ACTIVE SERVER:</span>
+            <span id="server-name" class="server-name">Searching...</span>
+            <span id="server-url" class="server-url">UDP Port 8888</span>
+          </div>
+          <div class="server-actions">
+            <button id="btn-rescan" class="btn-secondary">🔄 Rescan LAN</button>
+          </div>
+        </div>
+
+        <!-- Station Selection Header -->
+        <div class="section-title-row">
+          <div>
+            <h2 class="section-title">Select Terminal Station</h2>
+            <p class="section-desc">Choose the operating role for this computer workstation.</p>
+          </div>
+          <div id="countdown-container" class="countdown-container hidden">
+            <span>Auto-launching in <strong id="countdown-sec">3</strong>s</span>
+            <button id="btn-cancel-countdown" class="btn-link">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Station Grid -->
+        <div class="station-grid">
+          <!-- 1. Doctor Chamber -->
+          <div class="station-card" data-role="DOCTOR_CHAMBER" data-route="/doctor">
+            <div class="card-icon doctor">🩺</div>
+            <div class="card-content">
+              <div class="card-header">
+                <h3 class="card-title">Doctor Chamber</h3>
+                <span class="card-badge">Chamber 101–105</span>
+              </div>
+              <p class="card-desc">Patient queue, prescription pad, medical history, and clinical investigations.</p>
+            </div>
+            <div class="card-selector">
+              <span class="radio-circle"></span>
+            </div>
+          </div>
+
+          <!-- 2. Therapy Unit -->
+          <div class="station-card" data-role="THERAPY_UNIT" data-route="/handler">
+            <div class="card-icon therapy">⚡</div>
+            <div class="card-content">
+              <div class="card-header">
+                <h3 class="card-title">Therapy Unit</h3>
+                <span class="card-badge">Rooms 201–207</span>
+              </div>
+              <p class="card-desc">15 active therapy beds, modality countdown timers, and physical therapy execution.</p>
+            </div>
+            <div class="card-selector">
+              <span class="radio-circle"></span>
+            </div>
+          </div>
+
+          <!-- 3. Reception Desk -->
+          <div class="station-card" data-role="RECEPTION_DESK" data-route="/receptionist">
+            <div class="card-icon reception">📋</div>
+            <div class="card-content">
+              <div class="card-header">
+                <h3 class="card-title">Reception Desk</h3>
+                <span class="card-badge">Token & Registry</span>
+              </div>
+              <p class="card-desc">Patient check-in, serial token allocation, patient directory, and appointment booking.</p>
+            </div>
+            <div class="card-selector">
+              <span class="radio-circle"></span>
+            </div>
+          </div>
+
+          <!-- 4. Cashier Billing -->
+          <div class="station-card" data-role="CASHIER_DESK" data-route="/cashier">
+            <div class="card-icon cashier">💳</div>
+            <div class="card-content">
+              <div class="card-header">
+                <h3 class="card-title">Cashier & Accounts</h3>
+                <span class="card-badge">Billing Station</span>
+              </div>
+              <p class="card-desc">Itemized invoice settlement, split payments (Cash, Card, MFS), and thermal receipt printing.</p>
+            </div>
+            <div class="card-selector">
+              <span class="radio-circle"></span>
+            </div>
+          </div>
+
+          <!-- 5. Admin Fleet -->
+          <div class="station-card" data-role="ADMIN_FLEET" data-route="/admin/network">
+            <div class="card-icon admin">🖥️</div>
+            <div class="card-content">
+              <div class="card-header">
+                <h3 class="card-title">Admin & Network Fleet</h3>
+                <span class="card-badge">Sysadmin</span>
+              </div>
+              <p class="card-desc">Live device latency telemetry, bulletin notices, staff performer analytics, and system audit.</p>
+            </div>
+            <div class="card-selector">
+              <span class="radio-circle"></span>
+            </div>
+          </div>
+
+          <!-- 6. Waiting Room Display -->
+          <div class="station-card" data-role="WAITING_ROOM" data-route="/waiting-room">
+            <div class="card-icon waiting">📺</div>
+            <div class="card-content">
+              <div class="card-header">
+                <h3 class="card-title">Waiting Room Display</h3>
+                <span class="card-badge">TV / Kiosk Mode</span>
+              </div>
+              <p class="card-desc">Fullscreen waiting room board, live token calls, bilingual audio prompts, and notice ticker.</p>
+            </div>
+            <div class="card-selector">
+              <span class="radio-circle"></span>
+            </div>
+          </div>
+
+          <!-- 7. Staff Authentication Portal -->
+          <div class="station-card" data-role="STAFF_LOGIN" data-route="/login">
+            <div class="card-icon login">🔐</div>
+            <div class="card-content">
+              <div class="card-header">
+                <h3 class="card-title">Staff Authentication Portal</h3>
+                <span class="card-badge">Login Screen</span>
+              </div>
+              <p class="card-desc">Direct sign-in portal for all medical doctors, therapists, receptionists, cashiers, and admins.</p>
+            </div>
+            <div class="card-selector">
+              <span class="radio-circle"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Launch Options Footer -->
+        <div class="launch-footer">
+          <label class="remember-checkbox-label">
+            <input type="checkbox" id="chk-remember-station" checked />
+            <span>Remember this station and auto-launch on next startup</span>
+          </label>
+
+          <div class="launch-actions">
+            <button id="btn-launch" class="btn-primary" disabled>
+              Launch Terminal
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <!-- Manual IP Settings Modal -->
+      <div id="modal-settings" class="modal-overlay hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>Server Configuration</h3>
+            <button id="btn-close-modal" class="btn-close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-hint">
+              If UDP auto-discovery is blocked by your router's firewall, enter the clinic server IP manually:
+            </p>
+            <div class="form-group">
+              <label for="input-server-ip">Server IP / Hostname</label>
+              <input type="text" id="input-server-ip" placeholder="e.g. 192.168.10.45" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-server-port">Port</label>
+                <input type="number" id="input-server-port" value="3000" />
+              </div>
+              <div class="form-group">
+                <label for="select-protocol">Protocol</label>
+                <select id="select-protocol">
+                  <option value="https" selected>HTTPS (SSL)</option>
+                  <option value="http">HTTP</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <button id="btn-test-sweep" class="btn-secondary full-width">
+                🔍 Sweep Subnet (e.g. 192.168.10.x)
+              </button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="btn-save-manual-ip" class="btn-primary full-width">
+              Save & Connect
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

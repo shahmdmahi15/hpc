@@ -77,7 +77,7 @@ When the Android TV application starts, it broadcasts a UDP packet to port `8888
     "ip": "192.168.1.100",
     "port": 3000,
     "ssl": true,
-    "name": "Health Peak Center"
+    "name": "Health & Pain Care Center"
   }
   ```
 
@@ -152,7 +152,7 @@ If the Android TV already knows the server IP or uses manual entry as a fallback
   {
     "service": "hpc-clinic-server",
     "version": "1.0",
-    "name": "Health Peak Center",
+    "name": "Health & Pain Care Center",
     "port": 3000,
     "ssl": true,
     "endpoints": {

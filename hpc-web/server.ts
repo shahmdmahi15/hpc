@@ -6,6 +6,7 @@ import path from "path";
 import os from "os";
 import tls from "tls";
 import dgram from "dgram";
+import crypto from "crypto";
 
 // Check if launched in development or production mode
 const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
@@ -312,13 +313,26 @@ function startUdpDiscoveryResponder(httpPort: number, ssl: boolean) {
         const text = msg.toString().trim();
         if (text.includes("HPC_DISCOVER_SERVER") || text.includes("HPC_PING")) {
           const localIps = getLocalIps();
-          const serverIp = localIps[0] || "127.0.0.1";
+          // Match local interface that shares the client's subnet (e.g. 192.168.10.x, 192.168.1.x)
+          const clientSubnet = rinfo.address.split(".").slice(0, 3).join(".");
+          const matchingIp = localIps.find((ip) => ip.startsWith(clientSubnet));
+          const physicalLanIp = localIps.find((ip) => ip.startsWith("192.168.")) || localIps.find((ip) => ip.startsWith("10."));
+          const serverIp = matchingIp || physicalLanIp || localIps[0] || "127.0.0.1";
+          let caFingerprint = "";
+          try {
+            const rootPath = path.join(certDir, "rootCA.crt");
+            if (fs.existsSync(rootPath)) {
+              caFingerprint = crypto.createHash("sha256").update(fs.readFileSync(rootPath)).digest("hex");
+            }
+          } catch {}
+
           const payload = JSON.stringify({
             service: "hpc-clinic-server",
             ip: serverIp,
             port: httpPort,
             ssl,
-            name: "Health Peak Center",
+            name: "Health & Pain Care Center",
+            caFingerprint,
           });
           const buf = Buffer.from(payload);
           udpSocket.send(buf, 0, buf.length, rinfo.port, rinfo.address, (sendErr) => {
