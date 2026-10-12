@@ -198,6 +198,36 @@ function cancelAutoLaunch() {
   countdownContainerEl.classList.add("hidden");
 }
 
+// Clean and parse user-entered IP, URL, or hostnames
+function parseServerInput(rawInput: string, defaultPort = 3000, defaultSsl = true) {
+  let cleaned = rawInput.trim();
+  let ssl = defaultSsl;
+  let port = defaultPort;
+
+  if (cleaned.startsWith("https://")) {
+    ssl = true;
+    cleaned = cleaned.replace(/^https:\/\//i, "");
+  } else if (cleaned.startsWith("http://")) {
+    ssl = false;
+    cleaned = cleaned.replace(/^http:\/\//i, "");
+  }
+
+  // Remove trailing slashes and paths (e.g. /login or /tauri.apk)
+  cleaned = cleaned.split("/")[0];
+
+  // Extract port if present (e.g. 192.168.2.2:3000)
+  if (cleaned.includes(":")) {
+    const parts = cleaned.split(":");
+    cleaned = parts[0];
+    const parsedPort = parseInt(parts[1], 10);
+    if (!isNaN(parsedPort) && parsedPort > 0) {
+      port = parsedPort;
+    }
+  }
+
+  return { ip: cleaned, port, ssl };
+}
+
 // Launch Terminal
 async function launchTerminal() {
   if (!currentServer) return;
@@ -238,7 +268,15 @@ async function launchTerminal() {
     // 3. Navigate native webview to the selected clinic dashboard route
     const cleanRoute = selectedRoute.startsWith('/') ? selectedRoute : `/${selectedRoute}`;
     const targetUrl = `${baseUrl.trim().replace(/\/+$/, '')}${cleanRoute}`;
-    await invoke("connect_to_url", { targetUrl });
+
+    try {
+      await invoke("connect_to_url", { targetUrl });
+    } catch (rustErr) {
+      console.warn("Rust connect_to_url notice:", rustErr);
+    }
+
+    // Direct location navigation ensures mobile/Android webview loads the URL reliably
+    window.location.href = targetUrl;
   } catch (err) {
     console.error("Failed to launch station:", err);
     alert(`Could not launch station: ${err}`);
@@ -264,14 +302,22 @@ function setupSettingsModal() {
   });
 
   btnSaveManualIpEl.addEventListener("click", () => {
-    const ip = inputServerIpEl.value.trim();
-    const port = parseInt(inputServerPortEl.value || "3000", 10);
-    const ssl = selectProtocolEl.value === "https";
-
-    if (!ip) {
+    const raw = inputServerIpEl.value.trim();
+    if (!raw) {
       alert("Please enter a valid IP address");
       return;
     }
+
+    const { ip, port, ssl } = parseServerInput(
+      raw,
+      parseInt(inputServerPortEl.value || "3000", 10),
+      selectProtocolEl.value === "https"
+    );
+
+    // Update input values to reflect cleaned parsing
+    inputServerIpEl.value = ip;
+    inputServerPortEl.value = String(port);
+    selectProtocolEl.value = ssl ? "https" : "http";
 
     onServerFound({
       service: "hpc-clinic-server",
@@ -285,15 +331,16 @@ function setupSettingsModal() {
   });
 
   btnTestSweepEl.addEventListener("click", async () => {
-    const rawIp = inputServerIpEl.value.trim() || "192.168.10.1";
-    const subnet = rawIp.split(".").slice(0, 3).join(".");
+    const rawIp = inputServerIpEl.value.trim() || "192.168.2.1";
+    const { ip: cleanIp, port } = parseServerInput(rawIp, parseInt(inputServerPortEl.value || "3000", 10));
+    const subnet = cleanIp.split(".").slice(0, 3).join(".");
     btnTestSweepEl.textContent = `Scanning ${subnet}.1–254...`;
     btnTestSweepEl.disabled = true;
 
     try {
       const found = await invoke<DiscoveredServer | null>("sweep_subnet", {
         baseSubnet: subnet,
-        port: parseInt(inputServerPortEl.value || "3000", 10),
+        port,
       });
 
       if (found) {
@@ -332,8 +379,9 @@ window.addEventListener("DOMContentLoaded", () => {
     try {
       await invoke("connect_to_url", { targetUrl });
     } catch (err) {
-      alert(`Could not open login screen: ${err}`);
+      console.warn("Rust connect_to_url notice:", err);
     }
+    window.location.href = targetUrl;
   });
 
   // Initial Auto-Discovery

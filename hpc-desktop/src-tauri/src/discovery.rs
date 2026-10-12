@@ -43,11 +43,17 @@ impl DiscoveryManager {
         let global_target = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::BROADCAST, Self::UDP_PORT));
         let _ = socket.send_to(Self::DISCOVERY_PROBE, global_target).await;
 
-        // 2. Also send to common clinic router subnet broadcast targets
+        // 2. Also send to common clinic router subnet broadcast targets (including 192.168.2.255)
         let common_broadcasts = [
+            Ipv4Addr::new(192, 168, 2, 255),
             Ipv4Addr::new(192, 168, 10, 255),
             Ipv4Addr::new(192, 168, 1, 255),
             Ipv4Addr::new(192, 168, 0, 255),
+            Ipv4Addr::new(192, 168, 3, 255),
+            Ipv4Addr::new(192, 168, 4, 255),
+            Ipv4Addr::new(192, 168, 8, 255),
+            Ipv4Addr::new(192, 168, 100, 255),
+            Ipv4Addr::new(172, 20, 10, 255),
             Ipv4Addr::new(10, 0, 0, 255),
         ];
         for bcast in common_broadcasts {
@@ -132,4 +138,34 @@ impl DiscoveryManager {
 
         None
     }
+
+    /// High-resilience automatic discovery combining targeted UDP broadcast and parallel HTTP subnet sweeping
+    pub async fn auto_discover() -> Result<DiscoveredServer, String> {
+        // 1. Try UDP first with 2s timeout
+        if let Ok(server) = Self::discover(2).await {
+            return Ok(server);
+        }
+
+        // 2. If UDP is filtered/blocked by Wi-Fi router (common between 2.4G and 5G bands),
+        // sweep common clinic subnets concurrently over HTTP/HTTPS (port 3000)
+        let subnets = [
+            "192.168.2",
+            "192.168.10",
+            "192.168.1",
+            "192.168.0",
+            "192.168.3",
+            "192.168.4",
+            "172.20.10",
+            "10.0.0",
+        ];
+
+        for subnet in subnets {
+            if let Some(server) = Self::sweep_subnet(subnet, 3000).await {
+                return Ok(server);
+            }
+        }
+
+        Err("No clinic server found on LAN via UDP or subnet sweep".into())
+    }
 }
+

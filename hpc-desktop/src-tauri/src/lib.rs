@@ -8,7 +8,7 @@ use tauri::{AppHandle, Manager, Url};
 
 #[tauri::command]
 async fn discover_server() -> Result<DiscoveredServer, String> {
-    DiscoveryManager::discover(4).await
+    DiscoveryManager::auto_discover().await
 }
 
 #[tauri::command]
@@ -40,9 +40,12 @@ fn set_wake_lock(enabled: bool) {
 
 #[tauri::command]
 async fn connect_to_url(app: AppHandle, target_url: String) -> Result<(), String> {
+    let parsed: Url = target_url.parse().map_err(|e| format!("Invalid URL: {}", e))?;
     if let Some(window) = app.get_webview_window("main") {
-        let parsed: Url = target_url.parse().map_err(|e| format!("Invalid URL: {}", e))?;
-        window.navigate(parsed).map_err(|e| e.to_string())?;
+        let _ = window.navigate(parsed.clone());
+    }
+    for (_label, webview) in app.webview_windows() {
+        let _ = webview.navigate(parsed.clone());
     }
     Ok(())
 }
