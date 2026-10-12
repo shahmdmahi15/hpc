@@ -3,6 +3,7 @@ use std::time::Instant;
 use tokio::time::{sleep, Duration};
 
 #[derive(Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct HeartbeatPayload {
     pub deviceId: String,
     pub deviceName: String,

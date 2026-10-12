@@ -1,5 +1,3 @@
-use std::path::Path;
-
 #[cfg(target_os = "windows")]
 pub fn install_root_ca_bytes(bytes: &[u8]) -> Result<(), String> {
     use std::io::Write;

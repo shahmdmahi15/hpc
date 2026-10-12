@@ -3,17 +3,34 @@ mod discovery;
 mod telemetry;
 mod wake_lock;
 
-use discovery::{DiscoveredServer, DiscoveryManager};
-use tauri::{AppHandle, Manager, Url};
+use discovery::{DiscoveredServer, DiscoveryManager, DiscoveryProgress};
+use tauri::{AppHandle, Emitter, Manager, Url};
 
 #[tauri::command]
-async fn discover_server() -> Result<DiscoveredServer, String> {
-    DiscoveryManager::auto_discover().await
+async fn discover_server(
+    app: AppHandle,
+    cached_ip: Option<String>,
+) -> Result<DiscoveredServer, String> {
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<DiscoveryProgress>();
+
+    let app_handle = app.clone();
+    tokio::spawn(async move {
+        while let Some(evt) = rx.recv().await {
+            let _ = app_handle.emit("discovery-progress", &evt);
+        }
+    });
+
+    DiscoveryManager::auto_discover(cached_ip, Some(tx)).await
 }
 
 #[tauri::command]
 async fn sweep_subnet(base_subnet: String, port: u16) -> Result<Option<DiscoveredServer>, String> {
     Ok(DiscoveryManager::sweep_subnet(&base_subnet, port).await)
+}
+
+#[tauri::command]
+async fn verify_ip(ip: String, port: u16) -> Result<Option<DiscoveredServer>, String> {
+    Ok(DiscoveryManager::verify_server_at_ip(&ip, port).await)
 }
 
 #[tauri::command]
@@ -76,6 +93,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             discover_server,
             sweep_subnet,
+            verify_ip,
             start_telemetry,
             set_wake_lock,
             connect_to_url,

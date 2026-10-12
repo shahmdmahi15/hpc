@@ -1,11 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 interface DiscoveredServer {
-  service: string;
+  service?: string;
   ip: string;
   port: number;
   ssl: boolean;
   name: string;
+}
+
+interface DiscoveryProgress {
+  tier: number;
+  status: "searching" | "connected" | "offline";
+  message: string;
+  server?: DiscoveredServer;
 }
 
 // State
@@ -77,10 +85,10 @@ function onServerFound(server: DiscoveredServer, latencyMs: number = 3) {
   const protocol = server.ssl ? "https" : "http";
   const fullUrl = `${protocol}://${server.ip}:${server.port}`;
 
-  serverNameEl.textContent = server.name || "HPC Center";
+  serverNameEl.textContent = server.name || "Health & Pain Care Center";
   serverUrlEl.textContent = `${fullUrl} (LAN)`;
 
-  updateNetworkStatus("connected", "Connected to HPC Center", latencyMs);
+  updateNetworkStatus("connected", `Connected to Clinic Server (${server.ip})`, latencyMs);
   btnLaunchEl.disabled = false;
 
   // Save server config to cache
@@ -104,34 +112,39 @@ function onServerFound(server: DiscoveredServer, latencyMs: number = 3) {
   }
 }
 
-// Trigger UDP Discovery
+// Trigger Multi-Tier Auto-Discovery
 async function scanForServer() {
   cancelAutoLaunch();
-  updateNetworkStatus("searching", "Scanning Clinic Network (UDP 8888)...");
+  const cachedIp = localStorage.getItem(STORAGE_SERVER_IP) || undefined;
+
+  updateNetworkStatus("searching", "Searching for clinic server via UDP broadcast...");
   serverNameEl.textContent = "Scanning...";
-  serverUrlEl.textContent = "Searching on UDP 8888...";
+  serverUrlEl.textContent = "Scanning local clinic network...";
   btnLaunchEl.disabled = true;
 
   try {
     const start = performance.now();
-    const server = await invoke<DiscoveredServer>("discover_server");
+    const server = await invoke<DiscoveredServer>("discover_server", { cachedIp });
     const ping = Math.round(performance.now() - start);
     onServerFound(server, Math.min(ping, 25));
   } catch (err) {
-    console.warn("UDP discovery failed or timed out:", err);
+    console.warn("Auto-discovery exhausted:", err);
 
-    // Try cached IP fallback
+    // Try cached IP fallback if not already attempted
     const cachedIp = localStorage.getItem(STORAGE_SERVER_IP);
     if (cachedIp) {
       const cachedPort = parseInt(localStorage.getItem(STORAGE_SERVER_PORT) || "3000", 10);
       const cachedSsl = localStorage.getItem(STORAGE_SERVER_SSL) !== "false";
-      onServerFound({
-        service: "hpc-clinic-server",
-        ip: cachedIp,
-        port: cachedPort,
-        ssl: cachedSsl,
-        name: "HPC Center (Cached)",
-      }, 5);
+      onServerFound(
+        {
+          service: "hpc-clinic-server",
+          ip: cachedIp,
+          port: cachedPort,
+          ssl: cachedSsl,
+          name: "HPC Center (Cached)",
+        },
+        5
+      );
       return;
     }
 
@@ -212,10 +225,10 @@ function parseServerInput(rawInput: string, defaultPort = 3000, defaultSsl = tru
     cleaned = cleaned.replace(/^http:\/\//i, "");
   }
 
-  // Remove trailing slashes and paths (e.g. /login or /tauri.apk)
+  // Remove trailing slashes and paths
   cleaned = cleaned.split("/")[0];
 
-  // Extract port if present (e.g. 192.168.2.2:3000)
+  // Extract port if present (e.g. 192.168.2.10:3000)
   if (cleaned.includes(":")) {
     const parts = cleaned.split(":");
     cleaned = parts[0];
@@ -266,8 +279,8 @@ async function launchTerminal() {
     }
 
     // 3. Navigate native webview to the selected clinic dashboard route
-    const cleanRoute = selectedRoute.startsWith('/') ? selectedRoute : `/${selectedRoute}`;
-    const targetUrl = `${baseUrl.trim().replace(/\/+$/, '')}${cleanRoute}`;
+    const cleanRoute = selectedRoute.startsWith("/") ? selectedRoute : `/${selectedRoute}`;
+    const targetUrl = `${baseUrl.trim().replace(/\/+$/, "")}${cleanRoute}`;
 
     try {
       await invoke("connect_to_url", { targetUrl });
@@ -301,7 +314,7 @@ function setupSettingsModal() {
     modalSettingsEl.classList.add("hidden");
   });
 
-  btnSaveManualIpEl.addEventListener("click", () => {
+  btnSaveManualIpEl.addEventListener("click", async () => {
     const raw = inputServerIpEl.value.trim();
     if (!raw) {
       alert("Please enter a valid IP address");
@@ -314,20 +327,40 @@ function setupSettingsModal() {
       selectProtocolEl.value === "https"
     );
 
-    // Update input values to reflect cleaned parsing
     inputServerIpEl.value = ip;
     inputServerPortEl.value = String(port);
     selectProtocolEl.value = ssl ? "https" : "http";
 
-    onServerFound({
-      service: "hpc-clinic-server",
-      ip,
-      port,
-      ssl,
-      name: "HPC Center (Manual)",
-    });
+    btnSaveManualIpEl.textContent = "Connecting...";
+    btnSaveManualIpEl.disabled = true;
 
-    modalSettingsEl.classList.add("hidden");
+    try {
+      const verified = await invoke<DiscoveredServer | null>("verify_ip", { ip, port });
+      if (verified) {
+        onServerFound(verified);
+      } else {
+        onServerFound({
+          service: "hpc-clinic-server",
+          ip,
+          port,
+          ssl,
+          name: "HPC Center (Manual)",
+        });
+      }
+      modalSettingsEl.classList.add("hidden");
+    } catch {
+      onServerFound({
+        service: "hpc-clinic-server",
+        ip,
+        port,
+        ssl,
+        name: "HPC Center (Manual)",
+      });
+      modalSettingsEl.classList.add("hidden");
+    } finally {
+      btnSaveManualIpEl.textContent = "Save & Connect";
+      btnSaveManualIpEl.disabled = false;
+    }
   });
 
   btnTestSweepEl.addEventListener("click", async () => {
@@ -375,7 +408,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     const protocol = currentServer.ssl ? "https" : "http";
     const baseUrl = `${protocol}://${currentServer.ip}:${currentServer.port}`;
-    const targetUrl = `${baseUrl.trim().replace(/\/+$/, '')}/login`;
+    const targetUrl = `${baseUrl.trim().replace(/\/+$/, "")}/login`;
     try {
       await invoke("connect_to_url", { targetUrl });
     } catch (err) {
@@ -383,6 +416,19 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     window.location.href = targetUrl;
   });
+
+  // Listen for live multi-tier auto-discovery progress events
+  try {
+    listen<DiscoveryProgress>("discovery-progress", (event) => {
+      const { status, message, server } = event.payload;
+      updateNetworkStatus(status, message);
+      if (server) {
+        onServerFound(server);
+      }
+    });
+  } catch (err) {
+    console.warn("Failed to attach discovery-progress listener:", err);
+  }
 
   // Initial Auto-Discovery
   scanForServer();
