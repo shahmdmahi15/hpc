@@ -67,6 +67,30 @@ export interface TherapyRoomState {
   } | null;
 }
 
+export interface TvQueueItem {
+  id: string;
+  serialNumber?: number;
+  patientName: string;
+  patientMrn?: string | null;
+  gender?: string | null;
+  doctorName?: string | null;
+  roomNumber: string;
+  roomPurpose: string;
+  queueType: "CONSULTATION" | "THERAPY";
+  status: "CHECKED_IN" | "CALLING" | "IN_CONSULTATION" | "IN_THERAPY";
+  toldTime?: string | null;
+  checkInTime?: string | null;
+  bookingType?: string | null;
+  timer?: {
+    isRunning: boolean;
+    currentStepIndex: number;
+    remainingSeconds: number;
+    totalSeconds: number;
+    modalityName: string;
+    isAllCompleted: boolean;
+  } | null;
+}
+
 export interface WaitingRoomSnapshot {
   clinic: {
     name: string;
@@ -96,6 +120,7 @@ export interface WaitingRoomSnapshot {
       checkInTime?: string | null;
     }>;
     totalWaiting: number;
+    items?: TvQueueItem[];
   };
   therapyQueue: {
     rooms: TherapyRoomState[];
@@ -109,7 +134,11 @@ export interface WaitingRoomSnapshot {
       checkInTime?: string | null;
       toldTime?: string | null;
     }>;
+    items?: TvQueueItem[];
   };
+  consultationItems: TvQueueItem[];
+  therapyItems: TvQueueItem[];
+  queueItems: TvQueueItem[];
   bulletinNotices: Array<{
     id: string;
     title: string | null;
@@ -537,6 +566,7 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
   }
 
   // --------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
   // Process Therapy Queue & Bed Statuses (Rooms 201-207/215)
   // --------------------------------------------------------------------------
   const therapyRoomStates: TherapyRoomState[] = [];
@@ -544,12 +574,23 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
 
   for (const room of therapyRooms) {
     // Find active patient in therapy or calling in this room
-    const activeApt = appointments.find(
-      (a) =>
-        (a.roomId === room.id || a.room?.number === room.number) &&
-        (a.status === AppointmentStatus.IN_THERAPY ||
-          a.status === AppointmentStatus.CALLING),
-    );
+    const activeApt = appointments.find((a) => {
+      if (
+        a.status !== AppointmentStatus.IN_THERAPY &&
+        a.status !== AppointmentStatus.CALLING
+      ) {
+        return false;
+      }
+      const actualRoomNum =
+        a.room?.number ||
+        a.therapySlot?.room?.number ||
+        timerByAppointmentId.get(a.id)?.roomNumber;
+      return (
+        a.roomId === room.id ||
+        a.therapySlot?.roomId === room.id ||
+        actualRoomNum === room.number
+      );
+    });
 
     let currentPatient: TherapyRoomState["currentPatient"] = null;
     let timerState: TherapyRoomState["timer"] = null;
@@ -594,6 +635,62 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
     });
   }
 
+  // Include any active therapy appointment that was not linked to a specific physical room
+  const matchedAppointmentIds = new Set(
+    therapyRoomStates
+      .map((r) => r.currentPatient?.appointmentId)
+      .filter(Boolean),
+  );
+
+  const unmatchedActiveTherapy = appointments.filter(
+    (a) =>
+      a.queueType === QueueType.THERAPY &&
+      (a.status === AppointmentStatus.IN_THERAPY ||
+        a.status === AppointmentStatus.CALLING) &&
+      !matchedAppointmentIds.has(a.id),
+  );
+
+  for (const apt of unmatchedActiveTherapy) {
+    activeTherapyCount++;
+    const actualRoomNum =
+      apt.room?.number ||
+      apt.therapySlot?.room?.number ||
+      timerByAppointmentId.get(apt.id)?.roomNumber ||
+      "201";
+
+    const rawTimer =
+      timerByAppointmentId.get(apt.id) || timerByRoomNumber.get(actualRoomNum);
+    let timerState: TherapyRoomState["timer"] = null;
+    if (rawTimer) {
+      const rec = recalculateTimer(rawTimer);
+      const curModality = rec.modalities[rec.currentStepIndex];
+      timerState = {
+        isRunning: rec.isRunning,
+        currentStepIndex: rec.currentStepIndex,
+        remainingSeconds: curModality?.remainingSeconds ?? 0,
+        totalSeconds: curModality?.totalSeconds ?? 900,
+        modalityName: curModality?.name || "Physical Therapy",
+        isAllCompleted: rec.isAllCompleted,
+      };
+    }
+
+    therapyRoomStates.push({
+      roomId:
+        apt.roomId || apt.therapySlot?.roomId || `therapy-apt-${apt.id}`,
+      roomNumber: actualRoomNum,
+      purpose: apt.room?.purpose || "Physical Therapy",
+      status: RoomStatus.OCCUPIED,
+      currentPatient: {
+        appointmentId: apt.id,
+        serialNumber: serialMap.get(apt.id),
+        patientName: apt.patient.name,
+        startedAt:
+          apt.inTherapyTime?.toISOString() || apt.updatedAt.toISOString(),
+      },
+      timer: timerState,
+    });
+  }
+
   // Waiting patients for therapy
   const waitingTherapyQueue: Array<{
     appointmentId: string;
@@ -629,6 +726,135 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
     (waitingTherapyCount / availableTherapyRooms) * 15,
   );
 
+  // --------------------------------------------------------------------------
+  // Process Full Live Queue Items (100% matched to Web Waiting Room Live View)
+  // --------------------------------------------------------------------------
+  const consultationItems: TvQueueItem[] = [];
+  const therapyItems: TvQueueItem[] = [];
+
+  for (const apt of appointments) {
+    const isConsultation = apt.queueType === QueueType.CONSULTATION;
+    const isTherapy =
+      apt.queueType === QueueType.THERAPY || Boolean(apt.therapySlotId);
+    const serial = serialMap.get(apt.id);
+
+    if (isConsultation) {
+      const docObj = doctors.find((d) => d.id === apt.doctorId);
+      const roomNum =
+        apt.room?.number || docObj?.consultationRoom?.number || "101";
+      consultationItems.push({
+        id: apt.id,
+        serialNumber: serial,
+        patientName: apt.patient.name,
+        patientMrn: apt.patient.mrn,
+        gender: apt.patient.gender,
+        doctorName: apt.doctor?.name || docObj?.name || "Doctor",
+        roomNumber: roomNum,
+        roomPurpose:
+          apt.room?.purpose ||
+          docObj?.consultationRoom?.purpose ||
+          "Doctor Consultation",
+        queueType: "CONSULTATION",
+        status: apt.status as any,
+        toldTime: apt.toldTime || null,
+        checkInTime: apt.checkInTime?.toISOString() || null,
+        bookingType: apt.bookingType || null,
+      });
+    }
+
+    if (isTherapy) {
+      const actualRoomNum =
+        timerByAppointmentId.get(apt.id)?.roomNumber ||
+        (apt.room?.number && apt.room.number !== "200"
+          ? apt.room.number
+          : null) ||
+        apt.therapySlot?.room?.number ||
+        "201";
+
+      const rawTimer =
+        timerByAppointmentId.get(apt.id) ||
+        timerByRoomNumber.get(actualRoomNum);
+      let timerState = null;
+      if (rawTimer) {
+        const rec = recalculateTimer(rawTimer);
+        const curModality = rec.modalities[rec.currentStepIndex];
+        timerState = {
+          isRunning: rec.isRunning,
+          currentStepIndex: rec.currentStepIndex,
+          remainingSeconds: curModality?.remainingSeconds ?? 0,
+          totalSeconds: curModality?.totalSeconds ?? 900,
+          modalityName: curModality?.name || "Physical Therapy",
+          isAllCompleted: rec.isAllCompleted,
+        };
+      }
+
+      therapyItems.push({
+        id: apt.id,
+        serialNumber: serial,
+        patientName: apt.patient.name,
+        patientMrn: apt.patient.mrn,
+        gender: apt.patient.gender,
+        doctorName: apt.doctor?.name || null,
+        roomNumber: actualRoomNum,
+        roomPurpose: apt.room?.purpose || "Physical Therapy",
+        queueType: "THERAPY",
+        status: apt.status as any,
+        toldTime: apt.toldTime || null,
+        checkInTime: apt.checkInTime?.toISOString() || null,
+        bookingType: apt.bookingType || null,
+        timer: timerState,
+      });
+    }
+  }
+
+  // Include any walk-in consultation serials
+  for (const cs of consultationSerials) {
+    const alreadyPresent = consultationItems.some(
+      (c) => c.serialNumber === cs.serialNumber,
+    );
+    if (!alreadyPresent) {
+      const docObj = doctors.find((d) => d.id === cs.doctorId);
+      const roomNum = docObj?.consultationRoom?.number || "101";
+      const mappedStatus =
+        cs.status === "QUEUED"
+          ? "CHECKED_IN"
+          : (cs.status as "CALLING" | "IN_CONSULTATION");
+
+      consultationItems.push({
+        id: cs.id,
+        serialNumber: cs.serialNumber,
+        patientName: cs.patient.name,
+        patientMrn: cs.patient.mrn,
+        gender: cs.patient.gender,
+        doctorName: docObj?.name || "Doctor",
+        roomNumber: roomNum,
+        roomPurpose:
+          docObj?.consultationRoom?.purpose || "Doctor Consultation",
+        queueType: "CONSULTATION",
+        status: mappedStatus,
+        toldTime: cs.toldTime || null,
+        checkInTime: cs.createdAt.toISOString(),
+      });
+    }
+  }
+
+  // Sort queue items: CALLING first, then in consultation/therapy, then by serial
+  const sortTvQueue = (items: TvQueueItem[]) => {
+    items.sort((a, b) => {
+      const p = (st: string) => {
+        if (st === "CALLING") return 0;
+        if (st === "IN_CONSULTATION" || st === "IN_THERAPY") return 1;
+        return 2;
+      };
+      const diff = p(a.status) - p(b.status);
+      if (diff !== 0) return diff;
+      return (a.serialNumber ?? 999) - (b.serialNumber ?? 999);
+    });
+  };
+
+  sortTvQueue(consultationItems);
+  sortTvQueue(therapyItems);
+
   return {
     clinic: {
       name: CLINIC_CONFIG.name,
@@ -646,6 +872,7 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
       currentlyServing: currentlyServingConsultation,
       waitingQueue: waitingConsultationQueue,
       totalWaiting: waitingConsultationQueue.length,
+      items: consultationItems,
     },
     therapyQueue: {
       rooms: therapyRoomStates,
@@ -653,7 +880,11 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
       waitingTherapyCount,
       estimatedWaitMinutes,
       waitingQueue: waitingTherapyQueue,
+      items: therapyItems,
     },
+    consultationItems,
+    therapyItems,
+    queueItems: [...consultationItems, ...therapyItems],
     bulletinNotices: bulletinNotices.map((n) => ({
       id: n.id,
       title: n.title,
