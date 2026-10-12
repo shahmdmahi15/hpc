@@ -1,37 +1,30 @@
+use std::path::Path;
+
 #[cfg(target_os = "windows")]
 pub fn install_root_ca_bytes(bytes: &[u8]) -> Result<(), String> {
-    use std::ptr;
-    use windows_sys::Win32::Security::Cryptography::*;
+    use std::io::Write;
+    use std::process::Command;
 
-    unsafe {
-        let store = CertOpenStore(
-            CERT_STORE_PROV_SYSTEM_A,
-            0,
-            0,
-            CERT_SYSTEM_STORE_CURRENT_USER,
-            b"Root\0".as_ptr() as _,
-        );
+    let temp_dir = std::env::temp_dir();
+    let temp_cert_path = temp_dir.join("hpc_clinic_root_ca.crt");
 
-        if store.is_null() {
-            return Err("Failed to open Windows CurrentUser certificate store".into());
-        }
+    let mut file = std::fs::File::create(&temp_cert_path)
+        .map_err(|e| format!("Failed to create temp cert file: {}", e))?;
+    file.write_all(bytes)
+        .map_err(|e| format!("Failed to write cert bytes: {}", e))?;
 
-        let added = CertAddEncodedCertificateToStore(
-            store,
-            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-            bytes.as_ptr(),
-            bytes.len() as u32,
-            CERT_STORE_ADD_REPLACE_EXISTING,
-            ptr::null_mut(),
-        );
+    let output = Command::new("certutil")
+        .args(["-addstore", "-user", "Root", temp_cert_path.to_str().unwrap_or("")])
+        .output()
+        .map_err(|e| format!("Failed to execute certutil: {}", e))?;
 
-        CertCloseStore(store, 0);
+    let _ = std::fs::remove_file(temp_cert_path);
 
-        if added == 0 {
-            return Err("Failed to register clinic root CA in Windows store".into());
-        }
-
+    if output.status.success() {
         Ok(())
+    } else {
+        let err_msg = String::from_utf8_lossy(&output.stderr);
+        Err(format!("certutil failed: {}", err_msg))
     }
 }
 
