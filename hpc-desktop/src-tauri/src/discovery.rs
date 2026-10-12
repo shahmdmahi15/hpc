@@ -370,7 +370,31 @@ impl DiscoveryManager {
         };
 
         // -------------------------------------------------------------
-        // TIER 1: UDP Broadcast Probe (Fastest, ~300ms)
+        // TIER 0: Localhost / Loopback Probe (Workstation & WSL2)
+        // -------------------------------------------------------------
+        emit(
+            0,
+            "searching",
+            "Checking local workstation (127.0.0.1)...",
+            None,
+        );
+        for local_target in &["127.0.0.1", "localhost"] {
+            if let Some(server) = Self::verify_server_at_ip(local_target, 3000).await {
+                emit(
+                    0,
+                    "connected",
+                    &format!(
+                        "Connected to clinic server on workstation ({}:{})",
+                        server.ip, server.port
+                    ),
+                    Some(server.clone()),
+                );
+                return Ok(server);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // TIER 1: UDP Broadcast Probe (Fastest on LAN, ~300ms)
         // -------------------------------------------------------------
         emit(
             1,
@@ -425,16 +449,16 @@ impl DiscoveryManager {
         for (idx, subnet) in candidate_subnets.iter().enumerate() {
             let tier = if idx == 0 { 3 } else { 4 };
             let label = if idx == 0 {
-                "local subnet"
+                "local network"
             } else {
-                "fallback subnet"
+                "fallback network"
             };
             emit(
                 tier,
                 "searching",
                 &format!(
-                    "Scanning {} ({}.1 - 254) for rotating server IP...",
-                    label, subnet
+                    "Scanning {} (192.168.x.x) for rotating server IP...",
+                    label
                 ),
                 None,
             );
