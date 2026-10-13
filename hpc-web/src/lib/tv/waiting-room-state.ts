@@ -202,7 +202,13 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
   // 1. Fetch checked-in and active appointments for today
   const appointments = await prisma.appointment.findMany({
     where: {
-      appointmentDate: { gte: startOfDay, lte: endOfDay },
+      OR: [
+        { appointmentDate: { gte: startOfDay, lte: endOfDay } },
+        { checkInTime: { gte: startOfDay, lte: endOfDay } },
+      ],
+      currentStation: {
+        notIn: ["CASHIER_REGISTER", "CHECKED_OUT"],
+      },
       status: {
         in: [
           AppointmentStatus.CHECKED_IN,
@@ -237,11 +243,11 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
     orderBy: [{ checkInTime: "asc" }, { createdAt: "asc" }],
   });
 
-  // Calculate serial numbers based on today's arrival order
+  // Calculate serial numbers based on today's arrival order or stored serialNumber
   const serialMap = new Map<string, number>();
   let serialCounter = 1;
   for (const apt of appointments) {
-    serialMap.set(apt.id, serialCounter++);
+    serialMap.set(apt.id, apt.serialNumber ?? serialCounter++);
   }
 
   // 2. Fetch today's ConsultationSerial entries
@@ -744,6 +750,14 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
     const serial = serialMap.get(apt.id);
 
     if (isConsultation) {
+      if (
+        Boolean(apt.outConsultationTime) ||
+        apt.currentStation === "CASHIER_REGISTER" ||
+        apt.currentStation === "CHECKED_OUT"
+      ) {
+        continue;
+      }
+
       const docObj = doctors.find((d) => d.id === apt.doctorId);
       const roomNum =
         apt.room?.number || docObj?.consultationRoom?.number || "101";
@@ -769,10 +783,11 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
 
     if (isTherapy) {
       // In the waiting room display, the Therapy Queue section ONLY displays patients who are waiting in queue,
-      // and strictly excludes patients currently inside a therapy session (IN_THERAPY / inTherapyTime).
+      // and strictly excludes patients currently inside a therapy session (IN_THERAPY / inTherapyTime) or already completed.
       if (
         apt.status === AppointmentStatus.IN_THERAPY ||
         (Boolean(apt.inTherapyTime) && !apt.outTherapyTime) ||
+        Boolean(apt.outTherapyTime) ||
         apt.currentStation === "CASHIER_REGISTER" ||
         apt.currentStation === "CHECKED_OUT"
       ) {
