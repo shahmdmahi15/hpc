@@ -104,9 +104,11 @@ export function RoomManagementView({ initialData }: RoomManagementViewProps) {
 
   useRealtimeEvents({
     onEvent: (event) => {
+      const type = (event?.type || "").toUpperCase();
       if (
-        event.type !== "CHAT_MESSAGE_SENT" &&
-        event.type !== "CHAT_MESSAGE_DELETED"
+        type === "ROOM_UPDATED" ||
+        type === "ROOM_SWITCHED" ||
+        type === "STATION_CHANGED"
       ) {
         router.refresh();
       }

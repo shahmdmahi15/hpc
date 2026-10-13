@@ -12,7 +12,7 @@ import {
 } from "@/actions/tracking/tracking.action";
 import { searchPatientsAction } from "@/actions/receptionist/patient.action";
 import { QueueType } from "@/generated/prisma/enums";
-import { useRealtimeEvents } from "@/hooks/use-realtime-events";
+import { useRealtimeEvents, isClinicalEvent } from "@/hooks/use-realtime-events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -205,7 +205,7 @@ export function PatientJourneyTrackerView({
   useRealtimeEvents({
     onEvent: (event) => {
       const type = (event?.type || "").toUpperCase();
-      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+      if (isClinicalEvent(type)) {
         loadTrackingData(selectedDate);
       }
     },

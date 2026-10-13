@@ -119,10 +119,8 @@ export function ClinicalOptionsManagementView({
 
   useRealtimeEvents({
     onEvent: (event) => {
-      if (
-        event.type !== "CHAT_MESSAGE_SENT" &&
-        event.type !== "CHAT_MESSAGE_DELETED"
-      ) {
+      const type = (event?.type || "").toUpperCase();
+      if (type === "ADMIN_CONFIG_UPDATED") {
         refreshOptions();
       }
     },

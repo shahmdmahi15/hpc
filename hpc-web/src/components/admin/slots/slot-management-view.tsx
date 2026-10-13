@@ -111,9 +111,12 @@ export function SlotManagementView({ initialData }: SlotManagementViewProps) {
 
   useRealtimeEvents({
     onEvent: (event) => {
+      const type = (event?.type || "").toUpperCase();
       if (
-        event.type !== "CHAT_MESSAGE_SENT" &&
-        event.type !== "CHAT_MESSAGE_DELETED"
+        type === "SLOT_UPDATED" ||
+        type === "ROOM_UPDATED" ||
+        type === "APPOINTMENT_CREATED" ||
+        type === "APPOINTMENT_UPDATED"
       ) {
         router.refresh();
       }

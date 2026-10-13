@@ -37,7 +37,7 @@ import {
   FolderOpen,
   Stethoscope,
 } from "lucide-react";
-import { useRealtimeEvents } from "@/hooks/use-realtime-events";
+import { useRealtimeEvents, isClinicalEvent } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
 import { ConsultationSerialTab } from "@/components/receptionist/consultation-serial-tab";
@@ -155,7 +155,7 @@ export function HandlerDashboardView({
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
       const type = (event?.type || "").toUpperCase();
-      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+      if (isClinicalEvent(type)) {
         refreshData(selectedDateRef.current);
         if (type === "PATIENT_QUEUED_FOR_THERAPY") {
           showPersistentRealtimeAlert({

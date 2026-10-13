@@ -60,7 +60,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useRealtimeEvents } from "@/hooks/use-realtime-events";
+import { useRealtimeEvents, isClinicalEvent } from "@/hooks/use-realtime-events";
 
 export interface PatientArrivalDoctor {
   id: string;
@@ -234,7 +234,7 @@ export function PatientArrivalTab({
   useRealtimeEvents({
     onEvent: (event) => {
       const type = (event?.type || "").toUpperCase();
-      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+      if (isClinicalEvent(type)) {
         void loadTodayArrivals();
         const q = searchQuery.trim();
         if (q) {

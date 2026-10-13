@@ -51,6 +51,18 @@ export interface RealtimeEventPayload<T = any> {
   data: T;
 }
 
+export const NON_CLINICAL_EVENT_TYPES = new Set<string>([
+  "DEVICE_HEARTBEAT",
+  "DEVICE_CONNECTED",
+  "DEVICE_DISCONNECTED",
+  "CHAT_MESSAGE_SENT",
+  "CHAT_MESSAGE_DELETED",
+]);
+
+export function isClinicalEvent(eventType: string): boolean {
+  return !NON_CLINICAL_EVENT_TYPES.has(eventType.toUpperCase());
+}
+
 declare global {
   // eslint-disable-next-line no-var
   var __HPC_EVENT_BUS__: EventEmitter | undefined;
@@ -172,7 +184,9 @@ export function getRealtimeEventsSince(
  */
 export function emitRealtimeEvent<T = any>(type: RealtimeEventType, data: T) {
   try {
-    const db = getRealtimeDb();
+    // High-frequency telemetry heartbeats are ephemeral and do not require WAL replay logging
+    const isEphemeral = type === "DEVICE_HEARTBEAT";
+    const db = isEphemeral ? null : getRealtimeDb();
     const timestamp = new Date().toISOString();
     let nextSeq = 0;
 

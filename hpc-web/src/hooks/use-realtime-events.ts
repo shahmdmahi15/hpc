@@ -3,6 +3,18 @@
 import * as React from "react";
 import type { RealtimeEventPayload } from "@/lib/realtime/event-bus";
 
+export const NON_CLINICAL_EVENT_TYPES = new Set<string>([
+  "DEVICE_HEARTBEAT",
+  "DEVICE_CONNECTED",
+  "DEVICE_DISCONNECTED",
+  "CHAT_MESSAGE_SENT",
+  "CHAT_MESSAGE_DELETED",
+]);
+
+export function isClinicalEvent(eventType: string): boolean {
+  return !NON_CLINICAL_EVENT_TYPES.has(eventType.toUpperCase());
+}
+
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
 interface UseRealtimeEventsOptions {
@@ -138,11 +150,13 @@ function ensureSharedConnection() {
     }
   }
 
-  // Ensure background catch-up poll interval is active
+  // Fallback catch-up polling: ONLY runs when SSE connection is lost or reconnecting
   if (!sharedPollInterval) {
     sharedPollInterval = setInterval(() => {
-      void pollCatchUpEvents();
-    }, 2500);
+      if (sharedStatus !== "connected") {
+        void pollCatchUpEvents();
+      }
+    }, 5000);
   }
 
   if (

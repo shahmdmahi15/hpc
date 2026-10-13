@@ -16,7 +16,7 @@ import {
 import { AuditStatus, AuditAction, Role } from "@/generated/prisma/enums";
 import { formatBSTDate, formatBSTShortDate } from "@/lib/date";
 import { toast } from "sonner";
-import { useRealtimeEvents } from "@/hooks/use-realtime-events";
+import { useRealtimeEvents, isClinicalEvent } from "@/hooks/use-realtime-events";
 import {
   Shield,
   ShieldCheck,
@@ -91,10 +91,8 @@ export function AuditLogsView({
 
   useRealtimeEvents({
     onEvent: (event) => {
-      if (
-        event.type !== "CHAT_MESSAGE_SENT" &&
-        event.type !== "CHAT_MESSAGE_DELETED"
-      ) {
+      const type = (event?.type || "").toUpperCase();
+      if (isClinicalEvent(type)) {
         fetchLogs(filtersRef.current);
       }
     },

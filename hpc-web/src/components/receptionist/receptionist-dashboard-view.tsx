@@ -32,7 +32,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Clock, Users, UserPlus, Ticket, Activity, Search, Compass, UserCheck, Stethoscope, MessageSquare } from "lucide-react";
-import { useRealtimeEvents } from "@/hooks/use-realtime-events";
+import { useRealtimeEvents, isClinicalEvent } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { DashboardDateSelector } from "@/components/ui/dashboard-date-selector";
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
@@ -129,7 +129,7 @@ export function ReceptionistDashboardView({
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
       const type = (event?.type || "").toUpperCase();
-      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+      if (isClinicalEvent(type)) {
         refreshData(selectedDateRef.current);
         if (type === "PATIENT_FORWARDED") {
           showPersistentRealtimeAlert({

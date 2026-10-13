@@ -12,7 +12,7 @@ import {
   formatDateByLang,
 } from "@/lib/i18n";
 import { useLiveClock } from "@/hooks/use-live-clock";
-import { useRealtimeEvents } from "@/hooks/use-realtime-events";
+import { useRealtimeEvents, isClinicalEvent } from "@/hooks/use-realtime-events";
 import {
   getLiveQueueAction,
   type AppointmentWithRelations,
@@ -678,7 +678,7 @@ export function WaitingRoomLiveQueueView({
           setEmergencyAlert(payload);
           playEmergencyChime();
         }
-      } else if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+      } else if (isClinicalEvent(type)) {
         if (type === "APPOINTMENT_UPDATED" && event.data?.id) {
           const d = event.data;
           setQueue((prevQueue) =>

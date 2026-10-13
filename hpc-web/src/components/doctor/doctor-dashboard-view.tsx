@@ -52,7 +52,7 @@ import {
   FileText,
   Sparkles,
 } from "lucide-react";
-import { useRealtimeEvents } from "@/hooks/use-realtime-events";
+import { useRealtimeEvents, isClinicalEvent } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h } from "@/lib/queue-punctuality";
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
@@ -186,7 +186,7 @@ export function DoctorDashboardView({
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
       const type = (event?.type || "").toUpperCase();
-      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+      if (isClinicalEvent(type)) {
         refreshData(selectedDateRef.current);
         if (type === "CONSULTATION_QUEUED") {
           showPersistentRealtimeAlert({

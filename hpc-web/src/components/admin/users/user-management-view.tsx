@@ -104,9 +104,10 @@ export function UserManagementView({ users, rooms = [] }: UserManagementViewProp
 
   useRealtimeEvents({
     onEvent: (event) => {
+      const type = (event?.type || "").toUpperCase();
       if (
-        event.type !== "CHAT_MESSAGE_SENT" &&
-        event.type !== "CHAT_MESSAGE_DELETED"
+        type === "ADMIN_CONFIG_UPDATED" ||
+        type === "ROOM_UPDATED"
       ) {
         router.refresh();
       }

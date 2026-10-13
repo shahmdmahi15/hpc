@@ -67,7 +67,7 @@ import {
 } from "lucide-react";
 import { CashDrawerCloseoutDialog } from "@/components/cashier/cash-drawer-closeout-dialog";
 import { StaffPerformerSelect } from "@/components/shared/staff-performer-select";
-import { useRealtimeEvents } from "@/hooks/use-realtime-events";
+import { useRealtimeEvents, isClinicalEvent } from "@/hooks/use-realtime-events";
 import { toast } from "sonner";
 import { formatTime12h, evaluatePunctuality } from "@/lib/queue-punctuality";
 import { PatientJourneyTrackerView } from "@/components/tracking/patient-journey-tracker-view";
@@ -221,7 +221,7 @@ export function CashierDashboardView({
   const { connectionStatus } = useRealtimeEvents({
     onEvent: (event) => {
       const type = (event?.type || "").toUpperCase();
-      if (type !== "CHAT_MESSAGE_SENT" && type !== "CHAT_MESSAGE_DELETED") {
+      if (isClinicalEvent(type)) {
         refreshData(selectedDateRef.current);
         if (type === "CONSULTATION_SERIAL_BOOKED") {
           showPersistentRealtimeAlert({

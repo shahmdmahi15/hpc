@@ -105,13 +105,19 @@ export async function GET(request: NextRequest) {
           case "APPOINTMENT_UPDATED":
           case "APPOINTMENT_CREATED":
           case "APPOINTMENT_CANCELLED":
+          case "PATIENT_CREATED":
+          case "PATIENT_UPDATED":
           case "PATIENT_CHECKED_IN":
           case "PATIENT_CHECKED_OUT":
           case "PATIENT_FORWARDED":
+          case "PATIENT_QUEUED_FOR_THERAPY":
           case "CONSULTATION_SERIAL_BOOKED":
           case "CONSULTATION_SERIAL_CANCELLED":
           case "CONSULTATION_QUEUED":
           case "STATION_CHANGED":
+          case "ROOM_UPDATED":
+          case "SLOT_UPDATED":
+          case "ROOM_SWITCHED":
           case "THERAPY_TIMER_UPDATED": {
             sendSseMessage("APPOINTMENT_UPDATED", {
               eventType: type,
