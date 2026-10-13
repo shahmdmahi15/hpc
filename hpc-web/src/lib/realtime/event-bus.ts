@@ -41,7 +41,8 @@ export type RealtimeEventType =
   | "DEVICE_CONNECTED"
   | "DEVICE_HEARTBEAT"
   | "DEVICE_DISCONNECTED"
-  | "SYSTEM_BROADCAST_ALERT";
+  | "SYSTEM_BROADCAST_ALERT"
+  | "ROOM_SWITCHED";
 
 export interface RealtimeEventPayload<T = any> {
   seq?: number;

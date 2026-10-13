@@ -8,7 +8,13 @@ import {
   QueueType,
   BookingType,
   TreatmentPlanType,
+  RoomStatus,
+  AuditAction,
+  AuditStatus,
 } from "@/generated/prisma/enums";
+import { verifyPerformerPin } from "@/lib/performer-auth";
+import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
+import { revalidatePath } from "next/cache";
 import type {
   AppointmentWithRelations,
   SlotWithTelemetry,
@@ -268,4 +274,265 @@ export async function getHandlerDashboardDataAction(
     doctorPerformers,
     currentHandler,
   };
+}
+
+export interface SwitchTherapyRoomInput {
+  appointmentId: string;
+  targetRoomId: string;
+  performerId?: string;
+  pin?: string;
+  reason?: string;
+}
+
+/**
+ * Switches a patient's assigned therapy room (e.g. from Room 210 to Room 215)
+ * while they are in therapy or being called.
+ * - Validates the target room is an available/empty therapy room
+ * - Updates the appointment's roomId and currentStation
+ * - Updates the associated TherapySessionTimer's roomNumber
+ * - Updates room statuses (frees previous room, occupies new room)
+ * - Logs patient step log & audit log
+ * - Emits real-time SSE events for live board & TV screens
+ */
+export async function switchTherapyRoomAction(input: SwitchTherapyRoomInput): Promise<{
+  success: boolean;
+  message: string;
+  appointment?: any;
+}> {
+  try {
+    const sessionData = await requireAuth([
+      Role.HANDLER,
+      Role.ADMIN,
+      Role.DOCTOR,
+      Role.RECEPTIONIST,
+    ]);
+
+    const isExemptRole =
+      sessionData.user.role === Role.DOCTOR ||
+      sessionData.user.role === Role.ADMIN;
+
+    if (!isExemptRole && input.performerId) {
+      const pinRes = await verifyPerformerPin(input.performerId, input.pin);
+      if (!pinRes.valid) {
+        return {
+          success: false,
+          message: pinRes.error || "Invalid 4-digit performer PIN.",
+        };
+      }
+    }
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: input.appointmentId },
+      include: {
+        patient: true,
+        room: true,
+        therapySlot: { include: { room: true } },
+      },
+    });
+
+    if (!appointment) {
+      return { success: false, message: "Appointment not found." };
+    }
+
+    const targetRoom = await prisma.room.findUnique({
+      where: { id: input.targetRoomId },
+    });
+
+    if (!targetRoom) {
+      return { success: false, message: "Target therapy room not found." };
+    }
+
+    const previousRoomId = appointment.roomId;
+    const previousRoomNumber =
+      appointment.room?.number ||
+      appointment.therapySlot?.room?.number ||
+      null;
+
+    if (previousRoomId === targetRoom.id) {
+      return {
+        success: false,
+        message: `Patient ${appointment.patient.name} is already assigned to Room ${targetRoom.number}.`,
+      };
+    }
+
+    // Check if target room is currently occupied by another active patient today
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    const conflictingAppointment = await prisma.appointment.findFirst({
+      where: {
+        id: { not: input.appointmentId },
+        roomId: targetRoom.id,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { in: [AppointmentStatus.IN_THERAPY, AppointmentStatus.CALLING] },
+      },
+      include: { patient: true },
+    });
+
+    if (conflictingAppointment) {
+      const statusLabel =
+        conflictingAppointment.status === AppointmentStatus.IN_THERAPY
+          ? "currently in therapy"
+          : "currently being called";
+      return {
+        success: false,
+        message: `Room ${targetRoom.number} is occupied by ${conflictingAppointment.patient?.name || "another patient"} (${statusLabel}). Please select an empty therapy room.`,
+      };
+    }
+
+    // Update appointment
+    const updated = await prisma.appointment.update({
+      where: { id: input.appointmentId },
+      data: {
+        roomId: targetRoom.id,
+        ...(appointment.status === AppointmentStatus.IN_THERAPY
+          ? { currentStation: "THERAPY_ROOM" }
+          : {}),
+      },
+      include: {
+        patient: true,
+        room: true,
+        therapySlot: { include: { room: true } },
+        doctor: true,
+      },
+    });
+
+    // Update TherapySessionTimer roomNumber if exists
+    await prisma.therapySessionTimer.updateMany({
+      where: { appointmentId: input.appointmentId },
+      data: { roomNumber: targetRoom.number },
+    });
+
+    // Update room statuses: free previous room if no other active appointment
+    if (previousRoomId && previousRoomId !== targetRoom.id) {
+      const remainingInOldRoom = await prisma.appointment.count({
+        where: {
+          id: { not: input.appointmentId },
+          roomId: previousRoomId,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          status: { in: [AppointmentStatus.IN_THERAPY, AppointmentStatus.CALLING] },
+        },
+      });
+      if (remainingInOldRoom === 0) {
+        await prisma.room.update({
+          where: { id: previousRoomId },
+          data: { status: RoomStatus.AVAILABLE },
+        }).catch(() => {});
+      }
+    }
+
+    if (
+      appointment.status === AppointmentStatus.IN_THERAPY ||
+      appointment.status === AppointmentStatus.CALLING
+    ) {
+      await prisma.room.update({
+        where: { id: targetRoom.id },
+        data: { status: RoomStatus.OCCUPIED },
+      }).catch(() => {});
+    }
+
+    // Lookup performer name for logs
+    let performerName = sessionData.user.name || "Handler";
+    if (input.performerId) {
+      const p = await prisma.performer.findUnique({
+        where: { id: input.performerId },
+        select: { name: true },
+      });
+      if (p?.name) performerName = p.name;
+    }
+
+    // Record step log
+    await prisma.patientStepLog.create({
+      data: {
+        patientId: appointment.patientId,
+        station: "THERAPY_ROOM",
+        step: "ROOM_TRANSFERRED",
+        roomNumber: targetRoom.number,
+        performerId: input.performerId || null,
+        details: `Switched therapy room from Room ${previousRoomNumber || "--"} to Room ${targetRoom.number}${input.reason ? ` - ${input.reason}` : ""}`,
+      },
+    }).catch(() => {});
+
+    // Record audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: sessionData.user.id,
+        performerId: input.performerId || null,
+        action: AuditAction.APPOINTMENT_UPDATE,
+        entity: "Appointment",
+        entityId: input.appointmentId,
+        status: AuditStatus.SUCCESS,
+        details: JSON.stringify({
+          type: "THERAPY_ROOM_SWITCH",
+          previousRoomNumber,
+          newRoomNumber: targetRoom.number,
+          patientName: appointment.patient.name,
+          reason: input.reason || null,
+        }),
+      },
+    }).catch(() => {});
+
+    // Emit Real-time Events
+    emitRealtimeEvent("APPOINTMENT_UPDATED", {
+      id: updated.id,
+      status: updated.status,
+      queueType: updated.queueType,
+      roomId: targetRoom.id,
+      roomNumber: targetRoom.number,
+      previousRoomNumber,
+      patientName: updated.patient.name,
+    });
+
+    emitRealtimeEvent("ROOM_UPDATED", {
+      roomId: targetRoom.id,
+      roomNumber: targetRoom.number,
+      status: RoomStatus.OCCUPIED,
+    });
+
+    if (previousRoomId) {
+      emitRealtimeEvent("ROOM_UPDATED", {
+        roomId: previousRoomId,
+        roomNumber: previousRoomNumber,
+        status: RoomStatus.AVAILABLE,
+      });
+    }
+
+    emitRealtimeEvent("ROOM_SWITCHED", {
+      appointmentId: updated.id,
+      patientName: updated.patient.name,
+      previousRoomNumber: previousRoomNumber || "--",
+      newRoomNumber: targetRoom.number,
+      station: "THERAPY_ROOM",
+      reason: input.reason || null,
+    });
+
+    emitRealtimeEvent("STATION_CHANGED", {
+      appointmentId: updated.id,
+      station: "THERAPY_ROOM",
+      roomNumber: targetRoom.number,
+      patientName: updated.patient.name,
+    });
+
+    emitRealtimeEvent("THERAPY_TIMER_UPDATED", {
+      appointmentId: updated.id,
+      roomNumber: targetRoom.number,
+    });
+
+    revalidatePath("/handler");
+    revalidatePath("/queue/waiting-room");
+    revalidatePath("/receptionist");
+
+    return {
+      success: true,
+      message: `Patient ${updated.patient.name} successfully switched from Room ${previousRoomNumber || "--"} to Room ${targetRoom.number}.`,
+      appointment: updated,
+    };
+  } catch (error: any) {
+    console.error("[switchTherapyRoomAction Error]:", error);
+    return {
+      success: false,
+      message: error?.message || "Failed to switch therapy room.",
+    };
+  }
 }

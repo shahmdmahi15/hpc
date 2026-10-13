@@ -32,6 +32,7 @@ import { MarkInTherapyDialog } from "@/components/handler/mark-in-therapy-dialog
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import { PatientMedicalHistoryDialog } from "@/components/doctor/medical/patient-medical-history-dialog";
 import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
+import { SwitchTherapyRoomDialog } from "@/components/handler/switch-therapy-room-dialog";
 
 interface HandlerQueueCardProps {
   appointment: AppointmentWithRelations;
@@ -41,6 +42,8 @@ interface HandlerQueueCardProps {
   selectedRoomNumber?: string;
   handlers?: PerformerModel[];
   rooms?: RoomModel[];
+  activeAppointments?: AppointmentWithRelations[];
+  onSwitchRoom?: (appointment: AppointmentWithRelations) => void;
   onRefresh: () => void;
 }
 
@@ -51,6 +54,8 @@ export function HandlerQueueCard({
   selectedRoomId,
   handlers = [],
   rooms = [],
+  activeAppointments = [],
+  onSwitchRoom,
   onRefresh,
 }: HandlerQueueCardProps) {
   // Dialog states
@@ -58,6 +63,7 @@ export function HandlerQueueCard({
   const [isSendDialogOpen, setIsSendDialogOpen] = React.useState(false);
   const [isCancelCallDialogOpen, setIsCancelCallDialogOpen] = React.useState(false);
   const [isMarkInTherapyOpen, setIsMarkInTherapyOpen] = React.useState(false);
+  const [isSwitchRoomOpen, setIsSwitchRoomOpen] = React.useState(false);
   const [isPlanOpen, setIsPlanOpen] = React.useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
 
@@ -190,10 +196,26 @@ export function HandlerQueueCard({
 
           {/* Room / Chamber Tag */}
           {roomNum && (
-            <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-muted/60 text-muted-foreground border border-border text-[10px] font-mono font-semibold">
-              <DoorOpen className="size-2.5 text-emerald-500" />
+            <button
+              type="button"
+              onClick={() => {
+                if (onSwitchRoom) {
+                  onSwitchRoom(appointment);
+                } else {
+                  setIsSwitchRoomOpen(true);
+                }
+              }}
+              title="Click to switch therapy room"
+              className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/60 hover:bg-amber-500/15 text-muted-foreground hover:text-amber-700 dark:hover:text-amber-300 border border-border hover:border-amber-500/40 text-[10px] font-mono font-semibold transition-colors cursor-pointer group"
+            >
+              <DoorOpen className="size-2.5 text-emerald-500 group-hover:text-amber-500" />
               <span>R{roomNum}</span>
-            </span>
+              {(isInTherapy || isCalling) && (
+                <span className="text-[8.5px] font-sans font-bold text-amber-600 dark:text-amber-400 opacity-80 group-hover:opacity-100">
+                  Switch
+                </span>
+              )}
+            </button>
           )}
         </div>
 
@@ -449,6 +471,27 @@ export function HandlerQueueCard({
             </Button>
           )}
 
+          {/* If In Therapy or Calling, show Switch Room Button */}
+          {(isInTherapy || isCalling) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (onSwitchRoom) {
+                  onSwitchRoom(appointment);
+                } else {
+                  setIsSwitchRoomOpen(true);
+                }
+              }}
+              disabled={isActionLoading}
+              className="h-7 px-2 text-[10px] font-semibold border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer gap-1"
+              title="Switch patient to another empty therapy room"
+            >
+              <DoorOpen className="size-2.5 text-amber-500" />
+              <span>Switch Room</span>
+            </Button>
+          )}
+
           {/* View Treatment Plan & Patient Files (view-only for handlers after calling / during therapy) */}
           {(isCalling || isInTherapy) && (
             <div className="flex items-center gap-1 w-full pt-1">
@@ -567,6 +610,23 @@ export function HandlerQueueCard({
         onOpenChange={setIsHistoryOpen}
         patient={appointment.patient || null}
       />
+
+      {/* Switch Therapy Room Dialog (local fallback if not handled by parent) */}
+      {!onSwitchRoom && (
+        <SwitchTherapyRoomDialog
+          isOpen={isSwitchRoomOpen}
+          onOpenChange={setIsSwitchRoomOpen}
+          appointment={appointment}
+          rooms={rooms}
+          handlers={handlers}
+          activeAppointments={activeAppointments}
+          defaultHandlerId={performerId}
+          onSuccess={() => {
+            setIsSwitchRoomOpen(false);
+            onRefresh();
+          }}
+        />
+      )}
     </>
   );
 }

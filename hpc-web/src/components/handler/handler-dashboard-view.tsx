@@ -51,6 +51,7 @@ import { playChatChime, showPersistentRealtimeAlert } from "@/lib/chat-chime";
 import { TreatmentPlanDialog } from "@/components/doctor/treatment/treatment-plan-dialog";
 import { PatientMedicalHistoryDialog } from "@/components/doctor/medical/patient-medical-history-dialog";
 import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
+import { SwitchTherapyRoomDialog } from "@/components/handler/switch-therapy-room-dialog";
 
 interface HandlerDashboardViewProps {
   initialData: HandlerDashboardData;
@@ -94,6 +95,8 @@ export function HandlerDashboardView({
     React.useState<AppointmentWithRelations | null>(null);
   const [viewHistoryPatient, setViewHistoryPatient] =
     React.useState<any | null>(null);
+  const [switchRoomAppointment, setSwitchRoomAppointment] =
+    React.useState<AppointmentWithRelations | null>(null);
   const [isSpotlightActionLoading, setIsSpotlightActionLoading] =
     React.useState(false);
   const [selectedSpotlightId, setSelectedSpotlightId] =
@@ -423,6 +426,16 @@ export function HandlerDashboardView({
                 <Button
                   size="sm"
                   variant="outline"
+                  onClick={() => setSwitchRoomAppointment(callingApt)}
+                  className="h-7.5 px-2.5 text-xs font-semibold border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer gap-1"
+                  title="Switch assigned therapy room"
+                >
+                  <DoorOpen className="size-3 text-amber-500" />
+                  <span>Switch Room</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => setSpotlightSendAppointment(callingApt)}
                   className="h-7.5 px-2.5 text-xs font-semibold border-border cursor-pointer gap-1"
                 >
@@ -479,14 +492,22 @@ export function HandlerDashboardView({
 
                   {(activeApt.room?.number ||
                     activeApt.therapySlot?.room?.number) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-md bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30 text-[11px] font-bold font-mono">
-                      <DoorOpen className="size-3" />
+                    <button
+                      type="button"
+                      onClick={() => setSwitchRoomAppointment(activeApt)}
+                      title="Click to switch therapy room"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30 text-[11px] font-bold font-mono transition-colors cursor-pointer group"
+                    >
+                      <DoorOpen className="size-3 text-emerald-600 dark:text-emerald-400" />
                       <span>
                         Room{" "}
                         {activeApt.room?.number ||
                           activeApt.therapySlot?.room?.number}
                       </span>
-                    </span>
+                      <span className="text-[9px] uppercase font-sans font-semibold text-emerald-600 dark:text-emerald-400 group-hover:underline">
+                        Switch
+                      </span>
+                    </button>
                   )}
                 </div>
 
@@ -526,6 +547,16 @@ export function HandlerDashboardView({
 
               {/* In-Therapy Actions */}
               <div className="flex items-center gap-2 w-full md:w-auto shrink-0 flex-wrap">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSwitchRoomAppointment(activeApt)}
+                  className="h-7.5 px-2.5 text-xs font-semibold border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 cursor-pointer gap-1"
+                  title="Switch patient to another empty therapy room"
+                >
+                  <DoorOpen className="size-3 text-amber-500" />
+                  <span>Switch Room</span>
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -713,6 +744,8 @@ export function HandlerDashboardView({
                     selectedRoomNumber={selectedRoom?.number}
                     handlers={data.handlerPerformers}
                     rooms={data.rooms}
+                    activeAppointments={data.therapyQueue}
+                    onSwitchRoom={(apt) => setSwitchRoomAppointment(apt)}
                     onRefresh={() => refreshData(selectedDate)}
                   />
                 ))}
@@ -962,6 +995,23 @@ export function HandlerDashboardView({
           if (!open) setViewHistoryPatient(null);
         }}
         patient={viewHistoryPatient}
+      />
+
+      {/* 8. Switch Therapy Room Dialog */}
+      <SwitchTherapyRoomDialog
+        isOpen={Boolean(switchRoomAppointment)}
+        onOpenChange={(open) => {
+          if (!open) setSwitchRoomAppointment(null);
+        }}
+        appointment={switchRoomAppointment}
+        rooms={data.rooms}
+        handlers={data.handlerPerformers}
+        activeAppointments={data.therapyQueue}
+        defaultHandlerId={selectedHandlerId}
+        onSuccess={() => {
+          setSwitchRoomAppointment(null);
+          refreshData(selectedDate);
+        }}
       />
     </div>
   );
