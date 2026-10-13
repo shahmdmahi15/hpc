@@ -1478,15 +1478,15 @@ export function WaitingRoomLiveQueueView({
       {/* 2. Main Live Queue: Responsive Adaptive Layout       */}
       {/* ---------------------------------------------------- */}
       <main
-        className={`flex-1 min-h-0 w-full max-w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 overflow-y-auto lg:overflow-hidden grid gap-2 sm:gap-2.5 md:gap-3 ${
+        className={`flex-1 min-h-0 w-full max-w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 overflow-y-auto md:overflow-hidden grid gap-2 sm:gap-2.5 md:gap-3 ${
           departmentFilter === "ALL"
-            ? "grid-cols-1 lg:grid-cols-2"
+            ? "grid-cols-1 md:grid-cols-2"
             : "grid-cols-1"
         }`}
       >
         {/* Column 1: Therapy Queue */}
         {(departmentFilter === "ALL" || departmentFilter === "THERAPY") && (
-          <section className="flex flex-col min-h-[150px] sm:min-h-[200px] lg:min-h-0 lg:h-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
+          <section className="flex flex-col min-h-[150px] sm:min-h-[200px] md:min-h-0 md:h-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
             {/* Column Header */}
             <div className="px-2.5 sm:px-3.5 2xl:px-5 py-1.5 sm:py-2 2xl:py-2.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
               <div className="flex items-center gap-1.5 2xl:gap-2.5">
@@ -1524,7 +1524,7 @@ export function WaitingRoomLiveQueueView({
                   className={`grid gap-1.5 sm:gap-2 2xl:gap-2.5 auto-rows-max ${
                     departmentFilter === "THERAPY"
                       ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2500px]:grid-cols-6 min-[3200px]:grid-cols-7"
-                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
+                      : "grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
                   }`}
                 >
                   {therapyQueue.map((item, idx) => (
@@ -1542,7 +1542,7 @@ export function WaitingRoomLiveQueueView({
 
         {/* Column 2: Consultation Queue */}
         {(departmentFilter === "ALL" || departmentFilter === "CONSULTATION") && (
-          <section className="flex flex-col min-h-[150px] sm:min-h-[200px] lg:min-h-0 lg:h-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
+          <section className="flex flex-col min-h-[150px] sm:min-h-[200px] md:min-h-0 md:h-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-xs">
             {/* Column Header */}
             <div className="px-2.5 sm:px-3.5 2xl:px-5 py-1.5 sm:py-2 2xl:py-2.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50 dark:bg-zinc-900/70 shrink-0">
               <div className="flex items-center gap-1.5 2xl:gap-2.5">
@@ -1580,7 +1580,7 @@ export function WaitingRoomLiveQueueView({
                   className={`grid gap-1.5 sm:gap-2 2xl:gap-2.5 auto-rows-max ${
                     departmentFilter === "CONSULTATION"
                       ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[2500px]:grid-cols-6 min-[3200px]:grid-cols-7"
-                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
+                      : "grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 min-[2200px]:grid-cols-3 min-[3000px]:grid-cols-4"
                   }`}
                 >
                   {consultationQueue.map((item, idx) => (

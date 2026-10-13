@@ -199,11 +199,11 @@ export async function bookTherapyTicketAction(
       };
     }
 
-    // 5. Calculate fee to charge (allows 0 to any amount)
+    // 5. Calculate fee to charge (allows 0 to any amount, default 0 for therapy slot booking)
     const feeToCharge =
       typeof feeAmount === "number" && !isNaN(feeAmount) && feeAmount >= 0
         ? feeAmount
-        : DEFAULT_FEE;
+        : 0;
     const isFree = feeToCharge === 0;
 
     // Check if patient has any outstanding due balance

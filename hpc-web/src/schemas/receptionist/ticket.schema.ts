@@ -17,7 +17,7 @@ export const bookTherapyTicketSchema = z.object({
   feeAmount: z.coerce
     .number()
     .min(0, "Fee cannot be negative.")
-    .default(500)
+    .default(0)
     .optional(),
 });
 

@@ -127,8 +127,8 @@ export function BookTicketDialog({
   const [toldMinute, setToldMinute] = React.useState("00");
   const [toldPeriod, setToldPeriod] = React.useState<"AM" | "PM">("AM");
 
-  // Editable Ticket Fee (0 to any amount)
-  const [feeAmount, setFeeAmount] = React.useState<number>(500);
+  // Editable Ticket Fee (0 to any amount, default 0 for therapy slot booking)
+  const [feeAmount, setFeeAmount] = React.useState<number>(0);
 
   // 4-Digit Staff PIN for authorization
   const [receptionistPin, setReceptionistPin] = React.useState("");
@@ -147,7 +147,7 @@ export function BookTicketDialog({
         setSlotId(slots[0].id);
       }
       setAppointmentDate(selectedDate);
-      setFeeAmount(500);
+      setFeeAmount(0);
       setBookedById(
         activePerformerId || (performers.length === 1 ? performers[0].id : ""),
       );
