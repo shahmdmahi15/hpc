@@ -243,13 +243,6 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
     orderBy: [{ checkInTime: "asc" }, { createdAt: "asc" }],
   });
 
-  // Calculate serial numbers based on today's arrival order or stored serialNumber
-  const serialMap = new Map<string, number>();
-  let serialCounter = 1;
-  for (const apt of appointments) {
-    serialMap.set(apt.id, apt.serialNumber ?? serialCounter++);
-  }
-
   // 2. Fetch today's ConsultationSerial entries
   const consultationSerials = await prisma.consultationSerial.findMany({
     where: {
@@ -276,6 +269,18 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
     },
     orderBy: { serialNumber: "asc" },
   });
+
+  // Calculate serial numbers based on today's arrival order or consultation serial
+  const serialMap = new Map<string, number>();
+  let serialCounter = 1;
+  for (const apt of appointments) {
+    const cs = consultationSerials.find((s) => s.patientId === apt.patientId);
+    const assignedSerial =
+      cs?.serialNumber ??
+      (apt as unknown as { serialNumber?: number }).serialNumber ??
+      serialCounter++;
+    serialMap.set(apt.id, assignedSerial);
+  }
 
   // 3. Fetch Doctors and their designated rooms
   const doctors = await prisma.user.findMany({
