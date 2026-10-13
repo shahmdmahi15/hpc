@@ -34,23 +34,6 @@ async fn verify_ip(ip: String, port: u16) -> Result<Option<DiscoveredServer>, St
 }
 
 #[tauri::command]
-fn start_telemetry(
-    base_url: String,
-    device_id: String,
-    station_name: String,
-    role: String,
-    device_name: String,
-) {
-    telemetry::TelemetryService::spawn_heartbeat_worker(
-        base_url,
-        device_id,
-        station_name,
-        role,
-        device_name,
-    );
-}
-
-#[tauri::command]
 fn set_wake_lock(enabled: bool) {
     wake_lock::keep_screen_on(enabled);
 }
@@ -59,10 +42,7 @@ fn set_wake_lock(enabled: bool) {
 async fn connect_to_url(app: AppHandle, target_url: String) -> Result<(), String> {
     let parsed: Url = target_url.parse().map_err(|e| format!("Invalid URL: {}", e))?;
     if let Some(window) = app.get_webview_window("main") {
-        let _ = window.navigate(parsed.clone());
-    }
-    for (_label, webview) in app.webview_windows() {
-        let _ = webview.navigate(parsed.clone());
+        window.navigate(parsed).map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -94,7 +74,6 @@ pub fn run() {
             discover_server,
             sweep_subnet,
             verify_ip,
-            start_telemetry,
             set_wake_lock,
             connect_to_url,
             sync_root_ca_from_server

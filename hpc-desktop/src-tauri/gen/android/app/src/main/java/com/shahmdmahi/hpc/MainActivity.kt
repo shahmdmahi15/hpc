@@ -1,6 +1,5 @@
 package com.shahmdmahi.hpc
 
-import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.WindowManager
 import android.webkit.CookieManager
@@ -13,10 +12,7 @@ class MainActivity : TauriActivity() {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
 
-    // 1. Strictly enforce landscape mode across all devices, tablets, TVs, and mobile phones
-    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-
-    // 2. Keep screen on (Kiosk display for clinic Waiting Room & Desks)
+    // Keep screen on for clinic kiosk display & tablets
     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
   }
 
@@ -32,7 +28,7 @@ class MainActivity : TauriActivity() {
       mediaPlaybackRequiresUserGesture = false
       setSupportMultipleWindows(false)
       cacheMode = WebSettings.LOAD_DEFAULT
-      userAgentString = "${userAgentString} HPCNativeTV/1.0"
+      userAgentString = "${userAgentString} HPCNative/1.0"
     }
 
     CookieManager.getInstance().apply {

@@ -16,38 +16,26 @@ interface DiscoveryProgress {
   server?: DiscoveredServer;
 }
 
-// State
-let currentServer: DiscoveredServer | null = null;
-let selectedRole: string = "DOCTOR_CHAMBER";
-let selectedRoute: string = "/doctor";
-let countdownTimer: number | null = null;
-let countdownRemaining: number = 3;
-
 // Storage Keys
 const STORAGE_SERVER_IP = "hpc_desktop_server_ip";
 const STORAGE_SERVER_PORT = "hpc_desktop_server_port";
 const STORAGE_SERVER_SSL = "hpc_desktop_server_ssl";
-const STORAGE_STATION_ROLE = "hpc_desktop_station_role";
-const STORAGE_STATION_ROUTE = "hpc_desktop_station_route";
-const STORAGE_AUTO_LAUNCH = "hpc_desktop_auto_launch";
-const STORAGE_DEVICE_ID = "hpc_desktop_device_id";
+
+// State
+let currentServer: DiscoveredServer | null = null;
+let isNavigating: boolean = false;
 
 // DOM Elements
 const networkBadgeEl = document.querySelector("#network-badge") as HTMLElement;
 const networkStatusTextEl = document.querySelector("#network-status-text") as HTMLElement;
 const latencyPillEl = document.querySelector("#latency-pill") as HTMLElement;
-const serverNameEl = document.querySelector("#server-name") as HTMLElement;
-const serverUrlEl = document.querySelector("#server-url") as HTMLElement;
+const progressSubtextEl = document.querySelector("#progress-subtext") as HTMLElement;
+const offlineActionsEl = document.querySelector("#offline-actions") as HTMLElement;
 const btnRescanEl = document.querySelector("#btn-rescan") as HTMLButtonElement;
-const btnLaunchEl = document.querySelector("#btn-launch") as HTMLButtonElement;
-const countdownContainerEl = document.querySelector("#countdown-container") as HTMLElement;
-const countdownSecEl = document.querySelector("#countdown-sec") as HTMLElement;
-const btnCancelCountdownEl = document.querySelector("#btn-cancel-countdown") as HTMLButtonElement;
-const chkRememberStationEl = document.querySelector("#chk-remember-station") as HTMLInputElement;
-const btnLoginPortalEl = document.querySelector("#btn-login-portal") as HTMLButtonElement | null;
+const btnManualIpEl = document.querySelector("#btn-manual-ip") as HTMLButtonElement;
+const btnManualIpAltEl = document.querySelector("#btn-manual-ip-alt") as HTMLButtonElement;
 
 // Modal Elements
-const btnManualIpEl = document.querySelector("#btn-manual-ip") as HTMLButtonElement;
 const modalSettingsEl = document.querySelector("#modal-settings") as HTMLElement;
 const btnCloseModalEl = document.querySelector("#btn-close-modal") as HTMLButtonElement;
 const inputServerIpEl = document.querySelector("#input-server-ip") as HTMLInputElement;
@@ -55,16 +43,6 @@ const inputServerPortEl = document.querySelector("#input-server-port") as HTMLIn
 const selectProtocolEl = document.querySelector("#select-protocol") as HTMLSelectElement;
 const btnSaveManualIpEl = document.querySelector("#btn-save-manual-ip") as HTMLButtonElement;
 const btnTestSweepEl = document.querySelector("#btn-test-sweep") as HTMLButtonElement;
-
-// Helper: Get or create persistent device ID
-function getOrCreateDeviceId(): string {
-  let id = localStorage.getItem(STORAGE_DEVICE_ID);
-  if (!id) {
-    id = "desk-" + Math.random().toString(36).substring(2, 9) + "-" + Date.now().toString(36);
-    localStorage.setItem(STORAGE_DEVICE_ID, id);
-  }
-  return id;
-}
 
 // Update Network UI
 function updateNetworkStatus(state: "searching" | "connected" | "offline", message: string, latencyMs?: number) {
@@ -79,48 +57,51 @@ function updateNetworkStatus(state: "searching" | "connected" | "offline", messa
   }
 }
 
-// Discovered Server handler
+// Discovered Server Handler -> Direct Webview Launch
 function onServerFound(server: DiscoveredServer, latencyMs: number = 3) {
+  if (isNavigating) return;
+
   currentServer = server;
   const protocol = server.ssl ? "https" : "http";
-  const fullUrl = `${protocol}://${server.ip}:${server.port}`;
-
-  serverNameEl.textContent = server.name || "Health & Pain Care Center";
-  serverUrlEl.textContent = `${fullUrl} (LAN)`;
+  const targetUrl = `${protocol}://${server.ip}:${server.port}/`;
 
   updateNetworkStatus("connected", `Connected to Clinic Server (${server.ip})`, latencyMs);
-  btnLaunchEl.disabled = false;
+  progressSubtextEl.textContent = "Opening Clinic System...";
+  offlineActionsEl.classList.add("hidden");
 
   // Save server config to cache
   localStorage.setItem(STORAGE_SERVER_IP, server.ip);
   localStorage.setItem(STORAGE_SERVER_PORT, String(server.port));
   localStorage.setItem(STORAGE_SERVER_SSL, String(server.ssl));
 
-  // Self-Healing Certificate Sync: Silently sync Windows Root Store if server cert rotated
+  // Silently sync Windows Root Store if server cert rotated
   if (server.ssl) {
     invoke("sync_root_ca_from_server", {
-      caUrl: `${fullUrl}/rootCA.crt`,
+      caUrl: `${protocol}://${server.ip}:${server.port}/rootCA.crt`,
     }).catch((err) => {
       console.warn("Self-healing cert sync notice:", err);
     });
   }
 
-  // Check if auto-launch is enabled
-  const autoLaunch = localStorage.getItem(STORAGE_AUTO_LAUNCH) === "true";
-  if (autoLaunch && !countdownTimer) {
-    startAutoLaunchCountdown();
-  }
+  isNavigating = true;
+
+  // Direct location replacement:
+  // Replaces the splash screen in history so pressing back in the webview doesn't go back to the scanner.
+  // Full browser capabilities (cookies, localStorage, session, redirections) are maintained natively.
+  setTimeout(() => {
+    window.location.replace(targetUrl);
+  }, 200);
 }
 
 // Trigger Multi-Tier Auto-Discovery
 async function scanForServer() {
-  cancelAutoLaunch();
+  if (isNavigating) return;
+
   const cachedIp = localStorage.getItem(STORAGE_SERVER_IP) || undefined;
 
-  updateNetworkStatus("searching", "Searching for clinic server via UDP broadcast...");
-  serverNameEl.textContent = "Scanning...";
-  serverUrlEl.textContent = "Scanning local clinic network...";
-  btnLaunchEl.disabled = true;
+  updateNetworkStatus("searching", "Scanning Clinic Network...");
+  progressSubtextEl.textContent = "Searching via UDP broadcast & local subnet sweep...";
+  offlineActionsEl.classList.add("hidden");
 
   try {
     const start = performance.now();
@@ -149,66 +130,9 @@ async function scanForServer() {
     }
 
     updateNetworkStatus("offline", "Server Not Found on LAN");
-    serverNameEl.textContent = "Offline / Waiting";
-    serverUrlEl.textContent = "Click ⚙️ to enter manual IP";
+    progressSubtextEl.textContent = "Could not find clinic server on the local network.";
+    offlineActionsEl.classList.remove("hidden");
   }
-}
-
-// Station Selection Logic
-function setupStationSelection() {
-  const cards = document.querySelectorAll(".station-card");
-
-  // Restore saved station
-  const savedRole = localStorage.getItem(STORAGE_STATION_ROLE);
-  const savedRoute = localStorage.getItem(STORAGE_STATION_ROUTE);
-  if (savedRole && savedRoute) {
-    selectedRole = savedRole;
-    selectedRoute = savedRoute;
-  }
-
-  cards.forEach((card) => {
-    const role = card.getAttribute("data-role");
-    const route = card.getAttribute("data-route");
-
-    if (role === selectedRole) {
-      card.classList.add("selected");
-    }
-
-    card.addEventListener("click", () => {
-      cancelAutoLaunch();
-      cards.forEach((c) => c.classList.remove("selected"));
-      card.classList.add("selected");
-      if (role && route) {
-        selectedRole = role;
-        selectedRoute = route;
-      }
-    });
-  });
-}
-
-// Auto-Launch Countdown
-function startAutoLaunchCountdown() {
-  countdownRemaining = 3;
-  countdownSecEl.textContent = String(countdownRemaining);
-  countdownContainerEl.classList.remove("hidden");
-
-  countdownTimer = window.setInterval(() => {
-    countdownRemaining--;
-    countdownSecEl.textContent = String(countdownRemaining);
-
-    if (countdownRemaining <= 0) {
-      cancelAutoLaunch();
-      launchTerminal();
-    }
-  }, 1000);
-}
-
-function cancelAutoLaunch() {
-  if (countdownTimer) {
-    clearInterval(countdownTimer);
-    countdownTimer = null;
-  }
-  countdownContainerEl.classList.add("hidden");
 }
 
 // Clean and parse user-entered IP, URL, or hostnames
@@ -228,7 +152,7 @@ function parseServerInput(rawInput: string, defaultPort = 3000, defaultSsl = tru
   // Remove trailing slashes and paths
   cleaned = cleaned.split("/")[0];
 
-  // Extract port if present (e.g. 192.168.2.10:3000)
+  // Extract port if present (e.g. 192.168.x.x:3000)
   if (cleaned.includes(":")) {
     const parts = cleaned.split(":");
     cleaned = parts[0];
@@ -241,80 +165,28 @@ function parseServerInput(rawInput: string, defaultPort = 3000, defaultSsl = tru
   return { ip: cleaned, port, ssl };
 }
 
-// Launch Terminal
-async function launchTerminal() {
-  if (!currentServer) return;
-
-  // Persist station choice
-  if (chkRememberStationEl.checked) {
-    localStorage.setItem(STORAGE_STATION_ROLE, selectedRole);
-    localStorage.setItem(STORAGE_STATION_ROUTE, selectedRoute);
-    localStorage.setItem(STORAGE_AUTO_LAUNCH, "true");
-  } else {
-    localStorage.removeItem(STORAGE_AUTO_LAUNCH);
-  }
-
-  const protocol = currentServer.ssl ? "https" : "http";
-  const baseUrl = `${protocol}://${currentServer.ip}:${currentServer.port}`;
-  const deviceId = getOrCreateDeviceId();
-
-  btnLaunchEl.textContent = "Launching Terminal...";
-  btnLaunchEl.disabled = true;
-
-  try {
-    // 1. Start background hardware telemetry heartbeat worker in Rust
-    await invoke("start_telemetry", {
-      baseUrl,
-      deviceId,
-      stationName: selectedRole,
-      role: selectedRole,
-      deviceName: "HPC-WORKSTATION",
-    });
-
-    // 2. Set wake lock for waiting room display
-    if (selectedRole === "WAITING_ROOM") {
-      try {
-        await invoke("set_wake_lock", { enabled: true });
-      } catch {}
-    }
-
-    // 3. Navigate native webview to the selected clinic dashboard route
-    const cleanRoute = selectedRoute.startsWith("/") ? selectedRoute : `/${selectedRoute}`;
-    const targetUrl = `${baseUrl.trim().replace(/\/+$/, "")}${cleanRoute}`;
-
-    try {
-      await invoke("connect_to_url", { targetUrl });
-    } catch (rustErr) {
-      console.warn("Rust connect_to_url notice:", rustErr);
-    }
-
-    // Direct location navigation ensures mobile/Android webview loads the URL reliably
-    window.location.href = targetUrl;
-  } catch (err) {
-    console.error("Failed to launch station:", err);
-    alert(`Could not launch station: ${err}`);
-    btnLaunchEl.textContent = "Launch Terminal";
-    btnLaunchEl.disabled = false;
-  }
-}
-
 // Settings Modal Handlers
 function setupSettingsModal() {
-  btnManualIpEl.addEventListener("click", () => {
-    cancelAutoLaunch();
+  const openModal = () => {
     if (currentServer) {
       inputServerIpEl.value = currentServer.ip;
       inputServerPortEl.value = String(currentServer.port);
       selectProtocolEl.value = currentServer.ssl ? "https" : "http";
+    } else {
+      const cachedIp = localStorage.getItem(STORAGE_SERVER_IP) || "";
+      inputServerIpEl.value = cachedIp;
     }
     modalSettingsEl.classList.remove("hidden");
-  });
+  };
 
-  btnCloseModalEl.addEventListener("click", () => {
+  btnManualIpEl?.addEventListener("click", openModal);
+  btnManualIpAltEl?.addEventListener("click", openModal);
+
+  btnCloseModalEl?.addEventListener("click", () => {
     modalSettingsEl.classList.add("hidden");
   });
 
-  btnSaveManualIpEl.addEventListener("click", async () => {
+  btnSaveManualIpEl?.addEventListener("click", async () => {
     const raw = inputServerIpEl.value.trim();
     if (!raw) {
       alert("Please enter a valid IP address");
@@ -363,8 +235,8 @@ function setupSettingsModal() {
     }
   });
 
-  btnTestSweepEl.addEventListener("click", async () => {
-    const rawIp = inputServerIpEl.value.trim() || "192.168.2.1";
+  btnTestSweepEl?.addEventListener("click", async () => {
+    const rawIp = inputServerIpEl.value.trim() || "192.168.1.1";
     const { ip: cleanIp, port } = parseServerInput(rawIp, parseInt(inputServerPortEl.value || "3000", 10));
     const subnet = cleanIp.split(".").slice(0, 3).join(".");
     btnTestSweepEl.textContent = `Scanning ${subnet}.1–254...`;
@@ -385,7 +257,7 @@ function setupSettingsModal() {
     } catch (err) {
       alert(`Subnet sweep error: ${err}`);
     } finally {
-      btnTestSweepEl.textContent = "🔍 Sweep Subnet";
+      btnTestSweepEl.textContent = "🔍 Sweep Local Subnet";
       btnTestSweepEl.disabled = false;
     }
   });
@@ -393,29 +265,9 @@ function setupSettingsModal() {
 
 // Main Setup
 window.addEventListener("DOMContentLoaded", () => {
-  setupStationSelection();
   setupSettingsModal();
 
-  btnRescanEl.addEventListener("click", scanForServer);
-  btnLaunchEl.addEventListener("click", launchTerminal);
-  btnCancelCountdownEl.addEventListener("click", cancelAutoLaunch);
-
-  btnLoginPortalEl?.addEventListener("click", async () => {
-    cancelAutoLaunch();
-    if (!currentServer) {
-      alert("Please wait for server connection or click ⚙️ to configure clinic server IP.");
-      return;
-    }
-    const protocol = currentServer.ssl ? "https" : "http";
-    const baseUrl = `${protocol}://${currentServer.ip}:${currentServer.port}`;
-    const targetUrl = `${baseUrl.trim().replace(/\/+$/, "")}/login`;
-    try {
-      await invoke("connect_to_url", { targetUrl });
-    } catch (err) {
-      console.warn("Rust connect_to_url notice:", err);
-    }
-    window.location.href = targetUrl;
-  });
+  btnRescanEl?.addEventListener("click", scanForServer);
 
   // Listen for live multi-tier auto-discovery progress events
   try {

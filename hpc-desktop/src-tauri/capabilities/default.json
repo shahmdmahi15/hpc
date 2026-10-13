@@ -5,6 +5,18 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
-  ]
+    "opener:default",
+    "dialog:default",
+    "fs:default"
+  ],
+  "remote": {
+    "urls": [
+      "http://192.168.*:*",
+      "https://192.168.*:*",
+      "http://10.*:*",
+      "https://10.*:*",
+      "http://localhost:*",
+      "http://127.0.0.1:*"
+    ]
+  }
 }
