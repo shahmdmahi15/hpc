@@ -371,6 +371,7 @@ export async function createPatientAction(
     revalidatePath("/doctor");
     revalidatePath("/handler");
     revalidatePath("/admin/tracking");
+    revalidatePath("/");
 
     const timeStr = (checkInTime ? new Date(checkInTime) : new Date()).toLocaleTimeString(
       "en-US",
@@ -788,6 +789,7 @@ export async function checkInArrivingPatientAction(
             visitId: visit.id,
             checkInTime: checkInDateObj,
             checkOutTime: null,
+            inTherapyTime: null,
             outTherapyTime: null,
             willCallTime: null,
             performerId,
@@ -802,6 +804,16 @@ export async function checkInArrivingPatientAction(
           patientId: patient.id,
           patientName: patient.name,
           slotLabel: existingTherapyAppointment.therapySlot?.label,
+        });
+        emitRealtimeEvent("APPOINTMENT_UPDATED", {
+          id: existingTherapyAppointment.id,
+          appointmentId: existingTherapyAppointment.id,
+          patientId: patient.id,
+          patientName: patient.name,
+          status: AppointmentStatus.CHECKED_IN,
+          queueType: QueueType.THERAPY,
+          station: stationToSet,
+          therapySlotId: existingTherapyAppointment.therapySlotId,
         });
       }
       await syncBillingForAppointment(updatedAppointment.id);
@@ -990,6 +1002,7 @@ export async function checkInArrivingPatientAction(
     revalidatePath("/doctor");
     revalidatePath("/handler");
     revalidatePath("/admin/tracking");
+    revalidatePath("/");
 
     const timeStr = checkInDateObj.toLocaleTimeString("en-US", {
       hour: "2-digit",

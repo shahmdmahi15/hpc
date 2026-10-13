@@ -28,8 +28,27 @@ export async function OPTIONS() {
  * Network auto-discovery manifest endpoint for Android TV and client devices.
  * Includes CA SHA-256 fingerprint for self-healing certificate rotation.
  */
+import os from "os";
+
+function getServerLanIp(req: NextRequest): string {
+  const host = req.headers.get("host")?.split(":")[0];
+  if (host && host !== "localhost" && host !== "127.0.0.1") {
+    return host;
+  }
+  const ifaces = os.networkInterfaces();
+  for (const name of Object.keys(ifaces)) {
+    for (const net of ifaces[name] || []) {
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return host || "127.0.0.1";
+}
+
 export async function GET(request: NextRequest) {
   const port = parseInt(process.env.PORT || "3000", 10);
+  const serverIp = getServerLanIp(request);
   const certDir = path.resolve(process.cwd(), "certificates");
   const serverKeyPath = path.join(certDir, "server.key");
   const serverCrtPath = path.join(certDir, "server.crt");
@@ -49,6 +68,7 @@ export async function GET(request: NextRequest) {
       service: "hpc-clinic-server",
       version: "1.0",
       name: "Health & Pain Care Center",
+      ip: serverIp,
       port,
       ssl: hasSsl,
       caFingerprint,

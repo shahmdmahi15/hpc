@@ -7,7 +7,7 @@ import fs from "node:fs";
 
 export function getDatabaseFilePath(): string {
   const connectionString = process.env.DATABASE_URL || "file:./hpc.db";
-  const rawPath = connectionString.replace(/^file:/, "");
+  const rawPath = connectionString.replace(/^file:/, "").split("?")[0];
   return path.isAbsolute(rawPath) ? rawPath : path.resolve(/*turbopackIgnore: true*/ process.cwd(), rawPath);
 }
 

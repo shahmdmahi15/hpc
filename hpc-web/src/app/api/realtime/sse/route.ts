@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
   if (mode === "poll") {
     const latestSeq = getLatestRealtimeSeq();
     const events =
-      sinceParam > 0 && sinceParam < latestSeq
-        ? getRealtimeEventsSince(sinceParam)
+      sinceParam >= 0 && sinceParam < latestSeq
+        ? getRealtimeEventsSince(sinceParam, 50)
         : [];
     return NextResponse.json(
       {

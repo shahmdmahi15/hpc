@@ -1422,7 +1422,7 @@ export async function getLiveQueueAction() {
           ],
         },
         currentStation: {
-          notIn: ["CASHIER_REGISTER", "RECEPTIONIST_DESK", "CHECKED_OUT"],
+          notIn: ["CASHIER_REGISTER", "CHECKED_OUT"],
         },
         OR: [
           {
@@ -1430,13 +1430,12 @@ export async function getLiveQueueAction() {
             status: {
               in: [AppointmentStatus.CHECKED_IN, AppointmentStatus.CALLING],
             },
-            currentStation: {
-              notIn: [
-                "CASHIER_REGISTER",
-                "RECEPTIONIST_DESK",
-                "CHECKED_OUT",
-                "THERAPY_ROOM",
-              ],
+            outTherapyTime: null,
+          },
+          {
+            therapySlotId: { not: null },
+            status: {
+              in: [AppointmentStatus.CHECKED_IN, AppointmentStatus.CALLING],
             },
             outTherapyTime: null,
           },

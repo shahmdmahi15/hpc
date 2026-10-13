@@ -41,7 +41,7 @@ const sharedSubscribers = new Set<SharedSubscriber>();
 const sharedProcessedEvents = new Map<string, number>();
 
 function getEventDedupKey(payload: RealtimeEventPayload): string {
-  if (payload.seq !== undefined) {
+  if (typeof payload.seq === "number" && payload.seq > 0) {
     return `seq:${payload.seq}`;
   }
   const entityId =
@@ -125,7 +125,10 @@ async function pollCatchUpEvents() {
     if (typeof data.seq === "number" && data.seq > sharedLatestSeq) {
       sharedLatestSeq = data.seq;
     }
-    if (sharedStatus !== "connected") {
+    if (
+      sharedStatus !== "connected" &&
+      sharedEventSource?.readyState === EventSource.OPEN
+    ) {
       updateSharedStatus("connected");
     }
   } catch {

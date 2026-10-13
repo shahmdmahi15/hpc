@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getRealtimeEventBus,
+  getLatestRealtimeSeq,
+  getRealtimeEventsSince,
   type RealtimeEventPayload,
 } from "@/lib/realtime/event-bus";
 import {
@@ -33,6 +35,7 @@ export async function OPTIONS() {
  * Sends immediate INITIAL_STATE snapshot upon handshake.
  * Broadcasts DOCTOR_CALLED, APPOINTMENT_UPDATED, BULLETIN_NOTICE_*, and SYSTEM_BROADCAST_ALERT.
  * Keeps connection alive every 15s with heartbeat comments & PING event.
+ * Syncs multi-process SQLite WAL events every 1000ms.
  */
 export async function GET(request: NextRequest) {
   const bus = getRealtimeEventBus();
@@ -53,21 +56,25 @@ export async function GET(request: NextRequest) {
         }
       };
 
-      const sendSseMessage = (event: string, data: any) => {
+      const sendSseMessage = (event: string, data: any, seq?: number) => {
         if (isStreamClosed) return;
         try {
           const payload = typeof data === "string" ? data : JSON.stringify(data);
-          const sseBlock = `event: ${event}\ndata: ${payload}\n\n`;
+          const idPrefix = seq ? `id: ${seq}\n` : "";
+          const sseBlock = `${idPrefix}event: ${event}\ndata: ${payload}\n\n`;
           safeEnqueue(encoder.encode(sseBlock));
         } catch {
           isStreamClosed = true;
         }
       };
 
+      const currentSeq = getLatestRealtimeSeq();
+      let lastStreamedSeq = currentSeq;
+
       // 1. Send immediate INITIAL_STATE snapshot on connect
       try {
         const initialState = await getWaitingRoomSnapshot();
-        sendSseMessage("INITIAL_STATE", initialState);
+        sendSseMessage("INITIAL_STATE", initialState, currentSeq);
       } catch (err) {
         console.warn("[TV Stream initial state error]:", err);
         sendSseMessage("INITIAL_STATE", { error: "Failed to initialize state", serverTime: new Date().toISOString() });
@@ -76,6 +83,9 @@ export async function GET(request: NextRequest) {
       // 2. Real-time event listener
       const handleRealtimeEvent = (payload: RealtimeEventPayload) => {
         if (isStreamClosed) return;
+        if (payload.seq && payload.seq > lastStreamedSeq) {
+          lastStreamedSeq = payload.seq;
+        }
         const type = payload.type;
         const data = payload.data || {};
 
@@ -91,14 +101,16 @@ export async function GET(request: NextRequest) {
               appointmentId: raw.appointmentId || "",
               serialNumber: raw.serialNumber,
               patientName: raw.patientName || "Patient",
+              gender: raw.gender ?? null,
               roomNumber: raw.roomNumber || "Room",
               station: raw.station || raw.roomPurpose || "Chamber",
               sound: "chime",
               voiceBn: raw.voiceBn || voices.voiceBn,
               voiceEn: raw.voiceEn || voices.voiceEn,
+              calledAt: raw.calledAt || payload.timestamp || new Date().toISOString(),
               timestamp: payload.timestamp || new Date().toISOString(),
             };
-            sendSseMessage("DOCTOR_CALLED", callEventData);
+            sendSseMessage("DOCTOR_CALLED", callEventData, payload.seq);
             break;
           }
 
@@ -123,19 +135,19 @@ export async function GET(request: NextRequest) {
               eventType: type,
               data,
               timestamp: payload.timestamp,
-            });
+            }, payload.seq);
             break;
           }
 
           case "BULLETIN_NOTICE_CREATED":
           case "BULLETIN_NOTICE_UPDATED":
           case "BULLETIN_NOTICE_DELETED": {
-            sendSseMessage(type, data);
+            sendSseMessage(type, data, payload.seq);
             break;
           }
 
           case "SYSTEM_BROADCAST_ALERT": {
-            sendSseMessage("SYSTEM_BROADCAST_ALERT", data);
+            sendSseMessage("SYSTEM_BROADCAST_ALERT", data, payload.seq);
             break;
           }
 
@@ -147,7 +159,30 @@ export async function GET(request: NextRequest) {
 
       bus.on("*", handleRealtimeEvent);
 
-      // 3. Keep-alive heartbeat comment & PING event every 15 seconds
+      // 3. Multi-process SQLite WAL synchronization ticker every 1000ms
+      // Catches and streams any events committed to SQLite WAL by other server worker processes
+      const crossProcessSyncInterval = setInterval(() => {
+        if (isStreamClosed) {
+          clearInterval(crossProcessSyncInterval);
+          return;
+        }
+        try {
+          const currentMaxSeq = getLatestRealtimeSeq();
+          if (currentMaxSeq > lastStreamedSeq) {
+            const newEvents = getRealtimeEventsSince(lastStreamedSeq, 50);
+            for (const item of newEvents) {
+              handleRealtimeEvent(item);
+              if (item.seq && item.seq > lastStreamedSeq) {
+                lastStreamedSeq = item.seq;
+              }
+            }
+          }
+        } catch {
+          if (cleanup) cleanup();
+        }
+      }, 1000);
+
+      // 4. Keep-alive heartbeat comment & PING event every 15 seconds
       const pingInterval = setInterval(() => {
         if (isStreamClosed) {
           clearInterval(pingInterval);
@@ -165,6 +200,7 @@ export async function GET(request: NextRequest) {
       cleanup = () => {
         if (isStreamClosed) return;
         isStreamClosed = true;
+        clearInterval(crossProcessSyncInterval);
         clearInterval(pingInterval);
         bus.off("*", handleRealtimeEvent);
         try {

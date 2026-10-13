@@ -723,6 +723,7 @@ export function WaitingRoomLiveQueueView({
           }
         }
         refreshQueue();
+        setTimeout(refreshQueue, 500);
       }
     },
     onReconnect: () => {
@@ -955,17 +956,15 @@ export function WaitingRoomLiveQueueView({
 
   // Split queue into 2 distinct columns: Therapy Queue & Consultation Queue
   // In the waiting room display, the Therapy Queue section ONLY displays patients who are waiting in queue (CHECKED_IN / CALLING),
-  // and strictly excludes patients currently inside a therapy session (IN_THERAPY / THERAPY_ROOM / inTherapyTime).
+  // and strictly excludes patients currently inside a therapy session (IN_THERAPY / inTherapyTime).
   const therapyQueue = React.useMemo(() => {
     return (queue || []).filter(
       (item) =>
         (item?.queueType === "THERAPY" || Boolean(item?.therapySlotId)) &&
         !item?.outTherapyTime &&
         item?.status !== "IN_THERAPY" &&
-        item?.currentStation !== "THERAPY_ROOM" &&
         !(item?.inTherapyTime && !item?.outTherapyTime) &&
         item?.currentStation !== "CASHIER_REGISTER" &&
-        item?.currentStation !== "RECEPTIONIST_DESK" &&
         item?.currentStation !== "CHECKED_OUT",
     );
   }, [queue]);
@@ -976,7 +975,6 @@ export function WaitingRoomLiveQueueView({
         item?.queueType === "CONSULTATION" &&
         !item?.outConsultationTime &&
         item?.currentStation !== "CASHIER_REGISTER" &&
-        item?.currentStation !== "RECEPTIONIST_DESK" &&
         item?.currentStation !== "CHECKED_OUT",
     );
   }, [queue]);
