@@ -954,11 +954,16 @@ export function WaitingRoomLiveQueueView({
     : initialDate;
 
   // Split queue into 2 distinct columns: Therapy Queue & Consultation Queue
+  // In the waiting room display, the Therapy Queue section ONLY displays patients who are waiting in queue (CHECKED_IN / CALLING),
+  // and strictly excludes patients currently inside a therapy session (IN_THERAPY / THERAPY_ROOM / inTherapyTime).
   const therapyQueue = React.useMemo(() => {
     return (queue || []).filter(
       (item) =>
         (item?.queueType === "THERAPY" || Boolean(item?.therapySlotId)) &&
         !item?.outTherapyTime &&
+        item?.status !== "IN_THERAPY" &&
+        item?.currentStation !== "THERAPY_ROOM" &&
+        !(item?.inTherapyTime && !item?.outTherapyTime) &&
         item?.currentStation !== "CASHIER_REGISTER" &&
         item?.currentStation !== "RECEPTIONIST_DESK" &&
         item?.currentStation !== "CHECKED_OUT",
@@ -982,8 +987,8 @@ export function WaitingRoomLiveQueueView({
     let yellowCount = 0;
     let redCount = 0;
 
-    const safeQueue = Array.isArray(queue) ? queue : [];
-    for (const item of safeQueue) {
+    const visibleQueue = [...consultationQueue, ...therapyQueue];
+    for (const item of visibleQueue) {
       if (!item) continue;
       const p = evaluatePunctuality(item.toldTime, item.checkInTime);
       if (p.status === "green") greenCount++;
@@ -992,14 +997,14 @@ export function WaitingRoomLiveQueueView({
     }
 
     return {
-      total: safeQueue.length,
+      total: visibleQueue.length,
       therapyCount: therapyQueue.length,
       consultationCount: consultationQueue.length,
       greenCount,
       yellowCount,
       redCount,
     };
-  }, [queue, therapyQueue.length, consultationQueue.length]);
+  }, [therapyQueue, consultationQueue]);
 
   // Dynamic login or role-based dashboard button
   const renderUserPortalButton = () => {

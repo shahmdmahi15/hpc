@@ -1418,6 +1418,17 @@ export async function getLiveQueueAction() {
         OR: [
           {
             queueType: QueueType.THERAPY,
+            status: {
+              in: [AppointmentStatus.CHECKED_IN, AppointmentStatus.CALLING],
+            },
+            currentStation: {
+              notIn: [
+                "CASHIER_REGISTER",
+                "RECEPTIONIST_DESK",
+                "CHECKED_OUT",
+                "THERAPY_ROOM",
+              ],
+            },
             outTherapyTime: null,
           },
           {

@@ -703,7 +703,11 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
   for (const apt of appointments) {
     if (
       apt.queueType === QueueType.THERAPY &&
-      apt.status === AppointmentStatus.CHECKED_IN
+      apt.status !== AppointmentStatus.IN_THERAPY &&
+      apt.currentStation !== "THERAPY_ROOM" &&
+      !(apt.inTherapyTime && !apt.outTherapyTime) &&
+      (apt.status === AppointmentStatus.CHECKED_IN ||
+        apt.status === AppointmentStatus.CALLING)
     ) {
       waitingTherapyQueue.push({
         appointmentId: apt.id,
@@ -763,6 +767,16 @@ export async function getWaitingRoomSnapshot(): Promise<WaitingRoomSnapshot> {
     }
 
     if (isTherapy) {
+      // In the waiting room display, the Therapy Queue section ONLY displays patients who are waiting in queue,
+      // and strictly excludes patients currently inside a therapy session (IN_THERAPY / THERAPY_ROOM / inTherapyTime).
+      if (
+        apt.status === AppointmentStatus.IN_THERAPY ||
+        apt.currentStation === "THERAPY_ROOM" ||
+        (Boolean(apt.inTherapyTime) && !apt.outTherapyTime)
+      ) {
+        continue;
+      }
+
       const actualRoomNum =
         timerByAppointmentId.get(apt.id)?.roomNumber ||
         (apt.room?.number && apt.room.number !== "200"
