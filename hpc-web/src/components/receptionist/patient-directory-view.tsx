@@ -31,6 +31,7 @@ import {
   Loader2,
   X,
   Edit3,
+  Stethoscope,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -49,6 +50,7 @@ interface PatientDirectoryViewProps {
   totalCount: number;
   onOpenNewPatient: () => void;
   onBookTicketForPatient: (patient: PatientWithStats) => void;
+  onAddToDoctorQueue?: (patient: PatientWithStats) => void;
   performers?: { id: string; name: string; phone: string }[];
   defaultPerformerId?: string;
   onPatientUpdated?: (patient: PatientWithStats) => void;
@@ -65,6 +67,7 @@ export function PatientDirectoryView({
   totalCount,
   onOpenNewPatient,
   onBookTicketForPatient,
+  onAddToDoctorQueue,
   performers = [],
   defaultPerformerId = "",
   onPatientUpdated,
@@ -429,6 +432,18 @@ export function PatientDirectoryView({
                             <Edit3 className="size-2.5 text-muted-foreground" />
                             <span>Edit</span>
                           </Button>
+                          {onAddToDoctorQueue && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onAddToDoctorQueue(patient)}
+                              className="h-6 text-[11px] px-2 gap-1 font-semibold text-sky-700 dark:text-sky-300 border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 cursor-pointer shadow-2xs"
+                              title="Add directly to Doctor Consultation Queue"
+                            >
+                              <Stethoscope className="size-2.5 text-sky-600 dark:text-sky-400" />
+                              <span>+ Doctor</span>
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="default"

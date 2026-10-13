@@ -724,14 +724,18 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         : appointment.routingOrigin;
 
     const routeTime = new Date();
-    // If leaving consultation, stamp outConsultationTime
-    const outConsultationTime =
+    // If leaving consultation, stamp outConsultationTime; if entering consultation queue, reset to null
+    let outConsultationTime: Date | null = appointment.outConsultationTime;
+    if (params.destination === "DOCTOR") {
+      outConsultationTime = null; // Clears exit time so patient is active in doctor queue!
+    } else if (
       appointment.status === AppointmentStatus.IN_CONSULTATION ||
       appointment.queueType === QueueType.CONSULTATION ||
       params.destination === "HANDLER" ||
       (routingOrigin === "DOCTOR" && !appointment.outConsultationTime)
-        ? routeTime
-        : appointment.outConsultationTime;
+    ) {
+      outConsultationTime = routeTime;
+    }
 
     // If leaving therapy, stamp outTherapyTime; if entering therapy queue, reset to null
     let outTherapyTime: Date | null = appointment.outTherapyTime;
@@ -897,6 +901,76 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
         }
       } catch (serialErr) {
         console.error("[Complete ConsultationSerial on Route Error]:", serialErr);
+      }
+    } else {
+      // Routing TO DOCTOR: ensure patient's ConsultationSerial is active and set to QUEUED
+      try {
+        const startOfDay = new Date(updated.appointmentDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(updated.appointmentDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        let todaySerial = await prisma.consultationSerial.findFirst({
+          where: {
+            patientId: updated.patientId,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+            status: { not: "CANCELLED" },
+          },
+          orderBy: { serialNumber: "desc" },
+        });
+
+        if (todaySerial) {
+          await prisma.consultationSerial.update({
+            where: { id: todaySerial.id },
+            data: {
+              status: "QUEUED",
+              outConsultationTime: null,
+              ...(validatedDoctorId ? { doctorId: validatedDoctorId } : {}),
+            },
+          });
+        } else {
+          let effectiveDocId = validatedDoctorId;
+          if (!effectiveDocId) {
+            const fallbackDoc = await prisma.user.findFirst({
+              where: { role: Role.DOCTOR },
+              select: { id: true },
+            });
+            effectiveDocId = fallbackDoc?.id || sessionData.user.id;
+          }
+
+          const existingCount = await prisma.consultationSerial.count({
+            where: {
+              doctorId: effectiveDocId,
+              appointmentDate: { gte: startOfDay, lte: endOfDay },
+            },
+          });
+          const serialNumber = existingCount + 1;
+
+          await prisma.consultationSerial.create({
+            data: {
+              serialNumber,
+              appointmentDate: routeTime,
+              doctorId: effectiveDocId,
+              patientId: updated.patientId,
+              feeAmount: updated.feeAmount || 1000,
+              paidAmount: updated.paidAmount || 0,
+              dueAmount: updated.dueAmount || 1000,
+              paymentStatus: updated.paymentStatus || "PENDING",
+              status: "QUEUED",
+              notes: params.routingNote || undefined,
+            },
+          });
+        }
+
+        emitRealtimeEvent("CONSULTATION_QUEUED", {
+          appointmentId: updated.id,
+          patientId: updated.patientId,
+          patientName: updated.patient.name,
+          doctorId: validatedDoctorId,
+          date: updated.appointmentDate.toISOString().split("T")[0],
+        });
+      } catch (serialErr) {
+        console.error("[Sync ConsultationSerial on Route to Doctor Error]:", serialErr);
       }
     }
 
@@ -1641,6 +1715,333 @@ export async function requestImmediateExtraTherapyAction(
         error instanceof Error
           ? error.message
           : "Failed to request immediate extra therapy.",
+    };
+  }
+}
+
+export interface DirectAddToDoctorQueueInput {
+  patientId: string;
+  doctorId?: string;
+  feeAmount?: number;
+  toldTime?: string;
+  notes?: string;
+  performerId?: string;
+  pin?: string;
+}
+
+/**
+ * Adds a patient directly to the Doctor Consultation Queue at any time.
+ * Bypasses all serial and billing clearance prerequisites:
+ * Auto-creates or activates today's ConsultationSerial with the next serial number,
+ * activates the Appointment record with outConsultationTime: null and status: CHECKED_IN,
+ * and emits real-time events across TV, Waiting Room, and staff dashboards.
+ */
+export async function directAddToDoctorQueueAction(
+  input: DirectAddToDoctorQueueInput,
+) {
+  try {
+    const sessionData = await requireAuth([
+      Role.DOCTOR,
+      Role.ADMIN,
+      Role.RECEPTIONIST,
+      Role.HANDLER,
+      Role.CASHIER,
+    ]);
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: input.patientId },
+    });
+
+    if (!patient) {
+      return { success: false, message: "Patient record not found." };
+    }
+
+    const now = new Date();
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    // Resolve doctor: if caller is DOCTOR and doctorId is not explicitly set, use session doctor
+    let targetDoctorId = input.doctorId;
+    if (!targetDoctorId && sessionData.user.role === Role.DOCTOR) {
+      targetDoctorId = sessionData.user.id;
+    }
+
+    let validatedDoctorId: string | null = null;
+    let doctorFee = 1000;
+    if (targetDoctorId && targetDoctorId !== "GENERAL") {
+      const docUser = await prisma.user.findFirst({
+        where: { id: targetDoctorId },
+        select: { id: true, consultationFee: true },
+      });
+      if (docUser) {
+        validatedDoctorId = docUser.id;
+        doctorFee = docUser.consultationFee ?? 1000;
+      }
+    }
+
+    const feeToCharge =
+      input.feeAmount !== undefined ? Math.max(0, input.feeAmount) : doctorFee;
+
+    // Ensure queue record exists
+    let queueRecord = await prisma.queue.findUnique({
+      where: { type: QueueType.CONSULTATION },
+    });
+    if (!queueRecord) {
+      queueRecord = await prisma.queue.create({
+        data: {
+          type: QueueType.CONSULTATION,
+          name: "Consultation Queue",
+        },
+      });
+    }
+
+    // Auto-create or promote ConsultationSerial for today
+    let activeSerial = await prisma.consultationSerial.findFirst({
+      where: {
+        patientId: patient.id,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { not: "CANCELLED" },
+      },
+      orderBy: { serialNumber: "desc" },
+    });
+
+    if (activeSerial) {
+      if (
+        activeSerial.status !== "IN_CONSULTATION" &&
+        activeSerial.status !== "CALLING"
+      ) {
+        activeSerial = await prisma.consultationSerial.update({
+          where: { id: activeSerial.id },
+          data: {
+            status: "QUEUED",
+            outConsultationTime: null,
+            ...(validatedDoctorId ? { doctorId: validatedDoctorId } : {}),
+          },
+        });
+      }
+    } else {
+      let effectiveDocId = validatedDoctorId;
+      if (!effectiveDocId) {
+        const fallbackDoc = await prisma.user.findFirst({
+          where: { role: Role.DOCTOR },
+          select: { id: true },
+        });
+        effectiveDocId = fallbackDoc?.id || sessionData.user.id;
+      }
+
+      const existingCount = await prisma.consultationSerial.count({
+        where: {
+          doctorId: effectiveDocId,
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+        },
+      });
+      const serialNumber = existingCount + 1;
+
+      const activeVisit = await prisma.patientVisit.findFirst({
+        where: {
+          patientId: patient.id,
+          visitDate: { gte: startOfDay, lte: endOfDay },
+          status: { not: "CHECKED_OUT" },
+        },
+        orderBy: { checkInTime: "desc" },
+      });
+
+      activeSerial = await prisma.consultationSerial.create({
+        data: {
+          serialNumber,
+          appointmentDate: now,
+          doctorId: effectiveDocId,
+          patientId: patient.id,
+          visitId: activeVisit?.id || undefined,
+          feeAmount: feeToCharge,
+          paidAmount: 0,
+          dueAmount: feeToCharge,
+          paymentStatus: "PENDING",
+          status: "QUEUED",
+          toldTime: input.toldTime || undefined,
+          bookedById: input.performerId || sessionData.user.id,
+          notes: input.notes || undefined,
+        },
+      });
+    }
+
+    // Check if appointment exists for today
+    const existingAppointment = await prisma.appointment.findFirst({
+      where: {
+        patientId: patient.id,
+        appointmentDate: { gte: startOfDay, lte: endOfDay },
+        status: { notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED] },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    let updatedAppointment: AppointmentWithRelations;
+
+    if (existingAppointment) {
+      updatedAppointment = (await prisma.appointment.update({
+        where: { id: existingAppointment.id },
+        data: {
+          status: AppointmentStatus.CHECKED_IN,
+          currentStation: "CONSULTATION_ROOM",
+          queueId: queueRecord.id,
+          queueType: QueueType.CONSULTATION,
+          outConsultationTime: null,
+          checkInTime: existingAppointment.checkInTime || now,
+          ...(validatedDoctorId ? { doctorId: validatedDoctorId } : {}),
+          ...(input.toldTime ? { toldTime: input.toldTime } : {}),
+          ...(input.notes ? { notes: input.notes } : {}),
+          ...(input.feeAmount !== undefined
+            ? {
+                feeAmount: feeToCharge,
+                dueAmount: Math.max(
+                  0,
+                  feeToCharge - (existingAppointment.paidAmount ?? 0),
+                ),
+                paymentStatus:
+                  feeToCharge <= (existingAppointment.paidAmount ?? 0)
+                    ? "PAID"
+                    : "PARTIAL",
+              }
+            : {}),
+        },
+        include: {
+          patient: true,
+          therapySlot: { include: { room: true } },
+          room: true,
+          bookedBy: true,
+          extraApprovedBy: true,
+          queue: true,
+          doctor: true,
+        },
+      })) as unknown as AppointmentWithRelations;
+      await syncBillingForAppointment(updatedAppointment.id);
+    } else {
+      const middayToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        12,
+        0,
+        0,
+        0,
+      );
+
+      updatedAppointment = (await prisma.appointment.create({
+        data: {
+          type: AppointmentType.CONSULTATION,
+          patientId: patient.id,
+          appointmentDate: middayToday,
+          gender: patient.gender,
+          bookingType: BookingType.REGULAR,
+          status: AppointmentStatus.CHECKED_IN,
+          currentStation: "CONSULTATION_ROOM",
+          checkInTime: now,
+          outConsultationTime: null,
+          queueId: queueRecord.id,
+          queueType: QueueType.CONSULTATION,
+          toldTime: input.toldTime || undefined,
+          notes: input.notes || undefined,
+          bookedById: input.performerId || undefined,
+          doctorId: validatedDoctorId || undefined,
+          feeAmount: feeToCharge,
+          paidAmount: 0,
+          dueAmount: feeToCharge,
+          paymentStatus: "PENDING",
+        },
+        include: {
+          patient: true,
+          therapySlot: { include: { room: true } },
+          room: true,
+          bookedBy: true,
+          extraApprovedBy: true,
+          queue: true,
+          doctor: true,
+        },
+      })) as unknown as AppointmentWithRelations;
+      await syncBillingForAppointment(updatedAppointment.id);
+    }
+
+    await logAudit({
+      userId: sessionData.user.id,
+      performerId: input.performerId || null,
+      action: AuditAction.APPOINTMENT_UPDATE,
+      entity: "Appointment",
+      entityId: updatedAppointment.id,
+      status: AuditStatus.SUCCESS,
+      details: {
+        patientName: patient.name,
+        action: "DIRECT_ADD_TO_DOCTOR_QUEUE",
+        serialNumber: activeSerial?.serialNumber,
+      },
+    });
+
+    // Real-time broadcasts
+    emitRealtimeEvent("CONSULTATION_QUEUED", {
+      appointmentId: updatedAppointment.id,
+      patientId: patient.id,
+      patientName: patient.name,
+      doctorId: validatedDoctorId,
+      serialNumber: activeSerial?.serialNumber,
+      date: updatedAppointment.appointmentDate.toISOString().split("T")[0],
+    });
+
+    emitRealtimeEvent("APPOINTMENT_UPDATED", {
+      id: updatedAppointment.id,
+      status: AppointmentStatus.CHECKED_IN,
+      currentStation: "CONSULTATION_ROOM",
+      queueType: QueueType.CONSULTATION,
+      checkInTime: now,
+      paymentStatus: updatedAppointment.paymentStatus,
+      feeAmount: updatedAppointment.feeAmount,
+      date: updatedAppointment.appointmentDate.toISOString().split("T")[0],
+    });
+
+    emitRealtimeEvent("STATION_CHANGED", {
+      appointmentId: updatedAppointment.id,
+      patientId: patient.id,
+      patientName: patient.name,
+      fromStation: "RECEPTIONIST_DESK",
+      toStation: "CONSULTATION_ROOM",
+      status: AppointmentStatus.CHECKED_IN,
+    });
+
+    revalidatePath("/doctor");
+    revalidatePath("/receptionist");
+    revalidatePath("/handler");
+    revalidatePath("/cashier");
+    revalidatePath("/admin/tracking");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      message: `${patient.name} added to Doctor Consultation Queue${activeSerial?.serialNumber ? ` (Serial #${activeSerial.serialNumber})` : ""}.`,
+      appointment: updatedAppointment,
+      serialNumber: activeSerial?.serialNumber,
+    };
+  } catch (error: unknown) {
+    console.error("[Direct Add To Doctor Queue Error]:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to add patient to doctor consultation queue.",
     };
   }
 }

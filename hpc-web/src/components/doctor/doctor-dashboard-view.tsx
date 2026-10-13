@@ -48,6 +48,7 @@ import {
   MessageSquare,
   Pill,
   User,
+  UserPlus,
   FileText,
   Sparkles,
 } from "lucide-react";
@@ -68,6 +69,7 @@ import {
 import { NewPrescriptionDialog } from "@/components/doctor/prescription/new-prescription-dialog";
 import { OldPrescriptionsDialog } from "@/components/doctor/prescription/old-prescriptions-dialog";
 import { PatientNotesTriggerButton } from "@/components/notes/patient-notes-dialog";
+import { DirectAddToDoctorQueueDialog } from "@/components/doctor/direct-add-to-doctor-queue-dialog";
 
 interface DoctorDashboardViewProps {
   initialData: DoctorDashboardData;
@@ -125,6 +127,10 @@ export function DoctorDashboardView({
   const [isNewPrescriptionOpen, setIsNewPrescriptionOpen] = React.useState(false);
   const [isOldPrescriptionsOpen, setIsOldPrescriptionsOpen] = React.useState(false);
   const [selectedClinicalAppointment, setSelectedClinicalAppointment] =
+    React.useState<any | null>(null);
+  const [isDirectAddToDoctorQueueOpen, setIsDirectAddToDoctorQueueOpen] =
+    React.useState(false);
+  const [directAddPreselectedPatient, setDirectAddPreselectedPatient] =
     React.useState<any | null>(null);
 
 
@@ -741,8 +747,8 @@ export function DoctorDashboardView({
 
         {/* Tabs for Doctor Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-2.5">
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2 border-b border-border/50 pb-1.5 w-full min-w-0">
-            <div className="w-full overflow-x-auto scrollbar-none min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-1.5 w-full min-w-0">
+            <div className="overflow-x-auto scrollbar-none min-w-0 flex-1">
               <TabsList className="bg-muted/50 p-1 rounded-xl h-auto min-h-9 border border-border/60 inline-flex items-center gap-1 shrink-0">
                 <TabsTrigger
                   value="consultation"
@@ -825,14 +831,28 @@ export function DoctorDashboardView({
                     </span>
                   )}
                 </TabsTrigger>
-            </TabsList>
+              </TabsList>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setDirectAddPreselectedPatient(null);
+                  setIsDirectAddToDoctorQueueOpen(true);
+                }}
+                className="h-8 px-2.5 sm:px-3 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white cursor-pointer shadow-xs"
+              >
+                <Stethoscope className="size-3.5" />
+                <span>+ Add to Queue</span>
+              </Button>
             </div>
           </div>
 
           {/* 1. Consultation Queue Tab */}
           <TabsContent value="consultation" className="space-y-2 outline-none">
             {filteredConsultationQueue.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border/80 bg-muted/10 p-5 text-center space-y-1.5">
+              <div className="rounded-xl border border-dashed border-border/80 bg-muted/10 p-5 text-center space-y-2">
                 <div className="size-8 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center mx-auto border border-sky-500/20">
                   <Stethoscope className="size-4" />
                 </div>
@@ -841,8 +861,19 @@ export function DoctorDashboardView({
                 </h3>
                 <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
                   No patients are waiting in the Doctor Consultation Queue right
-                  now.
+                  now. You can add any patient directly to your queue at any time.
                 </p>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setDirectAddPreselectedPatient(null);
+                    setIsDirectAddToDoctorQueueOpen(true);
+                  }}
+                  className="h-7.5 px-3 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white cursor-pointer shadow-xs mt-1"
+                >
+                  <UserPlus className="size-3" />
+                  <span>+ Add Patient to Queue</span>
+                </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
@@ -1221,6 +1252,10 @@ export function DoctorDashboardView({
                 setPreselectedSlotId(undefined);
                 setIsBookTicketOpen(true);
               }}
+              onAddToDoctorQueue={(patient) => {
+                setDirectAddPreselectedPatient(patient);
+                setIsDirectAddToDoctorQueueOpen(true);
+              }}
             />
           </TabsContent>
 
@@ -1474,6 +1509,23 @@ export function DoctorDashboardView({
         }}
         patient={(selectedClinicalAppointment || activeConsultation)?.patient || selectedHistoryPatient || null}
         onNewPrescriptionRequested={() => setIsNewPrescriptionOpen(true)}
+      />
+
+      {/* 10. Direct Add to Doctor Consultation Queue Modal */}
+      <DirectAddToDoctorQueueDialog
+        isOpen={isDirectAddToDoctorQueueOpen}
+        onOpenChange={setIsDirectAddToDoctorQueueOpen}
+        preselectedPatient={directAddPreselectedPatient}
+        doctors={data.doctorPerformers.map((doc: any) => ({
+          id: doc.id,
+          name: doc.name,
+          consultationFee: doc.consultationFee ?? 1000,
+          consultationRoomId: doc.consultationRoomId,
+          consultationRoom: doc.consultationRoom,
+        }))}
+        defaultDoctorId={selectedDoctorId}
+        onSuccess={() => refreshData(selectedDate)}
+        onOpenCreatePatient={() => setIsNewPatientOpen(true)}
       />
     </div>
   );

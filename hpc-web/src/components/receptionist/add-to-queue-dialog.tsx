@@ -424,7 +424,7 @@ function AddToQueueDialogBody({
                       Doctor chambers & consultations
                     </div>
                     <div className="mt-1.5 text-[9.5px] font-semibold text-sky-700 dark:text-sky-300 flex items-center gap-1">
-                      <span>• Must have Serial for today + Cashier billing</span>
+                      <span>• Direct Queue / Serial auto-assigned</span>
                     </div>
                   </div>
                 </button>
@@ -440,7 +440,7 @@ function AddToQueueDialogBody({
                     </>
                   ) : (
                     <>
-                      <strong>Consultation Rule:</strong> Patient must have a Consultation Serial booked for <strong>today</strong> AND fee cleared (paid or marked DUE) at the Cashier to enter the Doctor Queue.
+                      <strong>Consultation Rule:</strong> Direct Queue active. Anyone can add a patient at any time without a prior consultation serial or cashier clearance — serial token is auto-assigned automatically.
                     </>
                   )}
                 </span>

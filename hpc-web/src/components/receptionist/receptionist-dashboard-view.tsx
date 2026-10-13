@@ -23,6 +23,7 @@ import { SlotScheduleBoard } from "@/components/receptionist/slot-schedule-board
 import { PatientDirectoryView } from "@/components/receptionist/patient-directory-view";
 import { CreatePatientDialog } from "@/components/receptionist/create-patient-dialog";
 import { BookTicketDialog } from "@/components/receptionist/book-ticket-dialog";
+import { DirectAddToDoctorQueueDialog } from "@/components/doctor/direct-add-to-doctor-queue-dialog";
 import {
   AuthorizeReceptionistActionDialog,
   type AuthorizeReceptionistActionConfig,
@@ -81,6 +82,10 @@ export function ReceptionistDashboardView({
   >();
   const [preselectedPatient, setPreselectedPatient] =
     React.useState<PatientWithCount | null>(null);
+  const [isDirectAddToDoctorQueueOpen, setIsDirectAddToDoctorQueueOpen] =
+    React.useState(false);
+  const [directAddPreselectedPatient, setDirectAddPreselectedPatient] =
+    React.useState<any | null>(null);
 
   // Performer action authorization modal
   const [pendingAction, setPendingAction] =
@@ -508,6 +513,19 @@ export function ReceptionistDashboardView({
               <Button
                 size="sm"
                 onClick={() => {
+                  setDirectAddPreselectedPatient(null);
+                  setIsDirectAddToDoctorQueueOpen(true);
+                }}
+                className="h-7.5 px-2 sm:px-2.5 text-xs font-semibold gap-1 bg-sky-600 hover:bg-sky-700 text-white cursor-pointer shadow-xs justify-center shrink-0"
+              >
+                <Stethoscope className="size-3 shrink-0" />
+                <span className="hidden sm:inline">+ Doctor Queue</span>
+                <span className="sm:hidden">Doctor</span>
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={() => {
                   setPreselectedPatient(null);
                   setPreselectedSlotId(undefined);
                   setIsBookTicketOpen(true);
@@ -599,6 +617,10 @@ export function ReceptionistDashboardView({
                 setPreselectedSlotId(undefined);
                 setIsBookTicketOpen(true);
               }}
+              onAddToDoctorQueue={(patient) => {
+                setDirectAddPreselectedPatient(patient);
+                setIsDirectAddToDoctorQueueOpen(true);
+              }}
               performers={data.receptionistPerformers}
               defaultPerformerId={lastPerformerId}
               onPatientUpdated={(updated) => {
@@ -663,6 +685,16 @@ export function ReceptionistDashboardView({
         rooms={data.rooms || []}
         defaultPerformerId={lastPerformerId}
         onConfirm={handleConfirmPendingAction}
+      />
+
+      {/* 4. Direct Add to Doctor Consultation Queue Modal */}
+      <DirectAddToDoctorQueueDialog
+        isOpen={isDirectAddToDoctorQueueOpen}
+        onOpenChange={setIsDirectAddToDoctorQueueOpen}
+        preselectedPatient={directAddPreselectedPatient}
+        doctors={data.doctors || []}
+        onSuccess={() => refreshData(selectedDate)}
+        onOpenCreatePatient={() => setIsNewPatientOpen(true)}
       />
     </div>
   );

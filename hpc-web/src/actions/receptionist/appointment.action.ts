@@ -1634,34 +1634,76 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       }
     }
 
-    // Strict Guard 2: Consultation Queue requires a Consultation Serial booked for TODAY and billing clearance
+    // Consultation Queue: Ensure active ConsultationSerial exists for today (auto-create or promote if needed)
     if (input.queueType === QueueType.CONSULTATION) {
-      const todaySerial = await prisma.consultationSerial.findFirst({
+      let activeSerial = await prisma.consultationSerial.findFirst({
         where: {
           patientId: patient.id,
           appointmentDate: { gte: startOfDay, lte: endOfDay },
-          status: { notIn: ["COMPLETED", "CANCELLED"] },
+          status: { not: "CANCELLED" },
         },
         orderBy: { serialNumber: "desc" },
       });
 
-      if (!todaySerial) {
-        return {
-          success: false,
-          message:
-            "Cannot add to Consultation Queue: Patient must have a Consultation Serial booked for today.",
-        };
-      }
+      if (activeSerial) {
+        // Promote/reactivate to QUEUED if needed so patient appears in consultation queue
+        if (
+          activeSerial.status !== "IN_CONSULTATION" &&
+          activeSerial.status !== "CALLING"
+        ) {
+          await prisma.consultationSerial.update({
+            where: { id: activeSerial.id },
+            data: {
+              status: "QUEUED",
+              outConsultationTime: null,
+              ...(validatedDoctorIdToSet ? { doctorId: validatedDoctorIdToSet } : {}),
+            },
+          });
+        }
+      } else {
+        let effectiveDocId = validatedDoctorIdToSet;
+        if (!effectiveDocId) {
+          const fallbackDoc = await prisma.user.findFirst({
+            where: { role: Role.DOCTOR },
+            select: { id: true },
+          });
+          effectiveDocId = fallbackDoc?.id || sessionData.user.id;
+        }
 
-      if (
-        todaySerial.paymentStatus === "PENDING" &&
-        !todaySerial.invoiceId
-      ) {
-        return {
-          success: false,
-          message:
-            "Cannot add to Consultation Queue: Consultation fee must be paid or marked as DUE by the Cashier first.",
-        };
+        const existingCount = await prisma.consultationSerial.count({
+          where: {
+            doctorId: effectiveDocId,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+          },
+        });
+        const serialNumber = existingCount + 1;
+
+        const activeVisit = await prisma.patientVisit.findFirst({
+          where: {
+            patientId: patient.id,
+            visitDate: { gte: startOfDay, lte: endOfDay },
+            status: { not: "CHECKED_OUT" },
+          },
+          orderBy: { checkInTime: "desc" },
+        });
+
+        await prisma.consultationSerial.create({
+          data: {
+            serialNumber,
+            appointmentDate: now,
+            doctorId: effectiveDocId,
+            patientId: patient.id,
+            visitId: activeVisit?.id || undefined,
+            feeAmount: input.feeAmount ?? DEFAULT_FEE,
+            paidAmount: 0,
+            dueAmount: input.feeAmount ?? DEFAULT_FEE,
+            paymentStatus: "PENDING",
+            status: "QUEUED",
+            toldTime: input.toldTime || undefined,
+            bookedById: validatedBookedById || sessionData.user.id,
+            notes: input.notes || undefined,
+          },
+        });
       }
     }
 
@@ -1696,6 +1738,10 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           checkInTime: existingAppointment.checkInTime || now,
           queueId: queueRecord.id,
           queueType: input.queueType,
+          outConsultationTime:
+            input.queueType === QueueType.CONSULTATION
+              ? null
+              : existingAppointment.outConsultationTime,
           ...(input.toldTime ? { toldTime: input.toldTime } : {}),
           ...(input.notes ? { notes: input.notes } : {}),
           ...(validatedDoctorIdToSet ? { doctorId: validatedDoctorIdToSet } : {}),
@@ -1782,6 +1828,16 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
       feeAmount: updatedAppointment.feeAmount,
       date: updatedAppointment.appointmentDate.toISOString().split("T")[0],
     });
+
+    if (input.queueType === QueueType.CONSULTATION) {
+      emitRealtimeEvent("CONSULTATION_QUEUED", {
+        appointmentId: updatedAppointment.id,
+        patientId: patient.id,
+        patientName: patient.name,
+        doctorId: validatedDoctorIdToSet,
+        date: updatedAppointment.appointmentDate.toISOString().split("T")[0],
+      });
+    }
 
     revalidatePath("/receptionist");
     revalidatePath("/cashier");
@@ -1906,33 +1962,73 @@ export async function switchQueueAction(
       }
     }
 
-    // Strict Guard 2: Cannot switch to Consultation Queue without a same-day Consultation Serial + billing clearance
+    // Consultation Queue: Ensure active ConsultationSerial exists for today (auto-create or promote if needed)
+    let activeSerial = null;
     if (targetQueueType === QueueType.CONSULTATION) {
-      const todaySerial = await prisma.consultationSerial.findFirst({
+      activeSerial = await prisma.consultationSerial.findFirst({
         where: {
           patientId: previous.patientId,
           appointmentDate: { gte: startOfDay, lte: endOfDay },
-          status: { notIn: ["COMPLETED", "CANCELLED"] },
+          status: { not: "CANCELLED" },
         },
+        orderBy: { serialNumber: "desc" },
       });
 
-      if (!todaySerial) {
-        return {
-          success: false,
-          message:
-            "Cannot switch to Consultation Queue: Patient must have a Consultation Serial booked for today.",
-        };
-      }
+      if (activeSerial) {
+        if (
+          activeSerial.status !== "IN_CONSULTATION" &&
+          activeSerial.status !== "CALLING"
+        ) {
+          activeSerial = await prisma.consultationSerial.update({
+            where: { id: activeSerial.id },
+            data: {
+              status: "QUEUED",
+              outConsultationTime: null,
+            },
+          });
+        }
+      } else {
+        let effectiveDocId = previous.doctorId;
+        if (!effectiveDocId) {
+          const fallbackDoc = await prisma.user.findFirst({
+            where: { role: Role.DOCTOR },
+            select: { id: true },
+          });
+          effectiveDocId = fallbackDoc?.id || sessionData.user.id;
+        }
 
-      if (
-        todaySerial.paymentStatus === "PENDING" &&
-        !todaySerial.invoiceId
-      ) {
-        return {
-          success: false,
-          message:
-            "Cannot switch to Consultation Queue: Consultation fee must be paid or marked as DUE by the Cashier first.",
-        };
+        const existingCount = await prisma.consultationSerial.count({
+          where: {
+            doctorId: effectiveDocId,
+            appointmentDate: { gte: startOfDay, lte: endOfDay },
+          },
+        });
+        const serialNumber = existingCount + 1;
+
+        const activeVisit = await prisma.patientVisit.findFirst({
+          where: {
+            patientId: previous.patientId,
+            visitDate: { gte: startOfDay, lte: endOfDay },
+            status: { not: "CHECKED_OUT" },
+          },
+          orderBy: { checkInTime: "desc" },
+        });
+
+        activeSerial = await prisma.consultationSerial.create({
+          data: {
+            serialNumber,
+            appointmentDate: now,
+            doctorId: effectiveDocId,
+            patientId: previous.patientId,
+            visitId: activeVisit?.id || undefined,
+            feeAmount: previous.feeAmount || 1000,
+            paidAmount: 0,
+            dueAmount: previous.feeAmount || 1000,
+            paymentStatus: "PENDING",
+            status: "QUEUED",
+            bookedById: performerId || sessionData.user.id,
+          },
+        });
       }
     }
 
@@ -1941,6 +2037,14 @@ export async function switchQueueAction(
       data: {
         queueId: queueRecord.id,
         queueType: targetQueueType,
+        currentStation:
+          targetQueueType === QueueType.CONSULTATION
+            ? "CONSULTATION_ROOM"
+            : previous.currentStation,
+        outConsultationTime:
+          targetQueueType === QueueType.CONSULTATION
+            ? null
+            : previous.outConsultationTime,
         willCallTime: null,
       },
       include: { patient: true, queue: true, room: true },
@@ -2001,6 +2105,16 @@ export async function switchQueueAction(
       willCallTime: null,
       date: updated.appointmentDate.toISOString().split("T")[0],
     });
+
+    if (targetQueueType === QueueType.CONSULTATION) {
+      emitRealtimeEvent("CONSULTATION_QUEUED", {
+        appointmentId: updated.id,
+        patientId: updated.patientId,
+        patientName: updated.patient.name,
+        doctorId: updated.doctorId,
+        date: updated.appointmentDate.toISOString().split("T")[0],
+      });
+    }
 
     revalidatePath("/receptionist");
     revalidatePath("/doctor");
