@@ -990,8 +990,8 @@ export async function quickCheckInWithoutSlotAction(
           notes: input.notes || undefined,
           feeAmount: fee,
           paidAmount: 0,
-          dueAmount: fee,
-          paymentStatus: "PENDING",
+          dueAmount: fee === 0 && (patient.totalDue ?? 0) === 0 ? 0 : fee,
+          paymentStatus: fee === 0 && (patient.totalDue ?? 0) === 0 ? "PAID" : "PENDING",
         },
         include: { patient: true, doctor: true, room: true },
       });

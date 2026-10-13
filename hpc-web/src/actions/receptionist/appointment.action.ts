@@ -25,7 +25,7 @@ import { logAudit } from "@/lib/audit";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
 import { isSlotActiveOnDay, type DayKey } from "@/lib/weekdays";
 import { DEFAULT_FEE } from "@/lib/billing";
-import { syncBillingForAppointment } from "@/lib/billing-sync";
+import { syncBillingForAppointment, getPatientOutstandingDue } from "@/lib/billing-sync";
 import { verifyPerformerPin } from "@/lib/performer-auth";
 import { revalidatePath } from "next/cache";
 import type {
@@ -206,6 +206,15 @@ export async function bookTherapyTicketAction(
         : DEFAULT_FEE;
     const isFree = feeToCharge === 0;
 
+    // Check if patient has any outstanding due balance
+    const patientDueBalance =
+      (patient.totalDue ?? 0) > 0
+        ? (patient.totalDue ?? 0)
+        : await getPatientOutstandingDue(patient.id);
+    const isAutoPaidZeroFee = feeToCharge === 0 && patientDueBalance === 0;
+    const initialPaymentStatus = isAutoPaidZeroFee ? "PAID" : "PENDING";
+    const initialDueAmount = isAutoPaidZeroFee ? 0 : feeToCharge;
+
     // 6. Check if the patient already has an active checked-in/in-consultation appointment on this date without a therapy slot
     const existingActiveUnassignedApt = await prisma.appointment.findFirst({
       where: {
@@ -268,8 +277,8 @@ export async function bookTherapyTicketAction(
           notes: notes || existingActiveUnassignedApt.notes || undefined,
           feeAmount: feeToCharge,
           paidAmount: 0,
-          dueAmount: feeToCharge,
-          paymentStatus: "PENDING",
+          dueAmount: initialDueAmount,
+          paymentStatus: initialPaymentStatus,
         },
         include: {
           patient: true,
@@ -304,8 +313,8 @@ export async function bookTherapyTicketAction(
           notes: notes || undefined,
           feeAmount: feeToCharge,
           paidAmount: 0,
-          dueAmount: feeToCharge,
-          paymentStatus: "PENDING",
+          dueAmount: initialDueAmount,
+          paymentStatus: initialPaymentStatus,
         },
         include: {
           patient: true,
@@ -374,8 +383,8 @@ export async function bookTherapyTicketAction(
       success: true,
       message:
         finalBookingType === BookingType.EXTRA
-          ? `Standby extra ticket booked for ${patient.name} (${slot.label}) & submitted for Doctor approval. Bill: ৳${feeToCharge} BDT Due.`
-          : `Appointment booked for ${patient.name} (${slot.label}). Bill: ৳${feeToCharge} BDT Due.`,
+          ? `Standby extra ticket booked for ${patient.name} (${slot.label}) & submitted for Doctor approval.${isAutoPaidZeroFee ? " (৳0 - Free, Payment Cleared)" : ` Bill: ৳${feeToCharge} BDT Due.`}`
+          : `Appointment booked for ${patient.name} (${slot.label}).${isAutoPaidZeroFee ? " (৳0 - Free, Payment Cleared)" : ` Bill: ৳${feeToCharge} BDT Due.`}`,
       appointment,
     };
   } catch (error: unknown) {
@@ -1687,6 +1696,13 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           orderBy: { checkInTime: "desc" },
         });
 
+        const patientDueBalance =
+          (patient.totalDue ?? 0) > 0
+            ? (patient.totalDue ?? 0)
+            : await getPatientOutstandingDue(patient.id);
+        const serialFee = input.feeAmount !== undefined ? input.feeAmount : DEFAULT_FEE;
+        const isSerialAutoPaid = serialFee === 0 && patientDueBalance === 0;
+
         await prisma.consultationSerial.create({
           data: {
             serialNumber,
@@ -1694,10 +1710,10 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
             doctorId: effectiveDocId,
             patientId: patient.id,
             visitId: activeVisit?.id || undefined,
-            feeAmount: input.feeAmount ?? DEFAULT_FEE,
+            feeAmount: serialFee,
             paidAmount: 0,
-            dueAmount: input.feeAmount ?? DEFAULT_FEE,
-            paymentStatus: "PENDING",
+            dueAmount: isSerialAutoPaid ? 0 : serialFee,
+            paymentStatus: isSerialAutoPaid ? "PAID" : "PENDING",
             status: "QUEUED",
             toldTime: input.toldTime || undefined,
             bookedById: validatedBookedById || sessionData.user.id,
@@ -1753,9 +1769,11 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
                   input.feeAmount - (existingAppointment.paidAmount ?? 0),
                 ),
                 paymentStatus:
-                  input.feeAmount <= (existingAppointment.paidAmount ?? 0)
+                  input.feeAmount === 0 && (patient.totalDue ?? 0) === 0
                     ? "PAID"
-                    : "PARTIAL",
+                    : input.feeAmount <= (existingAppointment.paidAmount ?? 0)
+                      ? "PAID"
+                      : "PARTIAL",
               }
             : {}),
         },
@@ -1772,6 +1790,12 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
         0,
         0,
       );
+
+      const patientDueBal =
+        (patient.totalDue ?? 0) > 0
+          ? (patient.totalDue ?? 0)
+          : await getPatientOutstandingDue(patient.id);
+      const isAptAutoPaid = feeToCharge === 0 && patientDueBal === 0;
 
       updatedAppointment = await prisma.appointment.create({
         data: {
@@ -1794,8 +1818,8 @@ export async function addPatientToQueueAction(input: AddPatientToQueueInput) {
           doctorId: validatedDoctorIdToSet || undefined,
           feeAmount: feeToCharge,
           paidAmount: 0,
-          dueAmount: feeToCharge,
-          paymentStatus: "PENDING",
+          dueAmount: isAptAutoPaid ? 0 : feeToCharge,
+          paymentStatus: isAptAutoPaid ? "PAID" : "PENDING",
         },
         include: { patient: true, therapySlot: true, queue: true, doctor: true },
       });
@@ -2014,6 +2038,13 @@ export async function switchQueueAction(
           orderBy: { checkInTime: "desc" },
         });
 
+        const switchFee = previous.feeAmount ?? 0;
+        const patientDueBal =
+          (previous.patient?.totalDue ?? 0) > 0
+            ? (previous.patient?.totalDue ?? 0)
+            : await getPatientOutstandingDue(previous.patientId);
+        const isSwitchAutoPaid = switchFee === 0 && patientDueBal === 0;
+
         activeSerial = await prisma.consultationSerial.create({
           data: {
             serialNumber,
@@ -2021,10 +2052,10 @@ export async function switchQueueAction(
             doctorId: effectiveDocId,
             patientId: previous.patientId,
             visitId: activeVisit?.id || undefined,
-            feeAmount: previous.feeAmount || 1000,
+            feeAmount: switchFee,
             paidAmount: 0,
-            dueAmount: previous.feeAmount || 1000,
-            paymentStatus: "PENDING",
+            dueAmount: isSwitchAutoPaid ? 0 : switchFee,
+            paymentStatus: isSwitchAutoPaid ? "PAID" : "PENDING",
             status: "QUEUED",
             bookedById: performerId || sessionData.user.id,
           },

@@ -602,6 +602,11 @@ export function CashierDashboardView({
   const filteredPending = React.useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return data.pendingAppointments.filter((item) => {
+      const fee = item.feeAmount ?? 0;
+      const due = item.dueAmount ?? 0;
+      const patientDue = item.patient?.totalDue ?? 0;
+      if (fee === 0 && due === 0 && patientDue === 0) return false;
+
       if (!q) return true;
       const name = (item.patient?.name || "").toLowerCase();
       const phone = (item.patient?.phone || "").toLowerCase();
@@ -621,6 +626,11 @@ export function CashierDashboardView({
     const q = searchQuery.toLowerCase().trim();
     const list = data.pendingConsultationSerials || [];
     return list.filter((item: any) => {
+      const fee = item.feeAmount ?? 0;
+      const due = item.dueAmount ?? 0;
+      const patientDue = item.patient?.totalDue ?? 0;
+      if (fee === 0 && due === 0 && patientDue === 0) return false;
+
       if (!q) return true;
       const name = (item.patient?.name || "").toLowerCase();
       const phone = (item.patient?.phone || "").toLowerCase();

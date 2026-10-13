@@ -1,6 +1,83 @@
 import prisma from "@/lib/prisma";
 
 /**
+ * Checks whether a patient has any outstanding unpaid dues or bills:
+ * - patient.totalDue > 0
+ * - Unpaid or partial invoices with dueAmount > 0
+ * - Uninvoiced consultation serials with dueAmount > 0 (or feeAmount > paidAmount)
+ * - Uninvoiced completed appointments with dueAmount > 0
+ */
+export async function getPatientOutstandingDue(patientId: string): Promise<number> {
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { totalDue: true },
+    });
+    if ((patient?.totalDue ?? 0) > 0) {
+      return patient?.totalDue ?? 0;
+    }
+
+    const [dueInvoice, dueSerial, dueApt] = await Promise.all([
+      prisma.patientInvoice.findFirst({
+        where: {
+          patientId,
+          dueAmount: { gt: 0 },
+          status: { in: ["DUE", "PARTIAL"] },
+        },
+        select: { dueAmount: true },
+      }),
+      prisma.consultationSerial.findFirst({
+        where: {
+          patientId,
+          invoiceId: null,
+          status: { not: "CANCELLED" },
+          OR: [
+            { paymentStatus: "DUE" },
+            { paymentStatus: "PARTIAL" },
+            { dueAmount: { gt: 0 } },
+          ],
+        },
+        select: { dueAmount: true, feeAmount: true, paidAmount: true },
+      }),
+      prisma.appointment.findFirst({
+        where: {
+          patientId,
+          invoiceId: null,
+          status: { not: "CANCELLED" },
+          OR: [
+            { paymentStatus: "DUE" },
+            { paymentStatus: "PARTIAL" },
+            { dueAmount: { gt: 0 } },
+          ],
+        },
+        select: { dueAmount: true, feeAmount: true, paidAmount: true },
+      }),
+    ]);
+
+    if (dueInvoice && dueInvoice.dueAmount > 0) return dueInvoice.dueAmount;
+    if (dueSerial) {
+      const sDue =
+        (dueSerial.dueAmount ?? 0) > 0
+          ? (dueSerial.dueAmount ?? 0)
+          : Math.max(0, (dueSerial.feeAmount ?? 0) - (dueSerial.paidAmount ?? 0));
+      if (sDue > 0) return sDue;
+    }
+    if (dueApt) {
+      const aDue =
+        (dueApt.dueAmount ?? 0) > 0
+          ? (dueApt.dueAmount ?? 0)
+          : Math.max(0, (dueApt.feeAmount ?? 0) - (dueApt.paidAmount ?? 0));
+      if (aDue > 0) return aDue;
+    }
+
+    return 0;
+  } catch (err) {
+    console.error("[getPatientOutstandingDue Error]:", err);
+    return 0;
+  }
+}
+
+/**
  * Synchronizes multi-tier billing amounts across:
  * 1. Appointment: ensures paidAmount & dueAmount match feeAmount and paymentStatus
  * 2. MedicalRecord (Episode File): computes totalBill, totalPaid, totalDue across all linked appointments
@@ -41,7 +118,20 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
 
     const fee = apt.feeAmount ?? 0;
     const hasInvoiceOrCash = Boolean(apt.invoiceId || (apt.paidAmount ?? 0) > 0);
-    const isPaid = apt.paymentStatus === "PAID" && (fee > 0 || hasInvoiceOrCash);
+
+    // Check if patient has any outstanding due / unpaid bill
+    let patientHasDue = false;
+    if (apt.patientId) {
+      const outstandingDue = await getPatientOutstandingDue(apt.patientId);
+      patientHasDue = outstandingDue > 0;
+    }
+
+    // If fee is 0 taka and patient has no due or other bill, automatically clear and mark as PAID
+    const isZeroFeeAutoPaid = fee === 0 && !patientHasDue;
+    const isPaid =
+      (apt.paymentStatus === "PAID" && (fee > 0 || hasInvoiceOrCash || !patientHasDue)) ||
+      isZeroFeeAutoPaid;
+
     const rawPaid =
       apt.paidAmount !== null && apt.paidAmount !== undefined && (apt.paidAmount > 0 || !isPaid)
         ? apt.paidAmount
@@ -51,7 +141,7 @@ export async function syncBillingForAppointment(appointmentId: string): Promise<
     const resolvedStatus =
       fee > 0
         ? (calculatedDue === 0 ? "PAID" : (calculatedPaid > 0 ? "PARTIAL" : (apt.paymentStatus || "PENDING")))
-        : (hasInvoiceOrCash ? "PAID" : (apt.paymentStatus || "PENDING"));
+        : (isPaid || hasInvoiceOrCash || isZeroFeeAutoPaid ? "PAID" : (apt.paymentStatus || "PENDING"));
 
     // Update appointment amounts and status if divergent
     if (
@@ -269,6 +359,36 @@ export async function syncBillingForPatient(patientId: string): Promise<void> {
         totalDue: patientDue,
       },
     });
+
+    // If patient has zero due, automatically clear and mark as PAID any 0 taka uninvoiced serials and appointments
+    if (patientDue === 0) {
+      await Promise.all([
+        prisma.consultationSerial.updateMany({
+          where: {
+            patientId,
+            feeAmount: 0,
+            dueAmount: 0,
+            paymentStatus: { not: "PAID" },
+            status: { not: "CANCELLED" },
+          },
+          data: {
+            paymentStatus: "PAID",
+          },
+        }),
+        prisma.appointment.updateMany({
+          where: {
+            patientId,
+            feeAmount: 0,
+            dueAmount: 0,
+            paymentStatus: { not: "PAID" },
+            status: { not: "CANCELLED" },
+          },
+          data: {
+            paymentStatus: "PAID",
+          },
+        }),
+      ]).catch(() => {});
+    }
   } catch (err) {
     console.error("[syncBillingForPatient Error]:", err);
   }

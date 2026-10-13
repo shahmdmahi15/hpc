@@ -33,7 +33,7 @@ import {
 import { logAudit } from "@/lib/audit";
 import { verifyPerformerPin } from "@/lib/performer-auth";
 import { emitRealtimeEvent } from "@/lib/realtime/event-bus";
-import { syncBillingForAppointment, syncBillingForPatient } from "@/lib/billing-sync";
+import { syncBillingForAppointment, syncBillingForPatient, getPatientOutstandingDue } from "@/lib/billing-sync";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -305,7 +305,7 @@ export async function createPatientAction(
             feeAmount: 0,
             paidAmount: 0,
             dueAmount: 0,
-            paymentStatus: "PENDING",
+            paymentStatus: (targetPatient.totalDue ?? 0) === 0 ? "PAID" : "PENDING",
           },
           include: { patient: true, doctor: true, therapySlot: true, room: true },
         });
@@ -877,7 +877,7 @@ export async function checkInArrivingPatientAction(
             feeAmount: 0,
             paidAmount: 0,
             dueAmount: 0,
-            paymentStatus: "PENDING",
+            paymentStatus: (patient.totalDue ?? 0) === 0 ? "PAID" : "PENDING",
           },
           include: { patient: true, doctor: true, therapySlot: true, room: true },
         });
@@ -1128,7 +1128,25 @@ export async function bookConsultationSerialAction(
 
     const waitingRoom = await getPublicWaitingRoom();
 
-    // Create ConsultationSerial (status: FORWARDED_TO_CASHIER)
+    const effectiveFee = Math.max(0, feeAmount);
+    const patientDueBalance =
+      (patient.totalDue ?? 0) > 0
+        ? (patient.totalDue ?? 0)
+        : await getPatientOutstandingDue(patient.id);
+    const isAutoPaidZeroFee = effectiveFee === 0 && patientDueBalance === 0;
+
+    const serialStatus = isAutoPaidZeroFee ? "QUEUED" : "FORWARDED_TO_CASHIER";
+    const paymentStatus = isAutoPaidZeroFee ? "PAID" : "PENDING";
+    const serialDue = isAutoPaidZeroFee ? 0 : effectiveFee;
+    const targetStation = isAutoPaidZeroFee ? "CONSULTATION_ROOM" : "CASHIER_REGISTER";
+    const stepAction = isAutoPaidZeroFee ? "QUEUED_FOR_DOCTOR" : "FORWARDED_TO_CASHIER";
+    const stepDetails = isAutoPaidZeroFee
+      ? `Booked Consultation Serial #${serialNumber} with Dr. ${doctor.name || "Doctor"} (Fee: ৳0 - Free) -> Payment cleared automatically, placed in Doctor Consultation Queue`
+      : effectiveFee === 0
+        ? `Booked Consultation Serial #${serialNumber} with Dr. ${doctor.name || "Doctor"} (Fee: ৳0). Patient has outstanding due of ৳${patientDueBalance} -> Forwarded to Cashier Desk`
+        : `Booked Consultation Serial #${serialNumber} with Dr. ${doctor.name || "Doctor"} (Fee: ৳${effectiveFee}) -> Forwarded to Cashier Desk`;
+
+    // Create ConsultationSerial
     const serial = await prisma.consultationSerial.create({
       data: {
         serialNumber,
@@ -1136,11 +1154,11 @@ export async function bookConsultationSerialAction(
         doctorId,
         patientId,
         visitId: activeVisitId || undefined,
-        feeAmount: Math.max(0, feeAmount),
+        feeAmount: effectiveFee,
         paidAmount: 0,
-        dueAmount: Math.max(0, feeAmount),
-        paymentStatus: "PENDING",
-        status: "FORWARDED_TO_CASHIER",
+        dueAmount: serialDue,
+        paymentStatus,
+        status: serialStatus,
         toldTime: toldTime || undefined,
         bookedById: performerId,
         notes: notes || undefined,
@@ -1167,7 +1185,8 @@ export async function bookConsultationSerialAction(
       await prisma.appointment.update({
         where: { id: existingApt.id },
         data: {
-          currentStation: "CASHIER_REGISTER",
+          currentStation: targetStation,
+          queueType: isAutoPaidZeroFee ? QueueType.CONSULTATION : existingApt.queueType,
           visitId: activeVisitId || existingApt.visitId,
           checkOutTime: null,
           doctorId: existingApt.doctorId || doctorId,
@@ -1179,6 +1198,7 @@ export async function bookConsultationSerialAction(
             : existingApt.notes,
         },
       });
+      await syncBillingForAppointment(existingApt.id);
     }
 
     // Record step in PatientStepLog
@@ -1187,12 +1207,12 @@ export async function bookConsultationSerialAction(
         data: {
           patientId,
           visitId: activeVisitId,
-          step: "FORWARDED_TO_CASHIER",
-          station: "CASHIER_REGISTER",
+          step: stepAction,
+          station: targetStation,
           roomNumber: waitingRoom.number,
           doctorId,
           performerId,
-          details: `Booked Consultation Serial #${serialNumber} with Dr. ${doctor.name || "Doctor"} (Fee: ৳${feeAmount}) -> Forwarded to Cashier Desk`,
+          details: stepDetails,
         },
       });
     }
@@ -1206,24 +1226,42 @@ export async function bookConsultationSerialAction(
       doctorId: doctor.id,
       doctorName: doctor.name,
       feeAmount: serial.feeAmount,
-      status: "FORWARDED_TO_CASHIER",
+      paymentStatus: serial.paymentStatus,
+      status: serialStatus,
       roomNumber: waitingRoom.number,
     });
     emitRealtimeEvent("STATION_CHANGED", {
       patientId: patient.id,
       patientName: patient.name,
-      toStation: "CASHIER_REGISTER",
+      toStation: targetStation,
       roomNumber: waitingRoom.number,
     });
+    if (isAutoPaidZeroFee) {
+      emitRealtimeEvent("CONSULTATION_QUEUED", {
+        serialId: serial.id,
+        serialNumber: serial.serialNumber,
+        patientId: patient.id,
+        patientName: patient.name,
+        doctorId: doctor.id,
+        doctorName: doctor.name,
+        date: now.toISOString().split("T")[0],
+      });
+    }
 
     revalidatePath("/receptionist");
     revalidatePath("/cashier");
     revalidatePath("/doctor");
     revalidatePath("/admin/tracking");
 
+    const returnMsg = isAutoPaidZeroFee
+      ? `Consultation Serial #${serialNumber} booked with Dr. ${doctor.name || "Doctor"} (৳0 - Free). Payment automatically cleared and placed in Doctor Consultation Queue.`
+      : effectiveFee === 0
+        ? `Consultation Serial #${serialNumber} booked with Dr. ${doctor.name || "Doctor"} (৳0). Patient has outstanding due balance of ৳${patientDueBalance}; forwarded to Cashier Desk.`
+        : `Consultation Serial #${serialNumber} booked with Dr. ${doctor.name || "Doctor"} (৳${effectiveFee}). Forwarded to Cashier Desk.`;
+
     return {
       success: true,
-      message: `Consultation Serial #${serialNumber} booked with Dr. ${doctor.name || "Doctor"} (৳${feeAmount}). Forwarded to Cashier Desk.`,
+      message: returnMsg,
       serial,
     };
   } catch (error) {

@@ -161,14 +161,18 @@ export async function getCashierDashboardDataAction(
 
   // Consultation serials forwarded from reception awaiting cashier payment or mark DUE
   const pendingConsultationSerials = consultationSerials.filter(
-    (s) => s.status === "FORWARDED_TO_CASHIER",
+    (s) =>
+      s.status === "FORWARDED_TO_CASHIER" &&
+      !((s.feeAmount ?? 0) === 0 && (s.dueAmount ?? 0) === 0 && (s.patient?.totalDue ?? 0) === 0),
   );
-  // Settled / paid consultation serials (strictly only those with paid amount or paymentStatus PAID)
+  // Settled / paid consultation serials (strictly only those with paid amount, paymentStatus PAID, or auto-cleared 0 fee)
   const paidConsultationSerials = consultationSerials.filter(
     (s) =>
       s.status !== "FORWARDED_TO_CASHIER" &&
       s.status !== "CANCELLED" &&
-      (s.paymentStatus === "PAID" || (s.paidAmount ?? 0) >= (s.feeAmount ?? 0)),
+      (s.paymentStatus === "PAID" ||
+        (s.paidAmount ?? 0) >= (s.feeAmount ?? 0) ||
+        ((s.feeAmount ?? 0) === 0 && (s.dueAmount ?? 0) === 0 && (s.patient?.totalDue ?? 0) === 0)),
   );
   // Consultation serials cleared as DUE or PARTIAL with remaining due
   const dueConsultationSerials = consultationSerials.filter(
@@ -206,24 +210,27 @@ export async function getCashierDashboardDataAction(
     (a) =>
       a.status !== AppointmentStatus.CANCELLED &&
       (a.paymentStatus === "PAID" ||
-        (Boolean(a.invoiceId) && (a.paidAmount ?? 0) > 0)) &&
+        (Boolean(a.invoiceId) && (a.paidAmount ?? 0) > 0) ||
+        ((a.feeAmount ?? 0) === 0 && (a.dueAmount ?? 0) === 0 && (a.patient?.totalDue ?? 0) === 0)) &&
       a.currentStation !== "CASHIER_REGISTER" &&
-      Boolean(a.invoiceId || (a.paidAmount ?? 0) > 0),
+      (Boolean(a.invoiceId || (a.paidAmount ?? 0) > 0) ||
+        ((a.feeAmount ?? 0) === 0 && (a.dueAmount ?? 0) === 0 && (a.patient?.totalDue ?? 0) === 0)),
   );
   const pendingAppointments = therapyAppointments.filter(
     (a) => {
       if (a.status === AppointmentStatus.CANCELLED) return false;
-      if (a.paymentStatus === "PAID" && a.currentStation !== "CASHIER_REGISTER") return false;
 
       const fee = a.feeAmount ?? 0;
       const due = a.dueAmount ?? 0;
       const patientDue = a.patient?.totalDue ?? 0;
       const isAtCashier = a.currentStation === "CASHIER_REGISTER";
 
-      // If fee is 0, due is 0, patient has no previous due, and not at Cashier, do not show 0 taka bill!
-      if (fee === 0 && due === 0 && patientDue === 0 && !isAtCashier) {
+      // If fee is 0, due is 0, and patient has no previous due, automatically cleared and fully 0 taka paid!
+      if (fee === 0 && due === 0 && patientDue === 0) {
         return false;
       }
+
+      if (a.paymentStatus === "PAID" && !isAtCashier) return false;
 
       return (
         a.paymentStatus !== "PAID" ||

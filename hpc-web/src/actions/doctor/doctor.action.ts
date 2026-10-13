@@ -27,7 +27,7 @@ import {
 import { getOrCreateWaitingRoom200 } from "@/actions/receptionist/patient.action";
 import { type TreatmentPlanRecord } from "@/actions/doctor/treatment-plan.action";
 import { parsePlan } from "@/schemas/doctor/treatment-plan.schema";
-import { syncBillingForAppointment } from "@/lib/billing-sync";
+import { syncBillingForAppointment, getPatientOutstandingDue } from "@/lib/billing-sync";
 import { verifyPerformerPin } from "@/lib/performer-auth";
 import {
   type TherapyTimerState,
@@ -695,9 +695,13 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
       }
     }
 
+    const patientOutstanding = await getPatientOutstandingDue(appointment.patientId);
+
     // Determine payment status
     let paymentStatus = appointment.paymentStatus || "PENDING";
-    if (
+    if (feeToSet === 0 && patientOutstanding === 0) {
+      paymentStatus = "PAID";
+    } else if (
       appointment.paymentStatus === "PAID" &&
       feeToSet > (appointment.feeAmount ?? 0)
     ) {
@@ -888,10 +892,16 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
             outConsultationTime: routeTime,
           };
 
-          // Only update fee on UNINVOICED serials if doctor explicitly entered a consultation fee > 0
-          if (!serial.invoiceId && routingOrigin === "DOCTOR" && newConsultationFee > 0) {
-            updateData.feeAmount = newConsultationFee;
-            updateData.dueAmount = Math.max(0, newConsultationFee - (serial.paidAmount ?? 0));
+          // Only update fee on UNINVOICED serials if doctor explicitly entered a consultation fee
+          if (!serial.invoiceId && routingOrigin === "DOCTOR") {
+            if (newConsultationFee > 0) {
+              updateData.feeAmount = newConsultationFee;
+              updateData.dueAmount = Math.max(0, newConsultationFee - (serial.paidAmount ?? 0));
+            } else if (newConsultationFee === 0 && patientOutstanding === 0) {
+              updateData.feeAmount = 0;
+              updateData.dueAmount = 0;
+              updateData.paymentStatus = "PAID";
+            }
           }
 
           await prisma.consultationSerial.update({
@@ -946,16 +956,19 @@ export async function routePatientAction(params: RoutePatientParams): Promise<{
           });
           const serialNumber = existingCount + 1;
 
+          const isDocFeeZero = (updated.feeAmount ?? 0) === 0;
+          const isDocAutoPaid = isDocFeeZero && patientOutstanding === 0;
+
           await prisma.consultationSerial.create({
             data: {
               serialNumber,
               appointmentDate: routeTime,
               doctorId: effectiveDocId,
               patientId: updated.patientId,
-              feeAmount: updated.feeAmount || 1000,
-              paidAmount: updated.paidAmount || 0,
-              dueAmount: updated.dueAmount || 1000,
-              paymentStatus: updated.paymentStatus || "PENDING",
+              feeAmount: updated.feeAmount ?? 0,
+              paidAmount: isDocAutoPaid ? 0 : (updated.paidAmount || 0),
+              dueAmount: isDocAutoPaid ? 0 : (updated.dueAmount || 0),
+              paymentStatus: isDocAutoPaid ? "PAID" : (updated.paymentStatus || "PENDING"),
               status: "QUEUED",
               notes: params.routingNote || undefined,
             },
@@ -1862,6 +1875,12 @@ export async function directAddToDoctorQueueAction(
         orderBy: { checkInTime: "desc" },
       });
 
+      const patientDueBal =
+        (patient.totalDue ?? 0) > 0
+          ? (patient.totalDue ?? 0)
+          : await getPatientOutstandingDue(patient.id);
+      const isAutoPaidZeroFee = feeToCharge === 0 && patientDueBal === 0;
+
       activeSerial = await prisma.consultationSerial.create({
         data: {
           serialNumber,
@@ -1871,8 +1890,8 @@ export async function directAddToDoctorQueueAction(
           visitId: activeVisit?.id || undefined,
           feeAmount: feeToCharge,
           paidAmount: 0,
-          dueAmount: feeToCharge,
-          paymentStatus: "PENDING",
+          dueAmount: isAutoPaidZeroFee ? 0 : feeToCharge,
+          paymentStatus: isAutoPaidZeroFee ? "PAID" : "PENDING",
           status: "QUEUED",
           toldTime: input.toldTime || undefined,
           bookedById: input.performerId || sessionData.user.id,
@@ -1890,6 +1909,12 @@ export async function directAddToDoctorQueueAction(
       },
       orderBy: { createdAt: "desc" },
     });
+
+    const patientDueBal =
+      (patient.totalDue ?? 0) > 0
+        ? (patient.totalDue ?? 0)
+        : await getPatientOutstandingDue(patient.id);
+    const isAutoPaidZeroFee = feeToCharge === 0 && patientDueBal === 0;
 
     let updatedAppointment: AppointmentWithRelations;
 
@@ -1909,12 +1934,15 @@ export async function directAddToDoctorQueueAction(
           ...(input.feeAmount !== undefined
             ? {
                 feeAmount: feeToCharge,
-                dueAmount: Math.max(
-                  0,
-                  feeToCharge - (existingAppointment.paidAmount ?? 0),
-                ),
-                paymentStatus:
-                  feeToCharge <= (existingAppointment.paidAmount ?? 0)
+                dueAmount: isAutoPaidZeroFee
+                  ? 0
+                  : Math.max(
+                      0,
+                      feeToCharge - (existingAppointment.paidAmount ?? 0),
+                    ),
+                paymentStatus: isAutoPaidZeroFee
+                  ? "PAID"
+                  : feeToCharge <= (existingAppointment.paidAmount ?? 0)
                     ? "PAID"
                     : "PARTIAL",
               }
@@ -1961,8 +1989,8 @@ export async function directAddToDoctorQueueAction(
           doctorId: validatedDoctorId || undefined,
           feeAmount: feeToCharge,
           paidAmount: 0,
-          dueAmount: feeToCharge,
-          paymentStatus: "PENDING",
+          dueAmount: isAutoPaidZeroFee ? 0 : feeToCharge,
+          paymentStatus: isAutoPaidZeroFee ? "PAID" : "PENDING",
         },
         include: {
           patient: true,
